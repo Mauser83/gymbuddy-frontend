@@ -163,18 +163,24 @@ export const getComponentStyles = (theme: Theme) => ({
       marginRight: spacing.sm,
     },
     outlineWrapper: {
-    borderWidth: borderWidth.hairline,
-    borderColor: theme.colors.textSecondary,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    alignItems: 'center' as ViewStyle['alignItems'],
-  },
-  outlineText: {
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.semiBold as TextStyle['fontWeight'],
-    color: theme.colors.textSecondary,
-  },
+      borderWidth: borderWidth.hairline,
+      borderColor: theme.colors.textSecondary,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      alignItems: 'center' as ViewStyle['alignItems'],
+    },
+    outlineText: {
+      fontSize: fontSizes.md,
+      fontWeight: fontWeights.semiBold as TextStyle['fontWeight'],
+      color: theme.colors.textSecondary,
+    },
+    disabled: {
+      backgroundColor: theme.colors.disabledSurface,
+    },
+    disabledText: {
+      color: theme.colors.textDisabled,
+    },
   }),
   input: StyleSheet.create({
     container: {
@@ -253,7 +259,7 @@ export const getComponentStyles = (theme: Theme) => ({
       fontWeight: fontWeights.semiBold,
     },
     icon: {
-      fontSize: 14,
+      fontSize: fontSizes.sm,
       marginLeft: spacing.sm,
     },
   },
@@ -308,10 +314,69 @@ export const getComponentStyles = (theme: Theme) => ({
     card: {
       backgroundColor: 'rgba(17, 24, 39, 0.95)',
       borderColor: 'rgba(255, 255, 255, 0.1)',
-      borderWidth: 1,
-      borderRadius: 20,
+      borderWidth: borderWidth.hairline,
+      borderRadius: borderRadius.xl,
       padding: spacing.xl,
       width: '90%' as ViewStyle['width'],
     } as ViewStyle,
   },
+  selectableField: {
+    field: {
+      marginBottom: spacing.md,
+    },
+    label: {
+      color: theme.colors.textSecondary,
+      marginBottom: spacing.xs,
+    },
+    picker: {
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      padding: spacing.md,
+      borderColor: theme.colors.cardBorder,
+      backgroundColor: theme.colors.surface,
+    },
+    pickerDisabled: {
+      backgroundColor: theme.colors.disabledSurface,
+      borderColor: theme.colors.disabledBorder,
+    },
+    pickerText: {
+      color: theme.colors.textPrimary,
+    },
+    pickerTextDisabled: {
+      color: theme.colors.textDisabled,
+    },
+    pickerContent: {
+      flexDirection: 'row' as ViewStyle['flexDirection'],
+      alignItems: 'center' as ViewStyle['alignItems'],
+      justifyContent: 'space-between' as ViewStyle['justifyContent'],
+    },
+  },
+  title: {
+    container: {
+      marginBottom: spacing.md,
+    },
+    title: {
+      fontSize: fontSizes.xl,
+      fontWeight: fontWeights.bold,
+      color: theme.colors.textPrimary,
+      marginBottom: spacing.xs,
+    },
+    subtitle: {
+      fontSize: fontSizes.lg,
+      color: theme.colors.textSecondary,
+    },
+  },
+  optionItem: {
+  container: {
+    paddingVertical: spacing.md,
+    borderBottomColor: theme.colors.divider,
+    borderBottomWidth: borderWidth.hairline
+  },
+  text: {
+    color: theme.colors.textPrimary,
+    fontSize: fontSizes.md,
+    textAlign: 'center' as TextStyle['textAlign'],
+  },
+}
+
 });

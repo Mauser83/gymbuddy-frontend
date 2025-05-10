@@ -7,12 +7,15 @@ export interface Theme {
       featureCardBackground: string;
       textPrimary: string;
       textSecondary: string;
+      textDisabled: string;
       buttonText: string;
       error: string;
       divider: string;
       accentStart: string;
       accentEnd: string;
       cardBorder: string;
+      disabledSurface: string;
+      disabledBorder: string;
       rolePill: {
         app: string;
         user: string;

@@ -10,6 +10,7 @@ import Input from 'shared/components/Input';
 import FormError from 'shared/components/FormError';
 import DividerWithLabel from 'shared/components/DividerWithLabel';
 import ScreenLayout from 'shared/components/ScreenLayout';
+import ButtonRow from 'shared/components/ButtonRow';
 
 // Validation Schema
 const LoginSchema = Yup.object().shape({
@@ -74,7 +75,7 @@ const LoginScreen = () => {
 
               <DividerWithLabel label="Or continue with" />
 
-              <View style={styles.providerButtons}>
+              <ButtonRow>
                 <Button
                   text="Google"
                   onPress={() => {}}
@@ -87,7 +88,7 @@ const LoginScreen = () => {
                   icon={<FontAwesome name="apple" size={20} color="white" />}
                   variant="solid"
                 />
-              </View>
+              </ButtonRow>
             </View>
           )}
         </Formik>
@@ -106,10 +107,5 @@ const styles = StyleSheet.create({
   },
   form: {
     width: '100%',
-  },
-  providerButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 16,
   },
 });

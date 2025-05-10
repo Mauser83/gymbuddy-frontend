@@ -4,6 +4,7 @@ import {useNavigate} from 'react-router-native';
 import Button from 'shared/components/Button';
 import Card from 'shared/components/Card';
 import ScreenLayout from 'shared/components/ScreenLayout';
+import ButtonRow from 'shared/components/ButtonRow';
 
 const WelcomeScreen = () => {
   const navigate = useNavigate();
@@ -31,10 +32,10 @@ const WelcomeScreen = () => {
         />
 
         {/* Buttons */}
-        <View style={layout.buttonWrapper}>
+        <ButtonRow>
           <Button text="Login" onPress={() => navigate('/login')} />
           <Button text="Register" onPress={() => navigate('/register')} />
-        </View>
+        </ButtonRow>
       </View>
     </ScreenLayout>
   );
@@ -47,13 +48,5 @@ const layout = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     alignItems: 'center',
-  },
-  buttonWrapper: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    maxWidth: 400,
-    gap: 16,
-    marginBottom: 16,
   },
 });

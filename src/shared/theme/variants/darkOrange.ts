@@ -1,4 +1,4 @@
-import { Theme } from '../types/theme.types';
+import {Theme} from '../types/theme.types';
 
 export const darkOrange: Theme = {
   name: 'dark-orange',
@@ -9,12 +9,15 @@ export const darkOrange: Theme = {
     featureCardBackground: 'rgba(255, 255, 255, 0.03)',
     textPrimary: '#f9fafb',
     textSecondary: '#9ca3af',
+    textDisabled: '#6b7280',
     buttonText: '#ffffff',
     error: '#f87171',
     divider: 'rgba(255, 255, 255, 0.2)',
     accentStart: '#f97316',
     accentEnd: '#ef4444',
     cardBorder: 'rgba(255, 255, 255, 0.07)',
+    disabledSurface: 'rgba(107, 114, 128, 0.3)',
+    disabledBorder: 'rgba(107, 114, 128, 0.4)',
     rolePill: {
       app: '#ef4444',
       user: '#f97316',
