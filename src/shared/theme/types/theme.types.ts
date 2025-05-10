@@ -16,6 +16,7 @@ export interface Theme {
       cardBorder: string;
       disabledSurface: string;
       disabledBorder: string;
+      layoutBorder: string;
       rolePill: {
         app: string;
         user: string;

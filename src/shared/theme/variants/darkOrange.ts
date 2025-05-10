@@ -18,6 +18,7 @@ export const darkOrange: Theme = {
     cardBorder: 'rgba(255, 255, 255, 0.07)',
     disabledSurface: 'rgba(107, 114, 128, 0.3)',
     disabledBorder: 'rgba(107, 114, 128, 0.4)',
+    layoutBorder: '#78350f',
     rolePill: {
       app: '#ef4444',
       user: '#f97316',

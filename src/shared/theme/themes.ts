@@ -367,16 +367,29 @@ export const getComponentStyles = (theme: Theme) => ({
     },
   },
   optionItem: {
-  container: {
-    paddingVertical: spacing.md,
-    borderBottomColor: theme.colors.divider,
-    borderBottomWidth: borderWidth.hairline
+    container: {
+      paddingVertical: spacing.md,
+      borderBottomColor: theme.colors.divider,
+      borderBottomWidth: borderWidth.hairline,
+    },
+    text: {
+      color: theme.colors.textPrimary,
+      fontSize: fontSizes.md,
+      textAlign: 'center' as TextStyle['textAlign'],
+    },
   },
-  text: {
-    color: theme.colors.textPrimary,
-    fontSize: fontSizes.md,
-    textAlign: 'center' as TextStyle['textAlign'],
+  safeAreaFooter: {
+    container: {
+      backgroundColor: theme.colors.surface,
+      borderTopWidth: borderWidth.hairline,
+      borderTopColor: theme.colors.layoutBorder,
+    },
   },
-}
-
+  safeAreaHeader: {
+    container: {
+      backgroundColor: theme.colors.surface,
+      borderBottomWidth: borderWidth.hairline,
+      borderBottomColor: theme.colors.layoutBorder,
+    },
+  },
 });

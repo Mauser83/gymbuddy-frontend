@@ -1,28 +1,22 @@
-import React, { ReactNode } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React, {ReactNode} from 'react';
+import {View} from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useTheme} from 'shared/theme/ThemeProvider';
 
 interface SafeAreaFooterProps {
   children: ReactNode;
 }
 
-const SafeAreaFooter = ({ children }: SafeAreaFooterProps) => {
+const SafeAreaFooter = ({children}: SafeAreaFooterProps) => {
   const insets = useSafeAreaInsets();
+  const {componentStyles} = useTheme();
+  const styles = componentStyles.safeAreaFooter;
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, {paddingBottom: insets.bottom}]}>
       {children}
     </View>
   );
 };
 
 export default SafeAreaFooter;
-
-// File-specific styles
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: 'rgba(0,0,0,0.9)',
-    borderTopWidth: 1,
-    borderTopColor: '#78350f',
-  },
-});
