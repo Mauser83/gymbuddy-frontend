@@ -1,0 +1,218 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  TextInput,
+  FlatList,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+} from 'react-native';
+import Constants from 'expo-constants';
+
+export type AddressDetails = {
+  address: string;
+  latitude: number;
+  longitude: number;
+  postalCode: string;
+  countryCode: string;
+  country: string;
+  stateCode: string;
+  state: string;
+  city: string;
+};
+
+type Props = {
+  value: string;
+  onChangeText: (val: string) => void;
+  onPlaceSelect: (details: AddressDetails) => void;
+  onValidAddressSelected?: (isValid: boolean) => void;
+};
+
+type AutocompletePrediction = {
+  description: string;
+  place_id: string;
+};
+
+const isWeb = Platform.OS === 'web';
+const apiKey = Constants.expoConfig?.extra?.googleMapsApiKey;
+const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+
+const AddressAutocompleteInput: React.FC<Props> = ({
+  value,
+  onChangeText,
+  onPlaceSelect,
+  onValidAddressSelected,
+}) => {
+  const [suggestions, setSuggestions] = useState<AutocompletePrediction[]>([]);
+  const [inputTouched, setInputTouched] = useState(false);
+
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (value.length < 3) {
+        setSuggestions([]);
+        return;
+      }
+
+      const url = isWeb
+        ? `${BACKEND_URL}/api/autocomplete?input=${encodeURIComponent(value)}`
+        : `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(value)}&key=${apiKey}&language=en`;
+
+      try {
+        const res = await fetch(url);
+        const json = await res.json();
+        if (json.status === 'OK') {
+          setSuggestions(json.predictions);
+        } else {
+          setSuggestions([]);
+        }
+      } catch (error) {
+        setSuggestions([]);
+      }
+    };
+
+    const timeout = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(timeout);
+  }, [value]);
+
+  const fetchPlaceDetails = async (placeId: string) => {
+    const url = isWeb
+      ? `${BACKEND_URL}/api/place-details?place_id=${placeId}`
+      : `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${apiKey}`;
+
+    try {
+      const res = await fetch(url);
+      const json = await res.json();
+
+      if (json.status === 'OK') {
+        const result = json.result;
+        const lat = result.geometry.location.lat;
+        const lng = result.geometry.location.lng;
+        const address = result.formatted_address;
+
+        const getComp = (type: string) =>
+          result.address_components.find((c: any) => c.types.includes(type))?.short_name || '';
+
+        onPlaceSelect({
+          address,
+          latitude: lat,
+          longitude: lng,
+          postalCode: getComp('postal_code'),
+          countryCode: getComp('country'),
+          country: getComp('country'),
+          stateCode: getComp('administrative_area_level_1'),
+          state: getComp('administrative_area_level_1'),
+          city: getComp('locality') || getComp('administrative_area_level_2'),
+        });
+
+        setSuggestions([]);
+        onValidAddressSelected?.(true);
+      } else {
+        console.warn('Place details fetch failed:', json.status);
+        onValidAddressSelected?.(false);
+      }
+    } catch (err) {
+      console.error('Place details error:', err);
+      onValidAddressSelected?.(false);
+    }
+  };
+
+  return (
+    <View style={styles.wrapper}>
+      <TextInput
+        value={value}
+        onChangeText={(text) => {
+          onChangeText(text);
+          setInputTouched(true);
+          onValidAddressSelected?.(false);
+        }}
+        placeholder="Search address"
+        style={styles.input}
+        placeholderTextColor="#9ca3af"
+      />
+
+      {suggestions.length > 0 && inputTouched && (
+        <View style={styles.dropdownContainer}>
+          <FlatList
+            data={suggestions}
+            keyExtractor={(item) => item.place_id}
+            style={styles.flatList}
+            keyboardShouldPersistTaps="handled"
+            renderItem={({ item, index }) => (
+              <TouchableOpacity
+                onPress={() => {
+                  onChangeText(item.description);
+                  fetchPlaceDetails(item.place_id);
+                  setInputTouched(false);
+                }}
+                style={[
+                  styles.suggestion,
+                  index === suggestions.length - 1 && styles.lastSuggestion,
+                ]}
+              >
+                <Text style={{ color: '#fff' }}>{item.description}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      )}
+    </View>
+  );
+};
+
+export default AddressAutocompleteInput;
+
+const shadowStyle = Platform.select({
+  web: {
+    boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.3)',
+  },
+  ios: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  android: {
+    elevation: 8,
+  },
+});
+
+const styles = StyleSheet.create({
+  wrapper: {
+    width: '100%',
+    marginBottom: 16,
+  },
+  input: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    color: '#f9fafb',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    borderColor: 'rgba(255, 165, 0, 0.2)',
+  },
+  dropdownContainer: {
+    backgroundColor: '#111827',
+    borderRadius: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    maxHeight: 240,
+    overflow: 'hidden',
+    ...shadowStyle,
+  },
+  flatList: {
+    maxHeight: 240,
+  },
+  suggestion: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  lastSuggestion: {
+    borderBottomWidth: 0,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    paddingBottom: 16,
+  },
+});
