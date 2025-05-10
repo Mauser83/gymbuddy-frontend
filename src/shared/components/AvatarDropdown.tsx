@@ -6,14 +6,11 @@ import {
   Animated,
   Image,
   Platform,
-  Dimensions,
 } from 'react-native';
 import {useAuth} from '../../modules/auth/context/AuthContext';
 import {Portal} from 'react-native-portalize';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useNavigate} from 'react-router-native';
-
-const screenWidth = Dimensions.get('window').width;
 
 const AvatarDropdown = () => {
   const insets = useSafeAreaInsets();

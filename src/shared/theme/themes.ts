@@ -392,4 +392,46 @@ export const getComponentStyles = (theme: Theme) => ({
       borderBottomColor: theme.colors.layoutBorder,
     },
   },
+  header: {
+  container: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+    flexDirection: 'row' as ViewStyle['flexDirection'],
+    justifyContent: 'space-between' as ViewStyle['justifyContent'],
+    alignItems: 'center' as ViewStyle['alignItems'],
+    minHeight: 61,
+  },
+  left: {
+    flexDirection: 'row' as ViewStyle['flexDirection'],
+    alignItems: 'center' as ViewStyle['alignItems'],
+  },
+  title: {
+    color: theme.colors.textPrimary,
+    fontWeight: fontWeights.bold,
+    fontSize: 18,
+    marginLeft: spacing.sm,
+  },
+  right: {
+    flexDirection: 'row' as ViewStyle['flexDirection'],
+    alignItems: 'center' as ViewStyle['alignItems'],
+  },
+  notification: {
+    marginRight: spacing.md,
+    position: 'relative' as ViewStyle['position'],
+  },
+  dot: {
+    position: 'absolute' as ViewStyle['position'],
+    top: -2,
+    right: -2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: theme.colors.accentStart,
+  },
+  avatar: {
+    position: 'relative' as ViewStyle['position'],
+  },
+}
+
 });

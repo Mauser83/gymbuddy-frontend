@@ -1,30 +1,32 @@
-// Header.tsx
 import React from 'react';
-import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
+import {View, Text, TouchableOpacity} from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import {FontAwesome5} from '@expo/vector-icons';
 import SafeAreaHeader from './SafeAreaHeader';
 import {useAuth} from '../../modules/auth/context/AuthContext';
 import AvatarDropdown from './AvatarDropdown';
+import {useTheme} from 'shared/theme/ThemeProvider';
 
 const Header = () => {
   const {user} = useAuth();
+  const {componentStyles, theme} = useTheme();
+  const styles = componentStyles.header;
 
   return (
     <SafeAreaHeader>
-      <View style={styles.header}>
-        <View style={styles.leftSection}>
-          <FontAwesome5 name="dumbbell" size={20} color="#f97316" />
+      <View style={styles.container}>
+        <View style={styles.left}>
+          <FontAwesome5 name="dumbbell" size={20} color={theme.colors.accentStart} />
           <Text style={styles.title}>GymBuddy</Text>
         </View>
 
         {user && (
-          <View style={styles.rightSection}>
-            <TouchableOpacity style={styles.notificationWrapper}>
-              <MaterialIcons name="notifications-none" size={24} color="#9ca3af" />
-              <View style={styles.notificationDot} />
+          <View style={styles.right}>
+            <TouchableOpacity style={styles.notification}>
+              <MaterialIcons name="notifications-none" size={24} color={theme.colors.textSecondary} />
+              <View style={styles.dot} />
             </TouchableOpacity>
-            <View style={styles.avatarWrapper}>
+            <View style={styles.avatar}>
               <AvatarDropdown />
             </View>
           </View>
@@ -35,52 +37,3 @@ const Header = () => {
 };
 
 export default Header;
-
-// File-specific styles
-const styles = StyleSheet.create({
-  header: {
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    borderBottomWidth: 1,
-    borderBottomColor: '#78350f',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    position: 'relative',
-    zIndex: 10,
-    minHeight: 61, // ✅ Ensures consistent height (tweak if needed)
-  },
-  leftSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  title: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 18,
-    marginLeft: 8,
-  },
-  rightSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  notificationWrapper: {
-    position: 'relative',
-  },
-  notificationDot: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#f97316',
-  },
-  avatarWrapper: {
-    position: 'relative',
-  },
-});
