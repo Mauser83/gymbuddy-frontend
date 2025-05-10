@@ -393,45 +393,75 @@ export const getComponentStyles = (theme: Theme) => ({
     },
   },
   header: {
-  container: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
-    flexDirection: 'row' as ViewStyle['flexDirection'],
-    justifyContent: 'space-between' as ViewStyle['justifyContent'],
-    alignItems: 'center' as ViewStyle['alignItems'],
-    minHeight: 61,
+    container: {
+      paddingHorizontal: spacing.md,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.sm,
+      flexDirection: 'row' as ViewStyle['flexDirection'],
+      justifyContent: 'space-between' as ViewStyle['justifyContent'],
+      alignItems: 'center' as ViewStyle['alignItems'],
+      minHeight: 61,
+    },
+    left: {
+      flexDirection: 'row' as ViewStyle['flexDirection'],
+      alignItems: 'center' as ViewStyle['alignItems'],
+    },
+    title: {
+      color: theme.colors.textPrimary,
+      fontWeight: fontWeights.bold,
+      fontSize: 18,
+      marginLeft: spacing.sm,
+    },
+    right: {
+      flexDirection: 'row' as ViewStyle['flexDirection'],
+      alignItems: 'center' as ViewStyle['alignItems'],
+    },
+    notification: {
+      marginRight: spacing.md,
+      position: 'relative' as ViewStyle['position'],
+    },
+    dot: {
+      position: 'absolute' as ViewStyle['position'],
+      top: -2,
+      right: -2,
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: theme.colors.accentStart,
+    },
+    avatar: {
+      position: 'relative' as ViewStyle['position'],
+    },
   },
-  left: {
-    flexDirection: 'row' as ViewStyle['flexDirection'],
-    alignItems: 'center' as ViewStyle['alignItems'],
+  avatarDropdown: {
+    avatar: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      borderWidth: borderWidth.thick,
+      borderColor: theme.colors.accentStart + '4D', // 30% opacity
+    },
+    dropdown: {
+      position: 'absolute' as ViewStyle['position'],
+      right: spacing.md,
+      backgroundColor: theme.colors.surface,
+      borderColor: theme.colors.accentStart,
+      borderWidth: borderWidth.hairline,
+      borderRadius: borderRadius.lg,
+      paddingVertical: spacing.sm,
+      width: 160,
+      shadowColor: '#000',
+      shadowOpacity: 0.15,
+      shadowRadius: 10,
+      elevation: 5,
+    },
+    item: {
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.md,
+    },
+    text: {
+      color: theme.colors.textPrimary,
+      fontSize: fontSizes.md,
+    },
   },
-  title: {
-    color: theme.colors.textPrimary,
-    fontWeight: fontWeights.bold,
-    fontSize: 18,
-    marginLeft: spacing.sm,
-  },
-  right: {
-    flexDirection: 'row' as ViewStyle['flexDirection'],
-    alignItems: 'center' as ViewStyle['alignItems'],
-  },
-  notification: {
-    marginRight: spacing.md,
-    position: 'relative' as ViewStyle['position'],
-  },
-  dot: {
-    position: 'absolute' as ViewStyle['position'],
-    top: -2,
-    right: -2,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: theme.colors.accentStart,
-  },
-  avatar: {
-    position: 'relative' as ViewStyle['position'],
-  },
-}
-
 });

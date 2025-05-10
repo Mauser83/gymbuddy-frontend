@@ -11,11 +11,16 @@ import {useAuth} from '../../modules/auth/context/AuthContext';
 import {Portal} from 'react-native-portalize';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useNavigate} from 'react-router-native';
+import {useTheme} from 'shared/theme/ThemeProvider';
+
 
 const AvatarDropdown = () => {
   const insets = useSafeAreaInsets();
   const navigate = useNavigate();
   const {logout} = useAuth();
+
+  const {componentStyles} = useTheme();
+const styles = componentStyles.avatarDropdown;
 
   const [visible, setVisible] = useState(false);
   const dropdownAnim = useRef(new Animated.Value(0)).current;
@@ -103,36 +108,3 @@ const AvatarDropdown = () => {
 };
 
 export default AvatarDropdown;
-
-// File-specific styles
-const styles = StyleSheet.create({
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: 'rgba(249, 115, 22, 0.3)',
-  },
-  dropdown: {
-    position: 'absolute',
-    right: 16,
-    backgroundColor: 'rgba(31, 41, 55, 0.95)',
-    borderColor: '#f97316',
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 8,
-    width: 160,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  item: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  text: {
-    color: 'white',
-    fontSize: 16,
-  },
-});
