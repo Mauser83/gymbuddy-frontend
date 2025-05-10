@@ -353,7 +353,6 @@ export const getComponentStyles = (theme: Theme) => ({
   },
   title: {
     container: {
-      marginBottom: spacing.md,
     },
     title: {
       fontSize: fontSizes.xl,
@@ -465,37 +464,76 @@ export const getComponentStyles = (theme: Theme) => ({
     },
   },
   footer: {
-  container: {
-    flexDirection: 'row' as ViewStyle['flexDirection'],
-    alignItems: 'center' as ViewStyle['alignItems'],
-    paddingVertical: spacing.md,
+    container: {
+      flexDirection: 'row' as ViewStyle['flexDirection'],
+      alignItems: 'center' as ViewStyle['alignItems'],
+      paddingVertical: spacing.md,
+    },
+    authContainer: {
+      justifyContent: 'space-around' as ViewStyle['justifyContent'],
+      paddingHorizontal: 0,
+    },
+    guestContainer: {
+      justifyContent: 'flex-start' as ViewStyle['justifyContent'],
+      paddingHorizontal: 33,
+      gap: 32,
+    },
+    iconWrapper: {
+      position: 'relative' as ViewStyle['position'],
+    },
+    badge: {
+      position: 'absolute' as ViewStyle['position'],
+      top: -6,
+      right: -10,
+      backgroundColor: theme.colors.error,
+      borderRadius: 999,
+      paddingVertical: 2,
+      paddingHorizontal: 6,
+    },
+    badgeText: {
+      color: theme.colors.buttonText,
+      fontSize: 12,
+      fontWeight: fontWeights.bold,
+    },
   },
-  authContainer: {
-    justifyContent: 'space-around' as ViewStyle['justifyContent'],
-    paddingHorizontal: 0,
-  },
-  guestContainer: {
-    justifyContent: 'flex-start' as ViewStyle['justifyContent'],
-    paddingHorizontal: 33,
-    gap: 32,
-  },
-  iconWrapper: {
+  gymsScreen: {
+  searchAndButtonContainer: {
     position: 'relative' as ViewStyle['position'],
+    marginBottom: spacing.sm,
   },
-  badge: {
+  searchInput: {
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.cardBorder,
+    borderWidth: borderWidth.hairline,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingLeft: spacing.md,
+    paddingRight: 40,
+    color: theme.colors.textPrimary,
+  },
+  clearButton: {
     position: 'absolute' as ViewStyle['position'],
-    top: -6,
-    right: -10,
+    right: 12,
+    top: 10,
+    height: 24,
+    width: 24,
+    borderRadius: 12,
+    justifyContent: 'center' as ViewStyle['justifyContent'],
+    alignItems: 'center' as ViewStyle['alignItems'],
     backgroundColor: theme.colors.error,
-    borderRadius: 999,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
   },
-  badgeText: {
+  clearButtonText: {
     color: theme.colors.buttonText,
-    fontSize: 12,
     fontWeight: fontWeights.bold,
   },
-}
+  noResults: {
+    marginTop: spacing.xl,
+    alignItems: 'center' as ViewStyle['alignItems'],
+  },
+  noResultsText: {
+    color: theme.colors.textSecondary,
+    fontSize: fontSizes.md,
+  },
+},
 
 });

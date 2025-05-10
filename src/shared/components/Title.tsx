@@ -13,7 +13,7 @@ const Title = ({text, subtitle, align = 'center'}: TitleProps) => {
   const styles = componentStyles.title;
 
   return (
-    <View style={styles.container}>
+    <View>
       <Text style={[styles.title, { textAlign: align }]}>{text}</Text>
       {subtitle && (
         <Text style={[styles.subtitle, { textAlign: align }]}>{subtitle}</Text>
