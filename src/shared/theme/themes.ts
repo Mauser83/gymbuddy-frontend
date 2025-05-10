@@ -464,4 +464,38 @@ export const getComponentStyles = (theme: Theme) => ({
       fontSize: fontSizes.md,
     },
   },
+  footer: {
+  container: {
+    flexDirection: 'row' as ViewStyle['flexDirection'],
+    alignItems: 'center' as ViewStyle['alignItems'],
+    paddingVertical: spacing.md,
+  },
+  authContainer: {
+    justifyContent: 'space-around' as ViewStyle['justifyContent'],
+    paddingHorizontal: 0,
+  },
+  guestContainer: {
+    justifyContent: 'flex-start' as ViewStyle['justifyContent'],
+    paddingHorizontal: 33,
+    gap: 32,
+  },
+  iconWrapper: {
+    position: 'relative' as ViewStyle['position'],
+  },
+  badge: {
+    position: 'absolute' as ViewStyle['position'],
+    top: -6,
+    right: -10,
+    backgroundColor: theme.colors.error,
+    borderRadius: 999,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+  },
+  badgeText: {
+    color: theme.colors.buttonText,
+    fontSize: 12,
+    fontWeight: fontWeights.bold,
+  },
+}
+
 });

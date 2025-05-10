@@ -7,11 +7,14 @@ import {useAuth} from '../../modules/auth/context/AuthContext';
 import {useNavigate, useLocation} from 'react-router-native';
 import {useQuery} from '@apollo/client';
 import {GET_PENDING_GYMS} from '../../modules/gym/graphql/gym.queries';
+import {useTheme} from 'shared/theme/ThemeProvider';
 
 const Footer = () => {
   const {user} = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const {theme, componentStyles} = useTheme();
+  const styles = componentStyles.footer;
 
   const {data} = useQuery(GET_PENDING_GYMS, {
     skip: !user || (user.appRole !== 'ADMIN' && user.appRole !== 'MODERATOR'),
@@ -20,21 +23,15 @@ const Footer = () => {
 
   const pendingCount = data?.pendingGyms?.length ?? 0;
   const isActive = (path: string) => location.pathname === path;
+  const iconColor = (path: string) =>
+    isActive(path) ? theme.colors.accentStart : theme.colors.textSecondary;
 
   return (
     <SafeAreaFooter>
-      <View
-        style={[
-          styles.container,
-          user ? styles.authContainer : styles.guestContainer,
-        ]}>
+      <View style={[styles.container, user ? styles.authContainer : styles.guestContainer]}>
         {!user && (
           <TouchableOpacity onPress={() => navigate('/')}>
-            <FontAwesome
-              name="home"
-              size={24}
-              color={isActive('/') ? '#f97316' : '#9ca3af'}
-            />
+            <FontAwesome name="home" size={24} color={iconColor('/')} />
           </TouchableOpacity>
         )}
 
@@ -47,7 +44,7 @@ const Footer = () => {
                 <FontAwesome
                   name="tachometer-alt"
                   size={24}
-                  color={isActive('/admin') ? '#f97316' : '#9ca3af'}
+                  color={iconColor('/admin')}
                 />
                 {pendingCount > 0 && (
                   <View style={styles.badge}>
@@ -62,7 +59,7 @@ const Footer = () => {
                 <FontAwesome
                   name="lightbulb"
                   size={24}
-                  color={isActive('/gym-admin') ? '#f97316' : '#9ca3af'}
+                  color={iconColor('/gym-admin')}
                 />
               </TouchableOpacity>
             )}
@@ -71,7 +68,7 @@ const Footer = () => {
               <FontAwesome
                 name="building"
                 size={24}
-                color={isActive('/gyms') ? '#f97316' : '#9ca3af'}
+                color={iconColor('/gyms')}
               />
             </TouchableOpacity>
 
@@ -80,7 +77,7 @@ const Footer = () => {
                 <FontAwesome
                   name="users"
                   size={24}
-                  color={isActive('/users') ? '#f97316' : '#9ca3af'}
+                  color={iconColor('/users')}
                 />
               </TouchableOpacity>
             )}
@@ -92,38 +89,3 @@ const Footer = () => {
 };
 
 export default Footer;
-
-// File-specific styles
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  authContainer: {
-    justifyContent: 'space-around',
-    paddingHorizontal: 0,
-  },
-  guestContainer: {
-    justifyContent: 'flex-start',
-    paddingHorizontal: 33,
-    gap: 32,
-  },
-  iconWrapper: {
-    position: 'relative',
-  },
-  badge: {
-    position: 'absolute',
-    top: -6,
-    right: -10,
-    backgroundColor: '#ef4444',
-    borderRadius: 999,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-  },
-  badgeText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-});
