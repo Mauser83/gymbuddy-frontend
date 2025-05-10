@@ -39,7 +39,7 @@ const RegisterScreen = () => {
   return (
     <ScreenLayout variant="centered">
       <View style={styles.container}>
-        <Card variant="glass" title="Register" text="" compact />
+        <Card variant="glass" title="Register" compact />
 
         {errorMessage && <FormError message={errorMessage} />}
 

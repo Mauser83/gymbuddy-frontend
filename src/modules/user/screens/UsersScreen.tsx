@@ -79,9 +79,7 @@ const UsersScreen = () => {
 
   return (
     <ScreenLayout>
-      <Card variant="glass" compact>
-        <Text style={componentStyles.card.glassTitle}>Manage Users</Text>
-      </Card>
+      <Card variant="glass" compact title="Manage Users" />
 
       <Input
         label="Search"

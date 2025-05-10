@@ -27,7 +27,7 @@ const LoginScreen = () => {
   return (
     <ScreenLayout variant="centered">
       <View style={styles.container}>
-        <Card variant="glass" title="Login" text="" compact />
+        <Card variant="glass" title="Login" compact />
 
         {errorMessage && <FormError message={errorMessage} />}
 

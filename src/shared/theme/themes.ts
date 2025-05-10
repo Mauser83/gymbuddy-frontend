@@ -352,17 +352,17 @@ export const getComponentStyles = (theme: Theme) => ({
     },
   },
   title: {
-    container: {
-    },
+    container: {},
     title: {
       fontSize: fontSizes.xl,
       fontWeight: fontWeights.bold,
       color: theme.colors.textPrimary,
-      marginBottom: spacing.xs,
+      marginBottom: spacing.md,
     },
     subtitle: {
       fontSize: fontSizes.lg,
       color: theme.colors.textSecondary,
+            marginBottom: spacing.md,
     },
   },
   optionItem: {
@@ -497,42 +497,49 @@ export const getComponentStyles = (theme: Theme) => ({
     },
   },
   gymsScreen: {
-  searchAndButtonContainer: {
-    position: 'relative' as ViewStyle['position'],
-    marginBottom: spacing.sm,
+    searchAndButtonContainer: {
+      position: 'relative' as ViewStyle['position'],
+      marginBottom: spacing.sm,
+    },
+    searchInput: {
+      backgroundColor: theme.colors.surface,
+      borderColor: theme.colors.cardBorder,
+      borderWidth: borderWidth.hairline,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing.md,
+      paddingLeft: spacing.md,
+      paddingRight: 40,
+      color: theme.colors.textPrimary,
+    },
+    clearButton: {
+      position: 'absolute' as ViewStyle['position'],
+      right: 12,
+      top: 10,
+      height: 24,
+      width: 24,
+      borderRadius: 12,
+      justifyContent: 'center' as ViewStyle['justifyContent'],
+      alignItems: 'center' as ViewStyle['alignItems'],
+      backgroundColor: theme.colors.error,
+    },
+    clearButtonText: {
+      color: theme.colors.buttonText,
+      fontWeight: fontWeights.bold,
+    },
+    noResults: {
+      marginTop: spacing.xl,
+      alignItems: 'center' as ViewStyle['alignItems'],
+    },
+    noResultsText: {
+      color: theme.colors.textSecondary,
+      fontSize: fontSizes.md,
+    },
   },
-  searchInput: {
-    backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.cardBorder,
-    borderWidth: borderWidth.hairline,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
-    paddingLeft: spacing.md,
-    paddingRight: 40,
-    color: theme.colors.textPrimary,
-  },
-  clearButton: {
-    position: 'absolute' as ViewStyle['position'],
-    right: 12,
-    top: 10,
-    height: 24,
-    width: 24,
-    borderRadius: 12,
-    justifyContent: 'center' as ViewStyle['justifyContent'],
-    alignItems: 'center' as ViewStyle['alignItems'],
-    backgroundColor: theme.colors.error,
-  },
-  clearButtonText: {
-    color: theme.colors.buttonText,
-    fontWeight: fontWeights.bold,
-  },
-  noResults: {
-    marginTop: spacing.xl,
-    alignItems: 'center' as ViewStyle['alignItems'],
-  },
-  noResultsText: {
+  gymDetail: {
+  fieldTitle: {
+    fontSize: fontSizes.sm,
     color: theme.colors.textSecondary,
-    fontSize: fontSizes.md,
+    fontWeight: fontWeights.regular,
   },
 },
 

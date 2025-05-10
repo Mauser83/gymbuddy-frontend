@@ -3,7 +3,7 @@ import {View, Text} from 'react-native';
 import {useTheme} from 'shared/theme/ThemeProvider';
 
 interface TitleProps {
-  text: string;
+  text?: string;
   subtitle?: string;
   align?: 'center' | 'left' | 'right';
 }
@@ -14,9 +14,9 @@ const Title = ({text, subtitle, align = 'center'}: TitleProps) => {
 
   return (
     <View>
-      <Text style={[styles.title, { textAlign: align }]}>{text}</Text>
+      {text && <Text style={[styles.title, {textAlign: align}]}>{text}</Text>}
       {subtitle && (
-        <Text style={[styles.subtitle, { textAlign: align }]}>{subtitle}</Text>
+        <Text style={[styles.subtitle, {textAlign: align}]}>{subtitle}</Text>
       )}
     </View>
   );

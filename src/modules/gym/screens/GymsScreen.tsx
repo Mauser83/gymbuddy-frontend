@@ -87,9 +87,7 @@ const GymsScreen = () => {
 
   return (
     <ScreenLayout>
-      <Card variant="glass" compact>
-        <Title text="Gyms" />
-      </Card>
+      <Card variant="glass" compact title="Gyms" />
 
       <View style={styles.searchAndButtonContainer}>
         <TextInput
