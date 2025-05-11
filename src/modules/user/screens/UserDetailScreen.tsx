@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import {View, Text, StyleSheet, ActivityIndicator} from 'react-native';
+import {View} from 'react-native';
 import {useParams, useNavigate} from 'react-router-native';
 import {useQuery, useMutation} from '@apollo/client';
 import Toast from 'react-native-toast-message';
@@ -17,6 +17,9 @@ import RolePill from 'shared/components/RolePill';
 import RolePillExpandable from 'shared/components/RolePillExpandable';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import GymRoleEntry from 'shared/components/GymRoleEntry';
+import NoResults from 'shared/components/NoResults';
+import LoadingState from 'shared/components/LoadingState';
+import ErrorMessage from 'shared/components/ErrorMessage';
 
 const UserDetailScreen = () => {
   const {id} = useParams<{id: string}>();
@@ -72,11 +75,11 @@ const UserDetailScreen = () => {
   return (
     <ScreenLayout>
       {loading ? (
-        <ActivityIndicator size="large" color="#f97316" />
+        <LoadingState text="Loading user details..."/>
       ) : error ? (
-        <Text style={styles.errorText}>{error.message}</Text>
+        <ErrorMessage message={error.message}/>
       ) : !selectedUser ? (
-        <Text style={styles.errorText}>User not found</Text>
+        <NoResults message="User not found." />
       ) : (
         <Card variant="user">
           <DetailField
@@ -139,11 +142,3 @@ const UserDetailScreen = () => {
 };
 
 export default UserDetailScreen;
-
-const styles = StyleSheet.create({
-  errorText: {
-    color: '#f87171',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-});

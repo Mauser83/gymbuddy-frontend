@@ -13,6 +13,8 @@ import AppRoutes from './src/routes/AppRoutes';
 import StatusBarManager from 'shared/components/StatusBarManager';
 import ToastContainer from 'shared/components/ToastContainer';
 import {useApolloClient} from './src/services/apollo/hooks/useApolloClient'; // adjust path if needed
+import LoadingState from 'shared/components/LoadingState';
+import ContentContainer from 'shared/components/ContentContainer';
 
 const AppContent = () => {
   const {sessionLoaded, isAuthenticated} = useAuth();
@@ -20,7 +22,9 @@ const AppContent = () => {
 
   if (!sessionLoaded || !client) {
     return (
-      <ActivityIndicator size="large" color="#f97316" style={{marginTop: 50}} />
+      <ContentContainer>
+      <LoadingState text="Connecting to backend..."/>
+      </ContentContainer>
     );
   }
 

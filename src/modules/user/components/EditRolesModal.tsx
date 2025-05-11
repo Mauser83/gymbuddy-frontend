@@ -1,6 +1,5 @@
 import React, {useState, useEffect} from 'react';
 import {
-  StyleSheet,
   ScrollView,
 } from 'react-native';
 import {useAuth} from '../../../modules/auth/context/AuthContext';

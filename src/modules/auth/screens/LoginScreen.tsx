@@ -1,12 +1,12 @@
 import React from 'react';
-import {View, StyleSheet} from 'react-native';
+import {View} from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import {Formik} from 'formik';
 import * as Yup from 'yup';
 import {useAuthService} from '../hooks/useAuthService';
 import Card from 'shared/components/Card';
 import Button from 'shared/components/Button';
-import Input from 'shared/components/Input';
+import FormInput from 'shared/components/FormInput';
 import FormError from 'shared/components/FormError';
 import DividerWithLabel from 'shared/components/DividerWithLabel';
 import ScreenLayout from 'shared/components/ScreenLayout';
@@ -26,7 +26,6 @@ const LoginScreen = () => {
 
   return (
     <ScreenLayout variant="centered">
-      <View style={styles.container}>
         <Card variant="glass" title="Login" compact />
 
         {errorMessage && <FormError message={errorMessage} />}
@@ -37,29 +36,29 @@ const LoginScreen = () => {
           onSubmit={login}>
           {({
             handleChange,
-            handleBlur,
             handleSubmit,
             values,
             errors,
             touched,
+            setFieldTouched,
           }) => (
-            <View style={styles.form}>
-              <Input
+            <View>
+              <FormInput
                 label="Email"
                 placeholder="Enter your email"
                 value={values.email}
                 onChangeText={handleChange('email')}
-                onBlur={() => handleBlur('email')}
+                onBlur={() => setFieldTouched('email', true)}
                 error={touched.email ? errors.email : undefined}
                 keyboardType="email-address"
               />
 
-              <Input
+              <FormInput
                 label="Password"
                 placeholder="Enter your password"
                 value={values.password}
                 onChangeText={handleChange('password')}
-                onBlur={() => handleBlur('password')}
+                onBlur={() => setFieldTouched('password', true)}
                 error={touched.password ? errors.password : undefined}
                 secureTextEntry
                 returnKeyType="done"
@@ -92,20 +91,8 @@ const LoginScreen = () => {
             </View>
           )}
         </Formik>
-      </View>
     </ScreenLayout>
   );
 };
 
 export default LoginScreen;
-
-// Layout-specific styles
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    maxWidth: 400,
-  },
-  form: {
-    width: '100%',
-  },
-});

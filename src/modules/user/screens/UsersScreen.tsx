@@ -1,28 +1,23 @@
 import React, {useEffect, useState} from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Text,
-  TouchableOpacity,
-} from 'react-native';
+import {FlatList, TouchableOpacity} from 'react-native';
 import {useQuery, useSubscription} from '@apollo/client';
 import {useNavigate} from 'react-router-native';
 
 import {useAuth} from '../../auth/context/AuthContext';
-import {useTheme} from '../../../shared/theme/ThemeProvider';
 
 import {GET_USERS} from '../graphql/user.queries';
 import {USER_UPDATED_SUBSCRIPTION} from '../graphql/user.subscriptions';
 import {USER_FRAGMENT} from '../graphql/user.fragments';
 import {User} from 'modules/user/types/user';
 
-import Input from 'shared/components/Input';
 import FormError from 'shared/components/FormError';
 import Card from 'shared/components/Card';
 import ScreenLayout from 'shared/components/ScreenLayout';
+import NoResults from 'shared/components/NoResults';
+import LoadingState from 'shared/components/LoadingState';
+import SearchInput from 'shared/components/SearchInput';
 
 const UsersScreen = () => {
-  const {theme, componentStyles} = useTheme();
   const {user} = useAuth();
   const navigate = useNavigate();
 
@@ -81,23 +76,18 @@ const UsersScreen = () => {
     <ScreenLayout>
       <Card variant="glass" compact title="Manage Users" />
 
-      <Input
-        label="Search"
-        placeholder="Search by username or email"
+      <SearchInput
         value={searchQuery}
-        onChangeText={setSearchQuery}
+        onChange={setSearchQuery}
+        onClear={() => setSearchQuery('')}
       />
 
       {loading ? (
-        <ActivityIndicator
-          size="large"
-          color={theme.colors.accentStart}
-          style={{marginTop: 24}}
-        />
+        <LoadingState text="Loading users..." />
       ) : error ? (
         <FormError message="Error fetching users." />
       ) : users.length === 0 ? (
-        <Text style={componentStyles.card.glassText}>😕 No users found</Text>
+        <NoResults message="No users found" />
       ) : (
         <FlatList
           data={users}

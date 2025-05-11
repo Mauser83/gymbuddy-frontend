@@ -1,11 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {
-  ActivityIndicator,
-  TouchableOpacity,
-  View,
-  Text,
-  TextInput,
-} from 'react-native';
+import {TouchableOpacity, View} from 'react-native';
 import {useQuery, useSubscription} from '@apollo/client';
 import {useNavigate} from 'react-router-native';
 
@@ -20,12 +14,14 @@ import Card from 'shared/components/Card';
 import DetailField from 'shared/components/DetailField';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import Button from 'shared/components/Button';
-import Title from 'shared/components/Title';
+import NoResults from 'shared/components/NoResults';
+import LoadingState from 'shared/components/LoadingState';
+import SearchInput from 'shared/components/SearchInput';
 
 const GymsScreen = () => {
   const {user} = useAuth();
   const navigate = useNavigate();
-  const {theme, componentStyles} = useTheme();
+  const {componentStyles} = useTheme();
   const styles = componentStyles.gymsScreen;
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,44 +64,23 @@ const GymsScreen = () => {
     return (
       <ScreenLayout variant="centered">
         <Card variant="glass">
-          <Title text="Loading..." />
-          <ActivityIndicator
-            size="large"
-            color={theme.colors.accentStart}
-            style={{marginTop: 16}}
-          />
+          <LoadingState text="Loading gyms..." />
         </Card>
       </ScreenLayout>
     );
   }
 
-  const NoResultsFound = () => (
-    <View style={styles.noResults}>
-      <Text style={styles.noResultsText}>😕 No gyms found</Text>
-    </View>
-  );
-
   return (
     <ScreenLayout>
       <Card variant="glass" compact title="Gyms" />
 
-      <View style={styles.searchAndButtonContainer}>
-        <TextInput
-          placeholder="Search by name or location"
-          placeholderTextColor={theme.colors.textSecondary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          style={styles.searchInput}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={() => setSearchQuery('')}>
-            <Text style={styles.clearButtonText}>✖</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-      <View style={styles.searchAndButtonContainer}>
+      <SearchInput
+        value={searchQuery}
+        onChange={setSearchQuery}
+        onClear={() => setSearchQuery('')}
+      />
+
+      <View style={styles.createButtonContainer}>
         <Button
           text="➕ Create New Gym"
           onPress={() => navigate('/gyms/create')}
@@ -113,7 +88,7 @@ const GymsScreen = () => {
       </View>
 
       {gyms.length === 0 ? (
-        <NoResultsFound />
+        <NoResults message="No gyms found." />
       ) : (
         gyms.map(gym => (
           <TouchableOpacity

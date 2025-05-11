@@ -1,5 +1,4 @@
 import React, {useEffect} from 'react';
-import {ActivityIndicator, View, Text} from 'react-native';
 import {useParams, useNavigate} from 'react-router-native';
 import {useQuery, useSubscription} from '@apollo/client';
 import {GET_GYM_BY_ID} from '../graphql/gym.queries';
@@ -11,15 +10,14 @@ import {useAuth} from 'modules/auth/context/AuthContext';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Card from 'shared/components/Card';
 import DetailField from 'shared/components/DetailField';
-import {useTheme} from 'shared/theme/ThemeProvider';
 import Title from 'shared/components/Title';
+import LoadingState from 'shared/components/LoadingState';
+import ErrorMessage from 'shared/components/ErrorMessage';
 
 const GymDetailScreen = () => {
   const {gymId} = useParams<{gymId: string}>();
   const {user} = useAuth();
   const navigate = useNavigate();
-  const {theme, componentStyles} = useTheme();
-  const styles = componentStyles.gymDetail;
 
   const {data, loading, error} = useQuery(GET_GYM_BY_ID, {
     variables: {id: gymId},
@@ -65,8 +63,7 @@ const GymDetailScreen = () => {
     return (
       <ScreenLayout variant="centered">
         <Card variant="glass">
-          <Title text="Loading gym details..."/>
-          <ActivityIndicator size="large" color={theme.colors.accentStart} style={{marginTop: 16}} />
+          <LoadingState text="Loading gym details..." />
         </Card>
       </ScreenLayout>
     );
@@ -76,7 +73,7 @@ const GymDetailScreen = () => {
     return (
       <ScreenLayout variant="centered">
         <Card variant="glass">
-          <Title text="❌ Failed to load gym"/>
+          <ErrorMessage message="❌ Failed to load gym" />
         </Card>
       </ScreenLayout>
     );

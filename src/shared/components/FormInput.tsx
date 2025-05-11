@@ -1,8 +1,8 @@
 import React from 'react';
-import {View, Text, TextInput, StyleSheet} from 'react-native';
+import {View, Text, TextInput} from 'react-native';
 import {useTheme} from 'shared/theme/ThemeProvider';
 
-interface InputProps {
+interface FormInputProps {
   label: string;
   value: string;
   onChangeText: (text: string) => void;
@@ -15,7 +15,7 @@ interface InputProps {
   onSubmitEditing?: () => void;
 }
 
-const Input = ({
+const FormInput = ({
   label,
   value,
   onChangeText,
@@ -26,9 +26,9 @@ const Input = ({
   keyboardType = 'default',
   returnKeyType = 'done',
   onSubmitEditing,
-}: InputProps) => {
+}: FormInputProps) => {
   const {theme, componentStyles} = useTheme();
-  const styles = componentStyles.input;
+  const styles = componentStyles.formInput;
 
   return (
     <View style={styles.container}>
@@ -50,4 +50,4 @@ const Input = ({
   );
 };
 
-export default Input;
+export default FormInput;

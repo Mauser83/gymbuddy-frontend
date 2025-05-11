@@ -1,5 +1,4 @@
 import React from 'react';
-import {View, StyleSheet} from 'react-native';
 import {useNavigate} from 'react-router-native';
 import Button from 'shared/components/Button';
 import Card from 'shared/components/Card';
@@ -11,7 +10,6 @@ const WelcomeScreen = () => {
 
   return (
     <ScreenLayout variant="centered">
-      <View style={layout.innerContainer}>
         {/* Intro Glass Card */}
         <Card
           variant="glass"
@@ -36,17 +34,8 @@ const WelcomeScreen = () => {
           <Button text="Login" onPress={() => navigate('/login')} />
           <Button text="Register" onPress={() => navigate('/register')} />
         </ButtonRow>
-      </View>
     </ScreenLayout>
   );
 };
 
 export default WelcomeScreen;
-
-const layout = StyleSheet.create({
-  innerContainer: {
-    width: '100%',
-    maxWidth: 400,
-    alignItems: 'center',
-  },
-});

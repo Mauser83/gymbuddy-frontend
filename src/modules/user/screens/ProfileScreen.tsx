@@ -8,6 +8,7 @@ import RolePill from 'shared/components/RolePill';
 import RolePillExpandable from 'shared/components/RolePillExpandable';
 import GymRoleEntry from 'shared/components/GymRoleEntry';
 import Title from 'shared/components/Title';
+import NoResults from 'shared/components/NoResults';
 
 const ProfileScreen = () => {
   const {user} = useAuth();
@@ -17,7 +18,7 @@ const ProfileScreen = () => {
     return (
       <ScreenLayout variant="centered">
         <Card variant="glass">
-          <DetailField label="⚠️" value="No user data available" />
+          <NoResults message="No user data available" />
         </Card>
       </ScreenLayout>
     );

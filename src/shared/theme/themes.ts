@@ -20,7 +20,6 @@ export const getComponentStyles = (theme: Theme) => ({
     centeredContainer: {
       flexGrow: 1,
       justifyContent: 'center',
-      alignItems: 'center',
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.xl,
     } as ViewStyle,
@@ -182,7 +181,7 @@ export const getComponentStyles = (theme: Theme) => ({
       color: theme.colors.textDisabled,
     },
   }),
-  input: StyleSheet.create({
+  formInput: StyleSheet.create({
     container: {
       marginBottom: spacing.md,
     },
@@ -195,7 +194,7 @@ export const getComponentStyles = (theme: Theme) => ({
       backgroundColor: theme.colors.glass.background,
       color: theme.colors.textPrimary,
       borderWidth: borderWidth.hairline,
-      borderColor: 'rgba(255, 165, 0, 0.2)',
+      borderColor: theme.colors.layoutBorder,
       borderRadius: borderRadius.md,
       padding: spacing.md,
     },
@@ -219,7 +218,7 @@ export const getComponentStyles = (theme: Theme) => ({
     line: {
       flex: 1,
       height: 1,
-      backgroundColor: theme.colors.divider ?? 'rgba(255, 255, 255, 0.2)', // fallback
+      backgroundColor: theme.colors.divider, // fallback
     },
     label: {
       marginHorizontal: spacing.md,
@@ -362,7 +361,7 @@ export const getComponentStyles = (theme: Theme) => ({
     subtitle: {
       fontSize: fontSizes.lg,
       color: theme.colors.textSecondary,
-            marginBottom: spacing.md,
+      marginBottom: spacing.md,
     },
   },
   optionItem: {
@@ -497,11 +496,60 @@ export const getComponentStyles = (theme: Theme) => ({
     },
   },
   gymsScreen: {
-    searchAndButtonContainer: {
+    createButtonContainer: {
       position: 'relative' as ViewStyle['position'],
       marginBottom: spacing.sm,
     },
-    searchInput: {
+  },
+  gymDetail: {
+    fieldTitle: {
+      fontSize: fontSizes.sm,
+      color: theme.colors.textSecondary,
+      fontWeight: fontWeights.regular,
+    },
+  },
+  noResults: {
+    container: {
+      marginTop: spacing.xl,
+      alignItems: 'center' as ViewStyle['alignItems'],
+    },
+    text: {
+      color: theme.colors.textSecondary,
+      fontSize: fontSizes.md,
+      textAlign: 'center' as TextStyle['textAlign'],
+    },
+  },
+  loadingState: {
+    container: {
+      alignItems: 'center' as ViewStyle['alignItems'],
+      justifyContent: 'center' as ViewStyle['justifyContent'],
+      marginTop: spacing.lg,
+    },
+    text: {
+      fontSize: fontSizes.lg,
+      fontWeight: fontWeights.semiBold,
+      color: theme.colors.textPrimary,
+      marginBottom: spacing.md,
+      textAlign: 'center' as TextStyle['textAlign'],
+    },
+    spinner: {
+      marginTop: spacing.xs,
+    },
+  },
+  errorMessage: {
+    text: {
+      color: theme.colors.error,
+      fontSize: fontSizes.md,
+      textAlign: 'center' as TextStyle['textAlign'],
+      marginTop: spacing.lg,
+    },
+  },
+  searchInput: {
+    searchContainer: {
+      position: 'relative' as ViewStyle['position'],
+      marginBottom: spacing.sm,
+    },
+    input: {
       backgroundColor: theme.colors.surface,
       borderColor: theme.colors.cardBorder,
       borderWidth: borderWidth.hairline,
@@ -514,7 +562,7 @@ export const getComponentStyles = (theme: Theme) => ({
     clearButton: {
       position: 'absolute' as ViewStyle['position'],
       right: 12,
-      top: 10,
+      top: 11,
       height: 24,
       width: 24,
       borderRadius: 12,
@@ -526,21 +574,5 @@ export const getComponentStyles = (theme: Theme) => ({
       color: theme.colors.buttonText,
       fontWeight: fontWeights.bold,
     },
-    noResults: {
-      marginTop: spacing.xl,
-      alignItems: 'center' as ViewStyle['alignItems'],
-    },
-    noResultsText: {
-      color: theme.colors.textSecondary,
-      fontSize: fontSizes.md,
-    },
   },
-  gymDetail: {
-  fieldTitle: {
-    fontSize: fontSizes.sm,
-    color: theme.colors.textSecondary,
-    fontWeight: fontWeights.regular,
-  },
-},
-
 });

@@ -1,11 +1,11 @@
 import React from 'react';
-import {View, StyleSheet} from 'react-native';
+import {View} from 'react-native';
 import {Formik} from 'formik';
 import * as Yup from 'yup';
 import {useAuthService} from '../hooks/useAuthService';
 
 import Card from 'shared/components/Card';
-import Input from 'shared/components/Input';
+import FormInput from 'shared/components/FormInput';
 import Button from 'shared/components/Button';
 import FormError from 'shared/components/FormError';
 import ScreenLayout from 'shared/components/ScreenLayout';
@@ -38,7 +38,6 @@ const RegisterScreen = () => {
 
   return (
     <ScreenLayout variant="centered">
-      <View style={styles.container}>
         <Card variant="glass" title="Register" compact />
 
         {errorMessage && <FormError message={errorMessage} />}
@@ -57,49 +56,49 @@ const RegisterScreen = () => {
           }}>
           {({
             handleChange,
-            handleBlur,
             handleSubmit,
             values,
             errors,
             touched,
+            setFieldTouched,
           }) => (
-            <View style={styles.form}>
-              <Input
+            <View>
+              <FormInput
                 label="Username"
                 placeholder="Enter username"
                 value={values.username}
                 onChangeText={handleChange('username')}
-                onBlur={() => handleBlur('username')}
+                onBlur={() => setFieldTouched('username', true)}
                 error={touched.username ? errors.username : undefined}
               />
 
-              <Input
+              <FormInput
                 label="Email"
                 placeholder="Enter email"
                 value={values.email}
                 onChangeText={handleChange('email')}
-                onBlur={() => handleBlur('email')}
+                onBlur={() => setFieldTouched('email', true)}
                 error={touched.email ? errors.email : undefined}
                 keyboardType="email-address"
               />
 
-              <Input
+              <FormInput
                 label="Password"
                 placeholder="Enter password"
                 value={values.password}
                 onChangeText={handleChange('password')}
-                onBlur={() => handleBlur('password')}
+                onBlur={() => setFieldTouched('password', true)}
                 error={touched.password ? errors.password : undefined}
                 secureTextEntry
                 returnKeyType="next"
               />
 
-              <Input
+              <FormInput
                 label="Confirm Password"
                 placeholder="Confirm password"
                 value={values.confirmPassword}
                 onChangeText={handleChange('confirmPassword')}
-                onBlur={() => handleBlur('confirmPassword')}
+                onBlur={() => setFieldTouched('confirmPassword', true)}
                 error={
                   touched.confirmPassword ? errors.confirmPassword : undefined
                 }
@@ -117,20 +116,8 @@ const RegisterScreen = () => {
             </View>
           )}
         </Formik>
-      </View>
     </ScreenLayout>
   );
 };
 
 export default RegisterScreen;
-
-// Layout styles only
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    maxWidth: 400,
-  },
-  form: {
-    width: '100%',
-  },
-});

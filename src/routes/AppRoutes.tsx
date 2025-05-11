@@ -1,12 +1,12 @@
 import React, {useEffect} from 'react';
 import {Route, Routes, useNavigate, useLocation} from 'react-router-native';
-import {View, StyleSheet, Text} from 'react-native';
+import {View} from 'react-native';
 import Header from 'shared/components/Header';
 import Footer from 'shared/components/Footer';
 import {useAuth} from 'modules/auth/context/AuthContext';
-import {useTheme} from '../shared/theme/ThemeProvider';
 import {setNavigate} from 'shared/utils/navigation';
 import {getDefaultRouteForUser} from './guards';
+import NoResults from 'shared/components/NoResults';
 
 // Screens
 import WelcomeScreen from 'modules/portals/unauthenticated/screens/WelcomeScreen';
@@ -26,12 +26,12 @@ import PendingGymsScreen from 'modules/portals/appManagement/screens/PendingGyms
 
 import GymAdminDashboard from 'modules/portals/gymManagement/screens/GymManagementDashboardScreen';
 import GymManagementScreen from 'modules/portals/gymManagement/screens/GymManagementScreen';
+import ContentContainer from 'shared/components/ContentContainer';
 
 const AppRoutes = () => {
   const {user, isAuthenticated, sessionLoaded} = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const {theme} = useTheme();
 
   useEffect(() => {
     setNavigate(navigate);
@@ -55,9 +55,9 @@ const AppRoutes = () => {
   }, [sessionLoaded, isAuthenticated, user, location.pathname, navigate]);
 
   return (
-    <View style={styles.container}>
+    <ContentContainer>
       <Header />
-      <View style={styles.content}>
+      <View style={{flex: 1}}>
         <Routes>
           {/* Public */}
           <Route path="/" element={<WelcomeScreen />} />
@@ -80,25 +80,23 @@ const AppRoutes = () => {
 
           {/* Gym Management Portal */}
           <Route path="/gym-admin" element={<GymAdminDashboard />} />
-          <Route path="/gym-admin/gyms/:gymId" element={<GymManagementScreen />} />
+          <Route
+            path="/gym-admin/gyms/:gymId"
+            element={<GymManagementScreen />}
+          />
 
           {/* Fallback */}
-          <Route path="*" element={<Text style={{color: 'white', padding: 20}}>Page not found</Text>} />
+          <Route
+            path="*"
+            element={
+              <NoResults message="Page not found." />
+            }
+          />
         </Routes>
       </View>
       <Footer />
-    </View>
+    </ContentContainer>
   );
 };
 
 export default AppRoutes;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-  },
-  content: {
-    flex: 1,
-  },
-});
