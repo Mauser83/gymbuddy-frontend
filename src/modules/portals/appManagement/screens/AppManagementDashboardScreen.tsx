@@ -11,7 +11,6 @@ import ScreenLayout from 'shared/components/ScreenLayout';
 import Card from 'shared/components/Card';
 import Title from 'shared/components/Title';
 import Button from 'shared/components/Button';
-import DetailField from 'shared/components/DetailField';
 
 const AppDashboardScreen = () => {
   const navigate = useNavigate();

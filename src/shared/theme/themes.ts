@@ -575,4 +575,29 @@ export const getComponentStyles = (theme: Theme) => ({
       fontWeight: fontWeights.bold,
     },
   },
+  clickableList: {
+    item: {
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.md,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.sm,
+    },
+    row: {
+      flexDirection: 'row' as ViewStyle['flexDirection'],
+      alignItems: 'center' as ViewStyle['alignItems'],
+      justifyContent: 'space-between' as ViewStyle['justifyContent'],
+    },
+    textContainer: {
+      flex: 1,
+      marginRight: spacing.sm,
+    },
+    label: {
+      fontSize: fontSizes.lg,
+      fontWeight: fontWeights.semiBold,
+    },
+    subLabel: {
+      fontSize: fontSizes.sm,
+      marginTop: 2,
+    },
+  },
 });
