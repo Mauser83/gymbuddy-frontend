@@ -75,6 +75,7 @@ const GymsScreen = () => {
       <Card variant="glass" compact title="Gyms" />
 
       <SearchInput
+        placeholder="Search for gym name or location"
         value={searchQuery}
         onChange={setSearchQuery}
         onClear={() => setSearchQuery('')}

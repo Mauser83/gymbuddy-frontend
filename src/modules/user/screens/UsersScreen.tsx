@@ -77,6 +77,7 @@ const UsersScreen = () => {
       <Card variant="glass" compact title="Manage Users" />
 
       <SearchInput
+        placeholder="Search for username or email"
         value={searchQuery}
         onChange={setSearchQuery}
         onClear={() => setSearchQuery('')}
