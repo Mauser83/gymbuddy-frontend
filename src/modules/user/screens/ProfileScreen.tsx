@@ -26,8 +26,9 @@ const ProfileScreen = () => {
 
   return (
     <ScreenLayout>
+            <Card variant="glass" compact title="My profile" />
+
         <Card variant="user">
-          <Title text="My profile" />
           <DetailField
             label="👤 Username:"
             value={user.username || 'Unknown'}

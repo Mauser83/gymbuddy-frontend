@@ -32,7 +32,7 @@ export const getComponentStyles = (theme: Theme) => ({
       borderRadius: borderRadius.lg,
       padding: spacing.xl,
       marginBottom: spacing.xl,
-      alignItems: 'center',
+      // alignItems: 'center',
     },
     glassTitle: {
       fontSize: fontSizes.xl,

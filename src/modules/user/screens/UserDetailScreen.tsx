@@ -75,56 +75,62 @@ const UserDetailScreen = () => {
   return (
     <ScreenLayout>
       {loading ? (
-        <LoadingState text="Loading user details..."/>
+        <LoadingState text="Loading user details..." />
       ) : error ? (
-        <ErrorMessage message={error.message}/>
+        <ErrorMessage message={error.message} />
       ) : !selectedUser ? (
         <NoResults message="User not found." />
       ) : (
-        <Card variant="user">
-          <DetailField
-            label="👤 Username:"
-            value={selectedUser.username || 'Unknown'}
-          />
-          <DetailField label="📧 Email:" value={selectedUser.email} />
+        <>
+          <Card variant="glass" compact title="Manage User" />
 
-          {selectedUser.appRole && (
-            <RolePill type="app" role={selectedUser.appRole} />
-          )}
+          <Card variant="user">
+            <DetailField
+              label="👤 Username:"
+              value={selectedUser.username || 'Unknown'}
+            />
+            <DetailField label="📧 Email:" value={selectedUser.email} />
 
-          {selectedUser.userRole && (
-            <RolePill type="user" role={selectedUser.userRole} />
-          )}
+            {selectedUser.appRole && (
+              <RolePill type="app" role={selectedUser.appRole} />
+            )}
 
-          {selectedUser.gymManagementRoles?.length > 0 && (
-            <>
-              <RolePillExpandable
-                type="gym"
-                expanded={gymRolesExpanded}
-                onToggle={() => setGymRolesExpanded(!gymRolesExpanded)}
-                count={selectedUser.gymManagementRoles.length}
-              />
+            {selectedUser.userRole && (
+              <RolePill type="user" role={selectedUser.userRole} />
+            )}
 
-              {gymRolesExpanded &&
-                selectedUser.gymManagementRoles.map((gr: any, idx: number) => (
-                  <GymRoleEntry
-                    key={idx}
-                    gymName={gr.gym.name}
-                    role={gr.role}
-                  />
-                ))}
-            </>
-          )}
+            {selectedUser.gymManagementRoles?.length > 0 && (
+              <>
+                <RolePillExpandable
+                  type="gym"
+                  expanded={gymRolesExpanded}
+                  onToggle={() => setGymRolesExpanded(!gymRolesExpanded)}
+                  count={selectedUser.gymManagementRoles.length}
+                />
 
-          <DetailField
-            label="📅 Joined:"
-            value={formatDate(selectedUser.createdAt)}
-          />
+                {gymRolesExpanded &&
+                  selectedUser.gymManagementRoles.map(
+                    (gr: any, idx: number) => (
+                      <GymRoleEntry
+                        key={idx}
+                        gymName={gr.gym.name}
+                        role={gr.role}
+                      />
+                    ),
+                  )}
+              </>
+            )}
 
-          <View style={{marginTop: 20}}>
-            <Button text="Edit Roles" onPress={() => setModalVisible(true)} />
-          </View>
-        </Card>
+            <DetailField
+              label="📅 Joined:"
+              value={formatDate(selectedUser.createdAt)}
+            />
+
+            <View style={{marginTop: 20}}>
+              <Button text="Edit Roles" onPress={() => setModalVisible(true)} />
+            </View>
+          </Card>
+        </>
       )}
 
       {selectedUser && (
