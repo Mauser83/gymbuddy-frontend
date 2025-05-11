@@ -134,7 +134,7 @@ export const getComponentStyles = (theme: Theme) => ({
     value: {
       fontSize: fontSizes.md,
       color: theme.colors.textPrimary,
-      marginBottom: spacing.sm,
+      marginBottom: spacing.xs,
     },
   },
   button: StyleSheet.create({

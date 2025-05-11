@@ -1,11 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {
-  FlatList,
-  Alert,
-  View,
-  Text,
-  TextStyle,
-} from 'react-native';
+import {FlatList, Alert, View, Text, TextStyle} from 'react-native';
 import {useMutation} from '@apollo/client';
 import {Formik} from 'formik';
 import * as Yup from 'yup';
@@ -21,6 +15,7 @@ import FormInput from 'shared/components/FormInput';
 import Button from 'shared/components/Button';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import {spacing, fontSizes} from 'shared/theme/tokens';
+import DetailField from 'shared/components/DetailField';
 
 import countries from 'i18n-iso-countries';
 import enLocale from 'i18n-iso-countries/langs/en.json';
@@ -46,14 +41,22 @@ const displayLabelMap: Record<string, string> = {
   websiteUrl: 'Website URL',
   description: 'Description',
   imageUrl: 'Image URL',
-  country: 'Country',
   state: 'State',
   city: 'City',
   address: 'Address',
   postalCode: 'Postal Code',
 };
 
-const hiddenFields = ['countryCode', 'stateCode', 'latitude', 'longitude'];
+const hiddenFields = [
+  'country',
+  'countryCode',
+  'state',
+  'stateCode',
+  'city',
+  'postalCode',
+  'latitude',
+  'longitude',
+];
 
 const GymCreateScreen = () => {
   const navigate = useNavigate();
@@ -127,7 +130,7 @@ const GymCreateScreen = () => {
     try {
       const {data} = await createGym({variables: {input: cleanedValues}});
       Alert.alert('✅ Gym Created');
-      navigate(`/gyms/${data.createGym.id}`);
+      navigate(`/gym-admin/gyms/${data.createGym.id}`);
     } catch (err: any) {
       Alert.alert('❌ Error', err.message);
     }
@@ -147,7 +150,6 @@ const GymCreateScreen = () => {
         }}>
         {({
           handleChange,
-          handleBlur,
           handleSubmit,
           values,
           errors,
@@ -220,7 +222,12 @@ const GymCreateScreen = () => {
                         onValidAddressSelected={setIsAddressValid}
                       />
                       {touched.address && errors.address && (
-                        <Text style={theme.colors.error as TextStyle}>
+                        <Text
+                          style={{
+                            color: theme.colors.error,
+                            marginBottom: spacing.xs,
+                            fontSize: fontSizes.sm,
+                          }}>
                           {errors.address}
                         </Text>
                       )}
@@ -237,15 +244,16 @@ const GymCreateScreen = () => {
                         )
                         .map(([key, val], idx, arr) => (
                           <View key={key}>
-                            <Text style={{color: '#fff'}}>
-                              {displayLabelMap[key] || key}: {val}
-                            </Text>
-                            {idx < arr.length - 1 && (
+                            <DetailField
+                              label={displayLabelMap[key] || key}
+                              value={val}
+                            />
+                            {idx < arr.length && (
                               <View
                                 style={{
                                   height: 1,
                                   backgroundColor: 'rgba(255,255,255,0.05)',
-                                  marginVertical: 4,
+                                  marginVertical: 8,
                                 }}
                               />
                             )}
@@ -256,12 +264,12 @@ const GymCreateScreen = () => {
 
                   <ButtonRow>
                     {step > 0 ? (
-                        <Button
-                          text="Back"
-                          onPress={() => setStep(prev => prev - 1)}
-                        />
+                      <Button
+                        text="Back"
+                        onPress={() => setStep(prev => prev - 1)}
+                      />
                     ) : (
-                      <View style={{flex: 1}}/>
+                      <View style={{flex: 1}} />
                     )}
                     <Button
                       disabled={
