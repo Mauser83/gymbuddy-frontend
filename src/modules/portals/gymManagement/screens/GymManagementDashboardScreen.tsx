@@ -35,7 +35,7 @@ const GymAdminDashboard = () => {
     <LinearGradient colors={['#0f172a', '#1f2937']} style={styles.gradient}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.glassCard}>
-          <Text style={styles.header}>Gym Admin Dashboard</Text>
+          <Text style={styles.header}>Gym Management Dashboard</Text>
         </View>
 
         {/* My Gyms Section */}

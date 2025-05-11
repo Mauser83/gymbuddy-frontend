@@ -19,7 +19,6 @@ const PendingGymsScreen = () => {
   const {data, loading} = useQuery(GET_PENDING_GYMS, {
     fetchPolicy: 'cache-and-network',
   });
-  console.log(data);
 
   const [approveGym, {loading: approving}] = useMutation(APPROVE_GYM);
 
