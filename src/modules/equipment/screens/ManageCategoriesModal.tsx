@@ -20,6 +20,9 @@ import {
   EquipmentCategory,
   EquipmentSubcategory,
 } from '../types/equipment.types';
+import ButtonRow from 'shared/components/ButtonRow';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import {useTheme} from 'shared/theme/ThemeProvider';
 
 type Mode = 'category' | 'subcategory';
 
@@ -40,6 +43,8 @@ export default function ManageCategoriesModal({
   mode,
   categoryId,
 }: ManageCategoriesModalProps) {
+  const {theme} = useTheme();
+
   const {data, refetch} = useQuery<{equipmentCategories: EquipmentCategory[]}>(
     GET_EQUIPMENT_CATEGORIES,
   );
@@ -57,7 +62,13 @@ export default function ManageCategoriesModal({
   const [selectedCatId, setSelectedCatId] = useState<number | null>(null);
   const [selectingCategory, setSelectingCategory] = useState(false);
   const [expandedSubId, setExpandedSubId] = useState<number | null>(null);
-
+  const [expandedCatId, setExpandedCatId] = useState<number | null>(null);
+  const [categoryEdits, setCategoryEdits] = useState<{
+    [id: number]: {name: string; slug: string};
+  }>({});
+  const [subcategoryEdits, setSubcategoryEdits] = useState<{
+    [id: number]: {name: string; slug: string};
+  }>({});
 
   const handleCreateCategory = async () => {
     try {
@@ -129,7 +140,7 @@ export default function ManageCategoriesModal({
 
   const handleDeleteSubcategory = async (id: number) => {
     try {
-      await deleteSubcategory({variables: { id } });
+      await deleteSubcategory({variables: {id}});
       refetch();
     } catch (err) {
       console.error('Error deleting subcategory', err);
@@ -145,14 +156,68 @@ export default function ManageCategoriesModal({
       id: cat.id,
       label: cat.name,
       subLabel: `${cat.slug}`,
-      onPress: () => setSelectedCatId(cat.id),
-      rightElement: (
-        <Button
-          text="Delete"
-          variant="outline"
-          onPress={() => handleDeleteCategory(cat.id)}
-        />
-      ),
+      onPress: () => {
+        setExpandedCatId(prev => (prev === cat.id ? null : cat.id));
+        setCategoryEdits(prev => ({
+          ...prev,
+          [cat.id]: {
+            name: cat.name,
+            slug: cat.slug,
+          },
+        }));
+      },
+      content:
+        expandedCatId === cat.id ? (
+          <>
+            <FormInput
+              label="Name"
+              value={categoryEdits[cat.id]?.name || ''}
+              onChangeText={val => {
+                setCategoryEdits(prev => {
+                  const updated = {
+                    ...prev[cat.id],
+                    name: val,
+                    ...(autoGenerateSlug && slugify
+                      ? {slug: slugify(val)}
+                      : {}),
+                  };
+
+                  return {
+                    ...prev,
+                    [cat.id]: updated,
+                  };
+                });
+              }}
+            />
+            <FormInput
+              label="Slug"
+              editable={false}
+              value={categoryEdits[cat.id]?.slug || ''}
+            />
+            <ButtonRow>
+              <Button
+                text="Update"
+                disabled={
+                  !(
+                    categoryEdits[cat.id]?.name !== cat.name ||
+                    categoryEdits[cat.id]?.slug !== cat.slug
+                  )
+                }
+                onPress={() =>
+                  handleUpdateCategory(
+                    cat.id,
+                    categoryEdits[cat.id]?.name ?? cat.name,
+                    categoryEdits[cat.id]?.slug ?? cat.slug,
+                  )
+                }
+              />
+              <Button
+                text="Delete"
+                onPress={() => handleDeleteCategory(cat.id)}
+              />
+            </ButtonRow>
+          </>
+        ) : undefined,
     })) ?? [];
 
   const subCategoryItems =
@@ -160,26 +225,76 @@ export default function ManageCategoriesModal({
       id: sub.id,
       label: sub.name,
       subLabel: `${sub.slug}`,
-      onPress: () => setExpandedSubId(prev => (prev === sub.id ? null : sub.id)),
-      content: expandedSubId === sub.id ? (
-      <>
-        <FormInput
-          label="Name"
-          value={sub.name}
-          onChangeText={val => handleUpdateSubcategory(sub.id, val, sub.slug)}
-        />
-        <FormInput
-          label="Slug"
-          value={sub.slug}
-          onChangeText={val => handleUpdateSubcategory(sub.id, sub.name, val)}
-        />
-        <Button
-          text="Delete Subcategory"
-          variant="outline"
-          onPress={() => handleDeleteSubcategory(sub.id)}
-        />
-      </>
-      ) : undefined,
+      rightElement:
+        expandedSubId === sub.id ? (
+          <FontAwesome
+            name="chevron-down"
+            size={16}
+            color={theme.colors.accentStart}
+          />
+        ) : null,
+      onPress: () => {
+        setExpandedSubId(prev => (prev === sub.id ? null : sub.id));
+        setSubcategoryEdits(prev => ({
+          ...prev,
+          [sub.id]: {
+            name: sub.name,
+            slug: sub.slug,
+          },
+        }));
+      },
+      content:
+        expandedSubId === sub.id ? (
+          <>
+            <FormInput
+              label="Name"
+              value={subcategoryEdits[sub.id]?.name || ''}
+              onChangeText={val => {
+                setSubcategoryEdits(prev => {
+                  const updated = {
+                    ...prev[sub.id],
+                    name: val,
+                    ...(autoGenerateSlug && slugify
+                      ? {slug: slugify(val)}
+                      : {}),
+                  };
+
+                  return {
+                    ...prev,
+                    [sub.id]: updated,
+                  };
+                });
+              }}
+            />
+            <FormInput
+              label="Slug"
+              editable={false}
+              value={subcategoryEdits[sub.id]?.slug || ''}
+            />
+            <ButtonRow>
+              <Button
+                text="Update"
+                disabled={
+                  !(
+                    subcategoryEdits[sub.id]?.name !== sub.name ||
+                    subcategoryEdits[sub.id]?.slug !== sub.slug
+                  )
+                }
+                onPress={() =>
+                  handleUpdateSubcategory(
+                    sub.id,
+                    subcategoryEdits[sub.id]?.name ?? sub.name,
+                    subcategoryEdits[sub.id]?.slug ?? sub.slug,
+                  )
+                }
+              />
+              <Button
+                text="Delete"
+                onPress={() => handleDeleteSubcategory(sub.id)}
+              />
+            </ButtonRow>
+          </>
+        ) : undefined,
     })) ?? [];
 
   return (
@@ -235,9 +350,8 @@ export default function ManageCategoriesModal({
               onChangeText={setNewSubSlug}
             />
             <Button text="Add Subcategory" onPress={handleCreateSubcategory} />
-              <ScrollView style={{ maxHeight: 300, marginTop: 16 }}>
-
-            <ClickableList items={subCategoryItems} />
+            <ScrollView style={{maxHeight: 300, marginTop: 16}}>
+              <ClickableList items={subCategoryItems} />
             </ScrollView>
           </>
         )}

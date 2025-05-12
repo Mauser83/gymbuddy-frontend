@@ -17,10 +17,11 @@ import Title from 'shared/components/Title';
 import FormInput from 'shared/components/FormInput';
 import Button from 'shared/components/Button';
 import SelectableField from 'shared/components/SelectableField';
-import OptionItem from 'shared/components/OptionItem';
 import ModalWrapper from 'shared/components/ModalWrapper';
 import ManageCategoriesModal from './ManageCategoriesModal';
 import {ScrollView} from 'react-native';
+import ClickableList from 'shared/components/ClickableList';
+import DividerWithLabel from 'shared/components/DividerWithLabel';
 
 const EquipmentSchema = Yup.object().shape({
   name: Yup.string().required('Name is required'),
@@ -182,28 +183,33 @@ export default function CreateEquipmentScreen() {
             {/* Category Modal */}
             {showCategoryModal && (
               <ModalWrapper visible onClose={() => setShowCategoryModal(false)}>
-                <ScrollView>
-                  {categories.map((cat: EquipmentCategory) => (
-                    <OptionItem
-                      key={cat.id}
-                      text={cat.name}
-                      onPress={() => {
-                        setFieldValue('categoryId', cat.id);
-                        setSelectedCategoryId(cat.id);
-                        setFieldValue('subcategoryId', null);
-                        setShowCategoryModal(false);
-                      }}
-                    />
-                  ))}
-                  <Button
-                    text="Manage Categories"
-                    variant="outline"
-                    onPress={() => {
-                      setShowCategoryModal(false);
-                      setShowManageCategoryModal(true);
-                    }}
+                <Title text="Select Category" />
+                <ScrollView style={{maxHeight: 300, marginTop: 16}}>
+                  <ClickableList
+                    items={
+                      [...categories]
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .map((cat: EquipmentCategory) => ({
+                          id: cat.id,
+                          label: cat.name,
+                          onPress: () => {
+                            setFieldValue('categoryId', cat.id);
+                            setSelectedCategoryId(cat.id);
+                            setFieldValue('subcategoryId', null);
+                            setShowCategoryModal(false);
+                          },
+                        })) ?? []
+                    }
                   />
                 </ScrollView>
+                <DividerWithLabel label="OR" />
+                <Button
+                  text="Manage Categories"
+                  onPress={() => {
+                    setShowCategoryModal(false);
+                    setShowManageCategoryModal(true);
+                  }}
+                />
               </ModalWrapper>
             )}
 
@@ -212,26 +218,31 @@ export default function CreateEquipmentScreen() {
               <ModalWrapper
                 visible
                 onClose={() => setShowSubcategoryModal(false)}>
-                <ScrollView>
-                  {subcategories.map((sc: EquipmentSubcategory) => (
-                    <OptionItem
-                      key={sc.id}
-                      text={sc.name}
-                      onPress={() => {
-                        setFieldValue('subcategoryId', sc.id);
-                        setShowSubcategoryModal(false);
-                      }}
-                    />
-                  ))}
-                  <Button
-                    text="Manage Subcategories"
-                    variant="outline"
-                    onPress={() => {
-                      setShowSubcategoryModal(false);
-                      setShowManageSubcategoryModal(true);
-                    }}
+                <Title text={`Select Subcategory for ${categories.find((cat: EquipmentCategory) => cat.id === selectedCategoryId).name}`} />
+                <ScrollView style={{maxHeight: 300, marginTop: 16}}>
+                  <ClickableList
+                    items={
+                      [...subcategories]
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .map((sc: EquipmentSubcategory) => ({
+                          id: sc.id,
+                          label: sc.name,
+                          onPress: () => {
+                            setFieldValue('subcategoryId', sc.id);
+                            setShowSubcategoryModal(false);
+                          },
+                        })) ?? []
+                    }
                   />
                 </ScrollView>
+                <DividerWithLabel label="OR" />
+                <Button
+                  text="Manage Subcategories"
+                  onPress={() => {
+                    setShowSubcategoryModal(false);
+                    setShowManageSubcategoryModal(true);
+                  }}
+                />
               </ModalWrapper>
             )}
 
