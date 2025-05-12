@@ -13,7 +13,7 @@ export default function EquipmentDetailScreen() {
   const { id } = route.params;
 
   const { data, loading } = useQuery(GET_EQUIPMENT_BY_ID, {
-    variables: { id: Number(id) },
+    variables: { id },
   });
 
   if (loading) return <LoadingState text="Loading equipment details..." />;

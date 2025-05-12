@@ -24,7 +24,7 @@ export default function EditEquipmentScreen() {
   });
 
   const { categories, subcategories, loadSubcategories } = useCategories();
-  const { data } = useQuery(GET_EQUIPMENT_BY_ID, { variables: { id: Number(id) } });
+  const { data } = useQuery(GET_EQUIPMENT_BY_ID, { variables: { id } });
   const [updateEquipment, { loading }] = useMutation(UPDATE_EQUIPMENT);
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export default function EditEquipmentScreen() {
 
   const handleSubmit = async () => {
     try {
-      await updateEquipment({ variables: { id: Number(id), input: form } });
+      await updateEquipment({ variables: { id, input: form } });
       navigation.goBack();
     } catch (error) {
       console.error('Failed to update equipment:', error);

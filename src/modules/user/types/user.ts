@@ -1,7 +1,7 @@
 import { GymRole } from "../../gym/types/gym.types";
 
 export interface User {
-    id: string;
+    id: number;
     email: string;
     username?: string;
     appRole?: string;

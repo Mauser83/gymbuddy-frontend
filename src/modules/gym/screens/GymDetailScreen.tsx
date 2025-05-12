@@ -38,7 +38,7 @@ const GymDetailScreen = () => {
 
     const isGymAdmin = gym.gymRoles?.some(
       (role: Gym['gymRoles'][number]) =>
-        role.role === 'GYM_ADMIN' && String(role.user.id) === user.id,
+        role.role === 'GYM_ADMIN' && role.user.id === user.id,
     );
 
     if (!isGymAdmin) {

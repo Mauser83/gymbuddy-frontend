@@ -79,7 +79,7 @@ export default function ManageCategoriesModal({
           input: {
             name: newSubName,
             slug: newSubSlug,
-            categoryId: Number(categoryId),
+            categoryId,
           },
         },
       });
@@ -129,7 +129,7 @@ export default function ManageCategoriesModal({
 
   const handleDeleteSubcategory = async (id: number) => {
     try {
-      await deleteSubcategory({variables: { id: Number(id) } });
+      await deleteSubcategory({variables: { id } });
       refetch();
     } catch (err) {
       console.error('Error deleting subcategory', err);
