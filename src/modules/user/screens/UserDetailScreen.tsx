@@ -22,7 +22,16 @@ import LoadingState from 'shared/components/LoadingState';
 import ErrorMessage from 'shared/components/ErrorMessage';
 
 const UserDetailScreen = () => {
-  const {id} = useParams<{id: string}>();
+  const {id: idParam} = useParams<{id: string}>();
+  if (!idParam) {
+    throw new Error('Missing ID in URL');
+}
+  const id = parseInt(idParam, 10);
+
+  if (isNaN(id)) {
+    throw new Error('Invalid ID in URL');
+  }
+
   const [modalVisible, setModalVisible] = useState(false);
   const [gymRolesExpanded, setGymRolesExpanded] = useState(false);
 

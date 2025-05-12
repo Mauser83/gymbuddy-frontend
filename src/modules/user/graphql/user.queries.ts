@@ -11,7 +11,7 @@ export const GET_USERS = gql`
 `;
 
 export const GET_USER_BY_ID = gql`
-  query GetUserById($id: ID!) {
+  query GetUserById($id: Int!) {
     userById(id: $id) {
       id
       email

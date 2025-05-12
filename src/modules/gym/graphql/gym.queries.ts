@@ -14,7 +14,7 @@ export const GET_GYMS = gql`
 `;
 
 export const GET_GYM_BY_ID = gql`
-  query GetGymById($id: ID!) {
+  query GetGymById($id: Int!) {
     gymById(id: $id) {
       ...GymFragment
     }

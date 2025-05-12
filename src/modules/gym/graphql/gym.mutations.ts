@@ -1,7 +1,7 @@
 import { gql } from '@apollo/client';
 
 export const APPROVE_GYM = gql`
-  mutation ApproveGym($gymId: ID!) {
+  mutation ApproveGym($gymId: Int!) {
     approveGym(gymId: $gymId)
   }
 `;

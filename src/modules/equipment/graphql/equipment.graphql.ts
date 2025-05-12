@@ -24,7 +24,7 @@ export const GET_ALL_EQUIPMENTS = gql`
 `;
 
 export const GET_EQUIPMENT_BY_ID = gql`
-  query GetEquipmentById($id: ID!) {
+  query GetEquipmentById($id: Int!) {
     equipment(id: $id) {
       id
       name
@@ -57,7 +57,7 @@ export const CREATE_EQUIPMENT = gql`
 `;
 
 export const UPDATE_EQUIPMENT = gql`
-  mutation UpdateEquipment($id: ID!, $input: UpdateEquipmentInput!) {
+  mutation UpdateEquipment($id: Int!, $input: UpdateEquipmentInput!) {
     updateEquipment(id: $id, input: $input) {
       id
       name
@@ -66,7 +66,7 @@ export const UPDATE_EQUIPMENT = gql`
 `;
 
 export const DELETE_EQUIPMENT = gql`
-  mutation DeleteEquipment($id: ID!) {
+  mutation DeleteEquipment($id: Int!) {
     deleteEquipment(id: $id)
   }
 `;
@@ -107,7 +107,7 @@ export const CREATE_SUBCATEGORY = gql`
 `;
 
 export const UPDATE_CATEGORY = gql`
-  mutation UpdateCategory($id: ID!, $input: UpdateEquipmentCategoryInput!) {
+  mutation UpdateCategory($id: Int!, $input: UpdateEquipmentCategoryInput!) {
     updateEquipmentCategory(id: $id, input: $input) {
       id
       name
@@ -116,14 +116,14 @@ export const UPDATE_CATEGORY = gql`
 `;
 
 export const DELETE_CATEGORY = gql`
-  mutation DeleteCategory($id: ID!) {
+  mutation DeleteCategory($id: Int!) {
     deleteEquipmentCategory(id: $id)
   }
 `;
 
 export const UPDATE_SUBCATEGORY = gql`
   mutation UpdateSubcategory(
-    $id: ID!
+    $id: Int!
     $input: UpdateEquipmentSubcategoryInput!
   ) {
     updateEquipmentSubcategory(id: $id, input: $input) {
@@ -134,7 +134,7 @@ export const UPDATE_SUBCATEGORY = gql`
 `;
 
 export const DELETE_SUBCATEGORY = gql`
-  mutation DeleteSubcategory($id: ID!) {
+  mutation DeleteSubcategory($id: Int!) {
     deleteEquipmentSubcategory(id: $id)
   }
 `;

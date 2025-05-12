@@ -43,7 +43,7 @@ const GymAdminDashboard = () => {
             items={gyms.map(gym => ({
               id: gym.id,
               label: gym.name,
-              subLabel: gym.isApproved ? '' : '(Pending)',
+              subLabel: gym.isApproved ? undefined : '(Pending)',
               onPress: () => navigate(`/gym-admin/gyms/${gym.id}`),
             }))}
           />

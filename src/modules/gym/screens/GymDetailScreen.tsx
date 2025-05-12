@@ -15,7 +15,15 @@ import LoadingState from 'shared/components/LoadingState';
 import ErrorMessage from 'shared/components/ErrorMessage';
 
 const GymDetailScreen = () => {
-  const {gymId} = useParams<{gymId: string}>();
+  const {gymId: idParam} = useParams<{gymId: string}>();
+    if (!idParam) {
+      throw new Error('Missing ID in URL');
+  }
+    const gymId = parseInt(idParam, 10);
+  
+    if (isNaN(gymId)) {
+      throw new Error('Invalid ID in URL');
+    }
   const {user} = useAuth();
   const navigate = useNavigate();
 
