@@ -1,3 +1,5 @@
+// Adds ManageCategoriesModal support inside the category selector modal
+// Slugs are now automatically generated from names (no slug input needed)
 import React, {useState, useEffect} from 'react';
 import {useNavigate} from 'react-router-native';
 import {Formik} from 'formik';
@@ -8,7 +10,7 @@ import {
   EquipmentCategory,
   EquipmentSubcategory,
 } from '../types/equipment.types';
-import { useAuth } from 'modules/auth/context/AuthContext';
+import {useAuth} from 'modules/auth/context/AuthContext';
 
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Title from 'shared/components/Title';
@@ -17,6 +19,7 @@ import Button from 'shared/components/Button';
 import SelectableField from 'shared/components/SelectableField';
 import OptionItem from 'shared/components/OptionItem';
 import ModalWrapper from 'shared/components/ModalWrapper';
+import ManageCategoriesModal from './ManageCategoriesModal';
 import {ScrollView} from 'react-native';
 
 const EquipmentSchema = Yup.object().shape({
@@ -28,11 +31,20 @@ const EquipmentSchema = Yup.object().shape({
   subcategoryId: Yup.number().nullable(),
 });
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+}
+
 export default function CreateEquipmentScreen() {
-  const { user } = useAuth();
+  const {user} = useAuth();
   const navigate = useNavigate();
   const {getCategories, createEquipment} = useEquipment();
-  const {data: categoryData} = getCategories();
+  const {data: categoryData, refetch: refetchCategories} = getCategories();
   const categories = categoryData?.equipmentCategories ?? [];
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
@@ -40,13 +52,17 @@ export default function CreateEquipmentScreen() {
   );
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
+  const [showManageCategoryModal, setShowManageCategoryModal] = useState(false);
+  const [showManageSubcategoryModal, setShowManageSubcategoryModal] =
+    useState(false);
 
-    useEffect(() => {
-      if (!user) navigate('/');
-    }, [user]);
+  useEffect(() => {
+    if (!user) navigate('/');
+  }, [user]);
 
   const subcategories: EquipmentSubcategory[] =
-  categories.find((cat: EquipmentCategory) => cat.id === selectedCategoryId)?.subcategories ?? [];
+    categories.find((cat: EquipmentCategory) => cat.id === selectedCategoryId)
+      ?.subcategories ?? [];
 
   const initialValues = {
     name: '',
@@ -62,7 +78,17 @@ export default function CreateEquipmentScreen() {
     {setSubmitting}: {setSubmitting: (isSubmitting: boolean) => void},
   ) => {
     try {
-      await createEquipment({variables: {input: values}});
+      await createEquipment({
+        variables: {
+          input: {
+            ...values,
+            categoryId: Number(values.categoryId),
+            subcategoryId: values.subcategoryId
+              ? Number(values.subcategoryId)
+              : undefined,
+          },
+        },
+      });
       navigate('/equipment');
     } catch (error) {
       console.error('Failed to create equipment:', error);
@@ -129,8 +155,9 @@ export default function CreateEquipmentScreen() {
             <SelectableField
               label="Category"
               value={
-                categories.find((c: EquipmentCategory) => c.id === values.categoryId) ||
-                'Select Category'
+                categories.find(
+                  (c: EquipmentCategory) => c.id === values.categoryId,
+                )?.name || 'Select Category'
               }
               onPress={() => setShowCategoryModal(true)}
             />
@@ -138,8 +165,9 @@ export default function CreateEquipmentScreen() {
             <SelectableField
               label="Subcategory"
               value={
-                subcategories.find((sc: EquipmentSubcategory) => sc.id === values.subcategoryId)
-                  ?.name || 'Select Subcategory'
+                subcategories.find(
+                  (sc: EquipmentSubcategory) => sc.id === values.subcategoryId,
+                )?.name || 'Select Subcategory'
               }
               onPress={() => setShowSubcategoryModal(true)}
               disabled={!values.categoryId}
@@ -167,6 +195,14 @@ export default function CreateEquipmentScreen() {
                       }}
                     />
                   ))}
+                  <Button
+                    text="Manage Categories"
+                    variant="outline"
+                    onPress={() => {
+                      setShowCategoryModal(false);
+                      setShowManageCategoryModal(true);
+                    }}
+                  />
                 </ScrollView>
               </ModalWrapper>
             )}
@@ -187,8 +223,45 @@ export default function CreateEquipmentScreen() {
                       }}
                     />
                   ))}
+                  <Button
+                    text="Manage Subcategories"
+                    variant="outline"
+                    onPress={() => {
+                      setShowSubcategoryModal(false);
+                      setShowManageSubcategoryModal(true);
+                    }}
+                  />
                 </ScrollView>
               </ModalWrapper>
+            )}
+
+            {/* Manage Categories Modal */}
+            {showManageCategoryModal && (
+              <ManageCategoriesModal
+                visible
+                mode="category"
+                onClose={() => {
+                  setShowManageCategoryModal(false);
+                  refetchCategories();
+                }}
+                slugify={slugify}
+                autoGenerateSlug
+              />
+            )}
+
+            {/* Manage Subcategories Modal */}
+            {showManageSubcategoryModal && values.categoryId && (
+              <ManageCategoriesModal
+                visible
+                mode="subcategory"
+                categoryId={values.categoryId}
+                onClose={() => {
+                  setShowManageSubcategoryModal(false);
+                  refetchCategories();
+                }}
+                slugify={slugify}
+                autoGenerateSlug
+              />
             )}
           </>
         )}

@@ -1,6 +1,6 @@
 // components/ClickableList.tsx
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import {View, Text, Pressable, StyleSheet} from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import {useTheme} from 'shared/theme/ThemeProvider';
 
@@ -10,49 +10,49 @@ type Item = {
   onPress: () => void;
   subLabel?: string;
   rightElement?: React.ReactNode;
+  content?: React.ReactNode;
 };
 
 type Props = {
   items: Item[];
 };
 
-const ClickableList = ({ items }: Props) => {
-  const { theme } = useTheme();
+const ClickableList = ({items}: Props) => {
+  const {theme} = useTheme();
 
   return (
     <View>
-      {items.map((item) => (
-        <Pressable
-          key={item.id}
-          onPress={item.onPress}
-          style={styles.item}
-        >
-          <View style={styles.row}>
-            <View style={styles.textContainer}>
-              <Text
-                style={[styles.label, { color: theme.colors.textPrimary }]}
-                numberOfLines={1}
-              >
-                {item.label}
-              </Text>
-              {item.subLabel ? (
-                <Text
-                  style={[styles.subLabel, { color: theme.colors.textSecondary }]}
-                  numberOfLines={1}
-                >
-                  {item.subLabel}
+      {items.map(item => (
+        <View key={item.id}>
+          <Pressable onPress={item.onPress} style={styles.item}>
+            <View style={styles.row}>
+              <View style={styles.textContainer}>
+                <Text style={[styles.label, {color: theme.colors.textPrimary}]}>
+                  {item.label}
                 </Text>
-              ) : null}
+                {item.subLabel && (
+                  <Text
+                    style={[
+                      styles.subLabel,
+                      {color: theme.colors.textSecondary},
+                    ]}>
+                    {item.subLabel}
+                  </Text>
+                )}
+              </View>
+                {item.rightElement ?? (
+                  <FontAwesome
+                    name="chevron-right"
+                    size={16}
+                    color={theme.colors.accentStart}
+                  />
+                )}
             </View>
-            {item.rightElement ?? (
-              <FontAwesome
-                          name="chevron-right"
-                          size={16}
-                          color={theme.colors.accentStart}
-                        />
-            )}
-          </View>
-        </Pressable>
+          </Pressable>
+          {item.content && (
+            <View style={styles.expandedContent}>{item.content}</View>
+          )}
+        </View>
       ))}
     </View>
   );
@@ -81,6 +81,10 @@ const styles = StyleSheet.create({
   subLabel: {
     fontSize: 14,
     marginTop: 2,
+  },
+  expandedContent: {
+    paddingHorizontal: 12,
+    paddingBottom: 8,
   },
 });
 
