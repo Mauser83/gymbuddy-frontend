@@ -1,7 +1,7 @@
 import React, {useEffect} from 'react';
 import {useNavigate} from 'react-router-native';
 import {useAuth} from '../../../auth/context/AuthContext';
-import {GymRole} from 'modules/gym/types/gym';
+import {GymRole} from 'modules/gym/types/gym.types';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Card from 'shared/components/Card';
 import Title from 'shared/components/Title';

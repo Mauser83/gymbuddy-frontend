@@ -60,6 +60,13 @@ const AppDashboardScreen = () => {
           text="Review Pending Gyms"
         />
       </Card>
+      <Card variant="glass">
+        <Title text="🛠️ Equipments" subtitle="View and manage global equipments"/>
+        <Button
+          onPress={() => navigate('/equipment')}
+          text="Manage Global Equipments"
+        />
+      </Card>
     </ScreenLayout>
   );
 };

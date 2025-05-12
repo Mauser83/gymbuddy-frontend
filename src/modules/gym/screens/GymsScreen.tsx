@@ -7,22 +7,20 @@ import {useAuth} from '../../auth/context/AuthContext';
 import {GET_GYMS} from '../graphql/gym.queries';
 import {GYM_APPROVED_SUBSCRIPTION} from '../graphql/gym.subscriptions';
 import {GYM_FRAGMENT} from '../graphql/gym.fragments';
-import {Gym} from 'modules/gym/types/gym';
+import {Gym} from 'modules/gym/types/gym.types';
 
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Card from 'shared/components/Card';
 import DetailField from 'shared/components/DetailField';
-import {useTheme} from 'shared/theme/ThemeProvider';
 import Button from 'shared/components/Button';
 import NoResults from 'shared/components/NoResults';
 import LoadingState from 'shared/components/LoadingState';
 import SearchInput from 'shared/components/SearchInput';
+import { spacing } from 'shared/theme/tokens';
 
 const GymsScreen = () => {
   const {user} = useAuth();
   const navigate = useNavigate();
-  const {componentStyles} = useTheme();
-  const styles = componentStyles.gymsScreen;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [gyms, setGyms] = useState<Gym[]>([]);
@@ -81,7 +79,7 @@ const GymsScreen = () => {
         onClear={() => setSearchQuery('')}
       />
 
-      <View style={styles.createButtonContainer}>
+      <View style={{ position: 'relative', marginBottom: spacing.sm,}}>
         <Button
           text="➕ Create New Gym"
           onPress={() => navigate('/gyms/create')}

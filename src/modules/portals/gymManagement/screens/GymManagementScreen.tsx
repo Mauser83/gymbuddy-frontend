@@ -4,7 +4,7 @@ import {useParams, useNavigate} from 'react-router-native';
 import {useQuery} from '@apollo/client';
 import {useAuth} from '../../../auth/context/AuthContext';
 import {GET_GYM_BY_ID} from '../../../gym/graphql/gym.queries';
-import {GymRole} from 'modules/gym/types/gym';
+import {GymRole} from 'modules/gym/types/gym.types';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import LoadingState from 'shared/components/LoadingState';
 import NoResults from 'shared/components/NoResults';

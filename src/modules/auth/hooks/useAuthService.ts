@@ -4,7 +4,7 @@ import {LOGIN_MUTATION, REGISTER_MUTATION} from '../graphql/auth.mutations';
 import {useNavigate} from 'react-router-native';
 import {useAuth} from '../context/AuthContext';
 import { logoutFromContext } from '../context/AuthContext';
-import {GymRole} from 'modules/gym/types/gym';
+import {GymRole} from 'modules/gym/types/gym.types';
 import { storage } from 'modules/auth/utils/storage';
 
 export const useAuthService = () => {

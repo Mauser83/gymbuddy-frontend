@@ -1,4 +1,4 @@
-import { GymRole } from "../../gym/types/gym";
+import { GymRole } from "../../gym/types/gym.types";
 
 export interface User {
     id: string;

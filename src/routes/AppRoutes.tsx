@@ -23,10 +23,12 @@ import ProfileScreen from 'modules/user/screens/ProfileScreen';
 
 import AppDashboardScreen from 'modules/portals/appManagement/screens/AppManagementDashboardScreen';
 import PendingGymsScreen from 'modules/portals/appManagement/screens/PendingGymsScreen';
+import GlobalEquipmentListScreen from 'modules/equipment/screens/GlobalEquipmentListScreen';
 
 import GymAdminDashboard from 'modules/portals/gymManagement/screens/GymManagementDashboardScreen';
 import GymManagementScreen from 'modules/portals/gymManagement/screens/GymManagementScreen';
 import ContentContainer from 'shared/components/ContentContainer';
+import CreateEquipmentScreen from 'modules/equipment/screens/CreateEquipmentScreen';
 
 const AppRoutes = () => {
   const {user, isAuthenticated, sessionLoaded} = useAuth();
@@ -77,6 +79,8 @@ const AppRoutes = () => {
           {/* App Management Portal */}
           <Route path="/admin" element={<AppDashboardScreen />} />
           <Route path="/pending-gyms" element={<PendingGymsScreen />} />
+          <Route path="/equipment" element={<GlobalEquipmentListScreen />} />
+          <Route path="/equipment/create" element={<CreateEquipmentScreen />} />
 
           {/* Gym Management Portal */}
           <Route path="/gym-admin" element={<GymAdminDashboard />} />

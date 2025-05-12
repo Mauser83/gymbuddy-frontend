@@ -1,3 +1,5 @@
+import { Equipment } from "modules/equipment/types/equipment.types";
+
 export interface Gym {
   id: number;
   name: string;
@@ -25,11 +27,6 @@ export interface Gym {
   equipment: Equipment[];
   trainers: Trainer[];
   gymRoles: GymRole[];
-}
-
-export interface Equipment {
-  id: number;
-  name?: string;
 }
 
 export interface Trainer {

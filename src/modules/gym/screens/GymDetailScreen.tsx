@@ -4,7 +4,7 @@ import {useQuery, useSubscription} from '@apollo/client';
 import {GET_GYM_BY_ID} from '../graphql/gym.queries';
 import {GYM_APPROVED_SUBSCRIPTION} from '../graphql/gym.subscriptions';
 import {GYM_FRAGMENT} from '../graphql/gym.fragments';
-import {Gym} from 'modules/gym/types/gym';
+import {Gym} from 'modules/gym/types/gym.types';
 import {useAuth} from 'modules/auth/context/AuthContext';
 
 import ScreenLayout from 'shared/components/ScreenLayout';

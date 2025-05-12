@@ -1,0 +1,137 @@
+// equipment.graphql.ts
+import { gql } from '@apollo/client';
+
+export const GET_ALL_EQUIPMENTS = gql`
+  query GetAllEquipments($search: String) {
+    allEquipments(search: $search) {
+      id
+      name
+      description
+      brand
+      manualUrl
+      category {
+        id
+        name
+      }
+      subcategory {
+        id
+        name
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const GET_EQUIPMENT_BY_ID = gql`
+  query GetEquipmentById($id: ID!) {
+    equipment(id: $id) {
+      id
+      name
+      description
+      brand
+      manualUrl
+      categoryId
+      subcategoryId
+      category {
+        id
+        name
+      }
+      subcategory {
+        id
+        name
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const CREATE_EQUIPMENT = gql`
+  mutation CreateEquipment($input: CreateEquipmentInput!) {
+    createEquipment(input: $input) {
+      id
+      name
+    }
+  }
+`;
+
+export const UPDATE_EQUIPMENT = gql`
+  mutation UpdateEquipment($id: ID!, $input: UpdateEquipmentInput!) {
+    updateEquipment(id: $id, input: $input) {
+      id
+      name
+    }
+  }
+`;
+
+export const DELETE_EQUIPMENT = gql`
+  mutation DeleteEquipment($id: ID!) {
+    deleteEquipment(id: $id)
+  }
+`;
+
+export const GET_EQUIPMENT_CATEGORIES = gql`
+  query GetEquipmentCategories {
+    equipmentCategories {
+      id
+      name
+      slug
+      subcategories {
+        id
+        name
+        slug
+      }
+    }
+  }
+`;
+
+export const CREATE_CATEGORY = gql`
+  mutation CreateCategory($input: CreateEquipmentCategoryInput!) {
+    createEquipmentCategory(input: $input) {
+      id
+      name
+      slug
+    }
+  }
+`;
+
+export const CREATE_SUBCATEGORY = gql`
+  mutation CreateSubcategory($input: CreateEquipmentSubcategoryInput!) {
+    createEquipmentSubcategory(input: $input) {
+      id
+      name
+      slug
+    }
+  }
+`;
+
+export const UPDATE_CATEGORY = gql`
+  mutation UpdateCategory($id: ID!, $input: CreateEquipmentCategoryInput!) {
+    updateEquipmentCategory(id: $id, input: $input) {
+      id
+      name
+    }
+  }
+`;
+
+export const DELETE_CATEGORY = gql`
+  mutation DeleteCategory($id: ID!) {
+    deleteEquipmentCategory(id: $id)
+  }
+`;
+
+export const UPDATE_SUBCATEGORY = gql`
+  mutation UpdateSubcategory($id: ID!, $input: CreateEquipmentSubcategoryInput!) {
+    updateEquipmentSubcategory(id: $id, input: $input) {
+      id
+      name
+    }
+  }
+`;
+
+export const DELETE_SUBCATEGORY = gql`
+  mutation DeleteSubcategory($id: ID!) {
+    deleteEquipmentSubcategory(id: $id)
+  }
+`;
