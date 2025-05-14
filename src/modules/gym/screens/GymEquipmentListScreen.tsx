@@ -1,26 +1,27 @@
 import React from 'react';
-import { useQuery, useMutation } from '@apollo/client';
-import { GET_GYM_EQUIPMENT, REMOVE_EQUIPMENT_FROM_GYM } from '@/graphql/gymEquipment';
-import { useGymContext } from '@/hooks/useGymContext';
-import { ScreenLayout } from '@/components/layouts/ScreenLayout';
-import { Title } from '@/components/ui/Title';
-import { Button } from '@/components/ui/Button';
-import { ClickableList } from '@/components/ui/ClickableList';
-import { LoadingState } from '@/components/ui/LoadingState';
-import { NoResults } from '@/components/ui/NoResults';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigate, useParams } from 'react-router-native';
+import ScreenLayout from 'shared/components/ScreenLayout';
+import Title from 'shared/components/Title';
+import Button from 'shared/components/Button';
+import ClickableList from 'shared/components/ClickableList';
+import LoadingState from 'shared/components/LoadingState';
+import NoResults from 'shared/components/NoResults';
+import { useGymEquipment } from '../hooks/useGymEquipment';
+import { Equipment } from 'modules/equipment/types/equipment.types';
 
 export default function GymEquipmentListScreen() {
-  const { gymId } = useGymContext();
-  const navigation = useNavigation();
-  const { data, loading, refetch } = useQuery(GET_GYM_EQUIPMENT, {
-    variables: { gymId },
-  });
-  const [removeEquipment] = useMutation(REMOVE_EQUIPMENT_FROM_GYM);
+  const { gymId } = useParams<{ gymId: string }>();
+  const navigate = useNavigate();
+  const {
+    gymEquipment,
+    loading,
+    refetch,
+    removeEquipment,
+  } = useGymEquipment(Number(gymId));
 
-  const handleRemove = async (equipmentId) => {
+  const handleRemove = async (equipmentId: number) => {
     try {
-      await removeEquipment({ variables: { gymId, equipmentId } });
+      await removeEquipment({ variables: { gymId: Number(gymId), equipmentId } });
       refetch();
     } catch (error) {
       console.error('Failed to remove equipment from gym:', error);
@@ -28,13 +29,13 @@ export default function GymEquipmentListScreen() {
   };
 
   const handleAdd = () => {
-    navigation.navigate('AddEquipmentToGym');
+    navigate('/gym/' + gymId + '/add-equipment');
   };
 
-  const equipmentItems = data?.gymEquipment?.map((item) => ({
+  const equipmentItems = gymEquipment.map((item: Equipment) => ({
     id: item.id,
     label: item.name,
-    subLabel: `${item.brand} \u2022 ${item.category?.name}`,
+    subLabel: `${item.brand}`,
     onPress: () => {},
     rightElement: (
       <Button
@@ -43,7 +44,7 @@ export default function GymEquipmentListScreen() {
         variant="outline"
       />
     ),
-  })) ?? [];
+  }));
 
   return (
     <ScreenLayout scroll>

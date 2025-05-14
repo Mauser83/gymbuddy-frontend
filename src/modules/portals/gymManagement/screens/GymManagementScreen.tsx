@@ -98,6 +98,13 @@ const GymManagementScreen = () => {
         })}
         <Button onPress={() => navigate(`/gym-admin/gyms/${gymId}/staff`)} text="Manage Staff" />
       </Card>
+
+      {/* Equipment Info */}
+      <Card variant="glass">
+        <Title text="Equipment" />
+      
+        <Button onPress={() => navigate(`/gym-admin/gyms/${gymId}/equipment`)} text="Manage Equipment" />
+      </Card>
     </ScreenLayout>
   );
 };

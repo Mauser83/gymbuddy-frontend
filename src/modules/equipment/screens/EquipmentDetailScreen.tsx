@@ -1,19 +1,19 @@
 import React from 'react';
-import { useRoute } from '@react-navigation/native';
+import { useParams } from 'react-router-native';
 import { useQuery } from '@apollo/client';
-import { GET_EQUIPMENT_BY_ID } from '@/graphql/equipment';
-import { ScreenLayout } from '@/components/layouts/ScreenLayout';
-import { Title } from '@/components/ui/Title';
-import { DetailField } from '@/components/ui/DetailField';
-import { LoadingState } from '@/components/ui/LoadingState';
-import { NoResults } from '@/components/ui/NoResults';
+import { GET_EQUIPMENT_BY_ID } from '../graphql/equipment.graphql';
+
+import ScreenLayout from 'shared/components/ScreenLayout';
+import Title from 'shared/components/Title';
+import DetailField from 'shared/components/DetailField';
+import LoadingState from 'shared/components/LoadingState';
+import NoResults from 'shared/components/NoResults';
 
 export default function EquipmentDetailScreen() {
-  const route = useRoute();
-  const { id } = route.params;
+  const { id } = useParams<{ id: string }>();
 
   const { data, loading } = useQuery(GET_EQUIPMENT_BY_ID, {
-    variables: { id },
+    variables: { id: Number(id) },
   });
 
   if (loading) return <LoadingState text="Loading equipment details..." />;

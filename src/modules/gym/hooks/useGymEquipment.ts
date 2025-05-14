@@ -4,10 +4,10 @@ import {
   ASSIGN_EQUIPMENT_TO_GYM,
   REMOVE_EQUIPMENT_FROM_GYM,
   GET_GYM_EQUIPMENT_STATS,
-} from '@/graphql/gymEquipment';
+} from '../graphql/gymEquipment';
 import { useQuery, useMutation } from '@apollo/client';
 
-export function useGymEquipment(gymId) {
+export function useGymEquipment(gymId: number) {
   const { data, loading, refetch } = useQuery(GET_GYM_EQUIPMENT, {
     variables: { gymId },
   });

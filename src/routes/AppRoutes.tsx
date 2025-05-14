@@ -30,6 +30,7 @@ import GymManagementScreen from 'modules/portals/gymManagement/screens/GymManage
 import ContentContainer from 'shared/components/ContentContainer';
 import CreateEquipmentScreen from 'modules/equipment/screens/CreateEquipmentScreen';
 import EditEquipmentScreen from 'modules/equipment/screens/EditEquipmentScreen';
+import GymEquipmentListScreen from 'modules/gym/screens/GymEquipmentListScreen';
 
 const AppRoutes = () => {
   const {user, isAuthenticated, sessionLoaded} = useAuth();
@@ -90,14 +91,13 @@ const AppRoutes = () => {
             path="/gym-admin/gyms/:gymId"
             element={<GymManagementScreen />}
           />
+          <Route
+            path="/gym-admin/gyms/:gymId/equipment"
+            element={<GymEquipmentListScreen />}
+          />
 
           {/* Fallback */}
-          <Route
-            path="*"
-            element={
-              <NoResults message="Page not found." />
-            }
-          />
+          <Route path="*" element={<NoResults message="Page not found." />} />
         </Routes>
       </View>
       <Footer />
