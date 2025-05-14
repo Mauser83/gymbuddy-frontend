@@ -1,16 +1,19 @@
 // errorLink.ts
-import {onError} from '@apollo/client/link/error';
-import {refreshAccessToken} from '../tokenManager';
-import {logoutFromContext} from 'modules/auth/context/AuthContext';
+import { onError } from '@apollo/client/link/error';
+import { refreshAccessToken, getAccessToken } from '../tokenManager';
+import { logoutFromContext } from 'modules/auth/context/AuthContext';
 import Toast from 'react-native-toast-message';
-import {Observable} from '@apollo/client';
+import { Observable } from '@apollo/client';
 
-type MaybeServerError = Error & {
-  statusCode?: number;
-  bodyText?: string;
+let isRefreshing = false;
+let pendingRequests: (() => void)[] = [];
+
+const resolvePendingRequests = () => {
+  pendingRequests.forEach(callback => callback());
+  pendingRequests = [];
 };
 
-function fromPromise(promise: Promise<any>) {
+function fromPromise<T>(promise: Promise<T>): Observable<T> {
   return new Observable(observer => {
     promise
       .then(value => {
@@ -21,60 +24,109 @@ function fromPromise(promise: Promise<any>) {
   });
 }
 
-export const errorLink = onError(({graphQLErrors, networkError, operation, forward}) => {
+export const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
+  let shouldLogout = false;
+
   if (graphQLErrors) {
     for (const err of graphQLErrors) {
       const code = err.extensions?.code || '';
       const msg = err.message?.toLowerCase() || '';
 
       if (code === 'UNAUTHENTICATED' || msg.includes('token')) {
-        return fromPromise(
-          refreshAccessToken().then(newToken => {
-            if (!newToken) throw new Error('No new token');
-            operation.setContext(({headers = {}}) => ({
+        if (!isRefreshing) {
+          isRefreshing = true;
+
+          return fromPromise<void>(
+            refreshAccessToken().then(newToken => {
+              isRefreshing = false;
+
+              if (!newToken) {
+                shouldLogout = true;
+                return;
+              }
+
+              resolvePendingRequests();
+
+              operation.setContext(({ headers = {} }) => ({
+                headers: {
+                  ...headers,
+                  authorization: `Bearer ${newToken}`,
+                },
+              }));
+
+              return;
+            })
+          ).flatMap(() => {
+            if (shouldLogout) {
+              logoutFromContext();
+              Toast.show({ type: 'error', text1: 'Session expired', text2: 'Please log in again.' });
+              return Observable.of(); // Empty observable
+            }
+
+            const token = getAccessToken();
+            operation.setContext(({ headers = {} }) => ({
               headers: {
                 ...headers,
-                authorization: `Bearer ${newToken}`,
+                authorization: `Bearer ${token}`,
               },
             }));
+            return forward(operation);
+          });
+        }
+
+        // Queue the request while refresh is in progress
+        return fromPromise<void>(
+          new Promise<void>(resolve => {
+            pendingRequests.push(() => resolve());
           })
-        ).flatMap(() => forward(operation));
+        ).flatMap(() => {
+          const token = getAccessToken();
+          operation.setContext(({ headers = {} }) => ({
+            headers: {
+              ...headers,
+              authorization: `Bearer ${token}`,
+            },
+          }));
+          return forward(operation);
+        });
       }
     }
   }
 
+  // Network errors like 401/403 outside GraphQL
   if (networkError) {
-    const err = networkError as MaybeServerError;
-    const msg = err.message?.toLowerCase() || '';
-    const isAuthFailure =
-      err.statusCode === 401 ||
-      err.statusCode === 403 ||
-      msg.includes('socket closed with event 4500');
+  const err = networkError as any;
+  const msg = err.message?.toLowerCase() || '';
+  const status = err.statusCode || 0;
 
-    if (isAuthFailure) {
-      logoutFromContext().then(() => {
-        Toast.show({
-          type: 'error',
-          text1: 'Authentication failed',
-          text2: 'Please log in again.',
-        });
+  const isAuthFailure = status === 401 || status === 403;
+  const isConnectionIssue =
+    msg.includes('failed to fetch') ||
+    msg.includes('network request failed') ||
+    msg.includes('connection refused') ||
+    msg.includes('socket closed') ||
+    msg.includes('timeout') ||
+    !navigator.onLine;
+
+  if (isConnectionIssue) {
+    logoutFromContext().then(() => {
+      Toast.show({
+        type: 'error',
+        text1: 'Server unreachable',
+        text2: 'Try again in a few minutes.',
       });
-    } else if (
-      msg.includes('failed to fetch') ||
-      msg.includes('network request failed') ||
-      msg.includes('socket closed') ||
-      msg.includes('timeout') ||
-      !navigator.onLine
-    ) {
-      logoutFromContext().then(() => {
-        Toast.show({
-          type: 'error',
-          text1: 'Server unreachable',
-          text2: 'Try again in a few minutes.',
-        });
-      });
-    } else {
-      console.error('[Network error]:', err);
-    }
+    });
+    return;
   }
+
+  if (isAuthFailure && !isRefreshing) {
+    logoutFromContext().then(() => {
+      Toast.show({
+        type: 'error',
+        text1: 'Authentication failed',
+        text2: 'Please log in again.',
+      });
+    });
+  }
+}
 });

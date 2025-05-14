@@ -10,7 +10,7 @@ export const createApolloClient = async () => {
   const splitLink = createSplitLink(uri);
 
   const client = new ApolloClient({
-    link: from([authLink, errorLink, splitLink]),
+    link: from([errorLink, authLink, splitLink]),
     cache: new InMemoryCache({
       typePolicies: {
         Gym: {keyFields: ['id']},
