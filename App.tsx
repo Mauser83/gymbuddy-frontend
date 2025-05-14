@@ -1,8 +1,11 @@
 import React from 'react';
-import {ActivityIndicator} from 'react-native';
+import {ActivityIndicator, StatusBar} from 'react-native';
 import {useFonts} from 'expo-font';
 import {Host} from 'react-native-portalize';
-import {ThemeProvider as CustomThemeProvider} from './src/shared/theme/ThemeProvider';
+import {
+  ThemeProvider as CustomThemeProvider,
+  useTheme,
+} from './src/shared/theme/ThemeProvider';
 import {AuthProvider, useAuth} from './src/modules/auth/context/AuthContext';
 import RoleSubscriptionWatcher from 'modules/auth/components/RoleSubscriptionWatcher';
 import {NavigationContainer} from '@react-navigation/native';
@@ -19,12 +22,18 @@ import ContentContainer from 'shared/components/ContentContainer';
 const AppContent = () => {
   const {sessionLoaded, isAuthenticated} = useAuth();
   const client = useApolloClient();
+  const {theme} = useTheme();
+
+  StatusBar.setBarStyle(theme.mode === 'dark' ? 'light-content' : 'dark-content')
 
   if (!sessionLoaded || !client) {
     return (
-      <ContentContainer>
-      <LoadingState text="Connecting to backend..."/>
-      </ContentContainer>
+      <>
+        <StatusBar/>
+        <ContentContainer>
+          <LoadingState text="Connecting to backend..." />
+        </ContentContainer>
+      </>
     );
   }
 

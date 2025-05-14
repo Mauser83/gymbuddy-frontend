@@ -307,6 +307,7 @@ export const getComponentStyles = (theme: Theme) => ({
   },
   modalWrapper: {
     container: {
+      flex: 1,
       justifyContent: 'center' as ViewStyle['justifyContent'],
       alignItems: 'center' as ViewStyle['alignItems'],
     },

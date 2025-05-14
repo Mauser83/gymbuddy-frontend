@@ -82,7 +82,7 @@ const UserDetailScreen = () => {
   };
 
   return (
-    <ScreenLayout>
+    <ScreenLayout scroll>
       {loading ? (
         <LoadingState text="Loading user details..." />
       ) : error ? (

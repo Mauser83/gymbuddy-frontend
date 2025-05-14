@@ -1,6 +1,12 @@
 import React from 'react';
-import { View, ViewStyle, StyleProp } from 'react-native';
-import RNModal from 'react-native-modal';
+import {
+  Modal,
+  View,
+  TouchableWithoutFeedback,
+  StyleSheet,
+  ViewStyle,
+  StyleProp,
+} from 'react-native';
 import { useTheme } from 'shared/theme/ThemeProvider';
 
 interface ModalWrapperProps {
@@ -22,18 +28,31 @@ const ModalWrapper = ({
   const styles = componentStyles.modalWrapper;
 
   return (
-    <RNModal
-      isVisible={visible}
-      backdropColor="#000"
-      backdropOpacity={backdropOpacity}
-      onBackdropPress={onClose}
-      style={styles.container}
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
     >
-      <View style={[styles.card, style]}>
-        {children}
-      </View>
-    </RNModal>
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={[internalStyles.backdrop, { backgroundColor: `rgba(0,0,0,${backdropOpacity})` }]}>
+          <TouchableWithoutFeedback>
+            <View style={[styles.card, style]}>
+              {children}
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
   );
 };
+
+const internalStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
 
 export default ModalWrapper;

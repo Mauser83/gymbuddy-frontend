@@ -1,7 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import {ScrollView} from 'react-native';
 import {useAuth} from '../../../modules/auth/context/AuthContext';
-
 import ModalWrapper from 'shared/components/ModalWrapper';
 import Button from 'shared/components/Button';
 import SelectableField from 'shared/components/SelectableField';
@@ -70,45 +68,50 @@ export const EditRolesModal = ({
 
   return (
     <>
-      <ModalWrapper visible={visible} onClose={onClose}>
-        <Title text="Edit User Roles" subtitle={`Editing: ${username}`} />
+      {!selectingField && (
+        <ModalWrapper visible={visible} onClose={onClose}>
+          <Title text="Edit User Roles" subtitle={`Editing: ${username}`} />
 
-        {/* App Role Picker */}
-        <SelectableField
-          label="App Role"
-          value={selectedAppRole ?? 'NONE'}
-          onPress={() => openSelector('appRole')}
-          disabled={currentUserAppRole !== 'ADMIN'}
-        />
-
-        {/* User Role Picker */}
-        <SelectableField
-          label="User Role"
-          value={selectedUserRole}
-          onPress={() => openSelector('userRole')}
-        />
-
-        {/* Action Buttons */}
-        <ButtonRow>
-          <Button text="Cancel" fullWidth onPress={onClose} />
-
-          <Button
-            text="Save"
-            fullWidth
-            onPress={() => {
-              if (!isSaveDisabled) {
-                onSave(selectedAppRole, selectedUserRole);
-              }
-            }}
-            disabled={isSaveDisabled}
+          {/* App Role Picker */}
+          <SelectableField
+            label="App Role"
+            value={selectedAppRole ?? 'NONE'}
+            onPress={() => openSelector('appRole')}
+            disabled={currentUserAppRole !== 'ADMIN'}
           />
-        </ButtonRow>
-      </ModalWrapper>
+
+          {/* User Role Picker */}
+          <SelectableField
+            label="User Role"
+            value={selectedUserRole}
+            onPress={() => openSelector('userRole')}
+          />
+
+          {/* Action Buttons */}
+          <ButtonRow>
+            <Button text="Cancel" fullWidth onPress={onClose} />
+
+            <Button
+              text="Save"
+              fullWidth
+              onPress={() => {
+                if (!isSaveDisabled) {
+                  onSave(selectedAppRole, selectedUserRole);
+                }
+              }}
+              disabled={isSaveDisabled}
+            />
+          </ButtonRow>
+        </ModalWrapper>
+      )}
 
       {/* Selection Modal */}
       {selectingField && (
         <ModalWrapper visible onClose={() => setSelectingField(null)}>
-          <ScrollView>
+            <Title
+              text={`Edit ${selectingField === 'userRole' ? 'user role' : 'app role'}`}
+              subtitle={`for ${username}`}
+            />
             {(selectingField === 'appRole' ? appRoles : userRoles).map(
               option => (
                 <OptionItem
@@ -118,7 +121,6 @@ export const EditRolesModal = ({
                 />
               ),
             )}
-          </ScrollView>
         </ModalWrapper>
       )}
     </>
