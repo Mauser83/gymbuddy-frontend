@@ -1,7 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import {
-  ScrollView,
-} from 'react-native';
+import {ScrollView} from 'react-native';
 import {useAuth} from '../../../modules/auth/context/AuthContext';
 
 import ModalWrapper from 'shared/components/ModalWrapper';
@@ -92,13 +90,11 @@ export const EditRolesModal = ({
 
         {/* Action Buttons */}
         <ButtonRow>
-          <Button
-            text="Cancel"
-            onPress={onClose}
-          />
+          <Button text="Cancel" fullWidth onPress={onClose} />
 
           <Button
             text="Save"
+            fullWidth
             onPress={() => {
               if (!isSaveDisabled) {
                 onSave(selectedAppRole, selectedUserRole);
@@ -115,8 +111,11 @@ export const EditRolesModal = ({
           <ScrollView>
             {(selectingField === 'appRole' ? appRoles : userRoles).map(
               option => (
-                <OptionItem key={option} text={option} onPress={() => handleSelect(option)} />
-
+                <OptionItem
+                  key={option}
+                  text={option}
+                  onPress={() => handleSelect(option)}
+                />
               ),
             )}
           </ScrollView>

@@ -14,6 +14,8 @@ interface FormInputProps {
   returnKeyType?: 'done' | 'next';
   onSubmitEditing?: () => void;
   editable?: boolean;
+  autoCorrect?: boolean;
+  autoCapitalize?: "sentences" | "none" | "words" | "characters";
 }
 
 const FormInput = ({
@@ -28,6 +30,8 @@ const FormInput = ({
   returnKeyType = 'done',
   onSubmitEditing,
   editable = true,
+  autoCorrect = false,
+  autoCapitalize = "sentences",
 }: FormInputProps) => {
   const {theme, componentStyles} = useTheme();
   const styles = componentStyles.formInput;
@@ -51,6 +55,8 @@ const FormInput = ({
         returnKeyType={returnKeyType}
         onSubmitEditing={onSubmitEditing}
         editable={editable}
+        autoCorrect={autoCorrect}
+        autoCapitalize={autoCapitalize}
       />
       {error && <Text style={styles.errorMessage}>{error}</Text>}
     </View>

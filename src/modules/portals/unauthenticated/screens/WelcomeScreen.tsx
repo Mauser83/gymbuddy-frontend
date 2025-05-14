@@ -31,8 +31,8 @@ const WelcomeScreen = () => {
 
         {/* Buttons */}
         <ButtonRow>
-          <Button text="Login" onPress={() => navigate('/login')} />
-          <Button text="Register" onPress={() => navigate('/register')} />
+          <Button text="Login" fullWidth onPress={() => navigate('/login')} />
+          <Button text="Register" fullWidth onPress={() => navigate('/register')} />
         </ButtonRow>
     </ScreenLayout>
   );

@@ -73,7 +73,7 @@ const UsersScreen = () => {
   );
 
   return (
-    <ScreenLayout>
+    <ScreenLayout scroll={false}>
       <Card variant="glass" compact title="Manage Users" />
 
       <SearchInput
@@ -92,7 +92,7 @@ const UsersScreen = () => {
       ) : (
         <FlatList
           data={users}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item.id.toString()}
           renderItem={renderItem}
           contentContainerStyle={{paddingTop: 16}}
         />

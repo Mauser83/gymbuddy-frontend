@@ -20,25 +20,33 @@ const ScreenLayout = ({
   variant = 'default',
   scroll = true,
 }: ScreenLayoutProps) => {
-  const {theme, componentStyles} = useTheme();
+  const { theme, componentStyles } = useTheme();
   const layoutStyle =
     componentStyles.screenLayout[
       variant === 'centered' ? 'centeredContainer' : 'container'
     ];
+
   const Container = scroll ? ScrollView : View;
+  const containerProps = scroll
+    ? {
+        contentContainerStyle: layoutStyle,
+        keyboardShouldPersistTaps: 'handled' as const,
+      }
+    : {
+        style: layoutStyle,
+      };
 
   return (
     <LinearGradient
       colors={[theme.colors.background, theme.colors.surface]}
-      style={styles.gradient}>
+      style={styles.gradient}
+      pointerEvents="box-none" // ensure modals show properly
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardAvoiding}>
-        <Container
-          contentContainerStyle={layoutStyle}
-          keyboardShouldPersistTaps="handled">
-          {children}
-        </Container>
+        style={styles.keyboardAvoiding}
+      >
+        <Container {...containerProps}>{children}</Container>
       </KeyboardAvoidingView>
     </LinearGradient>
   );

@@ -80,6 +80,7 @@ const RegisterScreen = () => {
                 onBlur={() => setFieldTouched('email', true)}
                 error={touched.email ? errors.email : undefined}
                 keyboardType="email-address"
+                autoCapitalize="none"
               />
 
               <FormInput

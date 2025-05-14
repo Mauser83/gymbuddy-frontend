@@ -3,6 +3,7 @@ import React from 'react';
 import {View, Text, Pressable, StyleSheet} from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import {useTheme} from 'shared/theme/ThemeProvider';
+import { borderWidth } from 'shared/theme/tokens';
 
 type Item = {
   id: string | number;
@@ -11,6 +12,7 @@ type Item = {
   subLabel?: string;
   rightElement?: React.ReactNode;
   content?: React.ReactNode;
+  selected?: Boolean;
 };
 
 type Props = {
@@ -23,7 +25,7 @@ const ClickableList = ({items}: Props) => {
   return (
     <View>
       {items.map(item => (
-        <View key={item.id}>
+        <View key={item.id} style={[item.selected && {borderWidth: borderWidth.thick, borderColor: theme.colors.accentStart, borderRadius: 12}]}>
           <Pressable onPress={item.onPress} style={styles.item}>
             <View style={styles.row}>
               <View style={styles.textContainer}>

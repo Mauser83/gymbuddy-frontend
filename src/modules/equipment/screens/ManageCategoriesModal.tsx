@@ -156,6 +156,15 @@ export default function ManageCategoriesModal({
       id: cat.id,
       label: cat.name,
       subLabel: `${cat.slug}`,
+      selected: expandedCatId === cat.id,
+      rightElement:
+        expandedCatId === cat.id ? (
+          <FontAwesome
+            name="chevron-down"
+            size={16}
+            color={theme.colors.accentStart}
+          />
+        ) : null,
       onPress: () => {
         setExpandedCatId(prev => (prev === cat.id ? null : cat.id));
         setCategoryEdits(prev => ({
@@ -189,14 +198,10 @@ export default function ManageCategoriesModal({
                 });
               }}
             />
-            <FormInput
-              label="Slug"
-              editable={false}
-              value={categoryEdits[cat.id]?.slug || ''}
-            />
             <ButtonRow>
               <Button
                 text="Update"
+                fullWidth
                 disabled={
                   !(
                     categoryEdits[cat.id]?.name !== cat.name ||
@@ -213,6 +218,7 @@ export default function ManageCategoriesModal({
               />
               <Button
                 text="Delete"
+                fullWidth
                 onPress={() => handleDeleteCategory(cat.id)}
               />
             </ButtonRow>
@@ -225,6 +231,7 @@ export default function ManageCategoriesModal({
       id: sub.id,
       label: sub.name,
       subLabel: `${sub.slug}`,
+      selected: expandedSubId === sub.id,
       rightElement:
         expandedSubId === sub.id ? (
           <FontAwesome
@@ -266,14 +273,10 @@ export default function ManageCategoriesModal({
                 });
               }}
             />
-            <FormInput
-              label="Slug"
-              editable={false}
-              value={subcategoryEdits[sub.id]?.slug || ''}
-            />
             <ButtonRow>
               <Button
                 text="Update"
+                fullWidth
                 disabled={
                   !(
                     subcategoryEdits[sub.id]?.name !== sub.name ||
@@ -290,6 +293,7 @@ export default function ManageCategoriesModal({
               />
               <Button
                 text="Delete"
+                fullWidth
                 onPress={() => handleDeleteSubcategory(sub.id)}
               />
             </ButtonRow>
@@ -322,13 +326,10 @@ export default function ManageCategoriesModal({
                 }
               }}
             />
-            <FormInput
-              label="Slug"
-              value={newCatSlug}
-              onChangeText={setNewCatSlug}
-            />
             <Button text="Create Category" onPress={handleCreateCategory} />
-            <ClickableList items={categoryItems} />
+            <ScrollView style={{maxHeight: 300, marginTop: 16}}>
+              <ClickableList items={categoryItems} />
+            </ScrollView>
           </>
         )}
 
@@ -343,11 +344,6 @@ export default function ManageCategoriesModal({
                   setNewSubSlug(slugify(val));
                 }
               }}
-            />
-            <FormInput
-              label="Slug"
-              value={newSubSlug}
-              onChangeText={setNewSubSlug}
             />
             <Button text="Add Subcategory" onPress={handleCreateSubcategory} />
             <ScrollView style={{maxHeight: 300, marginTop: 16}}>

@@ -137,7 +137,7 @@ const GymCreateScreen = () => {
   };
 
   return (
-    <ScreenLayout>
+    <ScreenLayout scroll={false}>
       <Formik
         initialValues={initialValues}
         validationSchema={stepSchemas[step]}
@@ -266,6 +266,7 @@ const GymCreateScreen = () => {
                     {step > 0 ? (
                       <Button
                         text="Back"
+                        fullWidth
                         onPress={() => setStep(prev => prev - 1)}
                       />
                     ) : (
@@ -276,6 +277,7 @@ const GymCreateScreen = () => {
                         (step === 0 && !values.name.trim()) ||
                         (step === 2 && !isAddressValid)
                       }
+                      fullWidth
                       onPress={() =>
                         validateForm().then(err => {
                           if (Object.keys(err).length === 0) {
