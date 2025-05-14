@@ -7,6 +7,7 @@ import {useAuth} from '../../auth/context/AuthContext';
 import {
   GET_ALL_EQUIPMENTS,
   DELETE_EQUIPMENT,
+  UPDATE_EQUIPMENT,
 } from '../graphql/equipment.graphql';
 import {Equipment} from '../types/equipment.types';
 
@@ -16,15 +17,22 @@ import Button from 'shared/components/Button';
 import ClickableList from 'shared/components/ClickableList';
 import LoadingState from 'shared/components/LoadingState';
 import NoResults from 'shared/components/NoResults';
-import Card from 'shared/components/Card';
 import {spacing} from 'shared/theme/tokens';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import {useTheme} from 'shared/theme/ThemeProvider';
+import ButtonRow from 'shared/components/ButtonRow';
 
 const GlobalEquipmentListScreen = () => {
   const {user} = useAuth();
   const navigate = useNavigate();
+  const {theme} = useTheme();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [equipments, setEquipments] = useState<Equipment[]>([]);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [equipmentEdits, setEquipmentEdits] = useState<{
+    [id: number]: { name: string; brand: string };
+  }>({});
 
   const {data, loading, refetch} = useQuery(GET_ALL_EQUIPMENTS, {
     fetchPolicy: 'cache-and-network',
@@ -32,23 +40,12 @@ const GlobalEquipmentListScreen = () => {
   const [deleteEquipment] = useMutation(DELETE_EQUIPMENT);
 
   const handleDelete = async (id: number) => {
-    console.log('Deleting equipment: ', id);
-    // try {
-    //   await deleteEquipment({variables: {id}});
-    //   refetch();
-    // } catch (err) {
-    //   console.error('Failed to delete equipment', err);
-    // }
-  };
-
-  const handleEdit = (id: number) => {
-    console.log('Editing equipment: ', id);
-    // navigation.navigate('EditEquipment', { id });
-  };
-
-  const handleAdd = () => {
-    console.log('Creating equipment: ');
-    // navigation.navigate('CreateEquipment');
+    try {
+      await deleteEquipment({variables: {id}});
+      await refetch();
+    } catch (err) {
+      console.error('Failed to delete equipment', err);
+    }
   };
 
   useEffect(() => {
@@ -69,39 +66,62 @@ const GlobalEquipmentListScreen = () => {
   }, [user]);
 
   const equipmentItems =
-    equipments?.map((item: Equipment) => ({
-      id: item.id,
-      label: item.name,
-      subLabel: `${item.brand} \u2022 ${item.category?.name}`,
-      onPress: () => console.log('Equipment detail for ', item.id),
-      rightElement: (
-        <>
-          <Button
-            text="Edit"
-            onPress={() => handleEdit(item.id)}
-            variant="outline"
+    equipments?.map((item: Equipment) => {
+      const isExpanded = expandedId === item.id;
+      const localEdit = equipmentEdits[item.id] || {
+        name: item.name,
+        brand: item.brand,
+      };
+
+      const hasChanged =
+        localEdit.name !== item.name || localEdit.brand !== item.brand;
+
+      return {
+        id: item.id,
+        label: item.name,
+        subLabel: item.brand,
+        selected: isExpanded,
+        onPress: () => {
+          setExpandedId(prev => (prev === item.id ? null : item.id));
+          setEquipmentEdits(prev => ({
+            ...prev,
+            [item.id]: {name: item.name, brand: item.brand},
+          }));
+        },
+        rightElement: (
+          <FontAwesome
+            name={isExpanded ? 'chevron-down' : 'chevron-right'}
+            size={16}
+            color={theme.colors.accentStart}
           />
-          <Button
-            text="Delete"
-            onPress={() => handleDelete(item.id)}
-            variant="solid"
-          />
-        </>
-      ),
-    })) ?? [];
+        ),
+        content: isExpanded ? (
+  <ButtonRow>
+    <Button
+      text="Edit"
+      fullWidth
+      onPress={() => navigate(`/equipment/edit/${item.id}`)}
+    />
+    <Button
+      text="Delete"
+      fullWidth
+      onPress={() => handleDelete(item.id)}
+    />
+  </ButtonRow>
+) : undefined,
+      };
+    }) ?? [];
+
   if (loading) {
     return (
       <ScreenLayout variant="centered">
-        <Card variant="glass">
-          <LoadingState text="Loading equipments..." />
-        </Card>
+        <LoadingState text="Loading equipments..." />
       </ScreenLayout>
     );
   }
 
   return (
     <ScreenLayout>
-      <Card variant="glass" compact title="Global equipments" />
       <SearchInput
         placeholder="Search equipment..."
         onChange={setSearchQuery}
@@ -111,18 +131,14 @@ const GlobalEquipmentListScreen = () => {
       <View style={{position: 'relative', marginBottom: spacing.sm}}>
         <Button
           text="➕ Create New Equipment"
-          onPress={() => navigate("/equipment/create")}
+          onPress={() => navigate('/equipment/create')}
         />
       </View>
-      <Card variant="glass" compact>
-        {loading ? (
-          <LoadingState text="Loading equipment..." />
-        ) : equipments.length === 0 ? (
-          <NoResults message="No equipment found." />
-        ) : (
-          <ClickableList items={equipmentItems} />
-        )}
-      </Card>
+      {equipments.length === 0 ? (
+        <NoResults message="No equipment found." />
+      ) : (
+        <ClickableList items={equipmentItems} />
+      )}
     </ScreenLayout>
   );
 };

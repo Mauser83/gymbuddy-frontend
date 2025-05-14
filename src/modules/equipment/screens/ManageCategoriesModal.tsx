@@ -152,154 +152,160 @@ export default function ManageCategoriesModal({
   );
 
   const categoryItems =
-    data?.equipmentCategories?.map((cat: EquipmentCategory) => ({
-      id: cat.id,
-      label: cat.name,
-      subLabel: `${cat.slug}`,
-      selected: expandedCatId === cat.id,
-      rightElement:
-        expandedCatId === cat.id ? (
-          <FontAwesome
-            name="chevron-down"
-            size={16}
-            color={theme.colors.accentStart}
-          />
-        ) : null,
-      onPress: () => {
-        setExpandedCatId(prev => (prev === cat.id ? null : cat.id));
-        setCategoryEdits(prev => ({
-          ...prev,
-          [cat.id]: {
-            name: cat.name,
-            slug: cat.slug,
-          },
-        }));
-      },
-      content:
-        expandedCatId === cat.id ? (
-          <>
-            <FormInput
-              label="Name"
-              value={categoryEdits[cat.id]?.name || ''}
-              onChangeText={val => {
-                setCategoryEdits(prev => {
-                  const updated = {
-                    ...prev[cat.id],
-                    name: val,
-                    ...(autoGenerateSlug && slugify
-                      ? {slug: slugify(val)}
-                      : {}),
-                  };
-
-                  return {
-                    ...prev,
-                    [cat.id]: updated,
-                  };
-                });
-              }}
+    data?.equipmentCategories
+      ?.slice()
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((cat: EquipmentCategory) => ({
+        id: cat.id,
+        label: cat.name,
+        subLabel: `${cat.slug}`,
+        selected: expandedCatId === cat.id,
+        rightElement:
+          expandedCatId === cat.id ? (
+            <FontAwesome
+              name="chevron-down"
+              size={16}
+              color={theme.colors.accentStart}
             />
-            <ButtonRow>
-              <Button
-                text="Update"
-                fullWidth
-                disabled={
-                  !(
-                    categoryEdits[cat.id]?.name !== cat.name ||
-                    categoryEdits[cat.id]?.slug !== cat.slug
-                  )
-                }
-                onPress={() =>
-                  handleUpdateCategory(
-                    cat.id,
-                    categoryEdits[cat.id]?.name ?? cat.name,
-                    categoryEdits[cat.id]?.slug ?? cat.slug,
-                  )
-                }
+          ) : null,
+        onPress: () => {
+          setExpandedCatId(prev => (prev === cat.id ? null : cat.id));
+          setCategoryEdits(prev => ({
+            ...prev,
+            [cat.id]: {
+              name: cat.name,
+              slug: cat.slug,
+            },
+          }));
+        },
+        content:
+          expandedCatId === cat.id ? (
+            <>
+              <FormInput
+                label="Name"
+                value={categoryEdits[cat.id]?.name || ''}
+                onChangeText={val => {
+                  setCategoryEdits(prev => {
+                    const updated = {
+                      ...prev[cat.id],
+                      name: val,
+                      ...(autoGenerateSlug && slugify
+                        ? {slug: slugify(val)}
+                        : {}),
+                    };
+
+                    return {
+                      ...prev,
+                      [cat.id]: updated,
+                    };
+                  });
+                }}
               />
-              <Button
-                text="Delete"
-                fullWidth
-                onPress={() => handleDeleteCategory(cat.id)}
-              />
-            </ButtonRow>
-          </>
-        ) : undefined,
-    })) ?? [];
+              <ButtonRow>
+                <Button
+                  text="Update"
+                  fullWidth
+                  disabled={
+                    !(
+                      categoryEdits[cat.id]?.name !== cat.name ||
+                      categoryEdits[cat.id]?.slug !== cat.slug
+                    )
+                  }
+                  onPress={() =>
+                    handleUpdateCategory(
+                      cat.id,
+                      categoryEdits[cat.id]?.name ?? cat.name,
+                      categoryEdits[cat.id]?.slug ?? cat.slug,
+                    )
+                  }
+                />
+                <Button
+                  text="Delete"
+                  fullWidth
+                  onPress={() => handleDeleteCategory(cat.id)}
+                />
+              </ButtonRow>
+            </>
+          ) : undefined,
+      })) ?? [];
 
   const subCategoryItems =
-    selectedCategory?.subcategories.map((sub: EquipmentSubcategory) => ({
-      id: sub.id,
-      label: sub.name,
-      subLabel: `${sub.slug}`,
-      selected: expandedSubId === sub.id,
-      rightElement:
-        expandedSubId === sub.id ? (
-          <FontAwesome
-            name="chevron-down"
-            size={16}
-            color={theme.colors.accentStart}
-          />
-        ) : null,
-      onPress: () => {
-        setExpandedSubId(prev => (prev === sub.id ? null : sub.id));
-        setSubcategoryEdits(prev => ({
-          ...prev,
-          [sub.id]: {
-            name: sub.name,
-            slug: sub.slug,
-          },
-        }));
-      },
-      content:
-        expandedSubId === sub.id ? (
-          <>
-            <FormInput
-              label="Name"
-              value={subcategoryEdits[sub.id]?.name || ''}
-              onChangeText={val => {
-                setSubcategoryEdits(prev => {
-                  const updated = {
-                    ...prev[sub.id],
-                    name: val,
-                    ...(autoGenerateSlug && slugify
-                      ? {slug: slugify(val)}
-                      : {}),
-                  };
-
-                  return {
-                    ...prev,
-                    [sub.id]: updated,
-                  };
-                });
-              }}
+    selectedCategory?.subcategories
+      ?.slice()
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((sub: EquipmentSubcategory) => ({
+        id: sub.id,
+        label: sub.name,
+        subLabel: `${sub.slug}`,
+        selected: expandedSubId === sub.id,
+        rightElement:
+          expandedSubId === sub.id ? (
+            <FontAwesome
+              name="chevron-down"
+              size={16}
+              color={theme.colors.accentStart}
             />
-            <ButtonRow>
-              <Button
-                text="Update"
-                fullWidth
-                disabled={
-                  !(
-                    subcategoryEdits[sub.id]?.name !== sub.name ||
-                    subcategoryEdits[sub.id]?.slug !== sub.slug
-                  )
-                }
-                onPress={() =>
-                  handleUpdateSubcategory(
-                    sub.id,
-                    subcategoryEdits[sub.id]?.name ?? sub.name,
-                    subcategoryEdits[sub.id]?.slug ?? sub.slug,
-                  )
-                }
+          ) : null,
+        onPress: () => {
+          setExpandedSubId(prev => (prev === sub.id ? null : sub.id));
+          setSubcategoryEdits(prev => ({
+            ...prev,
+            [sub.id]: {
+              name: sub.name,
+              slug: sub.slug,
+            },
+          }));
+        },
+        content:
+          expandedSubId === sub.id ? (
+            <>
+              <FormInput
+                label="Name"
+                value={subcategoryEdits[sub.id]?.name || ''}
+                onChangeText={val => {
+                  setSubcategoryEdits(prev => {
+                    const updated = {
+                      ...prev[sub.id],
+                      name: val,
+                      ...(autoGenerateSlug && slugify
+                        ? {slug: slugify(val)}
+                        : {}),
+                    };
+
+                    return {
+                      ...prev,
+                      [sub.id]: updated,
+                    };
+                  });
+                }}
               />
-              <Button
-                text="Delete"
-                fullWidth
-                onPress={() => handleDeleteSubcategory(sub.id)}
-              />
-            </ButtonRow>
-          </>
-        ) : undefined,
-    })) ?? [];
+              <ButtonRow>
+                <Button
+                  text="Update"
+                  fullWidth
+                  disabled={
+                    !(
+                      subcategoryEdits[sub.id]?.name !== sub.name ||
+                      subcategoryEdits[sub.id]?.slug !== sub.slug
+                    )
+                  }
+                  onPress={() =>
+                    handleUpdateSubcategory(
+                      sub.id,
+                      subcategoryEdits[sub.id]?.name ?? sub.name,
+                      subcategoryEdits[sub.id]?.slug ?? sub.slug,
+                    )
+                  }
+                />
+                <Button
+                  text="Delete"
+                  fullWidth
+                  onPress={() => handleDeleteSubcategory(sub.id)}
+                />
+              </ButtonRow>
+            </>
+          ) : undefined,
+      })) ?? [];
 
   return (
     <>

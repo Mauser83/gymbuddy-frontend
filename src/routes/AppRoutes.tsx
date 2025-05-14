@@ -29,6 +29,7 @@ import GymAdminDashboard from 'modules/portals/gymManagement/screens/GymManageme
 import GymManagementScreen from 'modules/portals/gymManagement/screens/GymManagementScreen';
 import ContentContainer from 'shared/components/ContentContainer';
 import CreateEquipmentScreen from 'modules/equipment/screens/CreateEquipmentScreen';
+import EditEquipmentScreen from 'modules/equipment/screens/EditEquipmentScreen';
 
 const AppRoutes = () => {
   const {user, isAuthenticated, sessionLoaded} = useAuth();
@@ -81,6 +82,7 @@ const AppRoutes = () => {
           <Route path="/pending-gyms" element={<PendingGymsScreen />} />
           <Route path="/equipment" element={<GlobalEquipmentListScreen />} />
           <Route path="/equipment/create" element={<CreateEquipmentScreen />} />
+          <Route path="/equipment/edit/:id" element={<EditEquipmentScreen />} />
 
           {/* Gym Management Portal */}
           <Route path="/gym-admin" element={<GymAdminDashboard />} />
