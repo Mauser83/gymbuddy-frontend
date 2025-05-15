@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {FlatList, Alert, View, Text, TextStyle} from 'react-native';
+import {FlatList, Alert, View, Text} from 'react-native';
 import {useMutation} from '@apollo/client';
 import {Formik} from 'formik';
 import * as Yup from 'yup';

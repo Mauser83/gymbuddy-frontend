@@ -98,12 +98,24 @@ const GymDetailScreen = () => {
         {gym.address && <DetailField label="📍 Address:" value={gym.address} />}
         {gym.city && <DetailField label="🏙️ City:" value={gym.city} />}
         {gym.country && <DetailField label="🌍 Country:" value={gym.country} />}
-        {gym.equipment?.length > 0 && (
-          <DetailField
-            label="🏋️ Equipment Count:"
-            value={String(gym.equipment.length)}
-          />
-        )}
+        {gym.gymEquipment?.length > 0 && (
+  <>
+    <Title subtitle="🏋️ Equipment:" align="left" />
+    {gym.gymEquipment.map((ge: Gym['gymEquipment'][number]) => (
+      <DetailField
+        key={ge.id}
+        label={`${ge.equipment.name} (${ge.quantity}x)`}
+        value={
+          ge.note
+            ? `Note: ${ge.note}`
+            : ge.equipment.brand
+            ? `Brand: ${ge.equipment.brand}`
+            : ''
+        }
+      />
+    ))}
+  </>
+)}
         {gym.trainers?.length > 0 && (
           <DetailField
             label="🧑‍🏫 Trainers Count:"

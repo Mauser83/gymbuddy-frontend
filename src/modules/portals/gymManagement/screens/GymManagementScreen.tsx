@@ -15,14 +15,14 @@ import Button from 'shared/components/Button';
 
 const GymManagementScreen = () => {
   const {gymId: idParam} = useParams();
-    if (!idParam) {
-      throw new Error('Missing ID in URL');
+  if (!idParam) {
+    throw new Error('Missing ID in URL');
   }
-    const gymId = parseInt(idParam, 10);
-  
-    if (isNaN(gymId)) {
-      throw new Error('Invalid ID in URL');
-    }
+  const gymId = parseInt(idParam, 10);
+
+  if (isNaN(gymId)) {
+    throw new Error('Invalid ID in URL');
+  }
   const {user} = useAuth();
   const navigate = useNavigate();
 
@@ -96,14 +96,23 @@ const GymManagementScreen = () => {
             </View>
           );
         })}
-        <Button onPress={() => navigate(`/gym-admin/gyms/${gymId}/staff`)} text="Manage Staff" />
+        <Button
+          onPress={() => navigate(`/gym-admin/gyms/${gymId}/staff`)}
+          text="Manage Staff"
+        />
       </Card>
 
       {/* Equipment Info */}
       <Card variant="glass">
         <Title text="Equipment" />
-      
-        <Button onPress={() => navigate(`/gym-admin/gyms/${gymId}/equipment`)} text="Manage Equipment" />
+        <DetailField
+          label="🏋️ Equipment Items"
+          value={`${gym.gymEquipment?.length || 0} assigned`}
+        />
+        <Button
+          onPress={() => navigate(`/gym-admin/gyms/${gymId}/equipment`)}
+          text="Manage Equipment"
+        />
       </Card>
     </ScreenLayout>
   );

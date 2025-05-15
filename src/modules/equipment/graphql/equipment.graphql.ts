@@ -9,6 +9,12 @@ export const GET_ALL_EQUIPMENTS = gql`
       description
       brand
       manualUrl
+      createdAt
+      updatedAt
+      images {
+        id
+        url
+      }
       category {
         id
         name
@@ -17,11 +23,10 @@ export const GET_ALL_EQUIPMENTS = gql`
         id
         name
       }
-      createdAt
-      updatedAt
     }
   }
 `;
+
 
 export const GET_EQUIPMENT_BY_ID = gql`
   query GetEquipmentById($id: Int!) {
@@ -33,6 +38,12 @@ export const GET_EQUIPMENT_BY_ID = gql`
       manualUrl
       categoryId
       subcategoryId
+      createdAt
+      updatedAt
+      images {
+        id
+        url
+      }
       category {
         id
         name
@@ -41,8 +52,6 @@ export const GET_EQUIPMENT_BY_ID = gql`
         id
         name
       }
-      createdAt
-      updatedAt
     }
   }
 `;

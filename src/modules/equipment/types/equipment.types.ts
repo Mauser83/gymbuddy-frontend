@@ -4,12 +4,12 @@ export interface Equipment {
   description?: string;
   brand: string;
   manualUrl?: string;
-  gymId?: number;
   categoryId: number;
   subcategoryId?: number;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
+
   category?: {
     id: number;
     name: string;
@@ -18,6 +18,14 @@ export interface Equipment {
     id: number;
     name: string;
   };
+
+  images?: EquipmentImage[]; // ✅ Global image catalog
+}
+
+export interface EquipmentImage {
+  id: number;
+  url: string;
+  createdAt: string;
 }
 
 export interface CreateEquipmentInput {
@@ -27,7 +35,6 @@ export interface CreateEquipmentInput {
   subcategoryId?: number | null;
   brand: string;
   manualUrl?: string;
-  gymId?: number;
 }
 
 export interface UpdateEquipmentInput {
@@ -37,7 +44,6 @@ export interface UpdateEquipmentInput {
   subcategoryId?: number;
   brand?: string;
   manualUrl?: string;
-  gymId?: number;
 }
 
 export interface EquipmentCategory {

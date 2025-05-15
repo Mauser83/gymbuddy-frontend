@@ -3,41 +3,78 @@ import { gql } from '@apollo/client';
 
 export const GET_GYM_EQUIPMENT = gql`
   query GetGymEquipment($gymId: Int!) {
-    gymEquipment(gymId: $gymId) {
+    getGymEquipment(gymId: $gymId) {
       id
-      name
-      brand
-      category {
+      quantity
+      note
+      images {
+        id
+        url
+      }
+      equipment {
         id
         name
+        brand
+        category {
+          id
+          name
+        }
+        subcategory {
+          id
+          name
+        }
+        images {
+          id
+          url
+        }
       }
     }
   }
 `;
+
 
 export const ASSIGN_EQUIPMENT_TO_GYM = gql`
-  mutation AssignEquipmentToGym($gymId: Int!, $equipmentId: Int!) {
-    assignEquipmentToGym(gymId: $gymId, equipmentId: $equipmentId) {
+  mutation AssignEquipmentToGym($input: AssignEquipmentToGymInput!) {
+    assignEquipmentToGym(input: $input) {
       id
-    }
-  }
-`;
-
-export const REMOVE_EQUIPMENT_FROM_GYM = gql`
-  mutation RemoveEquipmentFromGym($gymId: Int!, $equipmentId: Int!) {
-    removeEquipmentFromGym(gymId: $gymId, equipmentId: $equipmentId)
-  }
-`;
-
-export const GET_GYM_EQUIPMENT_STATS = gql`
-  query GetGymEquipmentStats($gymId: Int!) {
-    gymEquipmentStats(gymId: $gymId) {
-      total
-      lastUpdated
-      byCategory {
+      quantity
+      note
+      equipment {
+        id
         name
-        count
+        brand
       }
     }
+  }
+`;
+
+export const UPDATE_GYM_EQUIPMENT = gql`
+  mutation UpdateGymEquipment($input: UpdateGymEquipmentInput!) {
+    updateGymEquipment(input: $input) {
+      id
+      quantity
+      note
+    }
+  }
+`;
+
+export const REMOVE_GYM_EQUIPMENT = gql`
+  mutation RemoveGymEquipment($gymEquipmentId: Int!) {
+    removeGymEquipment(gymEquipmentId: $gymEquipmentId)
+  }
+`;
+
+export const UPLOAD_GYM_EQUIPMENT_IMAGE = gql`
+  mutation UploadGymEquipmentImage($input: UploadGymEquipmentImageInput!) {
+    uploadGymEquipmentImage(input: $input) {
+      id
+      url
+    }
+  }
+`;
+
+export const DELETE_GYM_EQUIPMENT_IMAGE = gql`
+  mutation DeleteGymEquipmentImage($imageId: Int!) {
+    deleteGymEquipmentImage(imageId: $imageId)
   }
 `;

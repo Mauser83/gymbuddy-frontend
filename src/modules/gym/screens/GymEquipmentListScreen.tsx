@@ -7,7 +7,7 @@ import ClickableList from 'shared/components/ClickableList';
 import LoadingState from 'shared/components/LoadingState';
 import NoResults from 'shared/components/NoResults';
 import { useGymEquipment } from '../hooks/useGymEquipment';
-import { Equipment } from 'modules/equipment/types/equipment.types';
+import { GymEquipment } from 'modules/gym/types/gym.types'; // ✅ Use correct type
 
 export default function GymEquipmentListScreen() {
   const { gymId } = useParams<{ gymId: string }>();
@@ -19,24 +19,24 @@ export default function GymEquipmentListScreen() {
     removeEquipment,
   } = useGymEquipment(Number(gymId));
 
-  const handleRemove = async (equipmentId: number) => {
+  const handleRemove = async (gymEquipmentId: number) => {
     try {
-      await removeEquipment({ variables: { gymId: Number(gymId), equipmentId } });
+      await removeEquipment({ variables: { gymEquipmentId } }); // ✅ updated variable
       refetch();
     } catch (error) {
-      console.error('Failed to remove equipment from gym:', error);
+      console.error('Failed to remove gym equipment:', error);
     }
   };
 
   const handleAdd = () => {
-    navigate('/gym/' + gymId + '/add-equipment');
+    navigate(`/gym/${gymId}/add-equipment`);
   };
 
-  const equipmentItems = gymEquipment.map((item: Equipment) => ({
+  const equipmentItems = gymEquipment.map((item: GymEquipment) => ({
     id: item.id,
-    label: item.name,
-    subLabel: `${item.brand}`,
-    onPress: () => {},
+    label: `${item.equipment.name} (${item.quantity}x)`,
+    subLabel: item.note || item.equipment.brand,
+    onPress: () => {}, // could open a detail view later
     rightElement: (
       <Button
         text="Remove"

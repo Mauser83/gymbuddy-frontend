@@ -16,8 +16,31 @@ export const GYM_FRAGMENT = gql`
         username
       }
     }
-    equipment {
+    gymEquipment {
       id
+      quantity
+      note
+      equipment {
+        id
+        name
+        brand
+        category {
+          id
+          name
+        }
+        subcategory {
+          id
+          name
+        }
+        images {
+          id
+          url
+        }
+      }
+      images {
+        id
+        url
+      }
     }
     trainers {
       id

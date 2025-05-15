@@ -30,9 +30,6 @@ const GlobalEquipmentListScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [equipmentEdits, setEquipmentEdits] = useState<{
-    [id: number]: { name: string; brand: string };
-  }>({});
 
   const {data, loading, refetch} = useQuery(GET_ALL_EQUIPMENTS, {
     fetchPolicy: 'cache-and-network',
@@ -68,13 +65,6 @@ const GlobalEquipmentListScreen = () => {
   const equipmentItems =
     equipments?.map((item: Equipment) => {
       const isExpanded = expandedId === item.id;
-      const localEdit = equipmentEdits[item.id] || {
-        name: item.name,
-        brand: item.brand,
-      };
-
-      const hasChanged =
-        localEdit.name !== item.name || localEdit.brand !== item.brand;
 
       return {
         id: item.id,
@@ -83,10 +73,6 @@ const GlobalEquipmentListScreen = () => {
         selected: isExpanded,
         onPress: () => {
           setExpandedId(prev => (prev === item.id ? null : item.id));
-          setEquipmentEdits(prev => ({
-            ...prev,
-            [item.id]: {name: item.name, brand: item.brand},
-          }));
         },
         rightElement: (
           <FontAwesome
@@ -96,19 +82,19 @@ const GlobalEquipmentListScreen = () => {
           />
         ),
         content: isExpanded ? (
-  <ButtonRow>
-    <Button
-      text="Edit"
-      fullWidth
-      onPress={() => navigate(`/equipment/edit/${item.id}`)}
-    />
-    <Button
-      text="Delete"
-      fullWidth
-      onPress={() => handleDelete(item.id)}
-    />
-  </ButtonRow>
-) : undefined,
+          <ButtonRow>
+            <Button
+              text="Edit"
+              fullWidth
+              onPress={() => navigate(`/equipment/edit/${item.id}`)}
+            />
+            <Button
+              text="Delete"
+              fullWidth
+              onPress={() => handleDelete(item.id)}
+            />
+          </ButtonRow>
+        ) : undefined,
       };
     }) ?? [];
 

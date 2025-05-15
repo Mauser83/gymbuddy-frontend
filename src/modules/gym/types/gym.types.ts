@@ -24,9 +24,25 @@ export interface Gym {
 
   creator?: UserSummary | null;
 
-  equipment: Equipment[];
+  gymEquipment: GymEquipment[]; // ✅ new normalized structure
   trainers: Trainer[];
   gymRoles: GymRole[];
+}
+
+export interface GymEquipment {
+  id: number;
+  quantity: number;
+  note?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  images: GymEquipmentImage[];
+  equipment: Equipment;
+}
+
+export interface GymEquipmentImage {
+  id: number;
+  url: string;
+  createdAt: string;
 }
 
 export interface Trainer {
@@ -35,7 +51,7 @@ export interface Trainer {
 }
 
 export interface GymRole {
-  role: 'GYM_ADMIN' | 'GYM_MODERATOR';
+  role: "GYM_ADMIN" | "GYM_MODERATOR";
   user: {
     id: number;
     username: string;
@@ -51,4 +67,11 @@ export interface UserSummary {
   id: number;
   username: string;
   email?: string;
+}
+
+export interface AssignEquipmentToGymInput {
+  gymId: number;
+  equipmentId: number;
+  quantity: number;
+  note?: string;
 }
