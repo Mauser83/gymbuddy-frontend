@@ -240,6 +240,7 @@ export default function CreateEquipmentScreen() {
                       }`}
                     />
                   </View>
+
                   <ScrollView
                     style={{maxHeight: modalHeight - 275}}
                     contentContainerStyle={{paddingHorizontal: 16}}>

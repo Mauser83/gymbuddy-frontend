@@ -78,6 +78,19 @@ const GymManagementScreen = () => {
         />
       </Card>
 
+      {/* Equipment Info */}
+      <Card variant="glass">
+        <Title text="Equipment" />
+        <DetailField
+          label="🏋️ Equipment Items"
+          value={`${gym.gymEquipment?.length || 0} assigned`}
+        />
+        <Button
+          onPress={() => navigate(`/gym-admin/gyms/${gymId}/equipment`)}
+          text="Manage Equipment"
+        />
+      </Card>
+
       {/* Staff Info */}
       <Card variant="glass">
         <Title text="🧑‍💼 Staff" />
@@ -99,19 +112,6 @@ const GymManagementScreen = () => {
         <Button
           onPress={() => navigate(`/gym-admin/gyms/${gymId}/staff`)}
           text="Manage Staff"
-        />
-      </Card>
-
-      {/* Equipment Info */}
-      <Card variant="glass">
-        <Title text="Equipment" />
-        <DetailField
-          label="🏋️ Equipment Items"
-          value={`${gym.gymEquipment?.length || 0} assigned`}
-        />
-        <Button
-          onPress={() => navigate(`/gym-admin/gyms/${gymId}/equipment`)}
-          text="Manage Equipment"
         />
       </Card>
     </ScreenLayout>

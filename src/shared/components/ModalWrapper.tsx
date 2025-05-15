@@ -7,7 +7,7 @@ import {
   ViewStyle,
   StyleProp,
 } from 'react-native';
-import { useTheme } from 'shared/theme/ThemeProvider';
+import {useTheme} from 'shared/theme/ThemeProvider';
 
 interface ModalWrapperProps {
   visible: boolean;
@@ -24,7 +24,7 @@ const ModalWrapper = ({
   style,
   backdropOpacity = 0.5,
 }: ModalWrapperProps) => {
-  const { componentStyles } = useTheme();
+  const {componentStyles} = useTheme();
   const styles = componentStyles.modalWrapper;
 
   return (
@@ -32,10 +32,13 @@ const ModalWrapper = ({
       visible={visible}
       transparent
       animationType="slide"
-      onRequestClose={onClose}
-    >
+      onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={onClose}>
-        <View style={[internalStyles.backdrop, { backgroundColor: `rgba(0,0,0,${backdropOpacity})` }]}>
+        <View
+          style={[
+            internalStyles.backdrop,
+            {backgroundColor: `rgba(0,0,0,${backdropOpacity})`},
+          ]}>
           <TouchableWithoutFeedback>
             <View style={[styles.card, style]}>
               {children}

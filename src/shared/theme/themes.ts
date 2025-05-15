@@ -306,11 +306,11 @@ export const getComponentStyles = (theme: Theme) => ({
     },
   },
   modalWrapper: {
-    container: {
-      flex: 1,
-      justifyContent: 'center' as ViewStyle['justifyContent'],
-      alignItems: 'center' as ViewStyle['alignItems'],
-    },
+    // container: {
+    //   flex: 1,
+    //   justifyContent: 'center' as ViewStyle['justifyContent'],
+    //   alignItems: 'center' as ViewStyle['alignItems'],
+    // },
     card: {
       backgroundColor: 'rgba(17, 24, 39, 0.95)',
       borderColor: 'rgba(255, 255, 255, 0.1)',
