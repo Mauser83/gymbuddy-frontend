@@ -317,6 +317,7 @@ export const getComponentStyles = (theme: Theme) => ({
       borderWidth: borderWidth.hairline,
       borderRadius: borderRadius.xl,
       padding: spacing.xl,
+      maxHeight: '90%',
       width: '90%' as ViewStyle['width'],
     } as ViewStyle,
   },

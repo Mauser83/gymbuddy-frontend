@@ -3,16 +3,17 @@ import React from 'react';
 import {View, Text, Pressable, StyleSheet} from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import {useTheme} from 'shared/theme/ThemeProvider';
-import { borderWidth } from 'shared/theme/tokens';
+import {borderWidth} from 'shared/theme/tokens';
 
 type Item = {
   id: string | number;
   label: string;
-  onPress: () => void;
+  onPress?: () => void;
   subLabel?: string;
   rightElement?: React.ReactNode;
   content?: React.ReactNode;
   selected?: Boolean;
+  disabled?: boolean; // ✅ new
 };
 
 type Props = {
@@ -25,8 +26,16 @@ const ClickableList = ({items}: Props) => {
   return (
     <View>
       {items.map(item => (
-        <View key={item.id} style={[item.selected && {borderWidth: borderWidth.thick, borderColor: theme.colors.accentStart, borderRadius: 12}]}>
-          <Pressable onPress={item.onPress} style={styles.item}>
+        <View
+          key={item.id}
+          style={[
+            item.selected && {
+              borderWidth: borderWidth.thick,
+              borderColor: theme.colors.accentStart,
+              borderRadius: 12,
+            },
+          ]}>
+          <Pressable onPress={item.onPress} style={[styles.item, item.disabled && {opacity: 0.5},]} disabled={item.disabled || !item.onPress}>
             <View style={styles.row}>
               <View style={styles.textContainer}>
                 <Text style={[styles.label, {color: theme.colors.textPrimary}]}>
@@ -42,13 +51,13 @@ const ClickableList = ({items}: Props) => {
                   </Text>
                 )}
               </View>
-                {item.rightElement ?? (
-                  <FontAwesome
-                    name="chevron-right"
-                    size={16}
-                    color={theme.colors.accentStart}
-                  />
-                )}
+              {item.rightElement ?? (
+                <FontAwesome
+                  name="chevron-right"
+                  size={16}
+                  color={theme.colors.accentStart}
+                />
+              )}
             </View>
           </Pressable>
           {item.content && (

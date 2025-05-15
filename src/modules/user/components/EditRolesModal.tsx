@@ -29,6 +29,7 @@ export const EditRolesModal = ({
 }: EditRolesModalProps) => {
   const {user} = useAuth();
   const currentUserAppRole = user?.appRole;
+
   const [initialAppRoleState, setInitialAppRoleState] =
     useState(initialAppRole);
   const [initialUserRoleState, setInitialUserRoleState] =
@@ -45,17 +46,13 @@ export const EditRolesModal = ({
       setInitialUserRoleState(initialUserRole || 'USER');
       setSelectedAppRole(initialAppRole || 'NONE');
       setSelectedUserRole(initialUserRole || 'USER');
+      setSelectingField(null);
     }
   }, [visible, initialAppRole, initialUserRole]);
 
   const isAppRoleChanged = selectedAppRole !== initialAppRoleState;
   const isUserRoleChanged = selectedUserRole !== initialUserRoleState;
-
   const isSaveDisabled = !isAppRoleChanged && !isUserRoleChanged;
-
-  const openSelector = (field: 'appRole' | 'userRole') => {
-    setSelectingField(field);
-  };
 
   const handleSelect = (value: string) => {
     if (selectingField === 'appRole') {
@@ -67,30 +64,40 @@ export const EditRolesModal = ({
   };
 
   return (
-    <>
-      {!selectingField && (
-        <ModalWrapper visible={visible} onClose={onClose}>
+    <ModalWrapper visible={visible} onClose={onClose}>
+      {selectingField ? (
+        <>
+          <Title
+            text={`Edit ${selectingField === 'userRole' ? 'user role' : 'app role'}`}
+            subtitle={`for ${username}`}
+          />
+          {(selectingField === 'appRole' ? appRoles : userRoles).map(option => (
+            <OptionItem
+              key={option}
+              text={option}
+              onPress={() => handleSelect(option)}
+            />
+          ))}
+        </>
+      ) : (
+        <>
           <Title text="Edit User Roles" subtitle={`Editing: ${username}`} />
 
-          {/* App Role Picker */}
           <SelectableField
             label="App Role"
             value={selectedAppRole ?? 'NONE'}
-            onPress={() => openSelector('appRole')}
+            onPress={() => setSelectingField('appRole')}
             disabled={currentUserAppRole !== 'ADMIN'}
           />
 
-          {/* User Role Picker */}
           <SelectableField
             label="User Role"
             value={selectedUserRole}
-            onPress={() => openSelector('userRole')}
+            onPress={() => setSelectingField('userRole')}
           />
 
-          {/* Action Buttons */}
           <ButtonRow>
             <Button text="Cancel" fullWidth onPress={onClose} />
-
             <Button
               text="Save"
               fullWidth
@@ -102,27 +109,8 @@ export const EditRolesModal = ({
               disabled={isSaveDisabled}
             />
           </ButtonRow>
-        </ModalWrapper>
+        </>
       )}
-
-      {/* Selection Modal */}
-      {selectingField && (
-        <ModalWrapper visible onClose={() => setSelectingField(null)}>
-            <Title
-              text={`Edit ${selectingField === 'userRole' ? 'user role' : 'app role'}`}
-              subtitle={`for ${username}`}
-            />
-            {(selectingField === 'appRole' ? appRoles : userRoles).map(
-              option => (
-                <OptionItem
-                  key={option}
-                  text={option}
-                  onPress={() => handleSelect(option)}
-                />
-              ),
-            )}
-        </ModalWrapper>
-      )}
-    </>
+    </ModalWrapper>
   );
 };

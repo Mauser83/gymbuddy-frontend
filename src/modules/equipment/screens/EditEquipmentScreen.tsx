@@ -19,6 +19,7 @@ import ManageCategoriesModal from './ManageCategoriesModal';
 import ClickableList from 'shared/components/ClickableList';
 import DividerWithLabel from 'shared/components/DividerWithLabel';
 import ButtonRow from 'shared/components/ButtonRow';
+import {View, ScrollView, Dimensions} from 'react-native';
 
 const EquipmentSchema = Yup.object().shape({
   name: Yup.string().required('Name is required'),
@@ -41,6 +42,8 @@ function slugify(text: string): string {
 export default function EditEquipmentScreen() {
   const {id} = useParams();
   const navigate = useNavigate();
+  const screenHeight = Dimensions.get('window').height;
+  const modalHeight = screenHeight * 0.8;
 
   const {getEquipmentById, getCategories, updateEquipment} = useEquipment();
   const {data: equipmentData, loading: loadingEquipment} = getEquipmentById(
@@ -52,8 +55,10 @@ export default function EditEquipmentScreen() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
     null,
   );
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
+  const [activeModal, setActiveModal] = useState<
+    null | 'category' | 'subcategory'
+  >(null);
+
   const [showManageCategoryModal, setShowManageCategoryModal] = useState(false);
   const [showManageSubcategoryModal, setShowManageSubcategoryModal] =
     useState(false);
@@ -185,7 +190,7 @@ export default function EditEquipmentScreen() {
                   (c: EquipmentCategory) => c.id === values.categoryId,
                 )?.name || 'Select Category'
               }
-              onPress={() => setShowCategoryModal(true)}
+              onPress={() => setActiveModal('category')}
             />
 
             <SelectableField
@@ -194,11 +199,15 @@ export default function EditEquipmentScreen() {
                 subcategories.find(sc => sc.id === values.subcategoryId)
                   ?.name || 'Select Subcategory'
               }
-              onPress={() => setShowSubcategoryModal(true)}
+              onPress={() => setActiveModal('subcategory')}
               disabled={!values.categoryId}
             />
             <ButtonRow>
-              <Button text="Cancel" onPress={() => navigate('/equipment')} fullWidth/>
+              <Button
+                text="Cancel"
+                onPress={() => navigate('/equipment')}
+                fullWidth
+              />
               <Button
                 text="Update Equipment"
                 onPress={handleSubmit}
@@ -208,72 +217,96 @@ export default function EditEquipmentScreen() {
             </ButtonRow>
 
             {/* Category Modal */}
-            {showCategoryModal && (
-              <ModalWrapper visible onClose={() => setShowCategoryModal(false)}>
-                <Title text="Select Category" />
-                <ClickableList
-                  items={categories
-                    .slice()
-                    .sort((a: EquipmentCategory, b: EquipmentCategory) =>
-                      a.name.localeCompare(b.name),
-                    )
-                    .map((cat: EquipmentCategory) => ({
-                      id: cat.id,
-                      label: cat.name,
-                      onPress: () => {
-                        setFieldValue('categoryId', cat.id);
-                        setSelectedCategoryId(cat.id);
-                        setFieldValue('subcategoryId', null);
-                        setShowCategoryModal(false);
-                      },
-                    }))}
-                />
-                <DividerWithLabel label="OR" />
-                <Button
-                  text="Manage Categories"
-                  onPress={() => {
-                    setShowCategoryModal(false);
-                    setShowManageCategoryModal(true);
-                  }}
-                />
-              </ModalWrapper>
-            )}
+            <ModalWrapper
+              visible={!!activeModal}
+              onClose={() => setActiveModal(null)}>
+              {activeModal === 'category' && (
+                <>
+                  <View style={{padding: 16}}>
+                    <Title text="Select Category" />
+                  </View>
+                  <ScrollView
+                    style={{maxHeight: modalHeight - 275}}
+                    contentContainerStyle={{paddingHorizontal: 16}}>
+                    <ClickableList
+                      items={
+                        [...categories]
+                          .slice()
+                          .sort((a: EquipmentCategory, b: EquipmentCategory) =>
+                            a.name.localeCompare(b.name),
+                          )
+                          .map((cat: EquipmentCategory) => ({
+                            id: cat.id,
+                            label: cat.name,
+                            onPress: () => {
+                              setFieldValue('categoryId', cat.id);
+                              setSelectedCategoryId(cat.id);
+                              setFieldValue('subcategoryId', null);
+                              setActiveModal(null);
+                            },
+                          })) ?? []
+                      }
+                    />
+                  </ScrollView>
+                  <DividerWithLabel label="OR" />
+                  <View style={{padding: 16}}>
+                    <Button
+                      text="Manage Categories"
+                      onPress={() => {
+                        setActiveModal(null);
+                        setShowManageCategoryModal(true);
+                      }}
+                    />
+                  </View>
+                </>
+              )}
 
-            {/* Subcategory Modal */}
-            {showSubcategoryModal && (
-              <ModalWrapper
-                visible
-                onClose={() => setShowSubcategoryModal(false)}>
-                <Title
-                  text={`Select Subcategory for ${
-                    categories.find(
-                      (cat: EquipmentCategory) => cat.id === selectedCategoryId,
-                    )?.name || ''
-                  }`}
-                />
-                <ClickableList
-                  items={subcategories
-                    .slice()
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((sc: EquipmentSubcategory) => ({
-                      id: sc.id,
-                      label: sc.name,
-                      onPress: () => {
-                        setFieldValue('subcategoryId', sc.id);
-                        setShowSubcategoryModal(false);
-                      },
-                    }))}
-                />
-                <DividerWithLabel label="OR" />
-                <Button
-                  text="Manage Subcategories"
-                  onPress={() => {
-                    setShowSubcategoryModal(false);
-                    setShowManageSubcategoryModal(true);
-                  }}
-                />
-              </ModalWrapper>
-            )}
+              {activeModal === 'subcategory' && (
+                <>
+                  <View style={{padding: 16}}>
+                    <Title
+                      text={`Select Subcategory for ${
+                        categories.find(
+                          (cat: EquipmentCategory) =>
+                            cat.id === selectedCategoryId,
+                        )?.name || ''
+                      }`}
+                    />
+                  </View>
+
+                  <ScrollView
+                    style={{maxHeight: modalHeight - 275}}
+                    contentContainerStyle={{paddingHorizontal: 16}}>
+                    <ClickableList
+                      items={
+                        [...subcategories]
+                          .slice()
+                          .sort((a, b) => a.name.localeCompare(b.name))
+                          .map(sc => ({
+                            id: sc.id,
+                            label: sc.name,
+                            onPress: () => {
+                              setFieldValue('subcategoryId', sc.id);
+                              setActiveModal(null);
+                            },
+                          })) ?? []
+                      }
+                    />
+                  </ScrollView>
+
+                  <DividerWithLabel label="OR" />
+                  <View style={{padding: 16}}>
+                    <Button
+                      text="Manage Subcategories"
+                      onPress={() => {
+                        setActiveModal(null);
+                        setShowManageSubcategoryModal(true);
+                      }}
+                    />
+                  </View>
+                </>
+              )}
+            </ModalWrapper>
 
             {/* Manage Category Modal */}
             {showManageCategoryModal && (

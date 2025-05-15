@@ -10,12 +10,22 @@ interface FormInputProps {
   placeholder?: string;
   error?: string;
   secureTextEntry?: boolean;
-  keyboardType?: 'default' | 'email-address';
+  keyboardType?:
+    | 'default'
+    | 'email-address'
+    | 'numeric'
+    | 'phone-pad'
+    | 'number-pad'
+    | 'decimal-pad'
+    | 'url'
+    | 'name-phone-pad'
+    | 'twitter'
+    | 'web-search';
   returnKeyType?: 'done' | 'next';
   onSubmitEditing?: () => void;
   editable?: boolean;
   autoCorrect?: boolean;
-  autoCapitalize?: "sentences" | "none" | "words" | "characters";
+  autoCapitalize?: 'sentences' | 'none' | 'words' | 'characters';
 }
 
 const FormInput = ({
@@ -31,7 +41,7 @@ const FormInput = ({
   onSubmitEditing,
   editable = true,
   autoCorrect = false,
-  autoCapitalize = "sentences",
+  autoCapitalize = 'sentences',
 }: FormInputProps) => {
   const {theme, componentStyles} = useTheme();
   const styles = componentStyles.formInput;

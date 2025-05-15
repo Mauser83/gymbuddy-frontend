@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {ScrollView} from 'react-native';
+import {ScrollView, Dimensions} from 'react-native';
 import {useMutation, useQuery} from '@apollo/client';
 import {
   GET_EQUIPMENT_CATEGORIES,
@@ -44,6 +44,9 @@ export default function ManageCategoriesModal({
   categoryId,
 }: ManageCategoriesModalProps) {
   const {theme} = useTheme();
+  const screenHeight = Dimensions.get('window').height;
+  const modalHeight = screenHeight * 0.8;
+  console.log(screenHeight);
 
   const {data, refetch} = useQuery<{equipmentCategories: EquipmentCategory[]}>(
     GET_EQUIPMENT_CATEGORIES,
@@ -308,60 +311,11 @@ export default function ManageCategoriesModal({
       })) ?? [];
 
   return (
-    <>
-      <ModalWrapper visible={visible} onClose={onClose}>
-        <Title
-          text={
-            mode === 'category'
-              ? 'Manage Categories'
-              : selectedCategory
-                ? `Manage Subcategories for ${selectedCategory.name}`
-                : 'Manage Subcategories'
-          }
-        />
-
-        {mode === 'category' && (
-          <>
-            <FormInput
-              label="New Category Name"
-              value={newCatName}
-              onChangeText={val => {
-                setNewCatName(val);
-                if (autoGenerateSlug && slugify) {
-                  setNewCatSlug(slugify(val));
-                }
-              }}
-            />
-            <Button text="Create Category" onPress={handleCreateCategory} />
-            <ScrollView style={{maxHeight: 300, marginTop: 16}}>
-              <ClickableList items={categoryItems} />
-            </ScrollView>
-          </>
-        )}
-
-        {mode === 'subcategory' && selectedCategory && (
-          <>
-            <FormInput
-              label="New Subcategory Name"
-              value={newSubName}
-              onChangeText={val => {
-                setNewSubName(val);
-                if (autoGenerateSlug && slugify) {
-                  setNewSubSlug(slugify(val));
-                }
-              }}
-            />
-            <Button text="Add Subcategory" onPress={handleCreateSubcategory} />
-            <ScrollView style={{maxHeight: 300, marginTop: 16}}>
-              <ClickableList items={subCategoryItems} />
-            </ScrollView>
-          </>
-        )}
-      </ModalWrapper>
-
-      {selectingCategory && (
-        <ModalWrapper visible onClose={() => setSelectingCategory(false)}>
-          <ScrollView>
+    <ModalWrapper visible={visible} onClose={onClose}>
+      {selectingCategory ? (
+        <>
+          <Title text="Select Category" />
+          <ScrollView style={{maxHeight: modalHeight - 275}}>
             {data?.equipmentCategories?.map((cat: EquipmentCategory) => (
               <OptionItem
                 key={cat.id}
@@ -373,8 +327,65 @@ export default function ManageCategoriesModal({
               />
             ))}
           </ScrollView>
-        </ModalWrapper>
+          <Button text="Cancel" onPress={() => setSelectingCategory(false)} />
+        </>
+      ) : (
+        <>
+          {/* Existing Title and main modal content */}
+          <Title
+            text={
+              mode === 'category'
+                ? 'Manage Categories'
+                : selectedCategory
+                  ? `Manage Subcategories for ${selectedCategory.name}`
+                  : 'Manage Subcategories'
+            }
+          />
+
+          {/* Category mode UI */}
+          {mode === 'category' && (
+            <>
+              <FormInput
+                label="New Category Name"
+                value={newCatName}
+                onChangeText={val => {
+                  setNewCatName(val);
+                  if (autoGenerateSlug && slugify) {
+                    setNewCatSlug(slugify(val));
+                  }
+                }}
+              />
+              <Button text="Create Category" onPress={handleCreateCategory} />
+              <ScrollView style={{maxHeight: modalHeight - 275}}>
+                <ClickableList items={categoryItems} />
+              </ScrollView>
+            </>
+          )}
+
+          {/* Subcategory mode UI */}
+          {mode === 'subcategory' && selectedCategory && (
+            <>
+              <FormInput
+                label="New Subcategory Name"
+                value={newSubName}
+                onChangeText={val => {
+                  setNewSubName(val);
+                  if (autoGenerateSlug && slugify) {
+                    setNewSubSlug(slugify(val));
+                  }
+                }}
+              />
+              <Button
+                text="Add Subcategory"
+                onPress={handleCreateSubcategory}
+              />
+              <ScrollView style={{maxHeight: modalHeight - 275}}>
+                <ClickableList items={subCategoryItems} />
+              </ScrollView>
+            </>
+          )}
+        </>
       )}
-    </>
+    </ModalWrapper>
   );
 }
