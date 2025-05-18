@@ -7,7 +7,6 @@ import {useAuth} from '../../auth/context/AuthContext';
 import {
   GET_ALL_EQUIPMENTS,
   DELETE_EQUIPMENT,
-  UPDATE_EQUIPMENT,
 } from '../graphql/equipment.graphql';
 import {Equipment} from '../types/equipment.types';
 
@@ -61,6 +60,8 @@ const GlobalEquipmentListScreen = () => {
   useEffect(() => {
     if (!user) navigate('/');
   }, [user]);
+
+  console.log(data);
 
   const equipmentItems =
     equipments?.map((item: Equipment) => {

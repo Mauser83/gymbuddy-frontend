@@ -23,10 +23,13 @@ export const GET_ALL_EQUIPMENTS = gql`
         id
         name
       }
+      exercises {
+        id
+        name
+      }
     }
   }
 `;
-
 
 export const GET_EQUIPMENT_BY_ID = gql`
   query GetEquipmentById($id: Int!) {
@@ -49,6 +52,10 @@ export const GET_EQUIPMENT_BY_ID = gql`
         name
       }
       subcategory {
+        id
+        name
+      }
+      exercises {
         id
         name
       }
