@@ -61,8 +61,6 @@ const GlobalEquipmentListScreen = () => {
     if (!user) navigate('/');
   }, [user]);
 
-  console.log(data);
-
   const equipmentItems =
     equipments?.map((item: Equipment) => {
       const isExpanded = expandedId === item.id;

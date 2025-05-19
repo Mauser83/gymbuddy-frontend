@@ -46,7 +46,6 @@ export default function ManageCategoriesModal({
   const {theme} = useTheme();
   const screenHeight = Dimensions.get('window').height;
   const modalHeight = screenHeight * 0.8;
-  console.log(screenHeight);
 
   const {data, refetch} = useQuery<{equipmentCategories: EquipmentCategory[]}>(
     GET_EQUIPMENT_CATEGORIES,

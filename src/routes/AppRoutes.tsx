@@ -31,6 +31,9 @@ import ContentContainer from 'shared/components/ContentContainer';
 import CreateEquipmentScreen from 'modules/equipment/screens/CreateEquipmentScreen';
 import EditEquipmentScreen from 'modules/equipment/screens/EditEquipmentScreen';
 import GymEquipmentListScreen from 'modules/gym/screens/GymEquipmentListScreen';
+import ExerciseListScreen from 'modules/exercise/screens/ExerciseListScreen';
+import CreateExerciseScreen from 'modules/exercise/screens/CreateExerciseScreen';
+import EditExerciseScreen from 'modules/exercise/screens/EditExerciseScreen';
 
 const AppRoutes = () => {
   const {user, isAuthenticated, sessionLoaded} = useAuth();
@@ -77,6 +80,10 @@ const AppRoutes = () => {
           <Route path="/gyms" element={<GymsScreen />} />
           <Route path="/gyms/create" element={<GymCreateScreen />} />
           <Route path="/gyms/:gymId" element={<GymDetailScreen />} />
+
+          <Route path="/exercise" element={<ExerciseListScreen />} />
+          <Route path="/exercise/create" element={<CreateExerciseScreen />} />
+          <Route path="/exercise/edit/:id" element={<EditExerciseScreen />} />
 
           {/* App Management Portal */}
           <Route path="/admin" element={<AppDashboardScreen />} />

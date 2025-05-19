@@ -67,6 +67,14 @@ const AppDashboardScreen = () => {
           text="Manage Global Equipments"
         />
       </Card>
+
+            <Card variant="glass">
+        <Title text="🛠️ Exercises" subtitle="View and manage global exercises"/>
+        <Button
+          onPress={() => navigate('/exercise')}
+          text="Manage Global Exercises"
+        />
+      </Card>
     </ScreenLayout>
   );
 };
