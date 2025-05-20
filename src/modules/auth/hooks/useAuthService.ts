@@ -33,7 +33,7 @@ export const useAuthService = () => {
         if (isGymManager) {
           navigate('/gym-admin');
         } else {
-          navigate('/gyms');
+          navigate('/user');
         }
       },
     });
@@ -43,7 +43,7 @@ export const useAuthService = () => {
       onCompleted: async data => {
         const {user, accessToken, refreshToken} = data.register;
         await setSession({user, accessToken, refreshToken});
-        navigate('/gyms');
+        navigate('/user');
       },
     });
 

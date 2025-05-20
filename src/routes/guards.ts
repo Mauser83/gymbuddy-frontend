@@ -12,6 +12,6 @@ export const getDefaultRouteForUser = (user: User | null): string => {
   
     if (isGymManager) return '/gym-admin';
   
-    return '/gyms';
+    return '/user';
   };
   

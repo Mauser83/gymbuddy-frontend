@@ -34,6 +34,9 @@ import GymEquipmentListScreen from 'modules/gym/screens/GymEquipmentListScreen';
 import ExerciseListScreen from 'modules/exercise/screens/ExerciseListScreen';
 import CreateExerciseScreen from 'modules/exercise/screens/CreateExerciseScreen';
 import EditExerciseScreen from 'modules/exercise/screens/EditExerciseScreen';
+import UserDashboardScreen from 'modules/portals/users/screens/UserDashboardScreen';
+import MyWorkoutPlansScreen from 'modules/portals/users/screens/MyWorkoutPlansScreen';
+import LogExerciseScreen from 'modules/portals/users/screens/LogExerciseScreen';
 
 const AppRoutes = () => {
   const {user, isAuthenticated, sessionLoaded} = useAuth();
@@ -102,6 +105,11 @@ const AppRoutes = () => {
             path="/gym-admin/gyms/:gymId/equipment"
             element={<GymEquipmentListScreen />}
           />
+
+          {/* User Portal */}
+          <Route path="/user" element={<UserDashboardScreen />} />
+          <Route path="/user/my-plans" element={<MyWorkoutPlansScreen />} />
+          <Route path="/user/log-exercise" element={<LogExerciseScreen />} />
 
           {/* Fallback */}
           <Route path="*" element={<NoResults message="Page not found." />} />

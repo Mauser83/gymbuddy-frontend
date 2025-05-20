@@ -37,6 +37,18 @@ const Footer = () => {
 
         {user && (
           <>
+            {(user.appRole !== 'ADMIN' && user.appRole !== 'MODERATOR') && user.userRole === 'USER' && (
+              <TouchableOpacity
+                onPress={() => navigate('/user')}
+                style={styles.iconWrapper}>
+                <FontAwesome
+                  name="tachometer-alt"
+                  size={24}
+                  color={iconColor('/user')}
+                />
+              </TouchableOpacity>
+            )}
+
             {(user.appRole === 'ADMIN' || user.appRole === 'MODERATOR') && (
               <TouchableOpacity
                 onPress={() => navigate('/admin')}
