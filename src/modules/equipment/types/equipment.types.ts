@@ -19,7 +19,15 @@ export interface Equipment {
     name: string;
   };
 
-  images?: EquipmentImage[]; // ✅ Global image catalog
+  images?: EquipmentImage[];
+
+  // ✅ New field
+  compatibleExercises?: ExerciseLite[];
+}
+
+export interface ExerciseLite {
+  id: number;
+  name: string;
 }
 
 export interface EquipmentImage {

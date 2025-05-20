@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {useQuery, useMutation} from '@apollo/client';
 import {useNavigate} from 'react-router-native';
-import {View} from 'react-native';
+import {View, Text} from 'react-native';
 
 import {useAuth} from '../../auth/context/AuthContext';
 import {
@@ -20,6 +20,7 @@ import {spacing} from 'shared/theme/tokens';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import ButtonRow from 'shared/components/ButtonRow';
+import DividerWithLabel from 'shared/components/DividerWithLabel';
 
 const GlobalEquipmentListScreen = () => {
   const {user} = useAuth();
@@ -34,6 +35,7 @@ const GlobalEquipmentListScreen = () => {
     fetchPolicy: 'cache-and-network',
   });
   const [deleteEquipment] = useMutation(DELETE_EQUIPMENT);
+  const [exerciseSearch, setExerciseSearch] = useState('');
 
   const handleDelete = async (id: number) => {
     try {
@@ -65,10 +67,17 @@ const GlobalEquipmentListScreen = () => {
     equipments?.map((item: Equipment) => {
       const isExpanded = expandedId === item.id;
 
+      // 🔍 Only compute if expanded
+      const filteredExercises = isExpanded
+        ? (item.compatibleExercises?.filter(ex =>
+            ex.name.toLowerCase().includes(exerciseSearch.toLowerCase()),
+          ) ?? [])
+        : [];
+
       return {
         id: item.id,
         label: item.name,
-        subLabel: item.brand,
+        subLabel: `${item.brand} • ${item.compatibleExercises?.length ?? 0} exercises`,
         selected: isExpanded,
         onPress: () => {
           setExpandedId(prev => (prev === item.id ? null : item.id));
@@ -81,18 +90,38 @@ const GlobalEquipmentListScreen = () => {
           />
         ),
         content: isExpanded ? (
-          <ButtonRow>
-            <Button
-              text="Edit"
-              fullWidth
-              onPress={() => navigate(`/equipment/edit/${item.id}`)}
+          <>
+            <ButtonRow>
+              <Button
+                text="Edit"
+                fullWidth
+                onPress={() => navigate(`/equipment/edit/${item.id}`)}
+              />
+              <Button
+                text="Delete"
+                fullWidth
+                onPress={() => handleDelete(item.id)}
+              />
+            </ButtonRow>
+            <DividerWithLabel label="Exercises" />
+            <SearchInput
+              placeholder="Search exercises..."
+              value={exerciseSearch}
+              onChange={setExerciseSearch}
+              onClear={() => setExerciseSearch('')}
             />
-            <Button
-              text="Delete"
-              fullWidth
-              onPress={() => handleDelete(item.id)}
-            />
-          </ButtonRow>
+            {filteredExercises.length ? (
+              <ClickableList
+                items={filteredExercises.map(ex => ({
+                  id: ex.id,
+                  label: ex.name,
+                  onPress: () => navigate(`/exercise/${ex.id}`),
+                }))}
+              />
+            ) : (
+              <NoResults message="No matching exercises found." />
+            )}
+          </>
         ) : undefined,
       };
     }) ?? [];

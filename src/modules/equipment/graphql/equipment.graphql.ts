@@ -23,7 +23,7 @@ export const GET_ALL_EQUIPMENTS = gql`
         id
         name
       }
-      exercises {
+      compatibleExercises {
         id
         name
       }
@@ -55,7 +55,7 @@ export const GET_EQUIPMENT_BY_ID = gql`
         id
         name
       }
-      exercises {
+      compatibleExercises {
         id
         name
       }
