@@ -15,6 +15,8 @@ import Button from 'shared/components/Button';
 import LoadingState from 'shared/components/LoadingState';
 import ExerciseForm from '../components/ExerciseForm';
 import Toast from 'react-native-toast-message';
+import ButtonRow from 'shared/components/ButtonRow';
+import DividerWithLabel from 'shared/components/DividerWithLabel';
 
 const ExerciseSchema = Yup.object().shape({
   name: Yup.string().required('Name is required'),
@@ -26,7 +28,20 @@ const ExerciseSchema = Yup.object().shape({
     .of(Yup.number())
     .min(1, 'Select at least one primary muscle'),
   secondaryMuscleIds: Yup.array().of(Yup.number()),
-  equipmentIds: Yup.array().of(Yup.number()),
+  equipmentSlots: Yup.array().of(
+    Yup.object({
+      slotIndex: Yup.number().required(),
+      isRequired: Yup.boolean(),
+      comment: Yup.string(),
+      options: Yup.array()
+        .of(
+          Yup.object({
+            subcategoryId: Yup.number().required(),
+          }),
+        )
+        .min(1, 'Each slot must have at least one equipment option'),
+    }),
+  ),
 });
 
 export default function EditExerciseScreen() {
@@ -67,7 +82,16 @@ export default function EditExerciseScreen() {
     exerciseTypeId: exercise.exerciseType?.id ?? undefined,
     primaryMuscleIds: exercise.primaryMuscles?.map(m => m.id) ?? [],
     secondaryMuscleIds: exercise.secondaryMuscles?.map(m => m.id) ?? [],
-    equipmentIds: exercise.equipments?.map(e => e.id) ?? [],
+    equipmentSlots:
+      exercise.equipmentSlots?.map(slot => ({
+        slotIndex: slot.slotIndex,
+        isRequired: slot.isRequired,
+        comment: slot.comment,
+        options: slot.options.map(opt => ({
+          subcategoryId: opt.subcategory.id,
+          name: opt.subcategory.name, // optional, for display only
+        })),
+      })) ?? [],
   };
 
   const handleSubmit = async (
@@ -104,11 +128,22 @@ export default function EditExerciseScreen() {
         {({handleSubmit, isSubmitting}) => (
           <>
             <ExerciseForm />
-            <Button
-              text="Update Exercise"
-              onPress={handleSubmit}
-              disabled={isSubmitting}
-            />
+            {/* Submit / Cancel – main form actions */}
+            <DividerWithLabel label="Continue with" />
+
+            <ButtonRow>
+              <Button
+                text="Cancel"
+                fullWidth
+                onPress={() => navigate('/exercise')}
+              />
+              <Button
+                text="Update"
+                fullWidth
+                onPress={handleSubmit}
+                disabled={isSubmitting}
+              />
+            </ButtonRow>
           </>
         )}
       </Formik>

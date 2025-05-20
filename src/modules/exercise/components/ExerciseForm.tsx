@@ -1,22 +1,26 @@
 import React, {useState} from 'react';
-import {ScrollView, Dimensions} from 'react-native';
+import {ScrollView, View, Dimensions} from 'react-native';
 import {useFormikContext} from 'formik';
-
+import {useReferenceData} from '../hooks/useReferenceData';
+import FormInput from 'shared/components/FormInput';
+import SelectableField from 'shared/components/SelectableField';
+import ModalWrapper from 'shared/components/ModalWrapper';
+import Title from 'shared/components/Title';
+import Button from 'shared/components/Button';
+import DividerWithLabel from 'shared/components/DividerWithLabel';
+import EquipmentSlotModal from './EquipmentSlotModal';
+import ClickableList from 'shared/components/ClickableList';
 import {
   ExerciseType,
   ExerciseDifficulty,
   Muscle,
 } from '../types/exercise.types';
-import {useReferenceData} from '../hooks/useReferenceData';
-
-import FormInput from 'shared/components/FormInput';
-import SelectableField from 'shared/components/SelectableField';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import Title from 'shared/components/Title';
-import ClickableList from 'shared/components/ClickableList';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
-import Button from 'shared/components/Button';
-import ManageReferenceModal from '../components/ManageReferenceModal';
+import ManageReferenceModal from './ManageReferenceModal';
+import Toast from 'react-native-toast-message';
+import ButtonRow from 'shared/components/ButtonRow';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import {useTheme} from 'shared/theme/ThemeProvider';
+import DetailField from 'shared/components/DetailField';
 
 const screenHeight = Dimensions.get('window').height;
 const modalHeight = screenHeight * 0.8;
@@ -24,39 +28,158 @@ const modalHeight = screenHeight * 0.8;
 type ManageModalType = 'type' | 'difficulty' | 'bodyPart' | 'muscle' | null;
 
 export default function ExerciseForm() {
+  const {theme} = useTheme();
   const {values, setFieldValue} = useFormikContext<any>();
-
-  const {exerciseTypes, difficulties, muscles, bodyParts, refetchAll} =
-    useReferenceData();
-
+  const {
+    equipmentSubcategories,
+    exerciseTypes,
+    difficulties,
+    muscles,
+    bodyParts,
+    refetchAll,
+  } = useReferenceData();
+  const [slotModalVisible, setSlotModalVisible] = useState(false);
+  const [slotEditIndex, setSlotEditIndex] = useState<number | null>(null);
   const [activeModal, setActiveModal] = useState<
-    null | 'type' | 'difficulty' | 'primary' | 'secondary' | 'equipment'
+    null | 'type' | 'difficulty' | 'primary' | 'secondary'
   >(null);
-
+  const [manageModal, setManageModal] = useState<ManageModalType>(null);
   const [selectedBodyPartId, setSelectedBodyPartId] = useState<number | null>(
     null,
   );
-  const [manageModal, setManageModal] = useState<ManageModalType>(null);
   const [muscleStep, setMuscleStep] = useState<'bodyPart' | 'muscle'>(
     'bodyPart',
   );
+  const allSubcategories = useReferenceData().equipmentSubcategories;
+  const [expandedSlotIndex, setExpandedSlotIndex] = useState<number | null>(
+    null,
+  );
 
-  const primaryMuscles = muscles.filter(m =>
-    values.primaryMuscleIds?.includes(m.id),
-  );
-  const secondaryMuscles = muscles.filter(m =>
-    values.secondaryMuscleIds?.includes(m.id),
-  );
+  const openEditSlot = (index: number) => {
+    setSlotEditIndex(index);
+    setSlotModalVisible(true);
+  };
+
+  const deleteSlot = (index: number) => {
+    const updated = values.equipmentSlots.filter(
+      (_: any, i: number) => i !== index,
+    );
+    setFieldValue('equipmentSlots', updated);
+  };
+
+  const saveSlot = (slot: any) => {
+    const allSelectedIds = (values.equipmentSlots || [])
+      .filter((_: any, i: number) => i !== slotEditIndex) // exclude the slot being edited
+      .flatMap((s: any) => s.options.map((opt: any) => opt.subcategoryId));
+
+    const hasDuplicates = slot.options.some((opt: any) =>
+      allSelectedIds.includes(opt.subcategoryId),
+    );
+    if (hasDuplicates) {
+      Toast.show({
+        type: 'error',
+        text1: 'Subcategory already used in another slot.',
+      });
+      return;
+    }
+
+    const updated = [...(values.equipmentSlots || [])];
+    if (slotEditIndex !== null && updated[slotEditIndex]) {
+      updated[slotEditIndex] = slot;
+    } else {
+      if (updated.length >= 5) {
+        Toast.show({type: 'error', text1: 'Maximum of 5 slots allowed.'});
+        return;
+      }
+      updated.push(slot);
+    }
+    setFieldValue('equipmentSlots', updated);
+    setSlotEditIndex(null);
+  };
 
   const handleMuscleToggle = (
     muscleId: number,
     field: 'primaryMuscleIds' | 'secondaryMuscleIds',
   ) => {
+    const conflictField =
+      field === 'primaryMuscleIds' ? 'secondaryMuscleIds' : 'primaryMuscleIds';
     const current: number[] = values[field] || [];
     const updated = current.includes(muscleId)
       ? current.filter(id => id !== muscleId)
       : [...current, muscleId];
+
+    const cleanedOther = (values[conflictField] || []).filter(
+      (id: number) => id !== muscleId,
+    );
     setFieldValue(field, updated);
+    setFieldValue(conflictField, cleanedOther);
+  };
+
+  const primaryMuscles = muscles.filter((m: Muscle) =>
+    values.primaryMuscleIds?.includes(m.id),
+  );
+  const secondaryMuscles = muscles.filter((m: Muscle) =>
+    values.secondaryMuscleIds?.includes(m.id),
+  );
+
+  const renderSlotList = () => {
+    return (
+      <ClickableList
+        items={(values.equipmentSlots || []).map((slot: any, index: number) => {
+          const isExpanded = expandedSlotIndex === index;
+
+          const slotLabel =
+            `Slot ${index + 1}: ${slot.options.length} item(s)` +
+            (slot.isRequired ? ' (Required)' : ' (Optional)');
+
+          const optionLines = slot.options.map((opt: any) => {
+            const match = allSubcategories.find(
+              s => s.id === opt.subcategoryId,
+            );
+            return match
+              ? `${match.name} (${match.category?.name || 'Other'})`
+              : `#${opt.subcategoryId}`;
+          });
+
+          return {
+            id: index,
+            label: slotLabel,
+            onPress: () => setExpandedSlotIndex(isExpanded ? null : index),
+            rightElement: (
+              <FontAwesome
+                name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color={theme.colors.accentStart}
+              />
+            ),
+            content: isExpanded && (
+              <View style={{marginTop: 8}}>
+                {optionLines.map((line: string, i: number) => (
+                  <DetailField
+                    key={i}
+                    label="•"
+                    value={line}
+                    vertical={false}
+                  />
+                ))}
+                <ButtonRow style={{marginTop: 12}}>
+                  <Button
+                    text="Edit"
+                    fullWidth
+                    onPress={() => openEditSlot(index)}
+                  />
+                  <Button
+                    text="Delete"
+                    fullWidth
+                    onPress={() => deleteSlot(index)}
+                  />
+                </ButtonRow>
+              </View>
+            ),
+          };
+        })}
+      />
+    );
   };
 
   const renderModalContent = () => {
@@ -161,7 +284,6 @@ export default function ExerciseForm() {
                   }))}
               />
             </ScrollView>
-
             <DividerWithLabel label="OR" />
             <Button
               text="Manage Muscles"
@@ -174,7 +296,6 @@ export default function ExerciseForm() {
         );
       }
     }
-
     return null;
   };
 
@@ -182,23 +303,25 @@ export default function ExerciseForm() {
     <>
       <FormInput
         label="Exercise Name"
-        placeholder="e.g., Barbell Squat"
         value={values.name}
-        onChangeText={text => setFieldValue('name', text)}
+        onChangeText={(text: string) => setFieldValue('name', text)}
+        placeholder="e.g., Bench Press"
       />
 
       <FormInput
         label="Description"
-        placeholder="Optional description..."
         value={values.description}
-        onChangeText={text => setFieldValue('description', text)}
+        onChangeText={(text: string) => setFieldValue('description', text)}
+        placeholder="Optional description..."
       />
 
       <FormInput
         label="Video URL"
-        placeholder="https://youtube.com/..."
         value={values.videoUrl || ''}
-        onChangeText={text => setFieldValue('videoUrl', text || undefined)}
+        onChangeText={(text: string) =>
+          setFieldValue('videoUrl', text || undefined)
+        }
+        placeholder="https://youtube.com/..."
       />
 
       <SelectableField
@@ -247,11 +370,48 @@ export default function ExerciseForm() {
         }}
       />
 
+      <DividerWithLabel label="Equipment Slots" />
+
+      <Button
+        text="Add Equipment Slot"
+        onPress={() => {
+          if ((values.equipmentSlots || []).length >= 5) {
+            Toast.show({type: 'error', text1: 'Maximum of 5 slots allowed.'});
+            return;
+          }
+          setSlotEditIndex(null);
+          setSlotModalVisible(true);
+        }}
+      />
+
+      {renderSlotList()}
+
       <ModalWrapper
         visible={!!activeModal}
         onClose={() => setActiveModal(null)}>
         {renderModalContent()}
       </ModalWrapper>
+
+      <EquipmentSlotModal
+        visible={slotModalVisible}
+        onClose={() => setSlotModalVisible(false)}
+        onSave={saveSlot}
+        initialSlotIndex={slotEditIndex ?? (values.equipmentSlots?.length || 0)}
+        subcategories={equipmentSubcategories.filter(
+          sc =>
+            !values.equipmentSlots?.some(
+              (slot: {options: {subcategoryId: number}[]}) =>
+                slot.options.some(
+                  (opt: {subcategoryId: number}) => opt.subcategoryId === sc.id,
+                ),
+            ),
+        )}
+        initialData={
+          slotEditIndex !== null
+            ? values.equipmentSlots[slotEditIndex]
+            : undefined
+        }
+      />
 
       {manageModal && (
         <ManageReferenceModal

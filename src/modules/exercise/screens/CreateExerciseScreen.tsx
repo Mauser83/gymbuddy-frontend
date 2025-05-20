@@ -11,6 +11,8 @@ import Title from 'shared/components/Title';
 import Button from 'shared/components/Button';
 import ExerciseForm from '../components/ExerciseForm'; // task 5
 import Toast from 'react-native-toast-message';
+import ButtonRow from 'shared/components/ButtonRow';
+import DividerWithLabel from 'shared/components/DividerWithLabel';
 
 const ExerciseSchema = Yup.object().shape({
   name: Yup.string().required('Name is required'),
@@ -22,6 +24,20 @@ const ExerciseSchema = Yup.object().shape({
     .of(Yup.number())
     .min(1, 'Select at least one primary muscle'),
   secondaryMuscleIds: Yup.array().of(Yup.number()),
+  equipmentSlots: Yup.array().of(
+    Yup.object({
+      slotIndex: Yup.number().required(),
+      isRequired: Yup.boolean(),
+      comment: Yup.string(),
+      options: Yup.array()
+        .of(
+          Yup.object({
+            subcategoryId: Yup.number().required(),
+          }),
+        )
+        .min(1, 'Each slot must have at least one equipment option'),
+    }),
+  ),
 });
 
 const initialValues: CreateExerciseInput = {
@@ -32,6 +48,7 @@ const initialValues: CreateExerciseInput = {
   exerciseTypeId: undefined,
   primaryMuscleIds: [],
   secondaryMuscleIds: [],
+  equipmentSlots: [], // ✅ NEW
 };
 
 export default function CreateExerciseScreen() {
@@ -69,11 +86,20 @@ export default function CreateExerciseScreen() {
         {({handleSubmit, isSubmitting}) => (
           <>
             <ExerciseForm />
-            <Button
-              text="Create Exercise"
-              onPress={handleSubmit}
-              disabled={isSubmitting}
-            />
+            <DividerWithLabel label="Continue with" />
+            <ButtonRow>
+                            <Button
+                text="Cancel"
+                fullWidth
+                onPress={() => navigate('/exercise')}
+              />
+              <Button
+                text="Create Exercise"
+                onPress={handleSubmit}
+                disabled={isSubmitting}
+                fullWidth
+              />
+            </ButtonRow>
           </>
         )}
       </Formik>

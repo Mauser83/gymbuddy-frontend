@@ -56,8 +56,11 @@ export interface EquipmentCategory {
 export interface EquipmentSubcategory {
   id: number;
   name: string;
-  slug: string;
   categoryId: number;
+  category?: {
+    id: number;
+    name: string;
+  };
 }
 
 export interface CreateEquipmentCategoryInput {

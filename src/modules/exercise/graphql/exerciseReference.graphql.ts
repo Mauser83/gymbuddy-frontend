@@ -1,7 +1,7 @@
-import { gql } from '@apollo/client';
+import {gql} from '@apollo/client';
 
 export const GET_REFERENCE_DATA = gql`
-  query GetExerciseReferenceData {
+  query GET_REFERENCE_DATA {
     allExerciseTypes {
       id
       name
@@ -20,6 +20,15 @@ export const GET_REFERENCE_DATA = gql`
           id
           name
         }
+      }
+    }
+    equipmentSubcategories {
+      id
+      name
+      slug
+      category {
+        id
+        name
       }
     }
   }
@@ -77,7 +86,10 @@ export const CREATE_EXERCISE_DIFFICULTY = gql`
 `;
 
 export const UPDATE_EXERCISE_DIFFICULTY = gql`
-  mutation UpdateExerciseDifficulty($id: Int!, $input: UpdateExerciseDifficultyInput!) {
+  mutation UpdateExerciseDifficulty(
+    $id: Int!
+    $input: UpdateExerciseDifficultyInput!
+  ) {
     updateExerciseDifficulty(id: $id, input: $input) {
       id
       level

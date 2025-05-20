@@ -1,4 +1,4 @@
-import { gql } from '@apollo/client';
+import {gql} from '@apollo/client';
 
 export const EXERCISE_FIELDS = gql`
   fragment ExerciseFields on Exercise {
@@ -37,10 +37,15 @@ export const EXERCISE_FIELDS = gql`
       }
     }
 
-    equipments {
-      id
-      name
-      brand
+    equipmentSlots {
+      slotIndex
+      isRequired
+      comment
+      options {
+        subcategory {
+          id
+        }
+      }
     }
   }
 `;
