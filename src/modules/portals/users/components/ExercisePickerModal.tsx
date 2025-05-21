@@ -1,12 +1,10 @@
-import React, {useState, useEffect} from 'react';
-import {View, Dimensions} from 'react-native';
-import {useQuery} from '@apollo/client';
+import React, { useState, useEffect } from 'react';
+import { View, Dimensions } from 'react-native';
 import ModalWrapper from '../../../../shared/components/ModalWrapper';
 import SearchInput from '../../../../shared/components/SearchInput';
 import ClickableList from '../../../../shared/components/ClickableList';
 import NoResults from '../../../../shared/components/NoResults';
-import {GET_EXERCISES_AVAILABLE_AT_GYM} from '../graphql/userWorkouts.graphql';
-import {spacing} from '../../../../shared/theme/tokens';
+import { spacing } from '../../../../shared/theme/tokens';
 
 interface Exercise {
   id: number;
@@ -14,31 +12,18 @@ interface Exercise {
   description?: string;
 }
 
-interface ExerciseWithSlots {
-  id: number;
-  name: string;
-  description?: string;
-  equipmentSlots?: {
-    options: {
-      subcategory: {
-        id: number;
-      };
-    }[];
-  }[];
-}
-
 interface ExercisePickerModalProps {
   visible: boolean;
-  gymId?: number | null;
+  exercises: Exercise[];
   onClose: () => void;
-  onSelect: (exercise: ExerciseWithSlots) => void;
+  onSelect: (exercise: Exercise) => void;
 }
 
 const modalHeight = Dimensions.get('window').height * 0.8;
 
 export default function ExercisePickerModal({
   visible,
-  gymId,
+  exercises,
   onClose,
   onSelect,
 }: ExercisePickerModalProps) {
@@ -52,16 +37,13 @@ export default function ExercisePickerModal({
     return () => clearTimeout(timeout);
   }, [search]);
 
-  const {data, loading} = useQuery(GET_EXERCISES_AVAILABLE_AT_GYM, {
-    variables: {gymId, search: debouncedSearch},
-    skip: !gymId,
-  });
-
-  const exercises: ExerciseWithSlots[] = data?.exercisesAvailableAtGym ?? [];
+  const visibleExerciseList = exercises.filter((ex: Exercise) =>
+    ex.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+  );
 
   return (
     <ModalWrapper visible={visible} onClose={onClose}>
-      <View style={{padding: spacing.md, gap: spacing.md, height: modalHeight}}>
+      <View style={{ padding: spacing.md, gap: spacing.md, height: modalHeight }}>
         <SearchInput
           value={search}
           onChange={setSearch}
@@ -69,20 +51,16 @@ export default function ExercisePickerModal({
           onClear={() => setSearch('')}
         />
 
-        {!loading && exercises.length === 0 ? (
-          <NoResults message="No exercises found." />
+        {visibleExerciseList.length === 0 ? (
+          <NoResults message="No matching exercises found." />
         ) : (
           <ClickableList
-            items={(exercises as ExerciseWithSlots[]).map(exercise => ({
-              id: String(exercise.id),
-              label: exercise.name,
-              subLabel: exercise.description || undefined,
+            items={visibleExerciseList.map((ex) => ({
+              id: String(ex.id),
+              label: ex.name,
+              subLabel: ex.description,
               onPress: () => {
-                onSelect({
-                  id: exercise.id,
-                  name: exercise.name,
-                  equipmentSlots: exercise.equipmentSlots ?? [], // ✅ ensure this is passed
-                });
+                onSelect(ex);
                 onClose();
               },
             }))}

@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Dimensions } from 'react-native';
-import { useQuery } from '@apollo/client';
 import ModalWrapper from '../../../../shared/components/ModalWrapper';
 import SearchInput from '../../../../shared/components/SearchInput';
 import ClickableList from '../../../../shared/components/ClickableList';
 import NoResults from '../../../../shared/components/NoResults';
-import { GET_GYM_EQUIPMENT } from '../graphql/userWorkouts.graphql';
 import { spacing } from '../../../../shared/theme/tokens';
 
 interface Equipment {
@@ -16,8 +14,7 @@ interface Equipment {
 
 interface EquipmentPickerModalProps {
   visible: boolean;
-  gymId: number | null;
-  requiredSubcategoryIds: number[];
+  equipment: Equipment[];
   onClose: () => void;
   onSelect: (equipment: Equipment) => void;
 }
@@ -26,8 +23,7 @@ const modalHeight = Dimensions.get('window').height * 0.8;
 
 export default function EquipmentPickerModal({
   visible,
-  gymId,
-  requiredSubcategoryIds,
+  equipment,
   onClose,
   onSelect,
 }: EquipmentPickerModalProps) {
@@ -41,25 +37,9 @@ export default function EquipmentPickerModal({
     return () => clearTimeout(timeout);
   }, [search]);
 
-  const { data, loading } = useQuery(GET_GYM_EQUIPMENT, {
-    variables: { gymId },
-    skip: !gymId,
-  });
-
-  const equipmentList: Equipment[] = (data?.gymEquipmentByGymId ?? [])
-    .map((entry: any) => {
-      const subcategoryId = entry?.equipment?.subcategory?.id;
-      return subcategoryId
-        ? {
-            id: entry.id,
-            name: entry.equipment.name,
-            subcategoryId,
-          }
-        : null;
-    })
-    .filter((eq: Equipment): eq is Equipment => !!eq)
-    .filter((eq: Equipment) => requiredSubcategoryIds.includes(eq.subcategoryId))
-    .filter((eq: Equipment) => eq.name.toLowerCase().includes(debouncedSearch.toLowerCase()));
+  const visibleEquipmentList = equipment.filter((eq: Equipment) =>
+    eq.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+  );
 
   return (
     <ModalWrapper visible={visible} onClose={onClose}>
@@ -71,11 +51,11 @@ export default function EquipmentPickerModal({
           onClear={() => setSearch('')}
         />
 
-        {!loading && equipmentList.length === 0 ? (
+        {visibleEquipmentList.length === 0 ? (
           <NoResults message="No matching equipment found." />
         ) : (
           <ClickableList
-            items={equipmentList.map((eq) => ({
+            items={visibleEquipmentList.map((eq) => ({
               id: String(eq.id),
               label: eq.name,
               onPress: () => {
