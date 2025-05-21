@@ -74,7 +74,12 @@ export interface CreateExerciseInput {
   exerciseTypeId?: number;
   primaryMuscleIds: number[];
   secondaryMuscleIds?: number[];
-  equipmentSlots: []; // ✅ NEW
+  equipmentSlots: {
+    slotIndex: number;
+    isRequired: boolean;
+    comment?: string;
+    options: { subcategoryId: number }[];
+  }[];
 }
 
 export interface UpdateExerciseInput {

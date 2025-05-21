@@ -26,7 +26,6 @@ const ExerciseSchema = Yup.object().shape({
   secondaryMuscleIds: Yup.array().of(Yup.number()),
   equipmentSlots: Yup.array().of(
     Yup.object({
-      slotIndex: Yup.number().required(),
       isRequired: Yup.boolean(),
       comment: Yup.string(),
       options: Yup.array()
@@ -63,6 +62,10 @@ export default function CreateExerciseScreen() {
       const payload = {
         ...values,
         videoUrl: values.videoUrl?.trim() || undefined,
+        equipmentSlots: values.equipmentSlots.map((slot, index) => ({
+          ...slot,
+          slotIndex: index,
+        })),
       };
 
       await createExercise({variables: {input: payload}});
@@ -83,25 +86,28 @@ export default function CreateExerciseScreen() {
         initialValues={initialValues}
         validationSchema={ExerciseSchema}
         onSubmit={handleSubmit}>
-        {({handleSubmit, isSubmitting}) => (
-          <>
-            <ExerciseForm />
-            <DividerWithLabel label="Continue with" />
-            <ButtonRow>
-                            <Button
-                text="Cancel"
-                fullWidth
-                onPress={() => navigate('/exercise')}
-              />
-              <Button
-                text="Create Exercise"
-                onPress={handleSubmit}
-                disabled={isSubmitting}
-                fullWidth
-              />
-            </ButtonRow>
-          </>
-        )}
+        {({handleSubmit, isSubmitting, errors, values}) => {
+
+          return (
+            <>
+              <ExerciseForm />
+              <DividerWithLabel label="Continue with" />
+              <ButtonRow>
+                <Button
+                  text="Cancel"
+                  fullWidth
+                  onPress={() => navigate('/exercise')}
+                />
+                <Button
+                  text="Create Exercise"
+                  onPress={handleSubmit}
+                  disabled={isSubmitting}
+                  fullWidth
+                />
+              </ButtonRow>
+            </>
+          );
+        }}
       </Formik>
     </ScreenLayout>
   );

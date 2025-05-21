@@ -68,13 +68,20 @@ export default function ExerciseForm() {
   };
 
   const saveSlot = (slot: any) => {
-    const allSelectedIds = (values.equipmentSlots || [])
-      .filter((_: any, i: number) => i !== slotEditIndex) // exclude the slot being edited
+    const isEditing = slotEditIndex !== null;
+    const currentSlots = [...(values.equipmentSlots || [])];
+
+    // Determine which subcategory IDs are already in use — excluding the current slot if editing
+    const otherSubcategoryIds = currentSlots
+      .filter((_: any, i: number) => !isEditing || i !== slotEditIndex)
       .flatMap((s: any) => s.options.map((opt: any) => opt.subcategoryId));
 
-    const hasDuplicates = slot.options.some((opt: any) =>
-      allSelectedIds.includes(opt.subcategoryId),
+    const newSubcategoryIds = slot.options.map((opt: any) => opt.subcategoryId);
+
+    const hasDuplicates = newSubcategoryIds.some((id: any) =>
+      otherSubcategoryIds.includes(id),
     );
+
     if (hasDuplicates) {
       Toast.show({
         type: 'error',
@@ -83,18 +90,20 @@ export default function ExerciseForm() {
       return;
     }
 
-    const updated = [...(values.equipmentSlots || [])];
-    if (slotEditIndex !== null && updated[slotEditIndex]) {
-      updated[slotEditIndex] = slot;
+    // Proceed to save slot
+    if (isEditing && slotEditIndex !== null) {
+      currentSlots[slotEditIndex] = {...slot};
     } else {
-      if (updated.length >= 5) {
+      if (currentSlots.length >= 5) {
         Toast.show({type: 'error', text1: 'Maximum of 5 slots allowed.'});
         return;
       }
-      updated.push(slot);
+      currentSlots.push(slot);
     }
-    setFieldValue('equipmentSlots', updated);
+
+    setFieldValue('equipmentSlots', currentSlots);
     setSlotEditIndex(null);
+    setSlotModalVisible(false);
   };
 
   const handleMuscleToggle = (

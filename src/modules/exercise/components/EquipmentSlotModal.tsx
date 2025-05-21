@@ -14,7 +14,6 @@ interface EquipmentSlotModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: (slot: {
-    slotIndex: number;
     isRequired: boolean;
     comment?: string;
     options: {subcategoryId: number}[];
@@ -46,6 +45,15 @@ export default function EquipmentSlotModal({
     new Set(),
   );
 
+  useEffect(() => {
+    if (!visible) {
+      setSelectedSubIds([]);
+      setComment('');
+      setIsRequired(true);
+      setSearchQuery('');
+    }
+  }, [visible]);
+
   const toggleSubcategory = (id: number) => {
     setSelectedSubIds(prev =>
       prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id],
@@ -62,7 +70,6 @@ export default function EquipmentSlotModal({
     }
 
     onSave({
-      slotIndex: initialSlotIndex,
       isRequired,
       comment: comment || undefined,
       options: selectedSubIds.map(id => ({subcategoryId: id})),
@@ -155,25 +162,25 @@ export default function EquipmentSlotModal({
                   }))}
                 />
               )}
-
-              {selectedSubIds.length > 0 && (
-                <>
-                  <DividerWithLabel label="Selected" />
-                  <ClickableList
-                    items={subcategories
-                      .filter(sc => selectedSubIds.includes(sc.id))
-                      .map(sc => ({
-                        id: sc.id,
-                        label: `${sc.name} (${sc.category?.name || 'Other'})`,
-                        selected: true,
-                        onPress: () => toggleSubcategory(sc.id),
-                      }))}
-                  />
-                </>
-              )}
             </View>
           );
         })}
+
+        {selectedSubIds.length > 0 && (
+          <>
+            <DividerWithLabel label="Selected" />
+            <ClickableList
+              items={subcategories
+                .filter(sc => selectedSubIds.includes(sc.id))
+                .map(sc => ({
+                  id: sc.id,
+                  label: `${sc.name} (${sc.category?.name || 'Other'})`,
+                  selected: true,
+                  onPress: () => toggleSubcategory(sc.id),
+                }))}
+            />
+          </>
+        )}
 
         {selectedSubIds.length === 0 && (
           <Title subtitle="Please select at least one equipment option." />
