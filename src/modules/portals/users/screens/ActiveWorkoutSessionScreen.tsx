@@ -12,13 +12,14 @@ import DetailField from 'shared/components/DetailField';
 import DividerWithLabel from 'shared/components/DividerWithLabel';
 import FormInput from 'shared/components/FormInput';
 import ExercisePickerModal from '../components/ExercisePickerModal';
-import EquipmentPickerModal from '../components/EquipmentPickerModal';
+import MultiSlotEquipmentPickerModal from '../components/MultiSlotEquipmentPickerModal';
 import {
   GET_WORKOUT_SESSION,
   GET_EXERCISES_AVAILABLE_AT_GYM,
   GET_GYM_EQUIPMENT,
 } from '../graphql/userWorkouts.graphql';
 import {WorkoutSessionData, ExerciseLog} from '../types/userWorkouts.types';
+import SelectableField from 'shared/components/SelectableField'; // if not already imported
 
 export default function ActiveWorkoutSessionScreen() {
   const {sessionId} = useParams<{sessionId: string}>();
@@ -28,6 +29,7 @@ export default function ActiveWorkoutSessionScreen() {
   const [equipmentPickerVisible, setEquipmentPickerVisible] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState<any>(null);
   const [logs, setLogs] = useState<ExerciseLog[]>([]);
+  const [editingLogId, setEditingLogId] = useState<number | null>(null);
 
   const {data} = useQuery<WorkoutSessionData>(GET_WORKOUT_SESSION, {
     variables: {id: Number(sessionId)},
@@ -63,8 +65,8 @@ export default function ActiveWorkoutSessionScreen() {
         logs: [],
         equipmentIds: new Set<number>(),
       };
+      log.equipmentIds?.forEach(id => group.equipmentIds.add(id));
       group.logs.push(log);
-      if (log.gymEquipmentId) group.equipmentIds.add(log.gymEquipmentId);
       grouped.set(log.exerciseId, group);
     }
     return Array.from(grouped.values()).map(group => ({
@@ -82,6 +84,7 @@ export default function ActiveWorkoutSessionScreen() {
         weight: log.weight ?? 0,
         rpe: log.rpe ?? undefined,
         notes: log.notes ?? '',
+        equipmentIds: log.equipmentIds ?? [],
       };
     });
     return values;
@@ -96,13 +99,14 @@ export default function ActiveWorkoutSessionScreen() {
           weight: Yup.number().required('Required'),
           rpe: Yup.number().min(0).max(10).nullable(),
           notes: Yup.string().nullable(),
+          equipmentIds: Yup.array().of(Yup.number()).min(1, 'Required'),
         }),
       ]),
     ),
   );
 
   const usedEquipmentIds = useMemo(
-    () => new Set(logs.map(log => log.gymEquipmentId)),
+    () => new Set(logs.flatMap(log => log.equipmentIds ?? [])),
     [logs],
   );
 
@@ -113,6 +117,8 @@ export default function ActiveWorkoutSessionScreen() {
       name: entry.equipment.name,
       subcategoryId: entry.equipment.subcategory.id,
     }));
+
+  const allEquipment = equipmentData?.gymEquipmentByGymId ?? [];
 
   const availableExercises = (
     exercisesData?.exercisesAvailableAtGym ?? []
@@ -165,49 +171,74 @@ export default function ActiveWorkoutSessionScreen() {
                   {group.multipleEquipments && (
                     <DetailField label="Note" value="Multiple equipment used" />
                   )}
-                  {group.logs.map(log => (
-                    <View key={log.id} style={{marginTop: 8}}>
-                      <FormInput
-                        label={`Set ${log.setNumber} – Reps`}
-                        value={String(values[log.id]?.reps ?? '')}
-                        onChangeText={handleChange(`${log.id}.reps`)}
-                        onBlur={() => handleBlur(`${log.id}.reps`)}
-                        keyboardType="numeric"
-                        error={
-                          (touched[log.id] as any)?.reps &&
-                          (errors[log.id] as any)?.reps
-                        }
-                      />
-                      <FormInput
-                        label="Weight (kg)"
-                        value={String(values[log.id]?.weight ?? '')}
-                        onChangeText={handleChange(`${log.id}.weight`)}
-                        onBlur={() => handleBlur(`${log.id}.weight`)}
-                        keyboardType="decimal-pad"
-                        error={
-                          (touched[log.id] as any)?.weight &&
-                          (errors[log.id] as any)?.weight
-                        }
-                      />
-                      <FormInput
-                        label="RPE"
-                        value={String(values[log.id]?.rpe ?? '')}
-                        onChangeText={handleChange(`${log.id}.rpe`)}
-                        onBlur={() => handleBlur(`${log.id}.rpe`)}
-                        keyboardType="decimal-pad"
-                        error={
-                          (touched[log.id] as any)?.rpe &&
-                          (errors[log.id] as any)?.rpe
-                        }
-                      />
-                      <FormInput
-                        label="Notes"
-                        value={values[log.id]?.notes ?? ''}
-                        onChangeText={handleChange(`${log.id}.notes`)}
-                        onBlur={() => handleBlur(`${log.id}.notes`)}
-                      />
-                    </View>
-                  ))}
+                  {group.logs.map(log => {
+                    const equipmentNames = (values[log.id]?.equipmentIds ?? [])
+                      .map((id: number) => {
+                        const match = allEquipment.find(
+                          (entry: any) => entry.id === id,
+                        );
+                        return match?.equipment?.name ?? `#${id}`;
+                      })
+                      .join(', ');
+
+                    return (
+                      <View key={log.id} style={{marginTop: 8}}>
+                        <FormInput
+                          label={`Set ${log.setNumber} – Reps`}
+                          value={String(values[log.id]?.reps ?? '')}
+                          onChangeText={handleChange(`${log.id}.reps`)}
+                          onBlur={() => handleBlur(`${log.id}.reps`)}
+                          keyboardType="numeric"
+                          error={
+                            (touched[log.id] as any)?.reps &&
+                            (errors[log.id] as any)?.reps
+                          }
+                        />
+                        <FormInput
+                          label="Weight (kg)"
+                          value={String(values[log.id]?.weight ?? '')}
+                          onChangeText={handleChange(`${log.id}.weight`)}
+                          onBlur={() => handleBlur(`${log.id}.weight`)}
+                          keyboardType="decimal-pad"
+                          error={
+                            (touched[log.id] as any)?.weight &&
+                            (errors[log.id] as any)?.weight
+                          }
+                        />
+                        <FormInput
+                          label="RPE"
+                          value={String(values[log.id]?.rpe ?? '')}
+                          onChangeText={handleChange(`${log.id}.rpe`)}
+                          onBlur={() => handleBlur(`${log.id}.rpe`)}
+                          keyboardType="decimal-pad"
+                          error={
+                            (touched[log.id] as any)?.rpe &&
+                            (errors[log.id] as any)?.rpe
+                          }
+                        />
+                        <FormInput
+                          label="Notes"
+                          value={values[log.id]?.notes ?? ''}
+                          onChangeText={handleChange(`${log.id}.notes`)}
+                          onBlur={() => handleBlur(`${log.id}.notes`)}
+                        />
+                        <DetailField label="Equipment" value={equipmentNames} />
+
+                        <SelectableField
+                          label="Edit Equipment"
+                          value="Change"
+                          onPress={() => {
+                            setEditingLogId(log.id);
+                            setSelectedExercise({
+                              equipmentSlots:
+                                selectedExercise?.equipmentSlots ?? [],
+                            });
+                            setEquipmentPickerVisible(true);
+                          }}
+                        />
+                      </View>
+                    );
+                  })}
                 </Card>
               ))}
               {groupedLogs.length > 0 && (
@@ -233,33 +264,42 @@ export default function ActiveWorkoutSessionScreen() {
         }}
       />
 
-      <EquipmentPickerModal
+      <MultiSlotEquipmentPickerModal
         visible={equipmentPickerVisible}
-        equipment={availableEquipment.filter((eq: any) => {
-          const requiredSubcategories =
-            selectedExercise?.equipmentSlots?.flatMap((slot: any) =>
-              slot.options?.map((opt: any) => opt.subcategory.id),
-            ) ?? [];
-          return requiredSubcategories.includes(eq.subcategoryId);
-        })}
+        requiredSlots={
+          selectedExercise?.equipmentSlots?.map((slot: any) => ({
+            name: slot.name ?? 'Equipment',
+            subcategoryIds: slot.options.map((opt: any) => opt.subcategory.id),
+          })) ?? []
+        }
+        equipment={availableEquipment}
         onClose={() => {
           setSelectedExercise(null);
           setEquipmentPickerVisible(false);
         }}
-        onSelect={equipment => {
-          const newLog: ExerciseLog = {
-            id: Date.now(), // use a numeric timestamp
-            exerciseId: selectedExercise.id,
-            gymEquipmentId: equipment.id,
-            setNumber:
-              logs.filter(log => log.exerciseId === selectedExercise.id)
-                .length + 1,
-            reps: 0,
-            weight: 0,
-            rpe: 7,
-            notes: undefined,
-          };
-          setLogs(prev => [...prev, newLog]);
+        onSelect={(equipmentIds: number[]) => {
+          if (editingLogId != null) {
+            setLogs(prev =>
+              prev.map(log =>
+                log.id === editingLogId ? {...log, equipmentIds} : log,
+              ),
+            );
+            setEditingLogId(null);
+          } else {
+            const newLog: ExerciseLog = {
+              id: Date.now(),
+              exerciseId: selectedExercise.id,
+              setNumber:
+                logs.filter(log => log.exerciseId === selectedExercise.id)
+                  .length + 1,
+              reps: 0,
+              weight: 0,
+              rpe: 7,
+              notes: '',
+              equipmentIds,
+            };
+            setLogs(prev => [...prev, newLog]);
+          }
           setSelectedExercise(null);
           setEquipmentPickerVisible(false);
         }}

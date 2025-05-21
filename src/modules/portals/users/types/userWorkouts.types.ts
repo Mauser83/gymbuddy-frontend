@@ -2,12 +2,12 @@
 export interface ExerciseLog {
   id: number;
   exerciseId: number;
-  gymEquipmentId?: number;
   setNumber: number;
   reps: number;
   weight: number;
   rpe?: number;
   notes?: string;
+  equipmentIds: number[]; // 🆕
 }
 
 export interface WorkoutSession {

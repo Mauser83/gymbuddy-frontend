@@ -1,0 +1,92 @@
+import React, { useState, useEffect } from 'react';
+import { View} from 'react-native';
+import ModalWrapper from 'shared/components/ModalWrapper';
+import SearchInput from 'shared/components/SearchInput';
+import ClickableList from 'shared/components/ClickableList';
+import NoResults from 'shared/components/NoResults';
+import { spacing } from 'shared/theme/tokens';
+import Button from 'shared/components/Button';
+import Title from 'shared/components/Title';
+
+interface EquipmentOption {
+  id: number;
+  name: string;
+  subcategoryId: number;
+}
+
+interface EquipmentSlot {
+  name: string;
+  subcategoryIds: number[];
+}
+
+interface Props {
+  visible: boolean;
+  requiredSlots: EquipmentSlot[];
+  equipment: EquipmentOption[];
+  onClose: () => void;
+  onSelect: (equipmentIds: number[]) => void;
+}
+
+export default function MultiSlotEquipmentPickerModal({
+  visible,
+  requiredSlots,
+  equipment,
+  onClose,
+  onSelect,
+}: Props) {
+  const [selected, setSelected] = useState<Record<number, number | null>>({});
+
+  const handlePick = (slotIndex: number, eqId: number) => {
+    setSelected(prev => ({ ...prev, [slotIndex]: eqId }));
+  };
+
+  const allSelected = requiredSlots.every((_, i) => selected[i] != null);
+
+  const handleConfirm = () => {
+    if (allSelected) {
+      onSelect(Object.values(selected) as number[]);
+    }
+  };
+
+  useEffect(() => {
+  if (visible) {
+    const initial: Record<number, number | null> = {};
+    requiredSlots.forEach((_, index) => {
+      initial[index] = null;
+    });
+    setSelected(initial);
+  }
+}, [visible, requiredSlots]);
+
+  return (
+    <ModalWrapper visible={visible} onClose={onClose}>
+      <View style={{ padding: spacing.md, gap: spacing.lg }}>
+        {requiredSlots.map((slot, index) => {
+          const options = equipment.filter(eq =>
+            slot.subcategoryIds.includes(eq.subcategoryId)
+          );
+
+          return (
+            <View key={index} style={{ gap: spacing.sm }}>
+              <Title subtitle={`Select ${slot.name}`} />
+              {options.length === 0 ? (
+                <NoResults message={`No available equipment for ${slot.name}`} />
+              ) : (
+                <ClickableList
+                  items={options.map(eq => ({
+                    id: eq.id,
+                    label: eq.name,
+                    onPress: () => handlePick(index, eq.id),
+                    selected: selected[index] === eq.id,
+                  }))}
+                />
+              )}
+            </View>
+          );
+        })}
+
+        <Button text="Confirm Selection" onPress={handleConfirm} disabled={!allSelected} />
+      </View>
+    </ModalWrapper>
+  );
+}
