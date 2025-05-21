@@ -1,8 +1,8 @@
 import {gql} from '@apollo/client';
 
-export const GET_MY_WORKOUTS = gql`
-  query GetMyWorkouts {
-    workouts {
+export const GET_MY_WORKOUT_PLANS = gql`
+  query GetMyWorkoutPlans {
+    workoutPlans {
       id
       name
       description
@@ -10,9 +10,9 @@ export const GET_MY_WORKOUTS = gql`
   }
 `;
 
-export const GET_SHARED_WORKOUTS = gql`
-  query GetSharedWorkouts {
-    sharedWorkouts {
+export const GET_SHARED_WORKOUT_PLANS = gql`
+  query GetSharedWorkoutPlans {
+    sharedWorkoutPlans {
       id
       name
       description
@@ -22,7 +22,7 @@ export const GET_SHARED_WORKOUTS = gql`
 
 export const GET_WORKOUT_PLANS = gql`
   query GetWorkoutPlans {
-    workouts {
+    workoutPlans {
       id
       name
       description
@@ -69,6 +69,48 @@ export const GET_GYM_EQUIPMENT = gql`
         subcategory {
           id
         }
+      }
+    }
+  }
+`;
+
+export const CREATE_WORKOUT_SESSION = gql`
+  mutation CreateWorkoutSession($input: CreateWorkoutSessionInput!) {
+    createWorkoutSession(input: $input) {
+      id
+    }
+  }
+`;
+
+export const GET_ACTIVE_WORKOUT_SESSION = gql`
+  query GetActiveWorkoutSession($userId: Int!) {
+    activeWorkoutSession(userId: $userId) {
+      id
+    }
+  }
+`;
+
+export const GET_WORKOUT_SESSION = gql`
+  query GetWorkoutSession($id: Int!) {
+    workoutSessionById(id: $id) {
+      id
+      gym {
+        id
+        name
+      }
+      workoutPlan {
+        id
+        name
+      }
+      exerciseLogs {
+        id
+        exerciseId
+        gymEquipmentId
+        setNumber
+        reps
+        weight
+        rpe
+        notes
       }
     }
   }

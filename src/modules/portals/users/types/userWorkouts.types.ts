@@ -1,45 +1,30 @@
-export interface EquipmentSlot {
-  options: {
-    subcategory: {
-      id: number;
-    };
-  }[];
-}
-
-export interface ExerciseReference {
+// userWorkouts.types.ts
+export interface ExerciseLog {
   id: number;
-  name: string;
-  equipmentSlots?: {
-    options: {
-      subcategory: {
-        id: number;
-      };
-    }[];
-  }[];
-}
-
-export interface EquipmentReference {
-  id: number;
-  name: string;
-  subcategoryId: number;
-}
-
-export interface ExerciseSetLog {
+  exerciseId: number;
+  gymEquipmentId?: number;
   setNumber: number;
-  reps: string;
-  weight: string;
-  rpe: string;
-  notes: string;
+  reps: number;
+  weight: number;
+  rpe?: number;
+  notes?: string;
 }
 
-export interface ExerciseLogForm {
-  exercise: ExerciseReference | null;
-  equipment: EquipmentReference | null;
-  sets: ExerciseSetLog[]; // 🔄 changed from string to array of per-set entries
+export interface WorkoutSession {
+  id: number;
+  startedAt: string;
+  endedAt: string | null;
+  gym: {
+    id: number; // ✅ Add this
+    name: string;
+  } | null;
+  workoutPlan: {
+    id: number; // ✅ Add this if needed
+    name: string;
+  } | null;
+  exerciseLogs: ExerciseLog[];
 }
 
-export interface LogExerciseFormValues {
-  workoutPlan: { id: number; name: string } | null;
-  gym: { id: number; name: string } | null;
-  exercises: ExerciseLogForm[];
+export interface WorkoutSessionData {
+  workoutSessionById: WorkoutSession;
 }

@@ -36,7 +36,8 @@ import CreateExerciseScreen from 'modules/exercise/screens/CreateExerciseScreen'
 import EditExerciseScreen from 'modules/exercise/screens/EditExerciseScreen';
 import UserDashboardScreen from 'modules/portals/users/screens/UserDashboardScreen';
 import MyWorkoutPlansScreen from 'modules/portals/users/screens/MyWorkoutPlansScreen';
-import LogExerciseScreen from 'modules/portals/users/screens/LogExerciseScreen';
+import StartWorkoutScreen from 'modules/portals/users/screens/StartWorkoutScreen';
+import ActiveWorkoutSessionScreen from 'modules/portals/users/screens/ActiveWorkoutSessionScreen';
 
 const AppRoutes = () => {
   const {user, isAuthenticated, sessionLoaded} = useAuth();
@@ -109,7 +110,8 @@ const AppRoutes = () => {
           {/* User Portal */}
           <Route path="/user" element={<UserDashboardScreen />} />
           <Route path="/user/my-plans" element={<MyWorkoutPlansScreen />} />
-          <Route path="/user/log-exercise" element={<LogExerciseScreen />} />
+          <Route path="/user/log-exercise" element={<StartWorkoutScreen />} />
+          <Route path="/active-session/:sessionId" element={<ActiveWorkoutSessionScreen />} />
 
           {/* Fallback */}
           <Route path="*" element={<NoResults message="Page not found." />} />

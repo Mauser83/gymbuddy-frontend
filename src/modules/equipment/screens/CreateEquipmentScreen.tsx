@@ -62,7 +62,7 @@ export default function CreateEquipmentScreen() {
         onSubmit={handleSubmit}
         categories={categories}
         refetchCategories={refetchCategories}
-        submitLabel="Create Equipment"
+        submitLabel="Create"
         submitting={false}
         cancelLabel="Cancel"
         onCancel={() => navigate('/equipment')}

@@ -66,7 +66,7 @@ export default function EditEquipmentScreen() {
         onSubmit={handleSubmit}
         categories={categories}
         refetchCategories={refetchCategories}
-        submitLabel="Update Equipment"
+        submitLabel="Update"
         submitting={false}
         cancelLabel="Cancel"
         onCancel={() => navigate('/equipment')}

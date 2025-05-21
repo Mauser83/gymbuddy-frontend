@@ -35,13 +35,21 @@ const ClickableList = ({items}: Props) => {
               borderRadius: 12,
             },
           ]}>
-          <Pressable onPress={item.onPress} style={[styles.item, item.disabled && {opacity: 0.5},]} disabled={item.disabled || !item.onPress}>
+          <Pressable
+            onPress={item.onPress}
+            style={[styles.item, item.disabled && {opacity: 0.5}]}
+            disabled={item.disabled || !item.onPress}>
             <View style={styles.row}>
               <View style={styles.textContainer}>
-                <Text style={[styles.label, {color: theme.colors.textPrimary}]}>
-                  {item.label}
-                </Text>
-                {item.subLabel && (
+                {typeof item.label === 'string' ||
+                typeof item.label === 'number' ? (
+                  <Text
+                    style={[styles.label, {color: theme.colors.textPrimary}]}>
+                    {item.label}
+                  </Text>
+                ) : null}
+                {typeof item.subLabel === 'string' ||
+                typeof item.subLabel === 'number' ? (
                   <Text
                     style={[
                       styles.subLabel,
@@ -49,7 +57,7 @@ const ClickableList = ({items}: Props) => {
                     ]}>
                     {item.subLabel}
                   </Text>
-                )}
+                ) : null}
               </View>
               {item.rightElement ?? (
                 <FontAwesome

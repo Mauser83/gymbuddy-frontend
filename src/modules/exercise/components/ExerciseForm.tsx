@@ -446,6 +446,7 @@ export default function ExerciseForm() {
                 ),
             ),
         )}
+        subcategoriesFull={equipmentSubcategories}
         initialData={
           slotEditIndex !== null
             ? values.equipmentSlots[slotEditIndex]

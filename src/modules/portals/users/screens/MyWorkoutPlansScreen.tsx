@@ -8,16 +8,16 @@ import  Card  from '../../../../shared/components/Card';
 import  LoadingState  from '../../../../shared/components/LoadingState';
 import  NoResults  from '../../../../shared/components/NoResults';
 import { spacing } from '../../../../shared/theme/tokens';
-import { GET_MY_WORKOUTS, GET_SHARED_WORKOUTS } from '../graphql/userWorkouts.graphql';
+import { GET_MY_WORKOUT_PLANS, GET_SHARED_WORKOUT_PLANS } from '../graphql/userWorkouts.graphql';
 
 export default function MyWorkoutPlansScreen() {
   const navigate = useNavigate();
 
-  const { data: myData, loading: loadingMy } = useQuery(GET_MY_WORKOUTS);
-  const { data: sharedData, loading: loadingShared } = useQuery(GET_SHARED_WORKOUTS);
+  const { data: myData, loading: loadingMy } = useQuery(GET_MY_WORKOUT_PLANS);
+  const { data: sharedData, loading: loadingShared } = useQuery(GET_SHARED_WORKOUT_PLANS);
 
-  const myPlans = myData?.workouts ?? [];
-  const sharedPlans = sharedData?.sharedWorkouts ?? [];
+  const myPlans = myData?.workoutPlans ?? [];
+  const sharedPlans = sharedData?.sharedWorkoutPlans ?? [];
 
   if (loadingMy || loadingShared) return <LoadingState text="Loading plans..." />;
 

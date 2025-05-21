@@ -21,6 +21,7 @@ interface EquipmentSlotModalProps {
   }) => void;
   initialSlotIndex: number;
   subcategories: EquipmentSubcategory[];
+  subcategoriesFull: EquipmentSubcategory[];
   initialData?: {
     isRequired: boolean;
     comment?: string;
@@ -34,6 +35,7 @@ export default function EquipmentSlotModal({
   onSave,
   initialSlotIndex,
   subcategories,
+  subcategoriesFull,
   initialData,
 }: EquipmentSlotModalProps) {
   const [isRequired, setIsRequired] = useState(initialData?.isRequired ?? true);
@@ -47,13 +49,17 @@ export default function EquipmentSlotModal({
   );
 
   useEffect(() => {
-    if (!visible) {
+    if (visible && initialData) {
+      setSelectedSubIds(initialData.options.map(o => o.subcategoryId));
+      setComment(initialData.comment || '');
+      setIsRequired(initialData.isRequired ?? true);
+    } else if (!visible) {
       setSelectedSubIds([]);
       setComment('');
       setIsRequired(true);
       setSearchQuery('');
     }
-  }, [visible]);
+  }, [visible, initialData]);
 
   const toggleSubcategory = (id: number) => {
     setSelectedSubIds(prev =>
@@ -171,7 +177,7 @@ export default function EquipmentSlotModal({
           <>
             <DividerWithLabel label="Selected" />
             <ClickableList
-              items={subcategories
+              items={subcategoriesFull
                 .filter(sc => selectedSubIds.includes(sc.id))
                 .map(sc => ({
                   id: sc.id,
@@ -187,10 +193,10 @@ export default function EquipmentSlotModal({
           <Title subtitle="Please select at least one equipment option." />
         )}
 
-          <ButtonRow style={{marginTop: 12}}>
-            <Button text="Cancel" fullWidth onPress={onClose} />
-            <Button text="Save" fullWidth onPress={handleSave} />
-          </ButtonRow>
+        <ButtonRow style={{marginTop: 12}}>
+          <Button text="Cancel" fullWidth onPress={onClose} />
+          <Button text="Save" fullWidth onPress={handleSave} />
+        </ButtonRow>
       </ScrollView>
     </ModalWrapper>
   );
