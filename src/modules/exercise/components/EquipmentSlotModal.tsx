@@ -9,6 +9,7 @@ import DividerWithLabel from 'shared/components/DividerWithLabel';
 import SearchInput from 'shared/components/SearchInput';
 import Toast from 'react-native-toast-message';
 import {EquipmentSubcategory} from 'modules/equipment/types/equipment.types';
+import ButtonRow from 'shared/components/ButtonRow';
 
 interface EquipmentSlotModalProps {
   visible: boolean;
@@ -186,9 +187,10 @@ export default function EquipmentSlotModal({
           <Title subtitle="Please select at least one equipment option." />
         )}
 
-        <View style={{marginTop: 24}}>
-          <Button text="Save Slot" onPress={handleSave} />
-        </View>
+          <ButtonRow style={{marginTop: 12}}>
+            <Button text="Cancel" fullWidth onPress={onClose} />
+            <Button text="Save" fullWidth onPress={handleSave} />
+          </ButtonRow>
       </ScrollView>
     </ModalWrapper>
   );

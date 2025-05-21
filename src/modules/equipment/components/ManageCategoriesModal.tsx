@@ -31,8 +31,10 @@ interface ManageCategoriesModalProps {
   onClose: () => void;
   slugify: (text: string) => string;
   autoGenerateSlug?: boolean;
-  mode: Mode;
-  categoryId?: number; // required for subcategory mode
+  mode: 'category' | 'subcategory';
+  categoryId?: number;
+  showBackButton?: boolean;
+  onBack?: () => void;
 }
 
 export default function ManageCategoriesModal({
@@ -42,6 +44,8 @@ export default function ManageCategoriesModal({
   autoGenerateSlug = false,
   mode,
   categoryId,
+  showBackButton = false,
+  onBack,
 }: ManageCategoriesModalProps) {
   const {theme} = useTheme();
   const screenHeight = Dimensions.get('window').height;
@@ -354,7 +358,16 @@ export default function ManageCategoriesModal({
                   }
                 }}
               />
-              <Button text="Create Category" onPress={handleCreateCategory} />
+              <ButtonRow>
+                {showBackButton && onBack && (
+                  <Button text="Back" fullWidth onPress={onBack} />
+                )}
+                <Button
+                  text="Create"
+                  fullWidth
+                  onPress={handleCreateCategory}
+                />
+              </ButtonRow>
               <ScrollView style={{maxHeight: modalHeight - 275}}>
                 <ClickableList items={categoryItems} />
               </ScrollView>
@@ -374,10 +387,16 @@ export default function ManageCategoriesModal({
                   }
                 }}
               />
-              <Button
-                text="Add Subcategory"
-                onPress={handleCreateSubcategory}
-              />
+              <ButtonRow>
+                {showBackButton && onBack && (
+                  <Button text="Back" fullWidth onPress={onBack} />
+                )}
+                <Button
+                  text="Create"
+                  fullWidth
+                  onPress={handleCreateSubcategory}
+                />
+              </ButtonRow>
               <ScrollView style={{maxHeight: modalHeight - 275}}>
                 <ClickableList items={subCategoryItems} />
               </ScrollView>

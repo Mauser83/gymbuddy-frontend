@@ -64,6 +64,7 @@ export interface EquipmentCategory {
 export interface EquipmentSubcategory {
   id: number;
   name: string;
+  slug: string; // ✅ add this
   categoryId: number;
   category?: {
     id: number;

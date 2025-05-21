@@ -207,13 +207,21 @@ export default function ExerciseForm() {
             }))}
           />
           <DividerWithLabel label="OR" />
-          <Button
-            text="Manage Types"
-            onPress={() => {
-              setActiveModal(null);
-              setManageModal('type');
-            }}
-          />
+          <ButtonRow>
+            <Button
+              text="Back"
+              fullWidth
+              onPress={() => setActiveModal(null)}
+            />
+            <Button
+              text="Manage"
+              fullWidth
+              onPress={() => {
+                setActiveModal(null);
+                setManageModal('type');
+              }}
+            />
+          </ButtonRow>
         </>
       );
     }
@@ -233,13 +241,21 @@ export default function ExerciseForm() {
             }))}
           />
           <DividerWithLabel label="OR" />
-          <Button
-            text="Manage Difficulties"
-            onPress={() => {
-              setActiveModal(null);
-              setManageModal('difficulty');
-            }}
-          />
+          <ButtonRow>
+            <Button
+              text="Back"
+              fullWidth
+              onPress={() => setActiveModal(null)}
+            />
+            <Button
+              text="Manage"
+              fullWidth
+              onPress={() => {
+                setActiveModal(null);
+                setManageModal('difficulty');
+              }}
+            />
+          </ButtonRow>
         </>
       );
     }
@@ -263,14 +279,21 @@ export default function ExerciseForm() {
                 },
               }))}
             />
-            <DividerWithLabel label="OR" />
-            <Button
-              text="Manage Body Parts"
-              onPress={() => {
-                setActiveModal(null);
-                setManageModal('bodyPart');
-              }}
-            />
+            <ButtonRow>
+              <Button
+                text="Back"
+                fullWidth
+                onPress={() => setActiveModal(null)}
+              />
+              <Button
+                text="Manage"
+                fullWidth
+                onPress={() => {
+                  setActiveModal(null);
+                  setManageModal('bodyPart');
+                }}
+              />
+            </ButtonRow>
           </>
         );
       }
@@ -294,13 +317,21 @@ export default function ExerciseForm() {
               />
             </ScrollView>
             <DividerWithLabel label="OR" />
-            <Button
-              text="Manage Muscles"
-              onPress={() => {
-                setActiveModal(null);
-                setManageModal('muscle');
-              }}
-            />
+            <ButtonRow>
+              <Button
+                text="Back"
+                fullWidth
+                onPress={() => setMuscleStep('bodyPart')}
+              />
+              <Button
+                text="Manage"
+                fullWidth
+                onPress={() => {
+                  setActiveModal(null);
+                  setManageModal('muscle');
+                }}
+              />
+            </ButtonRow>
           </>
         );
       }
@@ -425,12 +456,13 @@ export default function ExerciseForm() {
       {manageModal && (
         <ManageReferenceModal
           visible={!!manageModal}
-          onClose={() => {
-            setManageModal(null);
-            refetchAll();
-          }}
+          onClose={() => {}} // Not needed anymore; handled internally
           mode={manageModal}
           bodyPartId={selectedBodyPartId || undefined}
+          setManageModal={setManageModal}
+          setActiveModal={setActiveModal}
+          setMuscleStep={setMuscleStep}
+          origin={activeModal === 'secondary' ? 'secondary' : 'primary'}
         />
       )}
     </>

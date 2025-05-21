@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { ScrollView, Dimensions, View } from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {ScrollView, Dimensions, View} from 'react-native';
 import ModalWrapper from 'shared/components/ModalWrapper';
 import Title from 'shared/components/Title';
 import FormInput from 'shared/components/FormInput';
@@ -7,10 +7,15 @@ import Button from 'shared/components/Button';
 import ClickableList from 'shared/components/ClickableList';
 import ButtonRow from 'shared/components/ButtonRow';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import { useTheme } from 'shared/theme/ThemeProvider';
+import {useTheme} from 'shared/theme/ThemeProvider';
 
-import { useReferenceManagement } from '../hooks/useReferenceManagement';
-import { BodyPart, ExerciseDifficulty, ExerciseType, Muscle } from '../types/exercise.types';
+import {useReferenceManagement} from '../hooks/useReferenceManagement';
+import {
+  BodyPart,
+  ExerciseDifficulty,
+  ExerciseType,
+  Muscle,
+} from '../types/exercise.types';
 import DividerWithLabel from 'shared/components/DividerWithLabel';
 
 type Mode = 'type' | 'difficulty' | 'bodyPart' | 'muscle';
@@ -21,6 +26,10 @@ interface ManageReferenceModalProps {
   onClose: () => void;
   mode: Mode;
   bodyPartId?: number;
+  setManageModal: (val: null) => void;
+  setActiveModal: (val: any) => void;
+  setMuscleStep: (val: 'bodyPart' | 'muscle') => void;
+  origin?: 'primary' | 'secondary';
 }
 
 export default function ManageReferenceModal({
@@ -28,24 +37,28 @@ export default function ManageReferenceModal({
   onClose,
   mode,
   bodyPartId,
+  setManageModal,
+  setActiveModal,
+  setMuscleStep,
+  origin = 'primary',
 }: ManageReferenceModalProps) {
-  const { theme } = useTheme();
+  const {theme} = useTheme();
   const screenHeight = Dimensions.get('window').height;
   const modalHeight = screenHeight * 0.8;
 
   const isManagingMuscles = mode === 'muscle';
-  const [viewStep, setViewStep] = useState<'bodyPart' | 'muscle'>(isManagingMuscles && bodyPartId ? 'muscle' : 'bodyPart');
-  const [selectedBodyPartId, setSelectedBodyPartId] = useState<number | null>(bodyPartId || null);
+  const [viewStep, setViewStep] = useState<'bodyPart' | 'muscle'>(
+    isManagingMuscles && bodyPartId ? 'muscle' : 'bodyPart',
+  );
+  const [selectedBodyPartId, setSelectedBodyPartId] = useState<number | null>(
+    bodyPartId || null,
+  );
 
-  const currentMode = isManagingMuscles && viewStep === 'bodyPart' ? 'bodyPart' : mode;
+  const currentMode =
+    isManagingMuscles && viewStep === 'bodyPart' ? 'bodyPart' : mode;
 
-  const {
-    data,
-    refetch,
-    createItem,
-    updateItem,
-    deleteItem,
-  } = useReferenceManagement(currentMode, selectedBodyPartId || undefined);
+  const {data, refetch, createItem, updateItem, deleteItem} =
+    useReferenceManagement(currentMode, selectedBodyPartId || undefined);
 
   useEffect(() => {
     if (visible) {
@@ -55,7 +68,7 @@ export default function ManageReferenceModal({
 
   const [newValue, setNewValue] = useState('');
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [edits, setEdits] = useState<{ [id: number]: string }>({});
+  const [edits, setEdits] = useState<{[id: number]: string}>({});
 
   const handleCreate = async () => {
     try {
@@ -92,52 +105,96 @@ export default function ManageReferenceModal({
     muscle: 'Muscles',
   };
 
-  const items = (data || []).slice().sort((a: ReferenceItem, b: ReferenceItem) => {
-    const aVal = 'name' in a ? a.name : 'level' in a ? a.level : '';
-    const bVal = 'name' in b ? b.name : 'level' in b ? b.level : '';
-    return aVal.localeCompare(bVal);
-  }).map((item: ReferenceItem) => {
-    const label = 'name' in item ? item.name : 'level' in item ? item.level : '';
+  const items = (data || [])
+    .slice()
+    .sort((a: ReferenceItem, b: ReferenceItem) => {
+      const aVal = 'name' in a ? a.name : 'level' in a ? a.level : '';
+      const bVal = 'name' in b ? b.name : 'level' in b ? b.level : '';
+      return aVal.localeCompare(bVal);
+    })
+    .map((item: ReferenceItem) => {
+      const label =
+        'name' in item ? item.name : 'level' in item ? item.level : '';
 
-    return {
-      id: item.id,
-      label,
-      selected: expandedId === item.id,
-      rightElement: expandedId === item.id ? (
-        <FontAwesome name="chevron-down" size={16} color={theme.colors.accentStart} />
-      ) : null,
-      onPress: () => {
-        if (isManagingMuscles && viewStep === 'bodyPart') {
-          setSelectedBodyPartId(item.id);
-          setViewStep('muscle');
-        } else {
-          setExpandedId(prev => (prev === item.id ? null : item.id));
-          setEdits(prev => ({ ...prev, [item.id]: label }));
-        }
-      },
-      content: expandedId === item.id ? (
-        <>
-          <FormInput
-            label="Name"
-            value={edits[item.id] || ''}
-            onChangeText={val => setEdits(prev => ({ ...prev, [item.id]: val }))}
-          />
-          <ButtonRow>
-            <Button
-              text="Update"
-              fullWidth
-              disabled={!edits[item.id] || edits[item.id] === label}
-              onPress={() => handleUpdate(item.id, edits[item.id] || label)}
+      return {
+        id: item.id,
+        label,
+        selected: expandedId === item.id,
+        rightElement:
+          expandedId === item.id ? (
+            <FontAwesome
+              name="chevron-down"
+              size={16}
+              color={theme.colors.accentStart}
             />
-            <Button text="Delete" fullWidth onPress={() => handleDelete(item.id)} />
-          </ButtonRow>
-        </>
-      ) : undefined,
-    };
-  });
+          ) : null,
+        onPress: () => {
+          if (isManagingMuscles && viewStep === 'bodyPart') {
+            setSelectedBodyPartId(item.id);
+            setViewStep('muscle');
+          } else {
+            setExpandedId(prev => (prev === item.id ? null : item.id));
+            setEdits(prev => ({...prev, [item.id]: label}));
+          }
+        },
+        content:
+          expandedId === item.id ? (
+            <>
+              <FormInput
+                label="Name"
+                value={edits[item.id] || ''}
+                onChangeText={val =>
+                  setEdits(prev => ({...prev, [item.id]: val}))
+                }
+              />
+              <ButtonRow>
+                <Button
+                  text="Update"
+                  fullWidth
+                  disabled={!edits[item.id] || edits[item.id] === label}
+                  onPress={() => handleUpdate(item.id, edits[item.id] || label)}
+                />
+                <Button
+                  text="Delete"
+                  fullWidth
+                  onPress={() => handleDelete(item.id)}
+                />
+              </ButtonRow>
+            </>
+          ) : undefined,
+      };
+    });
+
+  const handleClose = () => {
+    refetch();
+
+    switch (mode) {
+      case 'muscle':
+        setManageModal(null);
+        setActiveModal(origin);
+        setMuscleStep('muscle');
+        break;
+      case 'bodyPart':
+        setManageModal(null);
+        setActiveModal(origin);
+        setMuscleStep('bodyPart');
+        break;
+      case 'type':
+        setManageModal(null);
+        setActiveModal('type');
+        break;
+      case 'difficulty':
+        setManageModal(null);
+        setActiveModal('difficulty');
+        break;
+      default:
+        setManageModal(null);
+        setActiveModal(null);
+    }
+  };
 
   return (
-    <ModalWrapper visible={visible} onClose={onClose}>
+    <ModalWrapper visible={visible} onClose={handleClose}>
       <Title
         text={
           isManagingMuscles && viewStep === 'bodyPart'
@@ -145,15 +202,16 @@ export default function ManageReferenceModal({
             : `Manage ${titleMap[currentMode]}`
         }
       />
-
       <FormInput
         label={`New ${titleMap[currentMode].slice(0, -1)}`}
         value={newValue}
         onChangeText={setNewValue}
       />
-      <Button text="Create" onPress={handleCreate} />
-
-      <ScrollView style={{ maxHeight: modalHeight - 250 }}>
+      <ButtonRow>
+        <Button text="Back" fullWidth onPress={handleClose} />
+        <Button text="Create" fullWidth onPress={handleCreate} />
+      </ButtonRow>
+      <ScrollView style={{maxHeight: modalHeight - 250}}>
         <ClickableList items={items} />
       </ScrollView>
     </ModalWrapper>
