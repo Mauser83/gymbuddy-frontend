@@ -1,7 +1,7 @@
 import React, {useMemo, useState, useEffect} from 'react';
 import {View} from 'react-native';
 import {useParams, useNavigate} from 'react-router-native';
-import {useQuery} from '@apollo/client';
+import {useQuery, useMutation} from '@apollo/client';
 import {Formik} from 'formik';
 import * as Yup from 'yup';
 import ScreenLayout from 'shared/components/ScreenLayout';
@@ -17,6 +17,11 @@ import {
   GET_WORKOUT_SESSION,
   GET_EXERCISES_AVAILABLE_AT_GYM,
   GET_GYM_EQUIPMENT,
+  CREATE_EXERCISE_LOG,
+  UPDATE_EXERCISE_LOG,
+  DELETE_EXERCISE_LOG,
+  UPDATE_WORKOUT_SESSION,
+  DELETE_WORKOUT_SESSION,
 } from '../graphql/userWorkouts.graphql';
 import {WorkoutSessionData, ExerciseLog} from '../types/userWorkouts.types';
 import SelectableField from 'shared/components/SelectableField'; // if not already imported
@@ -53,11 +58,19 @@ export default function ActiveWorkoutSessionScreen() {
     skip: !session?.gym?.id,
   });
 
-  if (session?.exerciseLogs?.length) {
-    setLogs(session.exerciseLogs);
-    const latestLog = session.exerciseLogs.at(-1); // ✅ last set
-    if (latestLog) setExpandedSetId(latestLog.id);
-  }
+  const [createExerciseLog] = useMutation(CREATE_EXERCISE_LOG);
+  const [updateExerciseLog] = useMutation(UPDATE_EXERCISE_LOG);
+  const [deleteExerciseLog] = useMutation(DELETE_EXERCISE_LOG);
+  const [updateWorkoutSession] = useMutation(UPDATE_WORKOUT_SESSION);
+  const [deleteWorkoutSession] = useMutation(DELETE_WORKOUT_SESSION);
+
+  useEffect(() => {
+    if (session?.exerciseLogs?.length) {
+      setLogs(session.exerciseLogs);
+      const latestLog = session.exerciseLogs.at(-1);
+      if (latestLog) setExpandedSetId(latestLog.id);
+    }
+  }, [session]);
 
   const groupedLogs = useMemo(() => {
     const grouped = new Map<
@@ -115,11 +128,21 @@ export default function ActiveWorkoutSessionScreen() {
       Object.entries(initialValues).map(([logId]) => [
         logId,
         Yup.object({
-          reps: Yup.number().required('Required'),
-          weight: Yup.number().required('Required'),
-          rpe: Yup.number().min(0).max(10).nullable(),
+          reps: Yup.number()
+            .typeError('Reps must be a number')
+            .required('Reps are required'),
+          weight: Yup.number()
+            .typeError('Weight must be a number')
+            .required('Weight is required'),
+          rpe: Yup.number()
+            .typeError('RPE must be a number between 0 and 10')
+            .min(0, 'RPE must be at least 0')
+            .max(10, 'RPE must be 10 or less')
+            .nullable(),
           notes: Yup.string().nullable(),
-          equipmentIds: Yup.array().of(Yup.number()).min(1, 'Required'),
+          equipmentIds: Yup.array()
+            .of(Yup.number())
+            .min(1, 'At least one equipment must be selected'),
         }),
       ]),
     ),
@@ -152,8 +175,6 @@ export default function ActiveWorkoutSessionScreen() {
     );
   });
 
-  const handleAddExercise = () => setExercisePickerVisible(true);
-
   return (
     <ScreenLayout scroll>
       <View style={{gap: 16}}>
@@ -167,7 +188,6 @@ export default function ActiveWorkoutSessionScreen() {
             }
           />
         )}
-
         <Formik
           initialValues={initialValues}
           validationSchema={validationSchema}
@@ -180,171 +200,296 @@ export default function ActiveWorkoutSessionScreen() {
             handleSubmit,
             errors,
             touched,
-          }) => (
-            <>
-              {groupedLogs.map(group => (
-                <Card key={group.exerciseId} style={{marginBottom: 16}}>
-                  <Title text={`${group.name}`} />
-                  {group.logs.map(log => {
-                    const isExpanded = expandedSetId === log.id;
-                    const summary = `Set ${log.setNumber}: ${log.weight ?? 0}kg x ${log.reps ?? 0}${
-                      log.rpe ? ` (RPE ${log.rpe})` : ''
-                    }`;
+            validateForm,
+            setTouched,
+          }) => {
+            const saveExpandedSetIfValid = async (): Promise<boolean> => {
+              if (!expandedSetId) return true;
 
-                    return (
-                      <View key={log.id} style={{marginTop: 8}}>
-                        <View
-                          style={isExpanded && {
-                            borderWidth: 2,
-                            borderColor: theme.colors.accentStart,
-                            borderRadius: 12,
-                            margin: -8,
-                            marginBottom: 8,
-                          }}>
-                          <View style={isExpanded && {padding: 8}}>
-                            <SelectableField
-                              value={
-                                isExpanded
-                                  ? `Set ${log.setNumber}: Editing...`
-                                  : summary
+              const allErrors = await validateForm();
+              const setErrors = allErrors[expandedSetId];
+
+              if (!setErrors || Object.keys(setErrors).length === 0) {
+                const log = logs.find(l => l.id === expandedSetId);
+                if (!log) return false;
+
+                const input: any = {
+                  setNumber: Number(log.setNumber),
+                  reps: Number(values[expandedSetId]?.reps),
+                  weight: parseFloat(values[expandedSetId]?.weight),
+                  rpe: values[expandedSetId]?.rpe
+                    ? parseFloat(values[expandedSetId]?.rpe)
+                    : null,
+                  notes: values[expandedSetId]?.notes ?? '',
+                  equipmentIds: values[expandedSetId]?.equipmentIds ?? [],
+                };
+
+                const {data} = await updateExerciseLog({
+                  variables: {id: log.id, input},
+                });
+
+                const saved = data.updateExerciseLog;
+
+                setLogs(prev =>
+                  prev.map(l => (l.id === expandedSetId ? {...saved} : l)),
+                );
+
+                return true;
+              } else {
+                setTouched({
+                  ...touched,
+                  [expandedSetId]: Object.keys(setErrors).reduce(
+                    (acc: Record<string, boolean>, key: string) => {
+                      acc[key] = true;
+                      return acc;
+                    },
+                    {},
+                  ),
+                });
+                return false;
+              }
+            };
+
+            return (
+              <>
+                {groupedLogs.map(group => (
+                  <Card key={group.exerciseId} style={{marginBottom: 16}}>
+                    <Title text={`${group.name}`} />
+                    {group.logs.map(log => {
+                      const isExpanded = expandedSetId === log.id;
+                      const summary = `Set ${log.setNumber}: ${log.weight ?? 0}kg x ${log.reps ?? 0}${
+                        log.rpe ? ` (RPE ${log.rpe})` : ''
+                      }`;
+
+                      return (
+                        <View key={log.id} style={{marginTop: 8}}>
+                          <View
+                            style={
+                              isExpanded && {
+                                borderWidth: 2,
+                                borderColor: theme.colors.accentStart,
+                                borderRadius: 12,
+                                margin: -8,
+                                marginBottom: 8,
                               }
-                              expanded={isExpanded}
-                              onPress={() =>
-                                setExpandedSetId(prev =>
-                                  prev === log.id ? null : log.id,
-                                )
-                              }
-                            />
-                            {isExpanded && (
-                              <>
-                                <View
-                                  style={{
-                                    flexDirection: 'row',
-                                    alignItems: 'flex-end',
-                                    gap: 12,
-                                  }}>
-                                  <View style={{flex: 1}}>
-                                    <DetailField
-                                      label="Equipment"
-                                      value={(log.equipmentIds ?? [])
-                                        .map((id: number) => {
-                                          const match = allEquipment.find(
-                                            (entry: any) => entry.id === id,
-                                          );
-                                          return (
-                                            match?.equipment?.name ?? `#${id}`
-                                          );
-                                        })
-                                        .join('\n')}
-                                    />
-                                  </View>
+                            }>
+                            <View style={isExpanded && {padding: 8}}>
+                              <SelectableField
+                                value={
+                                  isExpanded
+                                    ? `Set ${log.setNumber}: Editing...`
+                                    : summary
+                                }
+                                expanded={isExpanded}
+                                onPress={async () => {
+                                  if (expandedSetId) {
+                                    const didSave =
+                                      await saveExpandedSetIfValid();
+                                    if (!didSave) return; // block switch if validation fails
+                                  }
+                                  setExpandedSetId(prev =>
+                                    prev === log.id ? null : log.id,
+                                  );
+                                }}
+                              />
+                              {isExpanded && (
+                                <>
                                   <View
-                                    style={
-                                      log.equipmentIds.length > 1 && {
-                                        alignSelf: 'flex-end',
-                                        marginBottom: 12,
-                                      }
-                                    }>
-                                    <Button
-                                      text="Edit"
-                                      onPress={() => {
-                                        const exercise =
-                                          exercisesData?.exercisesAvailableAtGym.find(
-                                            (ex: any) =>
-                                              ex.id === log.exerciseId,
-                                          );
-                                        if (!exercise) return;
+                                    style={{
+                                      flexDirection: 'row',
+                                      alignItems: 'flex-end',
+                                      gap: 12,
+                                    }}>
+                                    <View style={{flex: 1}}>
+                                      <DetailField
+                                        label="Equipment"
+                                        value={(log.equipmentIds ?? [])
+                                          .map((id: number) => {
+                                            const match = allEquipment.find(
+                                              (entry: any) => entry.id === id,
+                                            );
+                                            return (
+                                              match?.equipment?.name ?? `#${id}`
+                                            );
+                                          })
+                                          .join('\n')}
+                                      />
+                                    </View>
+                                    <View
+                                      style={
+                                        log.equipmentIds.length > 1 && {
+                                          alignSelf: 'flex-end',
+                                          marginBottom: 12,
+                                        }
+                                      }>
+                                      <Button
+                                        text="Edit"
+                                        onPress={() => {
+                                          const exercise =
+                                            exercisesData?.exercisesAvailableAtGym.find(
+                                              (ex: any) =>
+                                                ex.id === log.exerciseId,
+                                            );
+                                          if (!exercise) return;
 
-                                        setSelectedExercise(exercise);
-                                        setEditingLogId(log.id);
-                                        setDefaultSelectedEquipmentIds(
-                                          log.equipmentIds ?? [],
-                                        );
-                                        setEquipmentPickerVisible(true);
-                                      }}
-                                    />
+                                          setSelectedExercise(exercise);
+                                          setEditingLogId(log.id);
+                                          setDefaultSelectedEquipmentIds(
+                                            log.equipmentIds ?? [],
+                                          );
+                                          setEquipmentPickerVisible(true);
+                                        }}
+                                      />
+                                    </View>
                                   </View>
-                                </View>
-                                <FormInput
-                                  label="Reps"
-                                  value={String(values[log.id]?.reps ?? '')}
-                                  onChangeText={handleChange(`${log.id}.reps`)}
-                                  onBlur={() => handleBlur(`${log.id}.reps`)}
-                                  keyboardType="numeric"
-                                  error={
-                                    (touched[log.id] as any)?.reps &&
-                                    (errors[log.id] as any)?.reps
-                                  }
-                                />
-                                <FormInput
-                                  label="Weight (kg)"
-                                  value={String(values[log.id]?.weight ?? '')}
-                                  onChangeText={handleChange(
-                                    `${log.id}.weight`,
-                                  )}
-                                  onBlur={() => handleBlur(`${log.id}.weight`)}
-                                  keyboardType="decimal-pad"
-                                  error={
-                                    (touched[log.id] as any)?.weight &&
-                                    (errors[log.id] as any)?.weight
-                                  }
-                                />
-                                <FormInput
-                                  label="RPE"
-                                  value={String(values[log.id]?.rpe ?? '')}
-                                  onChangeText={handleChange(`${log.id}.rpe`)}
-                                  onBlur={() => handleBlur(`${log.id}.rpe`)}
-                                  keyboardType="decimal-pad"
-                                  error={
-                                    (touched[log.id] as any)?.rpe &&
-                                    (errors[log.id] as any)?.rpe
-                                  }
-                                />
-                                <FormInput
-                                  label="Notes"
-                                  value={values[log.id]?.notes ?? ''}
-                                  onChangeText={handleChange(`${log.id}.notes`)}
-                                  onBlur={() => handleBlur(`${log.id}.notes`)}
-                                />
-                              </>
-                            )}
+                                  <FormInput
+                                    label="Weight (kg)"
+                                    value={String(values[log.id]?.weight ?? '')}
+                                    onChangeText={handleChange(
+                                      `${log.id}.weight`,
+                                    )}
+                                    onBlur={() =>
+                                      handleBlur(`${log.id}.weight`)
+                                    }
+                                    keyboardType="decimal-pad"
+                                    error={
+                                      (touched[log.id] as any)?.weight &&
+                                      (errors[log.id] as any)?.weight
+                                    }
+                                  />
+                                  <FormInput
+                                    label="Reps"
+                                    value={String(values[log.id]?.reps ?? '')}
+                                    onChangeText={handleChange(
+                                      `${log.id}.reps`,
+                                    )}
+                                    onBlur={() => handleBlur(`${log.id}.reps`)}
+                                    keyboardType="numeric"
+                                    error={
+                                      (touched[log.id] as any)?.reps &&
+                                      (errors[log.id] as any)?.reps
+                                    }
+                                  />
+                                  <FormInput
+                                    label="RPE"
+                                    value={String(values[log.id]?.rpe ?? '')}
+                                    onChangeText={handleChange(`${log.id}.rpe`)}
+                                    onBlur={() => handleBlur(`${log.id}.rpe`)}
+                                    keyboardType="decimal-pad"
+                                    error={
+                                      (touched[log.id] as any)?.rpe &&
+                                      (errors[log.id] as any)?.rpe
+                                    }
+                                  />
+                                  <FormInput
+                                    label="Notes"
+                                    value={values[log.id]?.notes ?? ''}
+                                    onChangeText={handleChange(
+                                      `${log.id}.notes`,
+                                    )}
+                                    onBlur={() => handleBlur(`${log.id}.notes`)}
+                                  />
+                                  <Button
+                                    text="Delete Set"
+                                    onPress={async () => {
+                                      if (typeof log.id === 'number') {
+                                        await deleteExerciseLog({
+                                          variables: {id: log.id},
+                                        });
+                                      }
+
+                                      setLogs(prev =>
+                                        prev.filter(l => l.id !== log.id),
+                                      );
+                                      setExpandedSetId(null);
+                                    }}
+                                  />
+                                </>
+                              )}
+                            </View>
                           </View>
                         </View>
-                      </View>
-                    );
-                  })}
+                      );
+                    })}
 
-                  <Button
-                    text="Add Set"
-                    onPress={() => {
-                      const newLog: ExerciseLog = {
-                        id: Date.now(),
-                        exerciseId: group.exerciseId,
-                        setNumber: group.logs.length + 1,
-                        reps: 0,
-                        weight: 0,
-                        rpe: 7,
-                        notes: '',
-                        equipmentIds: [
-                          ...(group.logs.at(-1)?.equipmentIds ?? []),
-                        ],
-                      };
-                      setLogs(prev => [...prev, newLog]);
-                      setExpandedSetId(newLog.id);
-                    }}
-                  />
-                </Card>
-              ))}
-              {groupedLogs.length > 0 && (
-                <Button text="Save Changes" onPress={() => handleSubmit()} />
-              )}
-            </>
-          )}
+                    <Button
+                      text="Add Set"
+                      onPress={async () => {
+                        const didSave = await saveExpandedSetIfValid();
+                        if (!didSave) return;
+
+                        const baseLog = {
+                          workoutSessionId: Number(sessionId),
+                          exerciseId: group.exerciseId,
+                          setNumber: group.logs.length + 1,
+                          reps: 0,
+                          weight: 0,
+                          rpe: 7,
+                          notes: '',
+                          equipmentIds: [
+                            ...(group.logs.at(-1)?.equipmentIds ?? []),
+                          ],
+                        };
+
+                        const {data} = await createExerciseLog({
+                          variables: {input: baseLog},
+                        });
+
+                        const savedLog = data.createExerciseLog;
+
+                        setLogs(prev => [...prev, savedLog]);
+                        setExpandedSetId(savedLog.id);
+                      }}
+                    />
+                  </Card>
+                ))}
+
+                <Button
+                  text="Add Exercise"
+                  onPress={async () => {
+                    const didSave = await saveExpandedSetIfValid();
+                    if (didSave) setExercisePickerVisible(true);
+                  }}
+                />
+
+                <DividerWithLabel label="or continue with" />
+
+                <Button
+                  text={logs.length === 0 ? 'Cancel Workout' : 'Finish Workout'}
+                  onPress={async () => {
+                    if (logs.length === 0) {
+                      try {
+                        await deleteWorkoutSession({
+                          variables: {id: Number(sessionId)},
+                        });
+                        navigate('/user');
+                      } catch (err) {
+                        console.error('Failed to cancel workout:', err);
+                      }
+                      return;
+                    }
+
+                    const didSave = await saveExpandedSetIfValid();
+                    if (!didSave) return;
+
+                    try {
+                      await updateWorkoutSession({
+                        variables: {
+                          id: Number(sessionId),
+                          input: {endedAt: new Date().toISOString()},
+                        },
+                      });
+
+                      navigate('/user');
+                    } catch (err) {
+                      console.error('Failed to finish workout:', err);
+                    }
+                  }}
+                />
+              </>
+            );
+          }}
         </Formik>
-
-        <Button text="Add Exercise" onPress={handleAddExercise} />
-        <DividerWithLabel label="or continue with" />
-        <Button text="Finish Workout" onPress={() => navigate('/dashboard')} />
       </View>
 
       <ExercisePickerModal
@@ -377,7 +522,7 @@ export default function ActiveWorkoutSessionScreen() {
           setSelectedExercise(null);
           setEquipmentPickerVisible(false);
         }}
-        onSelect={(equipmentIds: number[]) => {
+        onSelect={async (equipmentIds: number[]) => {
           if (editingLogId != null) {
             setLogs(prev =>
               prev.map(log =>
@@ -386,8 +531,8 @@ export default function ActiveWorkoutSessionScreen() {
             );
             setEditingLogId(null);
           } else {
-            const newLog: ExerciseLog = {
-              id: Date.now(),
+            const baseLog = {
+              workoutSessionId: Number(sessionId),
               exerciseId: selectedExercise.id,
               setNumber:
                 logs.filter(log => log.exerciseId === selectedExercise.id)
@@ -398,8 +543,14 @@ export default function ActiveWorkoutSessionScreen() {
               notes: '',
               equipmentIds,
             };
-            setLogs(prev => [...prev, newLog]);
-            setExpandedSetId(newLog.id); // ✅ Make sure this is here!
+
+            const {data} = await createExerciseLog({
+              variables: {input: baseLog},
+            });
+            const savedLog = data.createExerciseLog;
+
+            setLogs(prev => [...prev, savedLog]);
+            setExpandedSetId(savedLog.id);
           }
           setSelectedExercise(null);
           setEquipmentPickerVisible(false);

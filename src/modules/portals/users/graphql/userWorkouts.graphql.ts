@@ -106,7 +106,7 @@ export const GET_WORKOUT_SESSION = gql`
       exerciseLogs {
         id
         exerciseId
-        gymEquipmentId
+        equipmentIds
         setNumber
         reps
         weight
@@ -114,5 +114,56 @@ export const GET_WORKOUT_SESSION = gql`
         notes
       }
     }
+  }
+`;
+
+export const CREATE_EXERCISE_LOG = gql`
+  mutation CreateExerciseLog($input: CreateExerciseLogInput!) {
+    createExerciseLog(input: $input) {
+      id
+      exerciseId
+      setNumber
+      reps
+      weight
+      rpe
+      notes
+      equipmentIds
+    }
+  }
+`;
+
+export const UPDATE_EXERCISE_LOG = gql`
+  mutation UpdateExerciseLog($id: Int!, $input: UpdateExerciseLogInput!) {
+    updateExerciseLog(id: $id, input: $input) {
+      id
+      exerciseId
+      setNumber
+      reps
+      weight
+      rpe
+      notes
+      equipmentIds
+    }
+  }
+`;
+
+export const DELETE_EXERCISE_LOG = gql`
+  mutation DeleteExerciseLog($id: Int!) {
+    deleteExerciseLog(id: $id)
+  }
+`;
+
+export const UPDATE_WORKOUT_SESSION = gql`
+  mutation UpdateWorkoutSession($id: Int!, $input: UpdateWorkoutSessionInput!) {
+    updateWorkoutSession(id: $id, input: $input) {
+      id
+      endedAt
+    }
+  }
+`;
+
+export const DELETE_WORKOUT_SESSION = gql`
+  mutation DeleteWorkoutSession($id: Int!) {
+    deleteWorkoutSession(id: $id)
   }
 `;
