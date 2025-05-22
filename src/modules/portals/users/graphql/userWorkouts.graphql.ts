@@ -52,6 +52,7 @@ export const GET_EXERCISES_AVAILABLE_AT_GYM = gql`
         options {
           subcategory {
             id
+            name
           }
         }
       }

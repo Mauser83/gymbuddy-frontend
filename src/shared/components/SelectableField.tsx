@@ -4,10 +4,11 @@ import {useTheme} from '../theme/ThemeProvider';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 interface SelectableFieldProps {
-  label: string;
+  label?: string;
   value: string;
   onPress: () => void;
   disabled?: boolean;
+  expanded?: boolean;
 }
 
 const SelectableField = ({
@@ -15,13 +16,14 @@ const SelectableField = ({
   value,
   onPress,
   disabled = false,
+  expanded = false,
 }: SelectableFieldProps) => {
   const {componentStyles, theme} = useTheme();
   const styles = componentStyles.selectableField;
 
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      {label && <Text style={styles.label}>{label}</Text>}
       <TouchableOpacity
         onPress={disabled ? undefined : onPress}
         activeOpacity={disabled ? 1 : 0.8}
@@ -33,7 +35,7 @@ const SelectableField = ({
           </Text>
           {!disabled && (
             <FontAwesome
-              name="chevron-down"
+              name={expanded ? "chevron-up" : "chevron-down"}
               size={16}
               color={theme.colors.accentStart}
             />

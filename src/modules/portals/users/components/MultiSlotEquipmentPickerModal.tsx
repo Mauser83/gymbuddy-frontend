@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { View} from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {View} from 'react-native';
 import ModalWrapper from 'shared/components/ModalWrapper';
 import SearchInput from 'shared/components/SearchInput';
 import ClickableList from 'shared/components/ClickableList';
 import NoResults from 'shared/components/NoResults';
-import { spacing } from 'shared/theme/tokens';
+import {spacing} from 'shared/theme/tokens';
 import Button from 'shared/components/Button';
 import Title from 'shared/components/Title';
 
@@ -15,7 +15,7 @@ interface EquipmentOption {
 }
 
 interface EquipmentSlot {
-  name: string;
+  subcategoryName: string;
   subcategoryIds: number[];
 }
 
@@ -23,6 +23,8 @@ interface Props {
   visible: boolean;
   requiredSlots: EquipmentSlot[];
   equipment: EquipmentOption[];
+  defaultSelectedEquipmentIds?: number[];
+
   onClose: () => void;
   onSelect: (equipmentIds: number[]) => void;
 }
@@ -31,13 +33,14 @@ export default function MultiSlotEquipmentPickerModal({
   visible,
   requiredSlots,
   equipment,
+  defaultSelectedEquipmentIds,
   onClose,
   onSelect,
 }: Props) {
   const [selected, setSelected] = useState<Record<number, number | null>>({});
 
   const handlePick = (slotIndex: number, eqId: number) => {
-    setSelected(prev => ({ ...prev, [slotIndex]: eqId }));
+    setSelected(prev => ({...prev, [slotIndex]: eqId}));
   };
 
   const allSelected = requiredSlots.every((_, i) => selected[i] != null);
@@ -48,29 +51,32 @@ export default function MultiSlotEquipmentPickerModal({
     }
   };
 
-  useEffect(() => {
+useEffect(() => {
   if (visible) {
     const initial: Record<number, number | null> = {};
-    requiredSlots.forEach((_, index) => {
-      initial[index] = null;
+    requiredSlots.forEach((slot, index) => {
+      const prefillId = defaultSelectedEquipmentIds?.[index] ?? null;
+      initial[index] = prefillId;
     });
     setSelected(initial);
   }
-}, [visible, requiredSlots]);
+}, [visible, requiredSlots, defaultSelectedEquipmentIds]);
 
   return (
     <ModalWrapper visible={visible} onClose={onClose}>
-      <View style={{ padding: spacing.md, gap: spacing.lg }}>
+      <View style={{padding: spacing.md, gap: spacing.lg}}>
         {requiredSlots.map((slot, index) => {
           const options = equipment.filter(eq =>
-            slot.subcategoryIds.includes(eq.subcategoryId)
+            slot.subcategoryIds.includes(eq.subcategoryId),
           );
 
           return (
-            <View key={index} style={{ gap: spacing.sm }}>
-              <Title subtitle={`Select ${slot.name}`} />
+            <View key={index} style={{gap: spacing.sm}}>
+              <Title subtitle={`Select ${slot.subcategoryName}`} />
               {options.length === 0 ? (
-                <NoResults message={`No available equipment for ${slot.name}`} />
+                <NoResults
+                  message={`No available equipment for ${slot.subcategoryName}`}
+                />
               ) : (
                 <ClickableList
                   items={options.map(eq => ({
@@ -85,7 +91,11 @@ export default function MultiSlotEquipmentPickerModal({
           );
         })}
 
-        <Button text="Confirm Selection" onPress={handleConfirm} disabled={!allSelected} />
+        <Button
+          text="Confirm Selection"
+          onPress={handleConfirm}
+          disabled={!allSelected}
+        />
       </View>
     </ModalWrapper>
   );

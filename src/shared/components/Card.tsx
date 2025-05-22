@@ -24,7 +24,7 @@ const Card = ({
   compact = false,
   children,
   showChevron,
-  style
+  style,
 }: CardProps) => {
   const {theme, componentStyles} = useTheme();
   const cardVariant = variant ?? theme.components.card.variant;
@@ -40,32 +40,37 @@ const Card = ({
     : {};
 
   return (
-    <View style={[baseStyle, compactStyle, style]}>
-      {children ? (
-        <View>{children}</View>
-      ) : (
-        <>
-          <Text style={styles[`${cardVariant}Title`]}>{title}</Text>
-          {text ? (
-            <Text style={styles[`${cardVariant}Text`]}>{text}</Text>
-          ) : null}
-        </>
-      )}
+    <View
+      style={[
+        baseStyle,
+        compactStyle,
+        style,
+        {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        },
+      ]}>
+      <View style={{flex: 1}}>
+        {children ? (
+          <View>{children}</View>
+        ) : (
+          <>
+            <Text style={styles[`${cardVariant}Title`]}>{title}</Text>
+            {text ? (
+              <Text style={styles[`${cardVariant}Text`]}>{text}</Text>
+            ) : null}
+          </>
+        )}
+      </View>
 
       {showChevron && (
-        <View
-          style={{
-            position: 'absolute',
-            right: spacing.lg,
-            top: '50%',
-            transform: [{translateY: -8}],
-          }}>
-          <FontAwesome
-            name="chevron-right"
-            size={16}
-            color={theme.colors.accentStart}
-          />
-        </View>
+        <FontAwesome
+          name="chevron-right"
+          size={16}
+          color={theme.colors.accentStart}
+          style={{marginLeft: spacing.lg, alignSelf: 'center'}}
+        />
       )}
     </View>
   );
