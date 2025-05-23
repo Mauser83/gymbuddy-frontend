@@ -84,8 +84,8 @@ export const DELETE_EXERCISE = gql`
 `;
 
 export const GET_EXERCISES = gql`
-  query GetExercises($search: String) {
-    getExercises(search: $search) {
+  query GetExercises($search: String, $filters: ExerciseFilterInput) {
+    getExercises(search: $search, filters: $filters) {
       id
       name
       videoUrl

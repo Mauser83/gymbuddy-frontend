@@ -167,3 +167,28 @@ export const DELETE_WORKOUT_SESSION = gql`
     deleteWorkoutSession(id: $id)
   }
 `;
+
+export const GET_FILTER_OPTIONS = gql`
+  query GetFilterOptions {
+    allExerciseTypes {
+      id
+      name
+    }
+    allExerciseDifficulties {
+      id
+      level
+    }
+    allBodyParts {
+      id
+      name
+      muscles {
+        id
+        name
+        bodyPart {
+          id
+          name
+        }
+      }
+    }
+  }
+`;
