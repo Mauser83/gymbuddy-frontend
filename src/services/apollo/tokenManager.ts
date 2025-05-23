@@ -1,11 +1,16 @@
 // tokenManager.ts
-import { storage } from 'modules/auth/utils/storage';
-import { ApolloClient } from '@apollo/client';
-import { REFRESH_TOKEN_MUTATION } from 'modules/auth/graphql/auth.mutations';
-import { logoutFromContext } from 'modules/auth/context/AuthContext';
+import {
+  getAccessToken,
+  setAccessToken,
+  getRefreshToken,
+  setRefreshToken,
+} from '../../modules/auth/utils/tokenStorage';
+import {ApolloClient} from '@apollo/client';
+import {REFRESH_TOKEN_MUTATION} from 'modules/auth/graphql/auth.mutations';
+import {triggerLogout} from 'modules/auth/utils/logoutTrigger'; // ✅ use this
 import Toast from 'react-native-toast-message';
-import { rawClient } from './rawClient';
-import { createClient, Client } from 'graphql-ws';
+import {rawClient} from './rawClient';
+import {createClient, Client} from 'graphql-ws';
 
 // 👇 Make sure this matches your WS server
 const WS_URL = 'ws://192.168.68.104:4000/graphql';
@@ -22,27 +27,22 @@ export const setWsClient = (client: Client) => {
   wsClient = client;
 };
 
-export const getAccessToken = async () => {
-  return storage.getItem('accessToken');
-};
-
 export const refreshAccessToken = async (): Promise<string | null> => {
-
   if (refreshingPromise) {
     return refreshingPromise;
   }
 
   refreshingPromise = (async () => {
     try {
-      const refreshToken = await storage.getItem('refreshToken');
+      const refreshToken = await getRefreshToken();
       if (!refreshToken || !apolloClient) {
         console.warn('Missing refreshToken or apolloClient');
         return null;
       }
 
-      const { data } = await rawClient.mutate({
+      const {data} = await rawClient.mutate({
         mutation: REFRESH_TOKEN_MUTATION,
-        variables: { input: { refreshToken } },
+        variables: {input: {refreshToken}},
         context: {
           headers: {
             Authorization: `Bearer ${refreshToken}`,
@@ -50,14 +50,14 @@ export const refreshAccessToken = async (): Promise<string | null> => {
         },
       });
 
-      const { accessToken, refreshToken: newRefresh } = data?.refreshToken || {};
+      const {accessToken, refreshToken: newRefresh} = data?.refreshToken || {};
       if (!accessToken || !newRefresh) {
         console.warn('No tokens returned');
         return null;
       }
 
-      await storage.setItem('accessToken', accessToken);
-      await storage.setItem('refreshToken', newRefresh);
+      await setAccessToken(accessToken);
+      await setRefreshToken(newRefresh);
 
       // 👇 Reconnect WebSocket with new token
       if (wsClient) {
@@ -66,7 +66,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
         wsClient = createClient({
           url: WS_URL,
           connectionParams: async () => {
-            const freshToken = await storage.getItem('accessToken');
+            const freshToken = await getAccessToken();
             return {
               authorization: `Bearer ${freshToken}`,
             };
@@ -78,7 +78,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     } catch (error: any) {
       console.error('Refresh token error:', error?.message || error);
       console.error('Full error object:', error);
-      await logoutFromContext();
+      triggerLogout();
       Toast.show({
         type: 'error',
         text1: 'Session expired',

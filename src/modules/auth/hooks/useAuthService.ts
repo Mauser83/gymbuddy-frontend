@@ -3,9 +3,9 @@ import {useMutation} from '@apollo/client';
 import {LOGIN_MUTATION, REGISTER_MUTATION} from '../graphql/auth.mutations';
 import {useNavigate} from 'react-router-native';
 import {useAuth} from '../context/AuthContext';
-import { logoutFromContext } from '../context/AuthContext';
+import {triggerLogout} from 'modules/auth/utils/logoutTrigger'; // ✅ use this
 import {GymRole} from 'modules/gym/types/gym.types';
-import { storage } from 'modules/auth/utils/storage';
+import {storage} from 'modules/auth/utils/storage';
 
 export const useAuthService = () => {
   const navigate = useNavigate();
@@ -23,13 +23,13 @@ export const useAuthService = () => {
           navigate('/admin');
           return;
         }
-        
+
         const isGymManager =
           user?.gymManagementRoles?.some(
             (role: GymRole) =>
-              role.role === 'GYM_ADMIN' || role.role === 'GYM_MODERATOR'
+              role.role === 'GYM_ADMIN' || role.role === 'GYM_MODERATOR',
           ) ?? false;
-        
+
         if (isGymManager) {
           navigate('/gym-admin');
         } else {
@@ -48,13 +48,13 @@ export const useAuthService = () => {
     });
 
   const logout = async () => {
-    await logoutFromContext();
+    triggerLogout();
     if (clearSession) clearSession(); // if you maintain local context too
   };
 
   return {
     login: async (values: {email: string; password: string}) => {
-      const result = await loginMutation({ variables: { input: values } });
+      const result = await loginMutation({variables: {input: values}});
       if (!result.data) throw new Error('No data received from server');
       return result;
     },
@@ -64,7 +64,7 @@ export const useAuthService = () => {
       password: string;
     }) => {
       await registerMutation({
-        variables: { input: values },
+        variables: {input: values},
       });
     },
     logout,

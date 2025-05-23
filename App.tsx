@@ -8,7 +8,6 @@ import {
 } from './src/shared/theme/ThemeProvider';
 import {AuthProvider, useAuth} from './src/modules/auth/context/AuthContext';
 import RoleSubscriptionWatcher from 'modules/auth/components/RoleSubscriptionWatcher';
-import {NavigationContainer} from '@react-navigation/native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {NativeRouter} from 'react-router-native';
 import {ApolloProvider} from '@apollo/client';
@@ -40,14 +39,12 @@ const AppContent = () => {
   return (
     <ApolloProvider client={client}>
       <SafeAreaProvider>
-        <NavigationContainer>
           <Host>
             {isAuthenticated && <RoleSubscriptionWatcher />}
             <StatusBarManager />
             <AppRoutes />
             <ToastContainer />
           </Host>
-        </NavigationContainer>
       </SafeAreaProvider>
     </ApolloProvider>
   );

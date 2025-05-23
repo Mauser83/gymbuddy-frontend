@@ -4,7 +4,6 @@ import {View} from 'react-native';
 import Header from 'shared/components/Header';
 import Footer from 'shared/components/Footer';
 import {useAuth} from 'modules/auth/context/AuthContext';
-import {setNavigate} from 'shared/utils/navigation';
 import {getDefaultRouteForUser} from './guards';
 import NoResults from 'shared/components/NoResults';
 
@@ -44,10 +43,6 @@ const AppRoutes = () => {
   const {user, isAuthenticated, sessionLoaded} = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    setNavigate(navigate);
-  }, [navigate]);
 
   useEffect(() => {
     if (!sessionLoaded) return;

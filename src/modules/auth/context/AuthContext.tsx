@@ -1,27 +1,18 @@
 // ✅ UPDATED: AuthContext.tsx
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { refreshAccessToken } from '../../../services/apollo/tokenManager';
-import { isTokenExpired } from '../utils/isTokenExpired';
-import type { AuthContextType } from '../types/auth';
-import type { User } from 'modules/user/types/user';
-import { storage } from '../utils/storage';
-import { Platform } from 'react-native';
-import { navigateTo } from 'shared/utils/navigation';
-
-let externalLogout: (() => void) | null = null;
+import React, {createContext, useContext, useEffect, useState} from 'react';
+import {refreshAccessToken} from '../../../services/apollo/tokenManager';
+import {isTokenExpired} from '../utils/isTokenExpired';
+import type {AuthContextType} from '../types/auth';
+import type {User} from 'modules/user/types/user';
+import {storage} from '../utils/storage';
+import {useNavigate} from 'react-router-native';
+import {registerLogoutCallback} from 'modules/auth/utils/logoutTrigger'; // adjust path if needed
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const logoutFromContext = async () => {
-  if (externalLogout) {
-    await externalLogout();
-  } else {
-    console.warn('❌ Tried to logout but no external logout hook available.');
-  }
-};
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-
+export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
+  children,
+}) => {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -35,23 +26,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setRefreshToken(null);
     setUser(null);
     setIsAuthenticated(false);
-
-    if (Platform.OS === 'web') {
-      navigateTo('/');
-    }
   };
 
   useEffect(() => {
     const loadTokens = async () => {
       const token = await storage.getItem('accessToken');
       const refresh = await storage.getItem('refreshToken');
-  
+
       // No refresh token means user must log in again
       if (!refresh) {
         await logout();
         return;
       }
-  
+
       // If access token is missing or expired, try refreshing
       if (!token || isTokenExpired(token)) {
         const newToken = await refreshAccessToken();
@@ -60,23 +47,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
       }
-  
+
       // optionally: re-fetch user profile here if needed
     };
-  
+
     loadTokens();
   }, []);
 
   useEffect(() => {
-    externalLogout = logout;
-    return () => {
-      externalLogout = null;
-    };
+    registerLogoutCallback(() => {
+      logout(); // ✅ now the trigger will cleanly log out
+    });
   }, []);
 
   const login = async (
     userData: User,
-    tokens: { accessToken: string; refreshToken: string }
+    tokens: {accessToken: string; refreshToken: string},
   ) => {
     await storage.setItem('accessToken', tokens.accessToken);
     await storage.setItem('refreshToken', tokens.refreshToken);
@@ -88,7 +74,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAuthenticated(true);
   };
 
-  const setSession = async ({ user, accessToken, refreshToken }: { user: User; accessToken: string; refreshToken: string }) => {
+  const setSession = async ({
+    user,
+    accessToken,
+    refreshToken,
+  }: {
+    user: User;
+    accessToken: string;
+    refreshToken: string;
+  }) => {
     setLoginInProgress(true);
     await storage.setItem('accessToken', accessToken);
     await storage.setItem('refreshToken', refreshToken);
@@ -157,8 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearSession: logout,
         sessionLoaded,
         loginInProgress,
-      }}
-    >
+      }}>
       {children}
     </AuthContext.Provider>
   );

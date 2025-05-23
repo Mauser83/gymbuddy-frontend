@@ -1,9 +1,9 @@
-// wsLink.ts
-import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
-import { createClient } from 'graphql-ws';
-import { getAccessToken, refreshAccessToken, setWsClient } from '../tokenManager';
-import { isTokenExpired } from 'modules/auth/utils/isTokenExpired';
-import { logoutFromContext } from 'modules/auth/context/AuthContext';
+import {GraphQLWsLink} from '@apollo/client/link/subscriptions';
+import {createClient} from 'graphql-ws';
+import {refreshAccessToken, setWsClient} from '../tokenManager';
+import {getAccessToken} from 'modules/auth/utils/tokenStorage';
+import {isTokenExpired} from 'modules/auth/utils/isTokenExpired';
+import {triggerLogout} from 'modules/auth/utils/logoutTrigger'; // ✅ use this
 import Toast from 'react-native-toast-message';
 
 export const createWsLink = (url: string) => {
@@ -16,16 +16,20 @@ export const createWsLink = (url: string) => {
         try {
           accessToken = await refreshAccessToken();
         } catch {
-          await logoutFromContext();
-          Toast.show({ type: 'error', text1: 'Session expired', text2: 'Please log in again.' });
+          triggerLogout();
+          Toast.show({
+            type: 'error',
+            text1: 'Session expired',
+            text2: 'Please log in again.',
+          });
         }
       }
 
-      return { authorization: accessToken ? `Bearer ${accessToken}` : '' };
+      return {authorization: accessToken ? `Bearer ${accessToken}` : ''};
     },
   });
 
-  setWsClient(client); // 👈 Save reference for refresh logic
+  setWsClient(client);
 
   return new GraphQLWsLink(client);
 };

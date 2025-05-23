@@ -1,21 +1,21 @@
-// links/authLink.ts
-import {setContext} from '@apollo/client/link/context';
-import {getAccessToken, refreshAccessToken} from '../tokenManager';
-import {storage} from 'modules/auth/utils/storage';
-import {isTokenExpired} from 'modules/auth/utils/isTokenExpired';
-import {logoutFromContext} from 'modules/auth/context/AuthContext';
+import { setContext } from '@apollo/client/link/context';
+import {
+  getAccessToken,
+  getRefreshToken,
+} from 'modules/auth/utils/tokenStorage';
+import { isTokenExpired } from 'modules/auth/utils/isTokenExpired';
+import { refreshAccessToken } from '../tokenManager'; // or wherever it's defined
 
-export const authLink = setContext(async (_, {headers}) => {
+export const authLink = setContext(async (_, { headers }) => {
   let token = await getAccessToken();
-  const refreshToken = await storage.getItem('refreshToken');
+  const refreshToken = await getRefreshToken();
 
   if ((!token || isTokenExpired(token)) && refreshToken) {
     token = await refreshAccessToken();
   }
 
   if (!token) {
-    await logoutFromContext();
-    return {headers};
+    return { headers }; // no auth
   }
 
   return {
