@@ -23,12 +23,14 @@ const AppContent = () => {
   const client = useApolloClient();
   const {theme} = useTheme();
 
-  StatusBar.setBarStyle(theme.mode === 'dark' ? 'light-content' : 'dark-content')
+  StatusBar.setBarStyle(
+    theme.mode === 'dark' ? 'light-content' : 'dark-content',
+  );
 
   if (!sessionLoaded || !client) {
     return (
       <>
-        <StatusBar/>
+        <StatusBar />
         <ContentContainer>
           <LoadingState text="Connecting to backend..." />
         </ContentContainer>
@@ -39,12 +41,12 @@ const AppContent = () => {
   return (
     <ApolloProvider client={client}>
       <SafeAreaProvider>
-          <Host>
-            {isAuthenticated && <RoleSubscriptionWatcher />}
-            <StatusBarManager />
-            <AppRoutes />
-            <ToastContainer />
-          </Host>
+        <Host>
+          {isAuthenticated && <RoleSubscriptionWatcher />}
+          <StatusBarManager />
+          <AppRoutes />
+          <ToastContainer />
+        </Host>
       </SafeAreaProvider>
     </ApolloProvider>
   );
