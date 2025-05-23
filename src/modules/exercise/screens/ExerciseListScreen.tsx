@@ -36,10 +36,10 @@ export default function ExerciseListScreen() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!search?.trim()) {
-        setFiltered(data?.getMyExercises || []);
+        setFiltered(data?.getExercises || []);
       } else {
         const query = search.toLowerCase();
-        const results = data?.getMyExercises.filter(ex =>
+        const results = data?.getExercises.filter(ex =>
           ex.name.toLowerCase().includes(query)
         ) || [];
         setFiltered(results);

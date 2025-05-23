@@ -38,6 +38,7 @@ import UserDashboardScreen from 'modules/portals/users/screens/UserDashboardScre
 import MyWorkoutPlansScreen from 'modules/portals/users/screens/MyWorkoutPlansScreen';
 import StartWorkoutScreen from 'modules/portals/users/screens/StartWorkoutScreen';
 import ActiveWorkoutSessionScreen from 'modules/portals/users/screens/ActiveWorkoutSessionScreen';
+import ExerciseLibraryScreen from 'modules/portals/users/screens/ExerciseLibraryScreen';
 
 const AppRoutes = () => {
   const {user, isAuthenticated, sessionLoaded} = useAuth();
@@ -75,19 +76,21 @@ const AppRoutes = () => {
           <Route path="/login" element={<LoginScreen />} />
           <Route path="/register" element={<RegisterScreen />} />
 
-          {/* Users */}
-          <Route path="/users" element={<UsersScreen />} />
-          <Route path="/users/:id" element={<UserDetailScreen />} />
-          <Route path="/profile" element={<ProfileScreen />} />
 
-          {/* Gyms */}
+          {/* User Portal */}
+          <Route path="/user" element={<UserDashboardScreen />} />
+          <Route path="/user/my-plans" element={<MyWorkoutPlansScreen />} />
+          <Route path="/user/log-exercise" element={<StartWorkoutScreen />} />
+          <Route
+            path="/active-session/:sessionId"
+            element={<ActiveWorkoutSessionScreen />}
+          />
           <Route path="/gyms" element={<GymsScreen />} />
           <Route path="/gyms/create" element={<GymCreateScreen />} />
           <Route path="/gyms/:gymId" element={<GymDetailScreen />} />
+          <Route path="/profile" element={<ProfileScreen />} />
+          <Route path="/user/exercise-library" element={<ExerciseLibraryScreen />} />
 
-          <Route path="/exercise" element={<ExerciseListScreen />} />
-          <Route path="/exercise/create" element={<CreateExerciseScreen />} />
-          <Route path="/exercise/edit/:id" element={<EditExerciseScreen />} />
 
           {/* App Management Portal */}
           <Route path="/admin" element={<AppDashboardScreen />} />
@@ -95,6 +98,12 @@ const AppRoutes = () => {
           <Route path="/equipment" element={<GlobalEquipmentListScreen />} />
           <Route path="/equipment/create" element={<CreateEquipmentScreen />} />
           <Route path="/equipment/edit/:id" element={<EditEquipmentScreen />} />
+          <Route path="/exercise" element={<ExerciseListScreen />} />
+          <Route path="/exercise/create" element={<CreateExerciseScreen />} />
+          <Route path="/exercise/edit/:id" element={<EditExerciseScreen />} />
+          <Route path="/users" element={<UsersScreen />} />
+          <Route path="/users/:id" element={<UserDetailScreen />} />
+
 
           {/* Gym Management Portal */}
           <Route path="/gym-admin" element={<GymAdminDashboard />} />
@@ -107,11 +116,6 @@ const AppRoutes = () => {
             element={<GymEquipmentListScreen />}
           />
 
-          {/* User Portal */}
-          <Route path="/user" element={<UserDashboardScreen />} />
-          <Route path="/user/my-plans" element={<MyWorkoutPlansScreen />} />
-          <Route path="/user/log-exercise" element={<StartWorkoutScreen />} />
-          <Route path="/active-session/:sessionId" element={<ActiveWorkoutSessionScreen />} />
 
           {/* Fallback */}
           <Route path="*" element={<NoResults message="Page not found." />} />

@@ -52,7 +52,7 @@ export const EXERCISE_FIELDS = gql`
 
 export const GET_MY_EXERCISES = gql`
   query GetMyExercises {
-    getMyExercises {
+    getExercises {
       ...ExerciseFields
     }
   }
@@ -80,5 +80,51 @@ export const UPDATE_EXERCISE = gql`
 export const DELETE_EXERCISE = gql`
   mutation DeleteExercise($id: Int!) {
     deleteExercise(id: $id)
+  }
+`;
+
+export const GET_EXERCISES = gql`
+  query GetExercises($search: String) {
+    getExercises(search: $search) {
+      id
+      name
+      videoUrl
+      description
+      difficulty {
+        id
+        level
+      }
+      primaryMuscles {
+        id
+        name
+        bodyPart {
+          id
+          name
+        }
+      }
+      secondaryMuscles {
+        id
+        name
+        bodyPart {
+          id
+          name
+        }
+      }
+      equipmentSlots {
+        slotIndex
+        isRequired
+        comment
+        options {
+          subcategory {
+            id
+            name
+            category {
+              id
+              name
+            }
+          }
+        }
+      }
+    }
   }
 `;

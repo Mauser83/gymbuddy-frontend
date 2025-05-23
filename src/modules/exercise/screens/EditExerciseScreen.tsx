@@ -63,7 +63,7 @@ export default function EditExerciseScreen() {
     );
   }
 
-  const exercise = data?.getMyExercises.find(
+  const exercise = data?.getExercises.find(
     (e: Exercise) => e.id === Number(id),
   );
   if (!exercise) {
