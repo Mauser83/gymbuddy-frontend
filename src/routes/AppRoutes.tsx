@@ -38,6 +38,7 @@ import MyWorkoutPlansScreen from 'modules/portals/users/screens/MyWorkoutPlansSc
 import StartWorkoutScreen from 'modules/portals/users/screens/StartWorkoutScreen';
 import ActiveWorkoutSessionScreen from 'modules/portals/users/screens/ActiveWorkoutSessionScreen';
 import ExerciseLibraryScreen from 'modules/portals/users/screens/ExerciseLibraryScreen';
+import ExerciseDetailScreen from 'modules/portals/users/screens/ExerciseDetailScreen';
 
 const AppRoutes = () => {
   const {user, isAuthenticated, sessionLoaded} = useAuth();
@@ -85,6 +86,7 @@ const AppRoutes = () => {
           <Route path="/gyms/:gymId" element={<GymDetailScreen />} />
           <Route path="/profile" element={<ProfileScreen />} />
           <Route path="/user/exercise-library" element={<ExerciseLibraryScreen />} />
+          <Route path="/user/exercise/:exerciseId" element={<ExerciseDetailScreen />} />
 
 
           {/* App Management Portal */}

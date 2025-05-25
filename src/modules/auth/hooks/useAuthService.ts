@@ -55,7 +55,13 @@ export const useAuthService = () => {
   return {
     login: async (values: {email: string; password: string}) => {
       const result = await loginMutation({variables: {input: values}});
-      if (!result.data) throw new Error('No data received from server');
+
+      // This check is misleading; loginError from Apollo already contains the real error
+      if (!result.data) {
+        // Do nothing here — the loginError will be handled via Apollo's built-in error handling
+        return;
+      }
+
       return result;
     },
     register: async (values: {

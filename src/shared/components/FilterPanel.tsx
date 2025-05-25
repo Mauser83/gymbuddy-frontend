@@ -6,15 +6,20 @@ import {
   Animated,
   Platform,
   Dimensions,
+  ScrollView,
 } from 'react-native';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import {spacing} from 'shared/theme/tokens';
 import Button from 'shared/components/Button';
 import {Portal} from 'react-native-portalize';
 
+export type NamedFilterOptions = {
+  label: string;
+  options: FilterOptions;
+};
 export type FilterOptions = string[] | Record<string, string[]>;
 export interface FilterPanelProps {
-  options: Record<string, FilterOptions>;
+  options: Record<string, {label: string; options: FilterOptions}>;
   onChangeFilters?: (filters: Record<string, string[]>) => void;
 }
 
@@ -184,7 +189,7 @@ export default function FilterPanel({
                     fontWeight: 'bold',
                     color: theme.colors.textPrimary,
                   }}>
-                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  {options[cat].label}
                 </Text>
                 <Text style={{fontSize: 10, color: theme.colors.accentStart}}>
                   {activeCategory === cat ? '▲' : '▼'}
@@ -216,7 +221,10 @@ export default function FilterPanel({
               <Text style={{color: theme.colors.textPrimary, marginRight: 4}}>
                 {value}
               </Text>
-              <Text style={{color: theme.colors.accentStart, fontWeight: "bold"}}>X</Text>
+              <Text
+                style={{color: theme.colors.accentStart, fontWeight: 'bold'}}>
+                X
+              </Text>
             </Pressable>
           )),
         )}
@@ -269,123 +277,148 @@ export default function FilterPanel({
                   },
                 ],
               }}>
-              {isNested(options[activeCategory])
-                ? Object.keys(options[activeCategory]).map(parent => {
-                    const direction = getDirectionForIndex(
-                      categories.indexOf(activeCategory),
-                      categories.length,
-                    );
-                    return (
-                      <Pressable
-                        key={parent}
-                        ref={ref => {
-                          parentRefs.current[parent] = ref;
-                        }}
-                        onPress={() => {
-                          if (activeParent === parent) {
-                            setActiveParent(null);
-                            return;
-                          }
-                          const ref = parentRefs.current[parent];
-                          if (ref) {
-                            ref.measure((fx, fy, width, height, px, py) => {
-                              setSubDropdownPos({x: px, y: py, width});
-                              setParentDirections(prev => ({
-                                ...prev,
-                                [parent]: direction,
-                              }));
-                              setActiveParent(parent);
-                              Animated.timing(submenuAnim, {
-                                toValue: 1,
-                                duration: 200,
-                                useNativeDriver: Platform.OS !== 'web',
-                              }).start();
-                            });
-                          }
-                        }}
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          paddingVertical: spacing.md,
-                        }}>
-                        {direction === 'left' && (
-                          <DirectionChevron
-                            direction="left"
-                            expanded={activeParent === parent}
-                          />
-                        )}
-                        <Text
+              {isNested(options[activeCategory].options) ? (
+                <ScrollView
+                  style={{maxHeight: 300}}
+                  contentContainerStyle={{paddingBottom: spacing.sm}}
+                  keyboardShouldPersistTaps="handled"
+                  nestedScrollEnabled>
+                  {Object.keys(options[activeCategory].options).map(
+                    (parent, index, arr) => {
+                      const direction = getDirectionForIndex(
+                        categories.indexOf(activeCategory),
+                        categories.length,
+                      );
+                      const isLast = index === arr.length - 1;
+                      return (
+                        <Pressable
+                          key={parent}
+                          ref={ref => {
+                            parentRefs.current[parent] = ref;
+                          }}
+                          onPress={() => {
+                            if (activeParent === parent) {
+                              setActiveParent(null);
+                              return;
+                            }
+                            const ref = parentRefs.current[parent];
+                            if (ref) {
+                              ref.measure((fx, fy, width, height, px, py) => {
+                                setSubDropdownPos({x: px, y: py, width});
+                                setParentDirections(prev => ({
+                                  ...prev,
+                                  [parent]: direction,
+                                }));
+                                setActiveParent(parent);
+                                Animated.timing(submenuAnim, {
+                                  toValue: 1,
+                                  duration: 200,
+                                  useNativeDriver: Platform.OS !== 'web',
+                                }).start();
+                              });
+                            }
+                          }}
                           style={{
-                            flex: 1,
-                            color: theme.colors.textPrimary,
-                            fontWeight:
-                              activeParent === parent ? 'bold' : 'normal',
-                          }}>
-                          {parent}
-                        </Text>
-                        {direction === 'right' && (
-                          <DirectionChevron
-                            direction="right"
-                            expanded={activeParent === parent}
-                          />
-                        )}
-                      </Pressable>
-                    );
-                  })
-                : (options[activeCategory] as string[]).map((option, index) => {
-                    const isSelected =
-                      selectedFilters[activeCategory]?.includes(option);
-                    return (
-                      <Pressable
-                        key={option}
-                        onPress={() => toggleFilter(activeCategory, option)}
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          paddingVertical: spacing.md,
-                          paddingLeft: 5,
-                          paddingRight: 5,
-                          borderBottomColor: theme.colors.textSecondary,
-                          borderBottomWidth:
-                            index !==
-                            (options[activeCategory] as string[]).length - 1
-                              ? 1
-                              : 0,
-                          backgroundColor: theme.colors.surface,
-                        }}>
-                        <View
-                          style={{
-                            width: 20,
-                            height: 20,
-                            marginRight: 8,
-                            justifyContent: 'center',
+                            flexDirection: 'row',
                             alignItems: 'center',
-                            borderWidth: 1,
-                            borderColor: theme.colors.textPrimary,
+                            paddingVertical: spacing.md,
+                            borderBottomWidth: isLast ? 0 : 1,
+                            borderBottomColor: theme.colors.textSecondary,
                           }}>
-                          {isSelected && (
-                            <Text
-                              style={{
-                                color: theme.colors.accentStart,
-                                fontSize: 16,
-                              }}>
-                              ✓
-                            </Text>
+                          {direction === 'left' && (
+                            <DirectionChevron
+                              direction="left"
+                              expanded={activeParent === parent}
+                            />
                           )}
-                        </View>
-                        <Text
-                          style={{color: theme.colors.textPrimary, flex: 1}}>
-                          {option}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
+                          <Text
+                            style={{
+                              flex: 1,
+                              color: theme.colors.textPrimary,
+                              fontWeight:
+                                activeParent === parent ? 'bold' : 'normal',
+                            }}>
+                            {parent}
+                          </Text>
+                          {direction === 'right' && (
+                            <DirectionChevron
+                              direction="right"
+                              expanded={activeParent === parent}
+                            />
+                          )}
+                        </Pressable>
+                      );
+                    },
+                  )}
+                </ScrollView>
+              ) : (
+                <ScrollView
+                  style={{maxHeight: 300}}
+                  keyboardShouldPersistTaps="handled"
+                  nestedScrollEnabled>
+                  {(options[activeCategory].options as string[]).map(
+                    (option, index) => {
+                      const isSelected =
+                        selectedFilters[activeCategory]?.includes(option);
+                      return (
+                        <Pressable
+                          key={option}
+                          onPress={() => toggleFilter(activeCategory, option)}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            paddingVertical: spacing.md,
+                            paddingLeft: 5,
+                            paddingRight: 5,
+                            borderBottomColor: theme.colors.textSecondary,
+                            borderBottomWidth:
+                              index !==
+                              (options[activeCategory].options as string[])
+                                .length -
+                                1
+                                ? 1
+                                : 0,
+                            backgroundColor: theme.colors.surface,
+                          }}>
+                          <View
+                            style={{
+                              width: 20,
+                              height: 20,
+                              marginRight: 8,
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              borderWidth: 1,
+                              borderColor: theme.colors.textPrimary,
+                            }}>
+                            {isSelected && (
+                              <Text
+                                style={{
+                                  color: theme.colors.accentStart,
+                                  fontSize: 16,
+                                }}>
+                                ✓
+                              </Text>
+                            )}
+                          </View>
+                          <Text
+                            style={{
+                              color: theme.colors.textPrimary,
+                              flex: 1,
+                            }}>
+                            {option}
+                          </Text>
+                        </Pressable>
+                      );
+                    },
+                  )}
+                </ScrollView>
+              )}
             </Animated.View>
 
             {/* Sub Dropdown */}
             {activeParent &&
               activeCategory &&
-              isNested(options[activeCategory]) && (
+              isNested(options[activeCategory].options) && (
                 <Animated.View
                   style={{
                     position: 'absolute',
@@ -415,9 +448,9 @@ export default function FilterPanel({
                       },
                     ],
                   }}>
-                  {(options[activeCategory] as Record<string, string[]>)[
-                    activeParent
-                  ].map((option: string, index: number) => {
+                  {(
+                    options[activeCategory].options as Record<string, string[]>
+                  )[activeParent].map((option: string, index: number) => {
                     const isSelected =
                       selectedFilters[activeCategory]?.includes(option);
                     return (
@@ -434,7 +467,7 @@ export default function FilterPanel({
                           borderBottomWidth:
                             index !==
                             (
-                              options[activeCategory] as Record<
+                              options[activeCategory].options as Record<
                                 string,
                                 string[]
                               >

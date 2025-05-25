@@ -12,12 +12,14 @@ import {GET_EXERCISES} from 'modules/exercise/graphql/exercise.graphql';
 import {Exercise} from 'modules/exercise/types/exercise.types';
 import FilterPanel from 'shared/components/FilterPanel';
 import {GET_FILTER_OPTIONS} from '../graphql/userWorkouts.graphql';
-import {FilterOptions} from 'shared/components/FilterPanel';
+import {NamedFilterOptions} from 'shared/components/FilterPanel';
+import {useNavigate} from 'react-router-native';
 
 export default function ExerciseLibraryScreen() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string[]>>({});
+  const navigate = useNavigate();
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -37,26 +39,33 @@ export default function ExerciseLibraryScreen() {
 
   const {data: filterData} = useQuery(GET_FILTER_OPTIONS);
 
-  const filterOptions: Record<string, FilterOptions> = filterData
+  const filterOptions: Record<string, NamedFilterOptions> = filterData
     ? {
-        type: filterData.allExerciseTypes.map((t: any) => String(t.name)),
-        difficulty: filterData.allExerciseDifficulties.map((d: any) =>
-          String(d.level),
-        ),
-        bodyPart: filterData.allBodyParts.map((b: any) => String(b.name)),
-        muscle: Object.fromEntries(
-          filterData.allBodyParts.map((b: any) => [
-            String(b.name),
-            b.muscles.map((m: any) => String(m.name)),
-          ]),
-        ),
+        exerciseType: {
+          label: 'Type',
+          options: filterData.allExerciseTypes.map((t: any) => String(t.name)),
+        },
+        difficulty: {
+          label: 'Difficulty',
+          options: filterData.allExerciseDifficulties.map((d: any) =>
+            String(d.level),
+          ),
+        },
+        bodyPart: {
+          label: 'Body Part',
+          options: filterData.allBodyParts.map((b: any) => String(b.name)),
+        },
+        muscle: {
+          label: 'Muscle',
+          options: Object.fromEntries(
+            filterData.allBodyParts.map((b: any) => [
+              String(b.name),
+              b.muscles.map((m: any) => String(m.name)),
+            ]),
+          ),
+        },
       }
-    : {
-        type: [],
-        difficulty: [],
-        bodyPart: [],
-        muscle: {},
-      };
+    : {};
 
   return (
     <ScreenLayout scroll>
@@ -64,12 +73,7 @@ export default function ExerciseLibraryScreen() {
       {filterData && (
         <FilterPanel
           options={filterOptions}
-          onChangeFilters={rawFilters => {
-            const {type, ...rest} = rawFilters;
-            const filters = {
-              ...rest,
-              exerciseType: type, // remap "type" to "exerciseType"
-            };
+          onChangeFilters={filters => {
             setFilters(filters);
           }}
         />
@@ -94,8 +98,7 @@ export default function ExerciseLibraryScreen() {
               label: ex.name,
               subLabel: ex.description,
               onPress: () => {
-                // Navigate to detail screen later
-                console.log('Go to detail for', ex.name);
+                navigate(`/user/exercise/${ex.id}`);
               },
             }))}
           />

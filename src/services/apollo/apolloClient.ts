@@ -4,9 +4,10 @@ import {authLink} from './links/authLink';
 import {errorLink} from './links/errorLink';
 import {createSplitLink} from './links/splitLink';
 import {setApolloClient} from './tokenManager';
+import Constants from 'expo-constants';
 
 export const createApolloClient = async () => {
-  const uri = `http://192.168.68.104:4000/graphql`;
+  const uri = Constants.expoConfig?.extra?.apiUrl;
   const splitLink = createSplitLink(uri);
 
   const client = new ApolloClient({

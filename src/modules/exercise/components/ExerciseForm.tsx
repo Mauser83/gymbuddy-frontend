@@ -133,68 +133,70 @@ export default function ExerciseForm() {
 
   const renderSlotList = () => {
     return (
-      <ClickableList
-        items={(values.equipmentSlots || []).map((slot: any, index: number) => {
-          const isExpanded = expandedSlotIndex === index;
+        <ClickableList
+          items={(values.equipmentSlots || []).map(
+            (slot: any, index: number) => {
+              const isExpanded = expandedSlotIndex === index;
 
-          const slotLabel =
-            `Slot ${index + 1}: ${slot.options.length} item(s)` +
-            (slot.isRequired ? ' (Required)' : ' (Optional)');
+              const slotLabel =
+                `Slot ${index + 1}: ${slot.options.length} item(s)` +
+                (slot.isRequired ? ' (Required)' : ' (Optional)');
 
-          const optionLines = slot.options.map((opt: any) => {
-            const match = allSubcategories.find(
-              s => s.id === opt.subcategoryId,
-            );
-            return match
-              ? `${match.name} (${match.category?.name || 'Other'})`
-              : `#${opt.subcategoryId}`;
-          });
+              const optionLines = slot.options.map((opt: any) => {
+                const match = allSubcategories.find(
+                  s => s.id === opt.subcategoryId,
+                );
+                return match
+                  ? `${match.name} (${match.category?.name || 'Other'})`
+                  : `#${opt.subcategoryId}`;
+              });
 
-          return {
-            id: index,
-            label: slotLabel,
-            onPress: () => setExpandedSlotIndex(isExpanded ? null : index),
-            rightElement: (
-              <FontAwesome
-                name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                size={16}
-                color={theme.colors.accentStart}
-              />
-            ),
-            content: isExpanded && (
-              <View style={{marginTop: 8}}>
-                {optionLines.map((line: string, i: number) => (
-                  <DetailField
-                    key={i}
-                    label="•"
-                    value={line}
-                    vertical={false}
+              return {
+                id: index,
+                label: slotLabel,
+                onPress: () => setExpandedSlotIndex(isExpanded ? null : index),
+                rightElement: (
+                  <FontAwesome
+                    name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                    size={16}
+                    color={theme.colors.accentStart}
                   />
-                ))}
-                <ButtonRow style={{marginTop: 12}}>
-                  <Button
-                    text="Edit"
-                    fullWidth
-                    onPress={() => openEditSlot(index)}
-                  />
-                  <Button
-                    text="Delete"
-                    fullWidth
-                    onPress={() => deleteSlot(index)}
-                  />
-                </ButtonRow>
-              </View>
-            ),
-          };
-        })}
-      />
+                ),
+                content: isExpanded && (
+                  <View style={{marginTop: 8}}>
+                    {optionLines.map((line: string, i: number) => (
+                      <DetailField
+                        key={i}
+                        label="•"
+                        value={line}
+                        vertical={false}
+                      />
+                    ))}
+                    <ButtonRow style={{marginTop: 12}}>
+                      <Button
+                        text="Edit"
+                        fullWidth
+                        onPress={() => openEditSlot(index)}
+                      />
+                      <Button
+                        text="Delete"
+                        fullWidth
+                        onPress={() => deleteSlot(index)}
+                      />
+                    </ButtonRow>
+                  </View>
+                ),
+              };
+            },
+          )}
+        />
     );
   };
 
   const renderModalContent = () => {
     if (activeModal === 'type') {
       return (
-        <>
+        <ScrollView>
           <Title text="Select Exercise Type" />
           <ClickableList
             items={exerciseTypes.map((t: ExerciseType) => ({
@@ -222,13 +224,13 @@ export default function ExerciseForm() {
               }}
             />
           </ButtonRow>
-        </>
+        </ScrollView>
       );
     }
 
     if (activeModal === 'difficulty') {
       return (
-        <>
+        <ScrollView>
           <Title text="Select Difficulty Level" />
           <ClickableList
             items={difficulties.map((d: ExerciseDifficulty) => ({
@@ -256,7 +258,7 @@ export default function ExerciseForm() {
               }}
             />
           </ButtonRow>
-        </>
+        </ScrollView>
       );
     }
 
@@ -267,7 +269,7 @@ export default function ExerciseForm() {
 
       if (muscleStep === 'bodyPart') {
         return (
-          <>
+          <ScrollView>
             <Title text="Select Body Part" />
             <ClickableList
               items={bodyParts.map(bp => ({
@@ -294,13 +296,13 @@ export default function ExerciseForm() {
                 }}
               />
             </ButtonRow>
-          </>
+          </ScrollView>
         );
       }
 
       if (muscleStep === 'muscle' && selectedBodyPartId) {
         return (
-          <>
+          <ScrollView>
             <Title text="Select Muscles" />
             <ScrollView
               style={{maxHeight: modalHeight - 200}}
@@ -332,7 +334,7 @@ export default function ExerciseForm() {
                 }}
               />
             </ButtonRow>
-          </>
+          </ScrollView>
         );
       }
     }

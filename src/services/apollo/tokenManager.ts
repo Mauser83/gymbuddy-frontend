@@ -11,9 +11,10 @@ import {triggerLogout} from 'modules/auth/utils/logoutTrigger'; // ✅ use this
 import Toast from 'react-native-toast-message';
 import {rawClient} from './rawClient';
 import {createClient, Client} from 'graphql-ws';
+import Constants from "expo-constants";
 
 // 👇 Make sure this matches your WS server
-const WS_URL = 'ws://192.168.68.104:4000/graphql';
+const WS_URL = Constants.expoConfig?.extra?.apiUrl;
 
 let apolloClient: ApolloClient<any> | null = null;
 let refreshingPromise: Promise<string | null> | null = null;
