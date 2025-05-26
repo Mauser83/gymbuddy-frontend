@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-native';
 import {Formik} from 'formik';
 import * as Yup from 'yup';
@@ -30,9 +30,9 @@ const ExerciseSchema = Yup.object().shape({
   secondaryMuscleIds: Yup.array().of(Yup.number()),
   equipmentSlots: Yup.array().of(
     Yup.object({
-      slotIndex: Yup.number().required(),
+      slotIndex: Yup.number(),
       isRequired: Yup.boolean(),
-      comment: Yup.string(),
+      comment: Yup.string().nullable(),
       options: Yup.array()
         .of(
           Yup.object({
@@ -48,14 +48,47 @@ export default function EditExerciseScreen() {
   const {id} = useParams<{id: string}>();
   const navigate = useNavigate();
   const {getMyExercises, updateExercise} = useExercise();
+  const [formValues, setFormValues] = useState<UpdateExerciseInput | null>(
+    null,
+  );
 
   const {data, loading} = getMyExercises();
 
   useEffect(() => {
-    if (!id) navigate('/exercise');
-  }, [id]);
+    if (!id) {
+      navigate('/exercise');
+      return;
+    }
 
-  if (loading) {
+    if (data) {
+      const exercise = data.getExercises.find(
+        (e: Exercise) => e.id === Number(id),
+      );
+      if (!exercise) return;
+
+      setFormValues({
+        name: exercise.name,
+        description: exercise.description ?? '',
+        videoUrl: exercise.videoUrl ?? '',
+        difficultyId: exercise.difficulty?.id,
+        exerciseTypeId: exercise.exerciseType?.id,
+        primaryMuscleIds: exercise.primaryMuscles?.map(m => m.id) ?? [],
+        secondaryMuscleIds: exercise.secondaryMuscles?.map(m => m.id) ?? [],
+        equipmentSlots:
+          exercise.equipmentSlots?.map(slot => ({
+            slotIndex: slot.slotIndex,
+            isRequired: slot.isRequired,
+            comment: slot.comment,
+            options: slot.options.map(opt => ({
+              subcategoryId: opt.subcategory.id,
+              name: opt.subcategory.name,
+            })),
+          })) ?? [],
+      });
+    }
+  }, [id, data]);
+
+  if (loading || !formValues) {
     return (
       <ScreenLayout variant="centered">
         <LoadingState text="Loading exercise..." />
@@ -74,26 +107,6 @@ export default function EditExerciseScreen() {
     );
   }
 
-  const initialValues: UpdateExerciseInput = {
-    name: exercise.name,
-    description: exercise.description ?? '',
-    videoUrl: exercise.videoUrl ?? '',
-    difficultyId: exercise.difficulty?.id ?? undefined,
-    exerciseTypeId: exercise.exerciseType?.id ?? undefined,
-    primaryMuscleIds: exercise.primaryMuscles?.map(m => m.id) ?? [],
-    secondaryMuscleIds: exercise.secondaryMuscles?.map(m => m.id) ?? [],
-    equipmentSlots:
-      exercise.equipmentSlots?.map(slot => ({
-        slotIndex: slot.slotIndex,
-        isRequired: slot.isRequired,
-        comment: slot.comment,
-        options: slot.options.map(opt => ({
-          subcategoryId: opt.subcategory.id,
-          name: opt.subcategory.name, // optional, for display only
-        })),
-      })) ?? [],
-  };
-
   const handleSubmit = async (
     values: UpdateExerciseInput,
     {setSubmitting}: {setSubmitting: (val: boolean) => void},
@@ -102,8 +115,11 @@ export default function EditExerciseScreen() {
       const payload = {
         ...values,
         videoUrl: values.videoUrl?.trim() || undefined,
+        equipmentSlots: (values.equipmentSlots ?? []).map((slot, index) => ({
+          ...slot,
+          slotIndex: index,
+        })),
       };
-
       await updateExercise({
         variables: {id: Number(id), input: payload},
       });
@@ -121,11 +137,10 @@ export default function EditExerciseScreen() {
     <ScreenLayout scroll>
       <Title text="Edit Exercise" />
       <Formik
-        initialValues={initialValues}
+        initialValues={formValues}
         validationSchema={ExerciseSchema}
-        onSubmit={handleSubmit}
-        enableReinitialize>
-        {({handleSubmit, isSubmitting}) => (
+        onSubmit={handleSubmit}>
+        {({handleSubmit, isSubmitting, errors, values}) => (
           <>
             <ExerciseForm />
             {/* Submit / Cancel – main form actions */}

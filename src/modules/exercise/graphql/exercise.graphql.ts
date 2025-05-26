@@ -128,3 +128,73 @@ export const GET_EXERCISES = gql`
     }
   }
 `;
+
+export const GET_EXERCISE_DETAIL = gql`
+  query GetExerciseDetail($id: Int!) {
+    getExerciseById(id: $id) {
+      id
+      name
+      description
+      videoUrl
+      difficulty {
+        level
+      }
+      exerciseType {
+        name
+      }
+      primaryMuscles {
+        name
+        bodyPart {
+          name
+        }
+      }
+      secondaryMuscles {
+        name
+        bodyPart {
+          name
+        }
+      }
+      equipmentSlots {
+        slotIndex
+        isRequired
+        comment
+        options {
+          subcategory {
+            name
+            category {
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+
+export const WORKOUT_SESSION_FIELDS = gql`
+  fragment WorkoutSessionFields on WorkoutSession {
+    id
+    userId
+    startedAt
+    endedAt
+    notes
+    exerciseLogs {
+      id
+      exerciseId
+      reps
+      weight
+      setNumber
+      createdAt
+    }
+  }
+`;
+
+export const GET_WORKOUT_SESSIONS_BY_USER = gql`
+  query GetWorkoutSessionsByUser($userId: Int!) {
+    workoutSessionsByUser(userId: $userId) {
+      ...WorkoutSessionFields
+    }
+  }
+  ${WORKOUT_SESSION_FIELDS}
+`;

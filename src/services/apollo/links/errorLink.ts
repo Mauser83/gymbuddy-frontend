@@ -33,7 +33,11 @@ export const errorLink = onError(
         const code = err.extensions?.code || '';
         const msg = err.message?.toLowerCase() || '';
 
-        if (code === 'UNAUTHENTICATED' || msg.includes('token')) {
+        if (
+          code === 'UNAUTHENTICATED' ||
+          msg.includes('token') ||
+          msg.includes('authorization header missing')
+        ) {
           if (!isRefreshing) {
             isRefreshing = true;
 

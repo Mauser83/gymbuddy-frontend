@@ -27,7 +27,7 @@ const ExerciseSchema = Yup.object().shape({
   equipmentSlots: Yup.array().of(
     Yup.object({
       isRequired: Yup.boolean(),
-      comment: Yup.string(),
+      comment: Yup.string().nullable(),
       options: Yup.array()
         .of(
           Yup.object({
@@ -87,7 +87,6 @@ export default function CreateExerciseScreen() {
         validationSchema={ExerciseSchema}
         onSubmit={handleSubmit}>
         {({handleSubmit, isSubmitting, errors, values}) => {
-
           return (
             <>
               <ExerciseForm />
