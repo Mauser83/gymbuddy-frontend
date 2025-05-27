@@ -61,18 +61,35 @@ const AppDashboardScreen = () => {
         />
       </Card>
       <Card variant="glass">
-        <Title text="🛠️ Equipments" subtitle="View and manage global equipments"/>
+        <Title
+          text="🛠️ Equipments"
+          subtitle="View and manage global equipments"
+        />
         <Button
           onPress={() => navigate('/equipment')}
           text="Manage Global Equipments"
         />
       </Card>
 
-            <Card variant="glass">
-        <Title text="🛠️ Exercises" subtitle="View and manage global exercises"/>
+      <Card variant="glass">
+        <Title
+          text="🛠️ Exercises"
+          subtitle="View and manage global exercises"
+        />
         <Button
           onPress={() => navigate('/exercise')}
           text="Manage Global Exercises"
+        />
+      </Card>
+
+      <Card variant="glass">
+        <Title
+          text="🛠️ Workout plans"
+          subtitle="View and manage workout plans"
+        />
+        <Button
+          onPress={() => navigate('/workoutplan/builder')}
+          text="Manage Workout Plans"
         />
       </Card>
     </ScreenLayout>
