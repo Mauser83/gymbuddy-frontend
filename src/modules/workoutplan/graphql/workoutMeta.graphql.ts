@@ -38,3 +38,17 @@ export const GET_WORKOUT_PLAN_META = gql`
     }
   }
 `;
+
+export const GET_EXERCISES_BASIC = gql`
+  query getExercises {
+    getExercises {
+      id
+      name
+      primaryMuscles {
+        bodyPart {
+          id
+        }
+      }
+    }
+  }
+`;

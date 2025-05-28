@@ -1,6 +1,5 @@
-import React, {useState, useEffect} from 'react';
-import {ScrollView, Dimensions} from 'react-native';
-import ModalWrapper from 'shared/components/ModalWrapper';
+import React, {useState} from 'react';
+import {ScrollView, Dimensions, View} from 'react-native';
 import Title from 'shared/components/Title';
 import FormInput from 'shared/components/FormInput';
 import Button from 'shared/components/Button';
@@ -23,12 +22,14 @@ import {
   DELETE_TRAINING_METHOD,
 } from '../graphql/workoutReferences';
 import {useMutation} from '@apollo/client';
+import type {MuscleGroup} from './EditMuscleGroupModal';
 
 interface ReferenceItem {
   id: number;
   name: string;
   slug?: string;
   description?: string;
+  bodyParts?: {id: number; name: string}[]; // ✅ add optional bodyParts
 }
 
 type Mode =
@@ -46,6 +47,7 @@ interface ManageWorkoutReferenceModalProps {
   categoryId?: number;
   categoryTypeIds: number[];
   bodyPartOptions?: {id: number; name: string}[];
+  onEditMuscleGroup?: (muscleGroup: MuscleGroup) => void;
 }
 
 const titleMap: Record<Mode, string> = {
@@ -86,6 +88,7 @@ export default function ManageWorkoutReferenceModal({
   refetch,
   categoryId,
   bodyPartOptions,
+  onEditMuscleGroup,
 }: ManageWorkoutReferenceModalProps) {
   const {theme} = useTheme();
   const screenHeight = Dimensions.get('window').height;
@@ -166,52 +169,68 @@ export default function ManageWorkoutReferenceModal({
     }
   };
 
-  const listItems = items.map((item: ReferenceItem) => {
-    const isExpanded = expandedId === item.id;
-    const currentEditValue = edits[item.id] ?? item.name;
+  const listItems = items
+    .slice() // to avoid mutating the original array
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((item: ReferenceItem) => {
+      const isExpanded = expandedId === item.id;
+      const currentEditValue = edits[item.id] ?? item.name;
 
-    return {
-      id: item.id,
-      label: item.name,
-      selected: isExpanded,
-      rightElement: isExpanded ? (
-        <FontAwesome
-          name="chevron-down"
-          size={16}
-          color={theme.colors.accentStart}
-        />
-      ) : null,
-      onPress: () => {
-        setExpandedId(prev => (prev === item.id ? null : item.id));
-        setEdits(prev => ({...prev, [item.id]: item.name}));
-      },
-      content: isExpanded ? (
-        <>
-          <FormInput
-            label="Edit Name"
-            value={currentEditValue}
-            onChangeText={val => setEdits(prev => ({...prev, [item.id]: val}))}
+      return {
+        id: item.id,
+        label: item.name,
+        selected: isExpanded,
+        rightElement: isExpanded ? (
+          <FontAwesome
+            name="chevron-down"
+            size={16}
+            color={theme.colors.accentStart}
           />
-          <ButtonRow>
-            <Button
-              text="Update"
-              fullWidth
-              disabled={!currentEditValue || currentEditValue === item.name}
-              onPress={() => handleUpdate(item.id, currentEditValue)}
-            />
-            <Button
-              text="Delete"
-              fullWidth
-              onPress={() => handleDelete(item.id)}
-            />
-          </ButtonRow>
-        </>
-      ) : undefined,
-    };
-  });
+        ) : null,
+        onPress: () => {
+          setExpandedId(prev => (prev === item.id ? null : item.id));
+          setEdits(prev => ({...prev, [item.id]: item.name}));
+        },
+        content: isExpanded ? (
+          <>
+            {item.bodyParts && item.bodyParts.length > 0 && (
+              <ClickableList
+                items={item.bodyParts
+                  .slice()
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map(bp => ({
+                    id: bp.id,
+                    label: bp.name,
+                    rightElement: false,
+                  }))}
+              />
+            )}
+
+            <ButtonRow>
+              <Button
+                text="Edit"
+                fullWidth
+                onPress={() =>
+                  onEditMuscleGroup?.({
+                    id: item.id,
+                    name: item.name,
+                    bodyParts: item.bodyParts ?? [],
+                  })
+                }
+              />
+              <Button
+                text="Delete"
+                fullWidth
+                onPress={() => handleDelete(item.id)}
+              />
+            </ButtonRow>
+          </>
+        ) : undefined,
+      };
+    });
 
   return (
-    <ModalWrapper visible={visible} onClose={onClose}>
+    <>
       <Title text={`Manage ${titleMap[mode]}`} />
       <FormInput
         label={`New ${titleMap[mode].slice(0, -1)}`}
@@ -222,38 +241,11 @@ export default function ManageWorkoutReferenceModal({
         <Button text="Close" fullWidth onPress={onClose} />
         <Button text="Create" fullWidth onPress={handleCreate} />
       </ButtonRow>
-      {mode === 'muscleGroup' &&
-        bodyPartOptions &&
-        bodyPartOptions.length > 0 && (
-          <>
-            <Title text="Assign Body Parts" />
-            <ScrollView>
-              <ClickableList
-                items={bodyPartOptions
-                  .slice()
-                  .sort((a, b) => a.name.localeCompare(b.name))
-                  .map(bp => {
-                    const selected = selectedBodyParts.includes(bp.id);
-                    return {
-                      id: bp.id,
-                      label: bp.name,
-                      selected,
-                      onPress: () => {
-                        setSelectedBodyParts(prev =>
-                          selected
-                            ? prev.filter(id => id !== bp.id)
-                            : [...prev, bp.id],
-                        );
-                      },
-                    };
-                  })}
-              />
-            </ScrollView>
-          </>
-        )}
-      <ScrollView style={{maxHeight: modalHeight - 250}}>
-        <ClickableList items={listItems} />
-      </ScrollView>
-    </ModalWrapper>
+      <View style={{height: modalHeight - 250}}>
+        <ScrollView showsVerticalScrollIndicator={true}>
+          <ClickableList items={listItems} />
+        </ScrollView>
+      </View>
+    </>
   );
 }

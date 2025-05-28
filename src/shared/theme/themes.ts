@@ -367,11 +367,6 @@ export const getComponentStyles = (theme: Theme) => ({
     },
   },
   optionItem: {
-    container: {
-      paddingVertical: spacing.md,
-      borderBottomColor: theme.colors.divider,
-      borderBottomWidth: borderWidth.hairline,
-    },
     text: {
       color: theme.colors.textPrimary,
       fontSize: fontSizes.md,

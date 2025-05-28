@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useRef} from 'react';
 import {View, ScrollView, Alert} from 'react-native';
 import {Formik, FieldArray} from 'formik';
 import * as Yup from 'yup';
@@ -9,20 +9,51 @@ import Button from 'shared/components/Button';
 import Card from 'shared/components/Card';
 import SelectableField from 'shared/components/SelectableField';
 import ToastContainer from 'shared/components/ToastContainer';
-import {useTheme} from 'shared/theme/ThemeProvider';
 import OptionItem from 'shared/components/OptionItem';
 import ModalWrapper from 'shared/components/ModalWrapper';
 import {GET_WORKOUT_PLAN_META} from '../graphql/workoutMeta.graphql';
 import {useQuery, useMutation} from '@apollo/client';
 import ManageWorkoutReferenceModal from '../components/ManageWorkoutReferenceModal';
 import AssignWorkoutTypesToCategoryModal from '../components/AssignWorkoutTypesToCategoryModal';
-import {ASSIGN_WORKOUT_TYPES_TO_CATEGORY} from '../graphql/workoutReferences';
+import {
+  ASSIGN_WORKOUT_TYPES_TO_CATEGORY,
+  UPDATE_MUSCLE_GROUP,
+} from '../graphql/workoutReferences';
+import {MuscleGroup} from '../components/EditMuscleGroupModal';
+import EditMuscleGroupModal from '../components/EditMuscleGroupModal';
+import {GET_EXERCISES_BASIC} from '../graphql/workoutMeta.graphql';
+import SelectExerciseModal from '../components/SelectExerciseModal';
+import {useAuth} from 'modules/auth/context/AuthContext';
+import {spacing} from 'shared/theme/tokens';
 
-type ReferenceMode =
-  | 'workoutCategory'
-  | 'workoutType'
-  | 'muscleGroup'
-  | 'trainingMethod';
+type ActiveModal =
+  | null
+  | 'categoryPicker'
+  | 'typePicker'
+  | 'muscleGroupPicker'
+  | 'assignWorkoutTypes'
+  | 'manageWorkoutCategory'
+  | 'manageWorkoutType'
+  | 'manageMuscleGroup'
+  | 'manageTrainingMethod'
+  | 'editMuscleGroup'
+  | 'selectExercise';
+
+type Exercise = {
+  exerciseName: string;
+  targetSets: number;
+  targetReps: number;
+  targetRpe: number;
+  isWarmup: boolean;
+};
+
+type FormValues = {
+  name: string;
+  workoutCategoryId: number;
+  workoutTypeId: number;
+  muscleGroupIds: number[];
+  exercises: Exercise[];
+};
 
 const validationSchema = Yup.object().shape({
   name: Yup.string().required('Plan name is required'),
@@ -43,23 +74,46 @@ const validationSchema = Yup.object().shape({
 });
 
 export default function WorkoutPlanBuilderScreen() {
-  const {componentStyles} = useTheme();
+  const {user} = useAuth();
   const {data: workoutMeta, refetch} = useQuery(GET_WORKOUT_PLAN_META);
   const [updateCategoryTypes] = useMutation(ASSIGN_WORKOUT_TYPES_TO_CATEGORY);
+  const [updateMuscleGroup] = useMutation(UPDATE_MUSCLE_GROUP);
+  const {data: exerciseData, loading: loadingExercises} =
+    useQuery(GET_EXERCISES_BASIC);
 
-  const [showWorkoutCategoryPicker, setShowWorkoutCategoryPicker] =
-    useState(false);
-
-  const [showWorkoutTypePicker, setShowWorkoutTypePicker] = useState(false);
-  const [showMuscleGroupPicker, setShowMuscleGroupPicker] = useState(false);
-  const [manageModalMode, setManageModalMode] = useState<ReferenceMode | null>(
-    null,
-  );
-
-  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [selectedTypeIds, setSelectedTypeIds] = useState<number[]>([]);
+  const [editMuscleGroupTarget, setEditMuscleGroupTarget] =
+    useState<MuscleGroup | null>(null);
 
-  console.log(workoutMeta);
+  const pushRef = useRef<(item: any) => void>(() => {});
+
+  function getSelectedBodyPartIds(
+    selectedGroupIds: number[],
+    allGroups: any[],
+  ): number[] {
+    const bodyPartSet = new Set<number>();
+    for (const group of allGroups) {
+      if (selectedGroupIds.includes(group.id)) {
+        for (const bp of group.bodyParts || []) {
+          bodyPartSet.add(bp.id);
+        }
+      }
+    }
+    return Array.from(bodyPartSet);
+  }
+
+  function filterExercisesByBodyParts(
+    exercises: any[],
+    selectedBodyPartIds: number[],
+  ) {
+    const idSet = new Set(selectedBodyPartIds);
+    return exercises.filter(ex =>
+      ex.primaryMuscles?.some(
+        (m: any) => m.bodyPart && idSet.has(m.bodyPart.id),
+      ),
+    );
+  }
 
   return (
     <ScreenLayout scroll>
@@ -68,19 +122,7 @@ export default function WorkoutPlanBuilderScreen() {
         subtitle="Create a reusable workout session"
       />
 
-      <Formik<{
-        name: string;
-        workoutCategoryId: number;
-        workoutTypeId: number;
-        muscleGroupIds: number[];
-        exercises: {
-          exerciseName: string;
-          targetSets: number;
-          targetReps: number;
-          targetRpe: number;
-          isWarmup: boolean;
-        }[];
-      }>
+      <Formik<FormValues>
         initialValues={{
           name: '',
           workoutCategoryId: 0,
@@ -90,7 +132,6 @@ export default function WorkoutPlanBuilderScreen() {
         }}
         validationSchema={validationSchema}
         onSubmit={values => {
-          console.log('Saved Plan:', values);
           Alert.alert('Workout Plan Saved!', 'This is stored locally for now.');
         }}>
         {({
@@ -102,20 +143,31 @@ export default function WorkoutPlanBuilderScreen() {
           handleSubmit,
           setFieldValue,
         }) => {
-          const getReferenceItems = () => {
-            switch (manageModalMode) {
-              case 'workoutType':
+          const getReferenceItems = (mode: ActiveModal) => {
+            switch (mode) {
+              case 'manageWorkoutType':
                 return workoutMeta.getWorkoutTypes;
-              case 'muscleGroup':
+              case 'manageMuscleGroup':
                 return workoutMeta.getMuscleGroups;
-              case 'workoutCategory':
+              case 'manageWorkoutCategory':
                 return workoutMeta.getWorkoutCategories;
-              case 'trainingMethod':
+              case 'manageTrainingMethod':
                 return workoutMeta.getTrainingMethods;
               default:
                 return [];
             }
           };
+
+          const selectedBodyPartIds = getSelectedBodyPartIds(
+            values.muscleGroupIds,
+            workoutMeta?.getMuscleGroups ?? [],
+          );
+
+          const filteredExercises = filterExercisesByBodyParts(
+            exerciseData?.getExercises ?? [],
+            selectedBodyPartIds,
+          );
+
           return (
             <>
               <Card title="Plan Details">
@@ -133,7 +185,7 @@ export default function WorkoutPlanBuilderScreen() {
                       (cat: any) => cat.id === values.workoutCategoryId,
                     )?.name || 'Select Workout Category'
                   }
-                  onPress={() => setShowWorkoutCategoryPicker(true)}
+                  onPress={() => setActiveModal('categoryPicker')}
                 />
                 <SelectableField
                   label="Workout Type"
@@ -144,7 +196,7 @@ export default function WorkoutPlanBuilderScreen() {
                         (t: any) => t.id === values.workoutTypeId,
                       )?.name || 'Select Workout Type'
                   }
-                  onPress={() => setShowWorkoutTypePicker(true)}
+                  onPress={() => setActiveModal('typePicker')}
                   disabled={!values.workoutCategoryId}
                 />
                 <SelectableField
@@ -154,245 +206,334 @@ export default function WorkoutPlanBuilderScreen() {
                       ? `${values.muscleGroupIds.length} selected`
                       : 'Select Muscle Groups'
                   }
-                  onPress={() => setShowMuscleGroupPicker(true)}
+                  onPress={() => setActiveModal('muscleGroupPicker')}
                   disabled={!values.workoutTypeId}
                 />
               </Card>
 
               <Card title="Exercises">
                 <FieldArray name="exercises">
-                  {({push}) => (
-                    <>
-                      {values.exercises.map((exercise, idx) => (
-                        <View key={idx} style={{marginBottom: 16}}>
-                          <FormInput
-                            label={
-                              `Exercise #${idx + 1}` +
-                              (exercise.isWarmup ? ' (Warmup)' : '')
-                            }
-                            value={exercise.exerciseName}
-                            onChangeText={text =>
-                              setFieldValue(
-                                `exercises[${idx}].exerciseName`,
-                                text,
-                              )
-                            }
-                          />
-                          <FormInput
-                            label="Sets"
-                            value={String(exercise.targetSets)}
-                            onChangeText={text =>
-                              setFieldValue(
-                                `exercises[${idx}].targetSets`,
-                                parseInt(text, 10) || 0,
-                              )
-                            }
-                            keyboardType="numeric"
-                          />
-                          <FormInput
-                            label="Reps per Set"
-                            value={String(exercise.targetReps)}
-                            onChangeText={text =>
-                              setFieldValue(
-                                `exercises[${idx}].targetReps`,
-                                parseInt(text, 10) || 0,
-                              )
-                            }
-                            keyboardType="numeric"
-                          />
-                          <FormInput
-                            label="Target RPE"
-                            value={String(exercise.targetRpe)}
-                            onChangeText={text =>
-                              setFieldValue(
-                                `exercises[${idx}].targetRpe`,
-                                parseFloat(text) || 0,
-                              )
-                            }
-                            keyboardType="numeric"
-                          />
-                        </View>
-                      ))}
-                      <Button
-                        text="Add Exercise"
-                        onPress={() => {
-                          push({
-                            exerciseName: 'Exercise Name',
-                            targetSets: 3,
-                            targetReps: 10,
-                            targetRpe: 8,
-                            isWarmup: false,
-                          });
-                          push({
-                            exerciseName: 'Exercise Name (Warmup)',
-                            targetSets: 2,
-                            targetReps: 10,
-                            targetRpe: 5,
-                            isWarmup: true,
-                          });
-                        }}
-                      />
-                    </>
-                  )}
+                  {({push}) => {
+                    pushRef.current = push; // Capture push for use outside FieldArray
+
+                    return (
+                      <>
+                        {values.exercises.map((exercise, idx) => (
+                          <View key={idx} style={{marginBottom: 16}}>
+                            <FormInput
+                              label={
+                                `Exercise #${idx + 1}` +
+                                (exercise.isWarmup ? ' (Warmup)' : '')
+                              }
+                              value={exercise.exerciseName}
+                              onChangeText={text =>
+                                setFieldValue(
+                                  `exercises[${idx}].exerciseName`,
+                                  text,
+                                )
+                              }
+                            />
+                            <FormInput
+                              label="Sets"
+                              value={String(exercise.targetSets)}
+                              onChangeText={text =>
+                                setFieldValue(
+                                  `exercises[${idx}].targetSets`,
+                                  parseInt(text, 10) || 0,
+                                )
+                              }
+                              keyboardType="numeric"
+                            />
+                            <FormInput
+                              label="Reps per Set"
+                              value={String(exercise.targetReps)}
+                              onChangeText={text =>
+                                setFieldValue(
+                                  `exercises[${idx}].targetReps`,
+                                  parseInt(text, 10) || 0,
+                                )
+                              }
+                              keyboardType="numeric"
+                            />
+                            <FormInput
+                              label="Target RPE"
+                              value={String(exercise.targetRpe)}
+                              onChangeText={text =>
+                                setFieldValue(
+                                  `exercises[${idx}].targetRpe`,
+                                  parseFloat(text) || 0,
+                                )
+                              }
+                              keyboardType="numeric"
+                            />
+                          </View>
+                        ))}
+                        <Button
+                          text="Add Exercise"
+                          onPress={() => setActiveModal('selectExercise')}
+                        />
+                      </>
+                    );
+                  }}
                 </FieldArray>
               </Card>
 
               <Button text="Save Plan" onPress={handleSubmit as any} />
 
               <ModalWrapper
-                visible={showWorkoutCategoryPicker}
-                onClose={() => setShowWorkoutCategoryPicker(false)}>
-                <Title text="Select Workout Category" />
-                <ScrollView>
-                  {workoutMeta?.getWorkoutCategories?.map(
-                    (cat: {id: number; name: string}) => (
-                      <OptionItem
-                        key={cat.id}
-                        text={cat.name}
-                        onPress={() => {
-                          setFieldValue('workoutCategoryId', cat.id);
-                          setFieldValue('workoutTypeId', 0); // Reset type when category changes
-                          setShowWorkoutCategoryPicker(false);
-                        }}
+                visible={!!activeModal}
+                onClose={() => setActiveModal(null)}>
+                {activeModal === 'categoryPicker' && (
+                  <>
+                    <Title text="Select Workout Category" />
+                    <ScrollView>
+                      {workoutMeta?.getWorkoutCategories
+                        ?.slice()
+                        .sort((a: any, b: any) => a.name.localeCompare(b.name))
+                        .map((cat: any) => (
+                          <OptionItem
+                            key={cat.id}
+                            text={cat.name}
+                            onPress={() => {
+                              setFieldValue('workoutCategoryId', cat.id);
+                              setFieldValue('workoutTypeId', 0);
+                              setActiveModal(null);
+                            }}
+                          />
+                        ))}
+                    </ScrollView>
+                    <View style={{marginTop: spacing.md}}>
+                      <Button
+                        text="Close"
+                        onPress={() => setActiveModal(null)}
                       />
-                    ),
-                  )}
-                </ScrollView>
-                <Button
-                  text="Manage Categories"
-                  onPress={() => setManageModalMode('workoutCategory')} // or another mode if you separate category management
-                />
-              </ModalWrapper>
+                    </View>
+                    {user &&
+                      (user.appRole === 'ADMIN' ||
+                        user.appRole === 'MODERATOR') && (
+                        <View style={{marginTop: spacing.md}}>
+                          <Button
+                            text="Manage Categories"
+                            onPress={() =>
+                              setActiveModal('manageWorkoutCategory')
+                            }
+                          />
+                        </View>
+                      )}
+                  </>
+                )}
 
-              {/* Workout Type Picker */}
-              <ModalWrapper
-                visible={showWorkoutTypePicker}
-                onClose={() => setShowWorkoutTypePicker(false)}>
-                <Title text="Select Workout Type" />
-                <ScrollView>
-                  {workoutMeta?.getWorkoutCategories
-                    ?.find((c: any) => c.id === values.workoutCategoryId)
-                    ?.workoutTypes.map((type: any) => (
-                      <OptionItem
-                        key={type.id}
-                        text={type.name}
-                        onPress={() => {
-                          setFieldValue('workoutTypeId', type.id);
-                          setShowWorkoutTypePicker(false);
-                        }}
+                {activeModal === 'typePicker' && (
+                  <>
+                    <Title text="Select Workout Type" />
+                    <ScrollView>
+                      {workoutMeta?.getWorkoutCategories
+                        ?.find((c: any) => c.id === values.workoutCategoryId)
+                        ?.workoutTypes.slice()
+                        .sort((a: any, b: any) => a.name.localeCompare(b.name))
+                        .map((type: any) => (
+                          <OptionItem
+                            key={type.id}
+                            text={type.name}
+                            onPress={() => {
+                              setFieldValue('workoutTypeId', type.id);
+                              setActiveModal(null);
+                            }}
+                          />
+                        ))}
+                    </ScrollView>
+                    <View style={{marginTop: spacing.md}}>
+                      <Button
+                        text="Close"
+                        onPress={() => setActiveModal(null)}
                       />
-                    ))}
-                </ScrollView>
+                    </View>
+                    {user &&
+                      (user.appRole === 'ADMIN' ||
+                        user.appRole === 'MODERATOR') && (
+                        <View style={{marginTop: spacing.md}}>
+                          <Button
+                            text="Assign Workout Types"
+                            onPress={() => {
+                              const currentCategory =
+                                workoutMeta?.getWorkoutCategories.find(
+                                  (cat: any) =>
+                                    cat.id === values.workoutCategoryId,
+                                );
+                              setSelectedTypeIds(
+                                currentCategory?.workoutTypes.map(
+                                  (t: any) => t.id,
+                                ) ?? [],
+                              );
+                              setActiveModal('assignWorkoutTypes');
+                            }}
+                          />
+                        </View>
+                      )}
+                  </>
+                )}
 
-                <Button
-                  text="Assign Workout Types"
-                  onPress={() => {
-                    const currentCategory =
-                      workoutMeta?.getWorkoutCategories.find(
-                        (cat: any) => cat.id === values.workoutCategoryId,
-                      );
+                {activeModal === 'muscleGroupPicker' && (
+                  <>
+                    <Title text="Select Muscle Groups" />
+                    <ScrollView>
+                      {workoutMeta?.getMuscleGroups
+                        ?.slice()
+                        .sort((a: any, b: any) => a.name.localeCompare(b.name))
+                        .map((group: any) => {
+                          const selected = values.muscleGroupIds.includes(
+                            group.id,
+                          );
+                          return (
+                            <OptionItem
+                              key={group.id}
+                              text={group.name}
+                              selected={selected}
+                              onPress={() => {
+                                const newIds = selected
+                                  ? values.muscleGroupIds.filter(
+                                      (id: number) => id !== group.id,
+                                    )
+                                  : [...values.muscleGroupIds, group.id];
+                                setFieldValue('muscleGroupIds', newIds);
+                              }}
+                            />
+                          );
+                        })}
+                    </ScrollView>
+                    <View style={{marginTop: spacing.md}}>
+                      <Button
+                        text="Close"
+                        onPress={() => setActiveModal(null)}
+                      />
+                    </View>
+                    {user &&
+                      (user.appRole === 'ADMIN' ||
+                        user.appRole === 'MODERATOR') && (
+                        <View style={{marginTop: spacing.md}}>
+                          <Button
+                            text="Manage Muscle Groups"
+                            onPress={() => setActiveModal('manageMuscleGroup')}
+                          />
+                        </View>
+                      )}
+                  </>
+                )}
 
-                    setSelectedTypeIds(
-                      currentCategory?.workoutTypes.map((t: any) => t.id) ?? [],
-                    );
-                    setAssignModalOpen(true);
-                    setShowWorkoutTypePicker(false);
-                  }}
-                />
-              </ModalWrapper>
+                {activeModal === 'assignWorkoutTypes' && (
+                  <AssignWorkoutTypesToCategoryModal
+                    visible
+                    onClose={() => setActiveModal(null)}
+                    workoutTypes={workoutMeta?.getWorkoutTypes ?? []}
+                    selectedTypeIds={selectedTypeIds}
+                    onChange={setSelectedTypeIds}
+                    onSave={async () => {
+                      await updateCategoryTypes({
+                        variables: {
+                          categoryId: values.workoutCategoryId,
+                          input: {workoutTypeIds: selectedTypeIds},
+                        },
+                      });
+                      await refetch();
+                      setActiveModal(null);
+                    }}
+                    onManage={() => setActiveModal('manageWorkoutType')}
+                  />
+                )}
 
-              {/* Muscle Group Picker */}
-              <ModalWrapper
-                visible={showMuscleGroupPicker}
-                onClose={() => setShowMuscleGroupPicker(false)}>
-                <Title text="Select Muscle Groups" />
-                <ScrollView>
-                  {workoutMeta?.getMuscleGroups?.map(
-                    (group: {id: number; name: string}) => {
-                      const selected = values.muscleGroupIds.includes(group.id);
-                      return (
-                        <OptionItem
-                          key={group.id}
-                          text={group.name + (selected ? ' ✅' : '')}
-                          onPress={() => {
-                            const newIds = selected
-                              ? values.muscleGroupIds.filter(
-                                  (id: number) => id !== group.id,
-                                )
-                              : [...values.muscleGroupIds, group.id];
-                            setFieldValue('muscleGroupIds', newIds);
-                          }}
-                        />
-                      );
-                    },
-                  )}
-                </ScrollView>
-                <Button
-                  text="Done"
-                  onPress={() => setShowMuscleGroupPicker(false)}
-                />
-                <Button
-                  text="Manage Muscle Groups"
-                  onPress={() => setManageModalMode('muscleGroup')}
-                />
-              </ModalWrapper>
-              {manageModalMode && workoutMeta && (
-                <ManageWorkoutReferenceModal
-                  visible={!!manageModalMode}
-                  mode={manageModalMode}
-                  onClose={() => setManageModalMode(null)}
-                  items={getReferenceItems()}
-                  refetch={() => refetch()}
-                  categoryId={
-                    manageModalMode === 'workoutType'
-                      ? values.workoutCategoryId
-                      : undefined
-                  }
-                  categoryTypeIds={
-                    manageModalMode === 'workoutType'
-                      ? (workoutMeta.getWorkoutCategories
-                          ?.find(
-                            (cat: any) => cat.id === values.workoutCategoryId,
-                          )
-                          ?.workoutTypes.map((t: any) => t.id) ?? [])
-                      : []
-                  }
-                  bodyPartOptions={
-                    manageModalMode === 'muscleGroup'
-                      ? workoutMeta.allBodyParts?.map(
-                          ({id, name}: {id: number; name: string}) => ({
+                {[
+                  'manageWorkoutType',
+                  'manageMuscleGroup',
+                  'manageWorkoutCategory',
+                  'manageTrainingMethod',
+                ].includes(activeModal!) && (
+                  <ManageWorkoutReferenceModal
+                    visible
+                    mode={
+                      (activeModal!
+                        .replace('manage', '')
+                        .charAt(0)
+                        .toLowerCase() +
+                        activeModal!.replace('manage', '').slice(1)) as any
+                    }
+                    onClose={() => setActiveModal(null)}
+                    items={getReferenceItems(activeModal)}
+                    refetch={refetch}
+                    categoryId={
+                      activeModal === 'manageWorkoutType'
+                        ? values.workoutCategoryId
+                        : undefined
+                    }
+                    categoryTypeIds={
+                      activeModal === 'manageWorkoutType'
+                        ? (workoutMeta?.getWorkoutCategories
+                            ?.find(
+                              (cat: any) => cat.id === values.workoutCategoryId,
+                            )
+                            ?.workoutTypes.map((t: any) => t.id) ?? [])
+                        : []
+                    }
+                    bodyPartOptions={
+                      activeModal === 'manageMuscleGroup'
+                        ? workoutMeta?.allBodyParts?.map(({id, name}: any) => ({
                             id,
                             name,
-                          }),
-                        )
-                      : undefined
-                  }
-                />
-              )}
+                          }))
+                        : undefined
+                    }
+                    onEditMuscleGroup={muscleGroup => {
+                      setEditMuscleGroupTarget(muscleGroup);
+                      setActiveModal('editMuscleGroup');
+                    }}
+                  />
+                )}
 
-              {assignModalOpen && (
-                <AssignWorkoutTypesToCategoryModal
-                  visible={assignModalOpen}
-                  onClose={() => setAssignModalOpen(false)}
-                  workoutTypes={workoutMeta?.getWorkoutTypes ?? []}
-                  selectedTypeIds={selectedTypeIds}
-                  onChange={setSelectedTypeIds}
-                  onSave={async () => {
-                    await updateCategoryTypes({
-                      variables: {
-                        categoryId: values.workoutCategoryId,
-                        input: {workoutTypeIds: selectedTypeIds},
-                      },
-                    });
-                    await refetch(); // to refresh the category list with updated type IDs
-                    setAssignModalOpen(false);
-                  }}
-                  onManage={() => {
-                    setManageModalMode('workoutType');
-                    setAssignModalOpen(false);
-                  }}
-                />
-              )}
+                {activeModal === 'editMuscleGroup' && editMuscleGroupTarget && (
+                  <EditMuscleGroupModal
+                    visible
+                    muscleGroup={editMuscleGroupTarget}
+                    bodyPartOptions={workoutMeta?.allBodyParts ?? []}
+                    onClose={() => {
+                      setActiveModal('manageMuscleGroup');
+                      setEditMuscleGroupTarget(null);
+                    }}
+                    onSave={async (name, bodyPartIds) => {
+                      await updateMuscleGroup({
+                        variables: {
+                          id: editMuscleGroupTarget.id,
+                          input: {
+                            name,
+                            slug: name.toLowerCase().replace(/\s+/g, '-'),
+                            bodyPartIds,
+                          },
+                        },
+                      });
+                      await refetch();
+                      setEditMuscleGroupTarget(null);
+                      setActiveModal('manageMuscleGroup');
+                    }}
+                  />
+                )}
+
+                {activeModal === 'selectExercise' && (
+                  <SelectExerciseModal
+                    onClose={() => setActiveModal(null)}
+                    filteredExercises={filteredExercises}
+                    onSelect={newExercises => {
+                      newExercises.forEach(e =>
+                        pushRef.current?.({
+                          exerciseName: e.name,
+                          targetSets: 3,
+                          targetReps: 10,
+                          targetRpe: 8,
+                          isWarmup: false,
+                        }),
+                      );
+                      setActiveModal(null);
+                    }}
+                  />
+                )}
+              </ModalWrapper>
             </>
           );
         }}

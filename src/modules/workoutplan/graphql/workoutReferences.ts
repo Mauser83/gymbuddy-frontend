@@ -150,3 +150,4 @@ export const ASSIGN_WORKOUT_TYPES_TO_CATEGORY = gql`
     }
   }
 `;
+
