@@ -151,3 +151,22 @@ export const ASSIGN_WORKOUT_TYPES_TO_CATEGORY = gql`
   }
 `;
 
+export const CREATE_WORKOUT_PLAN = gql`
+  mutation CreateWorkoutPlan($input: CreateWorkoutPlanInput!) {
+    createWorkoutPlan(input: $input) {
+      id
+      name
+      version
+      createdAt
+    }
+  }
+`;
+
+export const UPDATE_WORKOUT_PLAN = gql`
+  mutation UpdateWorkoutPlan($id: Int!, $input: UpdateWorkoutPlanInput!) {
+    updateWorkoutPlan(id: $id, input: $input) {
+      id
+      name
+    }
+  }
+`;

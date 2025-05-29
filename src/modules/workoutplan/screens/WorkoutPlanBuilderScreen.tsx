@@ -1,5 +1,5 @@
 import React, {useState, useRef} from 'react';
-import {View, ScrollView, Alert, Text} from 'react-native';
+import {View, ScrollView, Alert, Text, TouchableOpacity} from 'react-native';
 import {Formik, FieldArray} from 'formik';
 import * as Yup from 'yup';
 import ScreenLayout from 'shared/components/ScreenLayout';
@@ -18,6 +18,8 @@ import AssignWorkoutTypesToCategoryModal from '../components/AssignWorkoutTypesT
 import {
   ASSIGN_WORKOUT_TYPES_TO_CATEGORY,
   UPDATE_MUSCLE_GROUP,
+  CREATE_WORKOUT_PLAN,
+  UPDATE_WORKOUT_PLAN
 } from '../graphql/workoutReferences';
 import {MuscleGroup} from '../components/EditMuscleGroupModal';
 import EditMuscleGroupModal from '../components/EditMuscleGroupModal';
@@ -28,6 +30,9 @@ import {spacing} from 'shared/theme/tokens';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import FontAwesome from '@expo/vector-icons/FontAwesome5';
 import IconButton from 'shared/components/IconButton';
+import {useNavigate} from 'react-router-native';
+import {Exercise} from '../types/workoutplan.types';
+import {useLocation} from 'react-router-native';
 
 type ActiveModal =
   | null
@@ -40,14 +45,8 @@ type ActiveModal =
   | 'manageMuscleGroup'
   | 'manageTrainingMethod'
   | 'editMuscleGroup'
-  | 'selectExercise';
-
-type Exercise = {
-  exerciseName: string;
-  targetSets: number;
-  targetReps: number;
-  targetRpe: number;
-};
+  | 'selectExercise'
+  | 'trainingMethodPicker';
 
 type FormValues = {
   name: string;
@@ -76,9 +75,13 @@ const validationSchema = Yup.object().shape({
 export default function WorkoutPlanBuilderScreen() {
   const {user} = useAuth();
   const {theme} = useTheme();
+  const navigate = useNavigate();
   const {data: workoutMeta, refetch} = useQuery(GET_WORKOUT_PLAN_META);
   const [updateCategoryTypes] = useMutation(ASSIGN_WORKOUT_TYPES_TO_CATEGORY);
   const [updateMuscleGroup] = useMutation(UPDATE_MUSCLE_GROUP);
+  const [createWorkoutPlan] = useMutation(CREATE_WORKOUT_PLAN);
+  const [updateWorkoutPlan] = useMutation(UPDATE_WORKOUT_PLAN);
+
   const {data: exerciseData, loading: loadingExercises} =
     useQuery(GET_EXERCISES_BASIC);
 
@@ -88,6 +91,36 @@ export default function WorkoutPlanBuilderScreen() {
     useState<MuscleGroup | null>(null);
 
   const [reorderMode, setReorderMode] = useState(false);
+  const [selectedExerciseIndex, setSelectedExerciseIndex] = useState<
+    number | null
+  >(null);
+  const [expandedExerciseIndex, setExpandedExerciseIndex] = useState<
+    number | null
+  >(null);
+
+  function convertPlanToInitialValues(plan: any): FormValues {
+    return {
+      name: plan.name,
+      workoutCategoryId: plan.workoutType.categories?.[0]?.id ?? 0,
+      workoutTypeId: plan.workoutType.id,
+      muscleGroupIds: plan.muscleGroups.map((mg: any) => mg.id),
+      exercises: plan.exercises.map((ex: any) => ({
+        exerciseId: ex.exercise.id,
+        exerciseName: ex.exercise.name,
+        targetSets: ex.targetSets,
+        targetReps: ex.targetReps,
+        targetRpe: ex.targetRpe,
+        trainingMethodId: ex.trainingMethod?.id,
+        isWarmup: ex.isWarmup ?? false,
+      })),
+    };
+  }
+
+  const location = useLocation();
+  const rawPlan = location.state?.initialPlan;
+  const initialPlan = rawPlan ? convertPlanToInitialValues(rawPlan) : undefined;
+
+  console.log(initialPlan);
 
   const pushRef = useRef<(item: any) => void>(() => {});
 
@@ -121,21 +154,61 @@ export default function WorkoutPlanBuilderScreen() {
   return (
     <ScreenLayout scroll>
       <Title
-        text="Build Workout Plan"
-        subtitle="Create a reusable workout session"
+        text={initialPlan ? 'Edit Workout Plan' : 'Build Workout Plan'}
+        subtitle={
+          initialPlan
+            ? 'Modify your existing workout session'
+            : 'Create a reusable workout session'
+        }
       />
 
       <Formik<FormValues>
-        initialValues={{
-          name: '',
-          workoutCategoryId: 0,
-          workoutTypeId: 0,
-          muscleGroupIds: [],
-          exercises: [],
-        }}
+        initialValues={
+          initialPlan ?? {
+            name: '',
+            workoutCategoryId: 0,
+            workoutTypeId: 0,
+            muscleGroupIds: [],
+            exercises: [],
+          }
+        }
         validationSchema={validationSchema}
-        onSubmit={values => {
-          Alert.alert('Workout Plan Saved!', 'This is stored locally for now.');
+        onSubmit={async values => {
+          const transformedInput = {
+            name: values.name,
+            workoutTypeId: values.workoutTypeId,
+            muscleGroupIds: values.muscleGroupIds,
+            exercises: values.exercises.map((ex, index) => ({
+              exerciseId: ex.exerciseId,
+              order: index,
+              targetSets: ex.targetSets,
+              targetReps: ex.targetReps,
+              targetRpe: ex.targetRpe,
+              isWarmup: ex.isWarmup ?? false,
+              trainingMethodId: ex.trainingMethodId ?? null,
+            })),
+          };
+
+          try {
+            const result = initialPlan
+              ? await updateWorkoutPlan({
+                  variables: {id: rawPlan.id, input: transformedInput},
+                })
+              : await createWorkoutPlan({variables: {input: transformedInput}});
+
+            console.log(
+              `✅ ${initialPlan ? 'Updated' : 'Saved'} Workout Plan:`,
+              result,
+            );
+            Alert.alert(
+              `Workout Plan ${initialPlan ? 'Updated' : 'Saved'}!`,
+              `Plan successfully ${initialPlan ? 'updated' : 'submitted'}.`,
+            );
+            navigate('/user/my-plans');
+          } catch (error) {
+            console.error('❌ Error submitting workout plan:', error);
+            Alert.alert('Error', 'Failed to save the plan. Check the console.');
+          }
         }}>
         {({
           values,
@@ -218,6 +291,7 @@ export default function WorkoutPlanBuilderScreen() {
                 <View style={{marginBottom: spacing.md}}>
                   <Button
                     text={reorderMode ? 'Done Reordering' : 'Edit Order'}
+                    disabled={values.exercises.length < 1}
                     onPress={() => setReorderMode(prev => !prev)}
                   />
                 </View>
@@ -241,58 +315,117 @@ export default function WorkoutPlanBuilderScreen() {
                               justifyContent: 'space-between',
                             }}>
                             {/* Collapsed summary */}
-                            {reorderMode ? (
+                            {reorderMode || expandedExerciseIndex !== idx ? (
                               <>
-                                <View style={{flexDirection: 'column'}}>
-                                  <Text
-                                    style={{color: theme.colors.textPrimary}}>
-                                    {exercise.exerciseName}
-                                  </Text>
-                                  <Text
-                                    style={{color: theme.colors.textSecondary}}>
-                                    {exercise.targetSets} x{' '}
-                                    {exercise.targetReps} RPE{' '}
-                                    {exercise.targetRpe}
-                                  </Text>
-                                </View>
+                                <TouchableOpacity
+                                  onPress={() => setExpandedExerciseIndex(idx)}
+                                  style={{flex: 1}}>
+                                  <View style={{flexDirection: 'column'}}>
+                                    <Text
+                                      style={{color: theme.colors.textPrimary}}>
+                                      {`#${idx + 1} ${exercise.exerciseName}`}
+                                    </Text>
+                                    <Text
+                                      style={{
+                                        color: theme.colors.textSecondary,
+                                      }}>
+                                      {exercise.targetSets} x{' '}
+                                      {exercise.targetReps} RPE{' '}
+                                      {exercise.targetRpe}
+                                    </Text>
+                                  </View>
+                                </TouchableOpacity>
                                 <View style={{flexDirection: 'row'}}>
-                                  <IconButton
-                                    icon={
-                                      <FontAwesome
-                                        name="arrow-alt-circle-up"
-                                        style={{
-                                          fontSize: 32,
-                                          color: theme.colors.textPrimary,
-                                        }}
+                                  {reorderMode ? (
+                                    <>
+                                      <IconButton
+                                        icon={
+                                          <FontAwesome
+                                            name="arrow-alt-circle-up"
+                                            style={{
+                                              fontSize: 32,
+                                              color: theme.colors.textPrimary,
+                                            }}
+                                          />
+                                        }
+                                        size="small"
+                                        onPress={() => move(idx, idx - 1)}
+                                        disabled={idx === 0}
                                       />
-                                    }
-                                    size="small"
-                                    onPress={() => move(idx, idx - 1)}
-                                    disabled={idx === 0}
-                                  />
-                                  <IconButton
-                                    icon={
-                                      <FontAwesome
-                                        name="arrow-alt-circle-down"
-                                        style={{
-                                          fontSize: 32,
-                                          color: theme.colors.textPrimary,
-                                        }}
+                                      <IconButton
+                                        icon={
+                                          <FontAwesome
+                                            name="arrow-alt-circle-down"
+                                            style={{
+                                              fontSize: 32,
+                                              color: theme.colors.textPrimary,
+                                            }}
+                                          />
+                                        }
+                                        size="small"
+                                        onPress={() => move(idx, idx + 1)}
+                                        disabled={
+                                          idx === values.exercises.length - 1
+                                        }
                                       />
-                                    }
-                                    size="small"
-                                    onPress={() => move(idx, idx + 1)}
-                                    disabled={
-                                      idx === values.exercises.length - 1
-                                    }
-                                  />
+                                    </>
+                                  ) : (
+                                    <TouchableOpacity
+                                      onPress={() =>
+                                        setExpandedExerciseIndex(idx)
+                                      }>
+                                      <View style={{paddingRight: 5}}>
+                                        <FontAwesome
+                                          name={
+                                            expandedExerciseIndex === idx
+                                              ? 'chevron-up'
+                                              : 'chevron-down'
+                                          }
+                                          style={{
+                                            fontSize: 16,
+                                            color: theme.colors.accentStart,
+                                          }}
+                                        />
+                                      </View>
+                                    </TouchableOpacity>
+                                  )}
                                 </View>
                               </>
                             ) : (
                               <View style={{flex: 1}}>
-                                <Title
-                                  text={`#${idx + 1} ${exercise.exerciseName}`} align="left"
-                                />
+                                <TouchableOpacity
+                                  onPress={() =>
+                                    setExpandedExerciseIndex(
+                                      expandedExerciseIndex === idx
+                                        ? null
+                                        : idx,
+                                    )
+                                  }>
+                                  <View
+                                    style={{
+                                      flexDirection: 'row',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                    }}>
+                                    <Title
+                                      text={`#${idx + 1} ${exercise.exerciseName}`}
+                                      align="left"
+                                    />
+                                    <FontAwesome
+                                      name={
+                                        expandedExerciseIndex === idx
+                                          ? 'chevron-up'
+                                          : 'chevron-down'
+                                      }
+                                      style={{
+                                        fontSize: 16,
+                                        color: theme.colors.accentStart,
+                                        paddingRight: 5,
+                                        paddingBottom: 8,
+                                      }}
+                                    />
+                                  </View>
+                                </TouchableOpacity>
                                 <FormInput
                                   label="Sets"
                                   value={String(exercise.targetSets)}
@@ -326,6 +459,34 @@ export default function WorkoutPlanBuilderScreen() {
                                   }
                                   keyboardType="numeric"
                                 />
+                                <SelectableField
+                                  label="Training Method"
+                                  value={
+                                    workoutMeta?.getTrainingMethods?.find(
+                                      (m: any) =>
+                                        m.id === exercise.trainingMethodId,
+                                    )?.name || 'Select Training Method'
+                                  }
+                                  onPress={() => {
+                                    setSelectedExerciseIndex(idx); // track which index we’re editing
+                                    setActiveModal('trainingMethodPicker');
+                                  }}
+                                />
+                                <View style={{marginBottom: spacing.sm}}>
+                                  <Button
+                                    text="Remove Exercise"
+                                    onPress={() => {
+                                      const newExercises = [
+                                        ...values.exercises,
+                                      ];
+                                      newExercises.splice(idx, 1);
+                                      setFieldValue('exercises', newExercises);
+
+                                      // Optionally reset expanded index
+                                      setExpandedExerciseIndex(null);
+                                    }}
+                                  />
+                                </View>
                               </View>
                             )}
                           </View>
@@ -341,7 +502,10 @@ export default function WorkoutPlanBuilderScreen() {
                 </FieldArray>
               </Card>
 
-              <Button text="Save Plan" onPress={handleSubmit as any} />
+              <Button
+                text={initialPlan ? 'Update Plan' : 'Save Plan'}
+                onPress={handleSubmit as any}
+              />
 
               <ModalWrapper
                 visible={!!activeModal}
@@ -585,16 +749,64 @@ export default function WorkoutPlanBuilderScreen() {
                     onSelect={newExercises => {
                       newExercises.forEach(e =>
                         pushRef.current?.({
+                          exerciseId: e.id,
                           exerciseName: e.name,
                           targetSets: 3,
                           targetReps: 10,
                           targetRpe: 8,
                           isWarmup: false,
+                          trainingMethodId: undefined,
                         }),
                       );
+                      setExpandedExerciseIndex(values.exercises.length);
                       setActiveModal(null);
                     }}
                   />
+                )}
+
+                {activeModal === 'trainingMethodPicker' && (
+                  <>
+                    <Title text="Select Training Method" />
+                    <ScrollView>
+                      {workoutMeta?.getTrainingMethods
+                        ?.slice()
+                        .sort((a: any, b: any) => a.name.localeCompare(b.name))
+                        .map((method: any) => (
+                          <OptionItem
+                            key={method.id}
+                            text={method.name}
+                            onPress={() => {
+                              if (selectedExerciseIndex !== null) {
+                                setFieldValue(
+                                  `exercises[${selectedExerciseIndex}].trainingMethodId`,
+                                  method.id,
+                                );
+                              }
+                              setActiveModal(null);
+                              setSelectedExerciseIndex(null);
+                            }}
+                          />
+                        ))}
+                    </ScrollView>
+                    <View style={{marginTop: spacing.md}}>
+                      <Button
+                        text="Close"
+                        onPress={() => setActiveModal(null)}
+                      />
+                    </View>
+                    {user &&
+                      (user.appRole === 'ADMIN' ||
+                        user.appRole === 'MODERATOR') && (
+                        <View style={{marginTop: spacing.md}}>
+                          <Button
+                            text="Manage Training Methods"
+                            onPress={() =>
+                              setActiveModal('manageTrainingMethod')
+                            }
+                          />
+                        </View>
+                      )}
+                  </>
                 )}
               </ModalWrapper>
             </>

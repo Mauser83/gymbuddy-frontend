@@ -53,3 +53,39 @@ export const GET_EXERCISES_BASIC = gql`
     }
   }
 `;
+
+export const GET_WORKOUT_PLAN_BY_ID = gql`
+  query GetWorkoutPlanById($id: Int!) {
+    workoutPlanById(id: $id) {
+      id
+      name
+      workoutType {
+        id
+        name
+        categories {
+          id
+          name
+        }
+      }
+      muscleGroups {
+        id
+        name
+      }
+      exercises {
+        id
+        targetSets
+        targetReps
+        targetRpe
+        isWarmup
+        trainingMethod {
+          id
+          name
+        }
+        exercise {
+          id
+          name
+        }
+      }
+    }
+  }
+`;

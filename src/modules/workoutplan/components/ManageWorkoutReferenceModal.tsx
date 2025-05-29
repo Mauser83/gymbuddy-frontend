@@ -23,6 +23,7 @@ import {
 } from '../graphql/workoutReferences';
 import {useMutation} from '@apollo/client';
 import type {MuscleGroup} from './EditMuscleGroupModal';
+import { spacing } from 'shared/theme/tokens';
 
 interface ReferenceItem {
   id: number;
@@ -155,6 +156,14 @@ export default function ManageWorkoutReferenceModal({
       });
 
       await refetch();
+
+      // ✅ Reset the state after successful update
+      setExpandedId(null);
+      setEdits(prev => {
+        const updated = {...prev};
+        delete updated[id];
+        return updated;
+      });
     } catch (err) {
       console.error('Update error:', err);
     }
@@ -192,39 +201,50 @@ export default function ManageWorkoutReferenceModal({
           setEdits(prev => ({...prev, [item.id]: item.name}));
         },
         content: isExpanded ? (
-          <>
-            {item.bodyParts && item.bodyParts.length > 0 && (
-              <ClickableList
-                items={item.bodyParts
-                  .slice()
-                  .sort((a, b) => a.name.localeCompare(b.name))
-                  .map(bp => ({
-                    id: bp.id,
-                    label: bp.name,
-                    rightElement: false,
-                  }))}
-              />
-            )}
-
-            <ButtonRow>
-              <Button
-                text="Edit"
-                fullWidth
-                onPress={() =>
-                  onEditMuscleGroup?.({
-                    id: item.id,
-                    name: item.name,
-                    bodyParts: item.bodyParts ?? [],
-                  })
+          <View style={{gap: spacing.sm}}>
+            {' '}
+            {/* ensures vertical stacking */}
+            {/* Only show editable input for non-muscleGroup modes */}
+            {mode !== 'muscleGroup' && (
+              <FormInput
+                label="Edit Name"
+                value={currentEditValue}
+                onChangeText={text =>
+                  setEdits(prev => ({...prev, [item.id]: text}))
                 }
               />
+            )}
+            <ButtonRow>
+              {mode === 'muscleGroup' ? (
+                <Button
+                  text="Edit"
+                  fullWidth
+                  onPress={() =>
+                    onEditMuscleGroup?.({
+                      id: item.id,
+                      name: item.name,
+                      bodyParts: item.bodyParts ?? [],
+                    })
+                  }
+                />
+              ) : (
+                <Button
+                  text="Update"
+                  fullWidth
+                  onPress={() => handleUpdate(item.id, currentEditValue)}
+                  disabled={
+                    currentEditValue.trim() === '' ||
+                    currentEditValue === item.name
+                  }
+                />
+              )}
               <Button
                 text="Delete"
                 fullWidth
                 onPress={() => handleDelete(item.id)}
               />
             </ButtonRow>
-          </>
+          </View>
         ) : undefined,
       };
     });

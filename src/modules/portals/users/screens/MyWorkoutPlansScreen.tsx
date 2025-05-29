@@ -37,7 +37,7 @@ export default function MyWorkoutPlansScreen() {
         plans.map(plan => (
           <Pressable
             key={plan.id}
-            onPress={() => navigate(`/user/my-plans/${plan.id}`)}
+            onPress={() => navigate(`/user/view-plan/${plan.id}`)}
             style={{marginTop: spacing.md}}>
             <Card title={plan.name} text={plan.description} showChevron />
           </Pressable>
