@@ -14,6 +14,7 @@ interface ButtonProps {
   iconPosition?: 'left' | 'right';
   disabled?: boolean;
   fullWidth?: boolean;
+  small?: boolean; // ✅ NEW
 }
 
 const Button = ({
@@ -24,7 +25,8 @@ const Button = ({
   icon,
   iconPosition = 'left',
   disabled,
-  fullWidth
+  fullWidth,
+  small,
 }: ButtonProps) => {
   const {theme, componentStyles} = useTheme();
   const buttonVariant = variant ?? theme.components.button.variant;
@@ -57,15 +59,35 @@ const Button = ({
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         activeOpacity={disabled ? 1 : 0.8}
-        style={[base.wrapper, fullWidth && base.fullWidth, disabled && base.disabled]}>
+        style={[
+          small ? base.smallWrapper : base.wrapper,
+          fullWidth && base.fullWidth,
+          disabled && base.disabled,
+        ]}>
         <LinearGradient
           colors={
             disabled
               ? [theme.colors.disabledSurface, theme.colors.disabledSurface]
               : [theme.colors.accentStart, theme.colors.accentEnd]
           }
-          style={base.gradient}>
-          {content}
+          style={small ? base.smallGradient : base.gradient}>
+          <View style={styles.content}>
+            {icon && iconPosition === 'left' && (
+              <View style={styles.icon}>{icon}</View>
+            )}
+            <Text
+              style={[
+                styles.text,
+                small && base.smallText,
+                {color: theme.colors.buttonText},
+                disabled && styles.disabledText,
+              ]}>
+              {text}
+            </Text>
+            {icon && iconPosition === 'right' && (
+              <View style={styles.icon}>{icon}</View>
+            )}
+          </View>
         </LinearGradient>
       </TouchableOpacity>
     );
@@ -79,8 +101,18 @@ const Button = ({
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         activeOpacity={disabled ? 1 : 0.8}
-        style={[base.outlineWrapper, fullWidth && base.fullWidth, disabled && base.disabled]}>
-        <Text style={[base.outlineText, disabled && base.disabledText]}>
+        style={[
+          base.outlineWrapper,
+          small && base.smallWrapper,
+          fullWidth && base.fullWidth,
+          disabled && base.disabled,
+        ]}>
+        <Text
+          style={[
+            base.outlineText,
+            small && base.smallText,
+            disabled && base.disabledText,
+          ]}>
           {text}
         </Text>
       </TouchableOpacity>
@@ -95,7 +127,8 @@ const Button = ({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       style={[
-        base.wrapper, fullWidth && base.fullWidth,
+        small ? base.smallWrapper : base.wrapper,
+        fullWidth && base.fullWidth,
         {
           backgroundColor: disabled
             ? theme.colors.disabledSurface
@@ -107,7 +140,23 @@ const Button = ({
           elevation: 4,
         },
       ]}>
-      {content}
+      <View style={styles.content}>
+        {icon && iconPosition === 'left' && (
+          <View style={styles.icon}>{icon}</View>
+        )}
+        <Text
+          style={[
+            styles.text,
+            small && base.smallText,
+            {color: theme.colors.buttonText},
+            disabled && styles.disabledText,
+          ]}>
+          {text}
+        </Text>
+        {icon && iconPosition === 'right' && (
+          <View style={styles.icon}>{icon}</View>
+        )}
+      </View>
     </TouchableOpacity>
   );
 };
@@ -158,8 +207,25 @@ const base = StyleSheet.create({
     opacity: 0.6,
   },
   fullWidth: {
-    flex: 1
-  }
+    flex: 1,
+  },
+  smallWrapper: {
+    borderRadius: 999,
+    alignSelf: 'flex-start',
+    overflow: 'hidden',
+  },
+  smallGradient: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  smallText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
 });
 
 export default Button;

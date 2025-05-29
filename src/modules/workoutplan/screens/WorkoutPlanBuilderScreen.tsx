@@ -1,5 +1,5 @@
 import React, {useState, useRef} from 'react';
-import {View, ScrollView, Alert} from 'react-native';
+import {View, ScrollView, Alert, Text} from 'react-native';
 import {Formik, FieldArray} from 'formik';
 import * as Yup from 'yup';
 import ScreenLayout from 'shared/components/ScreenLayout';
@@ -25,6 +25,9 @@ import {GET_EXERCISES_BASIC} from '../graphql/workoutMeta.graphql';
 import SelectExerciseModal from '../components/SelectExerciseModal';
 import {useAuth} from 'modules/auth/context/AuthContext';
 import {spacing} from 'shared/theme/tokens';
+import {useTheme} from 'shared/theme/ThemeProvider';
+import FontAwesome from '@expo/vector-icons/FontAwesome5';
+import IconButton from 'shared/components/IconButton';
 
 type ActiveModal =
   | null
@@ -44,7 +47,6 @@ type Exercise = {
   targetSets: number;
   targetReps: number;
   targetRpe: number;
-  isWarmup: boolean;
 };
 
 type FormValues = {
@@ -63,11 +65,9 @@ const validationSchema = Yup.object().shape({
   exercises: Yup.array()
     .of(
       Yup.object().shape({
-        exerciseName: Yup.string().required('Exercise name required'),
         targetSets: Yup.number().min(1).required('Sets required'),
         targetReps: Yup.number().min(1).required('Reps required'),
         targetRpe: Yup.number().min(0).max(10).required('RPE required'),
-        isWarmup: Yup.boolean().required(),
       }),
     )
     .min(1, 'Add at least one exercise'),
@@ -75,6 +75,7 @@ const validationSchema = Yup.object().shape({
 
 export default function WorkoutPlanBuilderScreen() {
   const {user} = useAuth();
+  const {theme} = useTheme();
   const {data: workoutMeta, refetch} = useQuery(GET_WORKOUT_PLAN_META);
   const [updateCategoryTypes] = useMutation(ASSIGN_WORKOUT_TYPES_TO_CATEGORY);
   const [updateMuscleGroup] = useMutation(UPDATE_MUSCLE_GROUP);
@@ -85,6 +86,8 @@ export default function WorkoutPlanBuilderScreen() {
   const [selectedTypeIds, setSelectedTypeIds] = useState<number[]>([]);
   const [editMuscleGroupTarget, setEditMuscleGroupTarget] =
     useState<MuscleGroup | null>(null);
+
+  const [reorderMode, setReorderMode] = useState(false);
 
   const pushRef = useRef<(item: any) => void>(() => {});
 
@@ -212,62 +215,122 @@ export default function WorkoutPlanBuilderScreen() {
               </Card>
 
               <Card title="Exercises">
+                <View style={{marginBottom: spacing.md}}>
+                  <Button
+                    text={reorderMode ? 'Done Reordering' : 'Edit Order'}
+                    onPress={() => setReorderMode(prev => !prev)}
+                  />
+                </View>
                 <FieldArray name="exercises">
-                  {({push}) => {
-                    pushRef.current = push; // Capture push for use outside FieldArray
+                  {({push, move}) => {
+                    pushRef.current = push;
 
                     return (
                       <>
                         {values.exercises.map((exercise, idx) => (
-                          <View key={idx} style={{marginBottom: 16}}>
-                            <FormInput
-                              label={
-                                `Exercise #${idx + 1}` +
-                                (exercise.isWarmup ? ' (Warmup)' : '')
-                              }
-                              value={exercise.exerciseName}
-                              onChangeText={text =>
-                                setFieldValue(
-                                  `exercises[${idx}].exerciseName`,
-                                  text,
-                                )
-                              }
-                            />
-                            <FormInput
-                              label="Sets"
-                              value={String(exercise.targetSets)}
-                              onChangeText={text =>
-                                setFieldValue(
-                                  `exercises[${idx}].targetSets`,
-                                  parseInt(text, 10) || 0,
-                                )
-                              }
-                              keyboardType="numeric"
-                            />
-                            <FormInput
-                              label="Reps per Set"
-                              value={String(exercise.targetReps)}
-                              onChangeText={text =>
-                                setFieldValue(
-                                  `exercises[${idx}].targetReps`,
-                                  parseInt(text, 10) || 0,
-                                )
-                              }
-                              keyboardType="numeric"
-                            />
-                            <FormInput
-                              label="Target RPE"
-                              value={String(exercise.targetRpe)}
-                              onChangeText={text =>
-                                setFieldValue(
-                                  `exercises[${idx}].targetRpe`,
-                                  parseFloat(text) || 0,
-                                )
-                              }
-                              keyboardType="numeric"
-                            />
+                          <View
+                            key={idx}
+                            style={{
+                              marginBottom: spacing.md,
+                              padding: spacing.sm,
+                              borderRadius: 8,
+                              borderWidth: 1,
+                              borderColor: theme.colors.accentStart,
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                            }}>
+                            {/* Collapsed summary */}
+                            {reorderMode ? (
+                              <>
+                                <View style={{flexDirection: 'column'}}>
+                                  <Text
+                                    style={{color: theme.colors.textPrimary}}>
+                                    {exercise.exerciseName}
+                                  </Text>
+                                  <Text
+                                    style={{color: theme.colors.textSecondary}}>
+                                    {exercise.targetSets} x{' '}
+                                    {exercise.targetReps} RPE{' '}
+                                    {exercise.targetRpe}
+                                  </Text>
+                                </View>
+                                <View style={{flexDirection: 'row'}}>
+                                  <IconButton
+                                    icon={
+                                      <FontAwesome
+                                        name="arrow-alt-circle-up"
+                                        style={{
+                                          fontSize: 32,
+                                          color: theme.colors.textPrimary,
+                                        }}
+                                      />
+                                    }
+                                    size="small"
+                                    onPress={() => move(idx, idx - 1)}
+                                    disabled={idx === 0}
+                                  />
+                                  <IconButton
+                                    icon={
+                                      <FontAwesome
+                                        name="arrow-alt-circle-down"
+                                        style={{
+                                          fontSize: 32,
+                                          color: theme.colors.textPrimary,
+                                        }}
+                                      />
+                                    }
+                                    size="small"
+                                    onPress={() => move(idx, idx + 1)}
+                                    disabled={
+                                      idx === values.exercises.length - 1
+                                    }
+                                  />
+                                </View>
+                              </>
+                            ) : (
+                              <View style={{flex: 1}}>
+                                <Title
+                                  text={`#${idx + 1} ${exercise.exerciseName}`} align="left"
+                                />
+                                <FormInput
+                                  label="Sets"
+                                  value={String(exercise.targetSets)}
+                                  onChangeText={text =>
+                                    setFieldValue(
+                                      `exercises[${idx}].targetSets`,
+                                      parseInt(text, 10) || 0,
+                                    )
+                                  }
+                                  keyboardType="numeric"
+                                />
+                                <FormInput
+                                  label="Reps per Set"
+                                  value={String(exercise.targetReps)}
+                                  onChangeText={text =>
+                                    setFieldValue(
+                                      `exercises[${idx}].targetReps`,
+                                      parseInt(text, 10) || 0,
+                                    )
+                                  }
+                                  keyboardType="numeric"
+                                />
+                                <FormInput
+                                  label="Target RPE"
+                                  value={String(exercise.targetRpe)}
+                                  onChangeText={text =>
+                                    setFieldValue(
+                                      `exercises[${idx}].targetRpe`,
+                                      parseFloat(text) || 0,
+                                    )
+                                  }
+                                  keyboardType="numeric"
+                                />
+                              </View>
+                            )}
                           </View>
                         ))}
+
                         <Button
                           text="Add Exercise"
                           onPress={() => setActiveModal('selectExercise')}

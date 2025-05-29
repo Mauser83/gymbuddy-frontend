@@ -4,12 +4,16 @@ import Title from 'shared/components/Title';
 import OptionItem from 'shared/components/OptionItem';
 import Button from 'shared/components/Button';
 import ButtonRow from 'shared/components/ButtonRow';
-import { spacing } from 'shared/theme/tokens';
+import {spacing} from 'shared/theme/tokens';
+import SearchInput from 'shared/components/SearchInput';
+import NoResults from 'shared/components/NoResults';
 
 type Exercise = {
   id: number;
   name: string;
-  primaryMuscles: {bodyPartId: number}[];
+  primaryMuscles: {
+    bodyPart?: {name: string};
+  }[];
 };
 
 type SelectableExercise = {
@@ -29,6 +33,17 @@ export default function SelectExerciseModal({
   filteredExercises,
 }: Props) {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [search, setSearch] = useState('');
+
+  const lowerSearch = search.toLowerCase().trim();
+
+  const searchFiltered = filteredExercises.filter(ex => {
+    const nameMatch = ex.name.toLowerCase().includes(lowerSearch);
+    const bodyPartMatch = ex.primaryMuscles?.some(m =>
+      m.bodyPart?.name?.toLowerCase().includes(lowerSearch),
+    );
+    return nameMatch || bodyPartMatch;
+  });
 
   const toggleSelect = (id: number) => {
     setSelectedIds(prev =>
@@ -51,8 +66,15 @@ export default function SelectExerciseModal({
   return (
     <>
       <Title text="Select Exercises" />
+      <SearchInput
+        value={search}
+        onChange={setSearch}
+        placeholder="Search exercises or body parts"
+        onClear={() => setSearch("")}
+      />
       <ScrollView style={{maxHeight: 500}}>
-        {filteredExercises.map(ex => {
+        {searchFiltered.length > 0 ? 
+        searchFiltered.map(ex => {
           const selected = selectedIds.includes(ex.id);
           return (
             <OptionItem
@@ -62,19 +84,18 @@ export default function SelectExerciseModal({
               onPress={() => toggleSelect(ex.id)}
             />
           );
-        })}
+        }) : <NoResults message="No exercises found"/>}
       </ScrollView>
-                          <View style={{marginTop: spacing.md}}>
-      
-      <ButtonRow>
-        <Button text="Cancel" fullWidth onPress={onClose} />
-        <Button
-          text="Add"
-          fullWidth
-          onPress={handleConfirm}
-          disabled={selectedIds.length === 0}
-        />
-      </ButtonRow>
+      <View style={{marginTop: spacing.md}}>
+        <ButtonRow>
+          <Button text="Cancel" fullWidth onPress={onClose} />
+          <Button
+            text="Add"
+            fullWidth
+            onPress={handleConfirm}
+            disabled={selectedIds.length === 0}
+          />
+        </ButtonRow>
       </View>
     </>
   );

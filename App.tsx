@@ -68,7 +68,7 @@ const App = () => {
     <AuthProvider>
       <CustomThemeProvider>
         <NativeRouter>
-          <AppContent />
+            <AppContent />
         </NativeRouter>
       </CustomThemeProvider>
     </AuthProvider>

@@ -47,6 +47,7 @@ export const GET_EXERCISES_BASIC = gql`
       primaryMuscles {
         bodyPart {
           id
+          name
         }
       }
     }
