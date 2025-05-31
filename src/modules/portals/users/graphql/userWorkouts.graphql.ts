@@ -102,6 +102,15 @@ export const GET_WORKOUT_SESSION = gql`
       workoutPlan {
         id
         name
+        exercises {
+          exercise {
+            id
+            name
+          }
+          targetSets
+          targetReps
+          targetRpe
+        }
       }
       exerciseLogs {
         id

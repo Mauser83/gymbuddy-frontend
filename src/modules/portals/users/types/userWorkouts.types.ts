@@ -26,5 +26,25 @@ export interface WorkoutSession {
 }
 
 export interface WorkoutSessionData {
-  workoutSessionById: WorkoutSession;
+  workoutSessionById: {
+    id: number;
+    gym: {
+      id: number;
+      name: string;
+    } | null;
+    workoutPlan: {
+      id: number;
+      name: string;
+      exercises: {
+        exercise: {
+          id: number;
+          name: string;
+        };
+        targetSets: number;
+        targetReps: number;
+        targetRpe?: number;
+      }[];
+    } | null;
+    exerciseLogs: ExerciseLog[];
+  };
 }

@@ -26,6 +26,8 @@ import {
 import {WorkoutSessionData, ExerciseLog} from '../types/userWorkouts.types';
 import SelectableField from 'shared/components/SelectableField'; // if not already imported
 import {useTheme} from 'shared/theme/ThemeProvider';
+import PlanTargetChecklist from '../components/PlanTargetChecklist';
+import { PlanExercise } from '../components/PlanTargetChecklist';
 
 export default function ActiveWorkoutSessionScreen() {
   const {sessionId} = useParams<{sessionId: string}>();
@@ -175,6 +177,35 @@ export default function ActiveWorkoutSessionScreen() {
     );
   });
 
+  function getNextPlannedSet(
+  planExercises: PlanExercise[],
+  exerciseLogs: ExerciseLog[],
+): {exerciseId: number; name: string; targetReps: number; targetRpe?: number; currentSetIndex: number} | null {
+  const grouped = new Map<number, ExerciseLog[]>();
+  exerciseLogs.forEach(log => {
+    const group = grouped.get(log.exerciseId) || [];
+    group.push(log);
+    grouped.set(log.exerciseId, group);
+  });
+
+  for (const ex of planExercises) {
+    const logs = grouped.get(ex.exerciseId) || [];
+    const nextSetIndex = logs.length;
+
+    if (nextSetIndex < ex.targetSets) {
+      return {
+        exerciseId: ex.exerciseId,
+        name: ex.name,
+        targetReps: ex.targetReps,
+        targetRpe: ex.targetRpe,
+        currentSetIndex: nextSetIndex,
+      };
+    }
+  }
+
+  return null; // plan fully completed
+}
+
   return (
     <ScreenLayout scroll>
       <View style={{gap: 16}}>
@@ -252,6 +283,18 @@ export default function ActiveWorkoutSessionScreen() {
 
             return (
               <>
+                {session?.workoutPlan?.exercises && (
+                  <PlanTargetChecklist
+                    planExercises={session.workoutPlan.exercises.map(ex => ({
+                      exerciseId: ex.exercise.id,
+                      name: ex.exercise.name,
+                      targetSets: ex.targetSets,
+                      targetReps: ex.targetReps,
+                      targetRpe: ex.targetRpe,
+                    }))}
+                    exerciseLogs={logs}
+                  />
+                )}
                 {groupedLogs.map(group => (
                   <Card key={group.exerciseId} style={{marginBottom: 16}}>
                     <Title text={`${group.name}`} />
