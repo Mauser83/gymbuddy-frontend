@@ -1,5 +1,5 @@
 import React, {useMemo, useState, useEffect} from 'react';
-import {View} from 'react-native';
+import {View, Text} from 'react-native';
 import {useParams, useNavigate} from 'react-router-native';
 import {useQuery, useMutation} from '@apollo/client';
 import {Formik} from 'formik';
@@ -24,10 +24,10 @@ import {
   DELETE_WORKOUT_SESSION,
 } from '../graphql/userWorkouts.graphql';
 import {WorkoutSessionData, ExerciseLog} from '../types/userWorkouts.types';
-import SelectableField from 'shared/components/SelectableField'; // if not already imported
+import SelectableField from 'shared/components/SelectableField';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import PlanTargetChecklist from '../components/PlanTargetChecklist';
-import { PlanExercise } from '../components/PlanTargetChecklist';
+import {PlanExercise} from '../components/PlanTargetChecklist';
 
 export default function ActiveWorkoutSessionScreen() {
   const {sessionId} = useParams<{sessionId: string}>();
@@ -42,6 +42,9 @@ export default function ActiveWorkoutSessionScreen() {
   const [expandedSetId, setExpandedSetId] = useState<number | null>(null);
   const [defaultSelectedEquipmentIds, setDefaultSelectedEquipmentIds] =
     useState<number[]>([]);
+  const [nextSetPlacement, setNextSetPlacement] = useState<
+    'addSet' | 'addExercise' | null
+  >(null);
 
   const {data} = useQuery<WorkoutSessionData>(GET_WORKOUT_SESSION, {
     variables: {id: Number(sessionId)},
@@ -84,24 +87,20 @@ export default function ActiveWorkoutSessionScreen() {
         name?: string;
       }
     >();
-
     for (const log of logs) {
       const group = grouped.get(log.exerciseId) ?? {
         exerciseId: log.exerciseId,
         logs: [],
         equipmentIds: new Set<number>(),
       };
-
       log.equipmentIds?.forEach(id => group.equipmentIds.add(id));
       group.logs.push(log);
       grouped.set(log.exerciseId, group);
     }
-
     return Array.from(grouped.values()).map(group => {
       const exercise = exercisesData?.exercisesAvailableAtGym.find(
         (ex: any) => ex.id === group.exerciseId,
       );
-
       return {
         ...group,
         name: exercise?.name ?? `Exercise #${group.exerciseId}`,
@@ -125,86 +124,67 @@ export default function ActiveWorkoutSessionScreen() {
     return values;
   }, [logs]);
 
-  const validationSchema = Yup.object(
-    Object.fromEntries(
-      Object.entries(initialValues).map(([logId]) => [
-        logId,
-        Yup.object({
-          reps: Yup.number()
-            .typeError('Reps must be a number')
-            .required('Reps are required'),
-          weight: Yup.number()
-            .typeError('Weight must be a number')
-            .required('Weight is required'),
-          rpe: Yup.number()
-            .typeError('RPE must be a number between 0 and 10')
-            .min(0, 'RPE must be at least 0')
-            .max(10, 'RPE must be 10 or less')
-            .nullable(),
-          notes: Yup.string().nullable(),
-          equipmentIds: Yup.array()
-            .of(Yup.number())
-            .min(1, 'At least one equipment must be selected'),
-        }),
-      ]),
-    ),
-  );
-
-  const availableEquipment = (equipmentData?.gymEquipmentByGymId ?? []).map(
-    (entry: any) => ({
-      id: entry.id,
-      name: entry.equipment.name,
-      subcategoryId: entry.equipment.subcategory.id,
-    }),
-  );
-
-  const allEquipment = equipmentData?.gymEquipmentByGymId ?? [];
-
-  const usedExerciseIds = new Set(logs.map(log => log.exerciseId));
-
-  const availableExercises = (
-    exercisesData?.exercisesAvailableAtGym ?? []
-  ).filter((exercise: any) => {
-    if (usedExerciseIds.has(exercise.id)) return false;
-
-    const requiredSubcategories =
-      exercise.equipmentSlots?.flatMap(
-        (slot: any) =>
-          slot.options?.map((opt: any) => opt.subcategory.id) ?? [],
-      ) ?? [];
-    return requiredSubcategories.some((subId: number) =>
-      availableEquipment.some((eq: any) => eq.subcategoryId === subId),
-    );
-  });
-
-  function getNextPlannedSet(
-  planExercises: PlanExercise[],
-  exerciseLogs: ExerciseLog[],
-): {exerciseId: number; name: string; targetReps: number; targetRpe?: number; currentSetIndex: number} | null {
-  const grouped = new Map<number, ExerciseLog[]>();
-  exerciseLogs.forEach(log => {
-    const group = grouped.get(log.exerciseId) || [];
-    group.push(log);
-    grouped.set(log.exerciseId, group);
-  });
-
-  for (const ex of planExercises) {
-    const logs = grouped.get(ex.exerciseId) || [];
-    const nextSetIndex = logs.length;
-
-    if (nextSetIndex < ex.targetSets) {
-      return {
-        exerciseId: ex.exerciseId,
-        name: ex.name,
+  const nextSet = useMemo(() => {
+    const planExercises =
+      session?.workoutPlan?.exercises.map(ex => ({
+        exerciseId: ex.exercise.id,
+        name: ex.exercise.name,
+        targetSets: ex.targetSets,
         targetReps: ex.targetReps,
         targetRpe: ex.targetRpe,
-        currentSetIndex: nextSetIndex,
-      };
-    }
-  }
+      })) ?? [];
 
-  return null; // plan fully completed
-}
+    const grouped = new Map<number, ExerciseLog[]>();
+    logs.forEach(log => {
+      const group = grouped.get(log.exerciseId) || [];
+      group.push(log);
+      grouped.set(log.exerciseId, group);
+    });
+
+    for (const ex of planExercises) {
+      const logsForExercise = grouped.get(ex.exerciseId) || [];
+      const nextSetIndex = logsForExercise.length;
+
+      if (nextSetIndex < ex.targetSets) {
+        const isInUI = groupedLogs.some(g => g.exerciseId === ex.exerciseId);
+        setNextSetPlacement(isInUI ? 'addSet' : 'addExercise');
+
+        return {
+          exerciseId: ex.exerciseId,
+          name: ex.name,
+          targetReps: ex.targetReps,
+          targetRpe: ex.targetRpe,
+          currentSetIndex: nextSetIndex,
+        };
+      }
+    }
+
+    setNextSetPlacement(null);
+    return null;
+  }, [session, logs, groupedLogs]);
+
+  const availableExercises = useMemo(() => {
+    if (!exercisesData || !equipmentData || !session?.gym?.id) return [];
+
+    const allEquipment = equipmentData.gymEquipmentByGymId ?? [];
+    const usedExerciseIds = new Set(logs.map(log => log.exerciseId));
+
+    return (exercisesData.exercisesAvailableAtGym ?? []).filter(
+      (exercise: any) => {
+        if (usedExerciseIds.has(exercise.id)) return false;
+
+        const requiredSubcategories =
+          exercise.equipmentSlots?.flatMap(
+            (slot: any) =>
+              slot.options?.map((opt: any) => opt.subcategory.id) ?? [],
+          ) ?? [];
+
+        return requiredSubcategories.some((subId: number) =>
+          allEquipment.some((eq: any) => eq.equipment.subcategory.id === subId),
+        );
+      },
+    );
+  }, [logs, exercisesData, equipmentData, session]);
 
   return (
     <ScreenLayout scroll>
@@ -212,23 +192,54 @@ export default function ActiveWorkoutSessionScreen() {
         {session && (
           <Card
             title={`Active Workout in ${session.gym?.name ?? 'Unknown Gym'}`}
-            text={
-              session.workoutPlan?.name
-                ? `${session.workoutPlan.name}`
-                : undefined
-            }
+            text={session.workoutPlan?.name ?? undefined}
+          />
+        )}
+
+        {session?.workoutPlan?.exercises && (
+          <PlanTargetChecklist
+            planExercises={session.workoutPlan.exercises.map(ex => ({
+              exerciseId: ex.exercise.id,
+              name: ex.exercise.name,
+              targetSets: ex.targetSets,
+              targetReps: ex.targetReps,
+              targetRpe: ex.targetRpe,
+            }))}
+            exerciseLogs={logs}
           />
         )}
         <Formik
           initialValues={initialValues}
-          validationSchema={validationSchema}
+          validationSchema={Yup.object(
+            Object.fromEntries(
+              Object.entries(initialValues).map(([logId]) => [
+                logId,
+                Yup.object({
+                  reps: Yup.number()
+                    .typeError('Reps must be a number')
+                    .required('Reps are required'),
+                  weight: Yup.number()
+                    .typeError('Weight must be a number')
+                    .required('Weight is required'),
+                  rpe: Yup.number()
+                    .typeError('RPE must be a number between 0 and 10')
+                    .min(0, 'RPE must be at least 0')
+                    .max(10, 'RPE must be 10 or less')
+                    .nullable(),
+                  notes: Yup.string().nullable(),
+                  equipmentIds: Yup.array()
+                    .of(Yup.number())
+                    .min(1, 'At least one equipment must be selected'),
+                }),
+              ]),
+            ),
+          )}
           enableReinitialize
           onSubmit={values => console.log('Submit logs:', values)}>
           {({
             values,
             handleChange,
             handleBlur,
-            handleSubmit,
             errors,
             touched,
             validateForm,
@@ -236,14 +247,11 @@ export default function ActiveWorkoutSessionScreen() {
           }) => {
             const saveExpandedSetIfValid = async (): Promise<boolean> => {
               if (!expandedSetId) return true;
-
               const allErrors = await validateForm();
               const setErrors = allErrors[expandedSetId];
-
               if (!setErrors || Object.keys(setErrors).length === 0) {
                 const log = logs.find(l => l.id === expandedSetId);
                 if (!log) return false;
-
                 const input: any = {
                   setNumber: Number(log.setNumber),
                   reps: Number(values[expandedSetId]?.reps),
@@ -254,17 +262,13 @@ export default function ActiveWorkoutSessionScreen() {
                   notes: values[expandedSetId]?.notes ?? '',
                   equipmentIds: values[expandedSetId]?.equipmentIds ?? [],
                 };
-
                 const {data} = await updateExerciseLog({
                   variables: {id: log.id, input},
                 });
-
                 const saved = data.updateExerciseLog;
-
                 setLogs(prev =>
                   prev.map(l => (l.id === expandedSetId ? {...saved} : l)),
                 );
-
                 return true;
               } else {
                 setTouched({
@@ -283,40 +287,28 @@ export default function ActiveWorkoutSessionScreen() {
 
             return (
               <>
-                {session?.workoutPlan?.exercises && (
-                  <PlanTargetChecklist
-                    planExercises={session.workoutPlan.exercises.map(ex => ({
-                      exerciseId: ex.exercise.id,
-                      name: ex.exercise.name,
-                      targetSets: ex.targetSets,
-                      targetReps: ex.targetReps,
-                      targetRpe: ex.targetRpe,
-                    }))}
-                    exerciseLogs={logs}
-                  />
-                )}
                 {groupedLogs.map(group => (
                   <Card key={group.exerciseId} style={{marginBottom: 16}}>
-                    <Title text={`${group.name}`} />
+                    <Title text={group.name} />
                     {group.logs.map(log => {
                       const isExpanded = expandedSetId === log.id;
-                      const summary = `Set ${log.setNumber}: ${log.weight ?? 0}kg x ${log.reps ?? 0}${
-                        log.rpe ? ` (RPE ${log.rpe})` : ''
-                      }`;
+                      const summary = `Set ${log.setNumber}: ${log.weight ?? 0}kg x ${log.reps ?? 0}${log.rpe ? ` (RPE ${log.rpe})` : ''}`;
 
                       return (
                         <View key={log.id} style={{marginTop: 8}}>
                           <View
                             style={
-                              isExpanded && {
-                                borderWidth: 2,
-                                borderColor: theme.colors.accentStart,
-                                borderRadius: 12,
-                                margin: -8,
-                                marginBottom: 8,
-                              }
+                              isExpanded
+                                ? {
+                                    borderWidth: 2,
+                                    borderColor: theme.colors.accentStart,
+                                    borderRadius: 12,
+                                    margin: -8,
+                                    marginBottom: 8,
+                                  }
+                                : undefined
                             }>
-                            <View style={isExpanded && {padding: 8}}>
+                            <View style={isExpanded ? {padding: 8} : undefined}>
                               <SelectableField
                                 value={
                                   isExpanded
@@ -328,7 +320,7 @@ export default function ActiveWorkoutSessionScreen() {
                                   if (expandedSetId) {
                                     const didSave =
                                       await saveExpandedSetIfValid();
-                                    if (!didSave) return; // block switch if validation fails
+                                    if (!didSave) return;
                                   }
                                   setExpandedSetId(prev =>
                                     prev === log.id ? null : log.id,
@@ -348,9 +340,10 @@ export default function ActiveWorkoutSessionScreen() {
                                         label="Equipment"
                                         value={(log.equipmentIds ?? [])
                                           .map((id: number) => {
-                                            const match = allEquipment.find(
-                                              (entry: any) => entry.id === id,
-                                            );
+                                            const match =
+                                              equipmentData?.gymEquipmentByGymId.find(
+                                                (entry: any) => entry.id === id,
+                                              );
                                             return (
                                               match?.equipment?.name ?? `#${id}`
                                             );
@@ -360,10 +353,12 @@ export default function ActiveWorkoutSessionScreen() {
                                     </View>
                                     <View
                                       style={
-                                        log.equipmentIds.length > 1 && {
-                                          alignSelf: 'flex-end',
-                                          marginBottom: 12,
-                                        }
+                                        log.equipmentIds.length > 1
+                                          ? {
+                                              alignSelf: 'flex-end',
+                                              marginBottom: 12,
+                                            }
+                                          : undefined
                                       }>
                                       <Button
                                         text="Edit"
@@ -374,7 +369,6 @@ export default function ActiveWorkoutSessionScreen() {
                                                 ex.id === log.exerciseId,
                                             );
                                           if (!exercise) return;
-
                                           setSelectedExercise(exercise);
                                           setEditingLogId(log.id);
                                           setDefaultSelectedEquipmentIds(
@@ -435,12 +429,9 @@ export default function ActiveWorkoutSessionScreen() {
                                   <Button
                                     text="Delete Set"
                                     onPress={async () => {
-                                      if (typeof log.id === 'number') {
-                                        await deleteExerciseLog({
-                                          variables: {id: log.id},
-                                        });
-                                      }
-
+                                      await deleteExerciseLog({
+                                        variables: {id: log.id},
+                                      });
                                       setLogs(prev =>
                                         prev.filter(l => l.id !== log.id),
                                       );
@@ -454,7 +445,19 @@ export default function ActiveWorkoutSessionScreen() {
                         </View>
                       );
                     })}
-
+                    {nextSet &&
+                      nextSetPlacement === 'addSet' &&
+                      nextSet.exerciseId === group.exerciseId && (
+                        <Text
+                          style={{
+                            color: theme.colors.accentStart,
+                            marginTop: 8,
+                          }}>
+                          Next: Set {nextSet.currentSetIndex + 1} —{' '}
+                          {nextSet.targetReps} reps @ RPE{' '}
+                          {nextSet.targetRpe ?? '?'}
+                        </Text>
+                      )}
                     <Button
                       text="Add Set"
                       onPress={async () => {
@@ -479,7 +482,6 @@ export default function ActiveWorkoutSessionScreen() {
                         });
 
                         const savedLog = data.createExerciseLog;
-
                         setLogs(prev => [...prev, savedLog]);
                         setExpandedSetId(savedLog.id);
                       }}
@@ -487,13 +489,21 @@ export default function ActiveWorkoutSessionScreen() {
                   </Card>
                 ))}
 
-                <Button
-                  text="Add Exercise"
-                  onPress={async () => {
-                    const didSave = await saveExpandedSetIfValid();
-                    if (didSave) setExercisePickerVisible(true);
-                  }}
-                />
+                <Card>
+                  {nextSetPlacement === 'addExercise' && nextSet && (
+                    <Text style={{color: theme.colors.accentStart}}>
+                      Next: {nextSet.name} — Set {nextSet.currentSetIndex + 1}:{' '}
+                      {nextSet.targetReps} reps @ RPE {nextSet.targetRpe ?? '?'}
+                    </Text>
+                  )}
+                  <Button
+                    text="Add Exercise"
+                    onPress={async () => {
+                      const didSave = await saveExpandedSetIfValid();
+                      if (didSave) setExercisePickerVisible(true);
+                    }}
+                  />
+                </Card>
 
                 <DividerWithLabel label="or continue with" />
 
@@ -522,7 +532,6 @@ export default function ActiveWorkoutSessionScreen() {
                           input: {endedAt: new Date().toISOString()},
                         },
                       });
-
                       navigate('/user');
                     } catch (err) {
                       console.error('Failed to finish workout:', err);
@@ -559,7 +568,13 @@ export default function ActiveWorkoutSessionScreen() {
             };
           }) ?? []
         }
-        equipment={availableEquipment}
+        equipment={(equipmentData?.gymEquipmentByGymId ?? []).map(
+          (entry: any) => ({
+            id: entry.id,
+            name: entry.equipment.name,
+            subcategoryId: entry.equipment.subcategory.id,
+          }),
+        )}
         defaultSelectedEquipmentIds={defaultSelectedEquipmentIds}
         onClose={() => {
           setSelectedExercise(null);
@@ -590,11 +605,12 @@ export default function ActiveWorkoutSessionScreen() {
             const {data} = await createExerciseLog({
               variables: {input: baseLog},
             });
-            const savedLog = data.createExerciseLog;
 
+            const savedLog = data.createExerciseLog;
             setLogs(prev => [...prev, savedLog]);
             setExpandedSetId(savedLog.id);
           }
+
           setSelectedExercise(null);
           setEquipmentPickerVisible(false);
         }}

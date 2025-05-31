@@ -42,14 +42,6 @@ export default function PlanTargetChecklist({
     groupedLogs.set(log.exerciseId, [...current, log]);
   });
 
-  const isCompleted = (exerciseId: number, targetSets: number) => {
-    return (groupedLogs.get(exerciseId)?.length || 0) >= targetSets;
-  };
-
-  const firstIncomplete = planExercises.find(
-    ex => !isCompleted(ex.exerciseId, ex.targetSets),
-  );
-
   return (
     <Portal>
       {!expanded && (
@@ -93,7 +85,7 @@ export default function PlanTargetChecklist({
               const currentSetIndex = countBefore; // 0-based index of this set for this exercise
               const isLogged = currentSetIndex < setsLogged;
               return (
-                <View key={ex.exerciseId} style={styles.exerciseItem}>
+                <View key={`e${ex.exerciseId}i${idx}`} style={styles.exerciseItem}>
                   <Text style={styles.name}>{`${idx + 1}. ${ex.name}`}</Text>
                   {isLogged ? (
                     <Text style={{color: 'green'}}>✅ Completed</Text>
