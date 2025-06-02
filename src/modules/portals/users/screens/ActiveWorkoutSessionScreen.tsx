@@ -450,12 +450,16 @@ export default function ActiveWorkoutSessionScreen() {
                       nextSet.exerciseId === group.exerciseId && (
                         <Text
                           style={{
-                            color: theme.colors.accentStart,
                             marginTop: 8,
+                            marginBottom: 12,
                           }}>
-                          Next: Set {nextSet.currentSetIndex + 1} —{' '}
-                          {nextSet.targetReps} reps @ RPE{' '}
-                          {nextSet.targetRpe ?? '?'}
+                          <Text style={{color: theme.colors.textPrimary}}>
+                            Next: Set {nextSet.currentSetIndex + 1}:{' '}
+                          </Text>
+                          <Text style={{color: theme.colors.accentStart}}>
+                            {nextSet.targetReps} reps @ RPE{' '}
+                            {nextSet.targetRpe ?? '?'}
+                          </Text>
                         </Text>
                       )}
                     <Button
@@ -491,10 +495,31 @@ export default function ActiveWorkoutSessionScreen() {
 
                 <Card>
                   {nextSetPlacement === 'addExercise' && nextSet && (
-                    <Text style={{color: theme.colors.accentStart}}>
-                      Next: {nextSet.name} — Set {nextSet.currentSetIndex + 1}:{' '}
-                      {nextSet.targetReps} reps @ RPE {nextSet.targetRpe ?? '?'}
-                    </Text>
+                    <>
+                      <Text
+                        style={{
+                          marginBottom: 12,
+                        }}>
+                        <Text style={{color: theme.colors.textPrimary}}>
+                          Next:{' '}
+                        </Text>
+                        <Text style={{color: theme.colors.accentStart}}>
+                          {nextSet.name}
+                        </Text>
+                      </Text>
+                      <Text
+                        style={{
+                          marginBottom: 12,
+                        }}>
+                        <Text style={{color: theme.colors.textPrimary}}>
+                          Set {nextSet.currentSetIndex + 1}:{' '}
+                        </Text>
+                        <Text style={{color: theme.colors.accentStart}}>
+                          {nextSet.targetReps} reps @ RPE{' '}
+                          {nextSet.targetRpe ?? '?'}
+                        </Text>
+                      </Text>
+                    </>
                   )}
                   <Button
                     text="Add Exercise"

@@ -9,6 +9,7 @@ import Button from 'shared/components/Button';
 import LoadingState from 'shared/components/LoadingState';
 import ErrorMessage from 'shared/components/ErrorMessage';
 import {GET_WORKOUT_PLAN_BY_ID} from '../graphql/workoutMeta.graphql';
+import DetailField from 'shared/components/DetailField';
 
 export default function WorkoutPlanViewScreen() {
   const {id} = useParams();
@@ -28,21 +29,23 @@ export default function WorkoutPlanViewScreen() {
 
   return (
     <ScreenLayout scroll>
-      <Title text={plan.name} subtitle="Your Workout Plan" />
+      <Card title={plan.name} text="Your Workout Plan" />
 
-      <Card title="Details">
-        <Text>Category: {plan.workoutType.categories?.name}</Text>
-        <Text>Type: {plan.workoutType.name}</Text>
-        <Text>
-          Muscle Groups: {plan.muscleGroups.map((g: any) => g.name).join(', ')}
-        </Text>
+      <Card>
+        <Title text="Details" subtitle={plan.workoutType.categories?.name} />
+        <DetailField label="Type" value={plan.workoutType.name} />
+        <DetailField
+          label="Muscle Groups:"
+          value={plan.muscleGroups.map((g: any) => g.name).join(', ')}
+        />
       </Card>
 
-      <Card title="Exercises">
+      <Card>
+        <Title text="Exercises"/>
+
         {plan.exercises.map((ex: any, idx: number) => (
           <View key={idx} style={{marginBottom: 12}}>
-            <Text>{`#${idx + 1} ${ex.exercise.name}`}</Text>
-            <Text>{`${ex.targetSets} sets x ${ex.targetReps} reps @ RPE ${ex.targetRpe}`}</Text>
+            <DetailField label={`#${idx + 1} ${ex.exercise.name}`} value={`${ex.targetReps} reps @ RPE ${ex.targetRpe}`} />
           </View>
         ))}
       </Card>

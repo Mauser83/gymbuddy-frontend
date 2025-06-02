@@ -120,8 +120,6 @@ export default function WorkoutPlanBuilderScreen() {
   const rawPlan = location.state?.initialPlan;
   const initialPlan = rawPlan ? convertPlanToInitialValues(rawPlan) : undefined;
 
-  console.log(initialPlan);
-
   const pushRef = useRef<(item: any) => void>(() => {});
 
   function getSelectedBodyPartIds(
