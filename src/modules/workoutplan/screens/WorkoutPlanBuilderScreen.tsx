@@ -19,7 +19,7 @@ import {
   ASSIGN_WORKOUT_TYPES_TO_CATEGORY,
   UPDATE_MUSCLE_GROUP,
   CREATE_WORKOUT_PLAN,
-  UPDATE_WORKOUT_PLAN
+  UPDATE_WORKOUT_PLAN,
 } from '../graphql/workoutReferences';
 import {MuscleGroup} from '../components/EditMuscleGroupModal';
 import EditMuscleGroupModal from '../components/EditMuscleGroupModal';
@@ -54,6 +54,15 @@ type FormValues = {
   workoutTypeId: number;
   muscleGroupIds: number[];
   exercises: Exercise[];
+};
+
+type MuscleGroupMeta = {
+  id: number;
+  name: string;
+  bodyParts: {
+    id: number;
+    name: string;
+  }[];
 };
 
 const validationSchema = Yup.object().shape({
@@ -99,6 +108,27 @@ export default function WorkoutPlanBuilderScreen() {
   >(null);
 
   function convertPlanToInitialValues(plan: any): FormValues {
+    const isFromSession = plan.isFromSession;
+
+    if (isFromSession) {
+      return {
+        name: plan.name,
+        workoutCategoryId: 0, // Let user pick
+        workoutTypeId: 0,
+        muscleGroupIds: [],
+        exercises: plan.exercises.map((ex: any) => ({
+          exerciseId: ex.exerciseId,
+          exerciseName: ex.exerciseName,
+          targetSets: ex.targetSets,
+          targetReps: ex.targetReps,
+          targetRpe: ex.targetRpe,
+          trainingMethodId: null,
+          isWarmup: false,
+        })),
+      };
+    }
+
+    // Standard plan editing flow
     return {
       name: plan.name,
       workoutCategoryId: plan.workoutType.categories?.[0]?.id ?? 0,
@@ -149,6 +179,22 @@ export default function WorkoutPlanBuilderScreen() {
     );
   }
 
+  const isFromSession = rawPlan?.isFromSession;
+  const bodyPartIds = rawPlan?.bodyPartIds ?? [];
+
+  const autoDetectedMuscleGroupIds =
+    workoutMeta?.getMuscleGroups
+      ?.filter((group: MuscleGroupMeta) =>
+        group.bodyParts.some((bp: any) => bodyPartIds.includes(bp.id)),
+      )
+      .map((group: MuscleGroupMeta) => group.id) ?? [];
+
+  if (isFromSession && initialPlan && initialPlan.muscleGroupIds.length === 0) {
+    initialPlan.muscleGroupIds = autoDetectedMuscleGroupIds;
+  }
+
+  const isEdit = !!initialPlan && !isFromSession;
+
   return (
     <ScreenLayout scroll>
       <Title
@@ -161,6 +207,7 @@ export default function WorkoutPlanBuilderScreen() {
       />
 
       <Formik<FormValues>
+        enableReinitialize
         initialValues={
           initialPlan ?? {
             name: '',
@@ -188,19 +235,19 @@ export default function WorkoutPlanBuilderScreen() {
           };
 
           try {
-            const result = initialPlan
+            const result = isEdit
               ? await updateWorkoutPlan({
                   variables: {id: rawPlan.id, input: transformedInput},
                 })
               : await createWorkoutPlan({variables: {input: transformedInput}});
 
             console.log(
-              `✅ ${initialPlan ? 'Updated' : 'Saved'} Workout Plan:`,
+              `✅ Workout Plan ${isEdit ? 'Updated' : 'Created'}:`,
               result,
             );
             Alert.alert(
-              `Workout Plan ${initialPlan ? 'Updated' : 'Saved'}!`,
-              `Plan successfully ${initialPlan ? 'updated' : 'submitted'}.`,
+              `Workout Plan ${isEdit ? 'Updated' : 'Created'}!`,
+              `Plan successfully ${isEdit ? 'updated' : 'created'}.`,
             );
             navigate('/user/my-plans');
           } catch (error) {
@@ -283,6 +330,12 @@ export default function WorkoutPlanBuilderScreen() {
                   onPress={() => setActiveModal('muscleGroupPicker')}
                   disabled={!values.workoutTypeId}
                 />
+                {isFromSession && values.muscleGroupIds.length > 0 && (
+                  <Text style={{marginTop: 4, color: theme.colors.accentStart}}>
+                    Muscle groups auto-selected based on your session. You can
+                    adjust them.
+                  </Text>
+                )}
               </Card>
 
               <Card title="Exercises">
@@ -501,7 +554,7 @@ export default function WorkoutPlanBuilderScreen() {
               </Card>
 
               <Button
-                text={initialPlan ? 'Update Plan' : 'Save Plan'}
+                text={isEdit ? 'Update Plan' : 'Save Plan'}
                 onPress={handleSubmit as any}
               />
 

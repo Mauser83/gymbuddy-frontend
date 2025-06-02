@@ -139,7 +139,10 @@ export const GET_BODY_PARTS_MINIMAL = gql`
 `;
 
 export const ASSIGN_WORKOUT_TYPES_TO_CATEGORY = gql`
-  mutation AssignWorkoutTypesToCategory($categoryId: Int!, $input: UpdateWorkoutCategoryInput!) {
+  mutation AssignWorkoutTypesToCategory(
+    $categoryId: Int!
+    $input: UpdateWorkoutCategoryInput!
+  ) {
     updateWorkoutCategory(id: $categoryId, input: $input) {
       id
       name
@@ -168,5 +171,11 @@ export const UPDATE_WORKOUT_PLAN = gql`
       id
       name
     }
+  }
+`;
+
+export const DELETE_WORKOUT_PLAN = gql`
+  mutation DeleteWorkoutPlan($id: Int!) {
+    deleteWorkoutPlan(id: $id)
   }
 `;

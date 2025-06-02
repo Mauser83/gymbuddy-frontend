@@ -47,6 +47,10 @@ export default function UserDashboardScreen() {
           <Card title="Progress" showChevron />
         </Pressable>
 
+        <Pressable onPress={() => navigate('/workout-session')}>
+          <Card title="Workout History" showChevron />
+        </Pressable>
+
         <Pressable onPress={() => navigate('/user/exercise-library')}>
           <Card title="Browse Exercises" showChevron />
         </Pressable>

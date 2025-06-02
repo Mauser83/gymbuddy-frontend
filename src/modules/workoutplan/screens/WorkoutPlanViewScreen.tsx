@@ -10,6 +10,9 @@ import LoadingState from 'shared/components/LoadingState';
 import ErrorMessage from 'shared/components/ErrorMessage';
 import {GET_WORKOUT_PLAN_BY_ID} from '../graphql/workoutMeta.graphql';
 import DetailField from 'shared/components/DetailField';
+import {useMutation} from '@apollo/client';
+import {DELETE_WORKOUT_PLAN} from '../graphql/workoutReferences';
+import ButtonRow from 'shared/components/ButtonRow';
 
 export default function WorkoutPlanViewScreen() {
   const {id} = useParams();
@@ -19,6 +22,16 @@ export default function WorkoutPlanViewScreen() {
     variables: {id: Number(id)},
     fetchPolicy: 'network-only',
   });
+  const [deleteWorkoutPlan] = useMutation(DELETE_WORKOUT_PLAN);
+
+  const handleDelete = async () => {
+    try {
+      await deleteWorkoutPlan({variables: {id: Number(id)}});
+      navigate('/user/my-plans');
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   if (loading) return <LoadingState text="Loading workout plan..." />;
   if (error || !data?.workoutPlanById) {
@@ -41,21 +54,28 @@ export default function WorkoutPlanViewScreen() {
       </Card>
 
       <Card>
-        <Title text="Exercises"/>
+        <Title text="Exercises" />
 
         {plan.exercises.map((ex: any, idx: number) => (
           <View key={idx} style={{marginBottom: 12}}>
-            <DetailField label={`#${idx + 1} ${ex.exercise.name}`} value={`${ex.targetReps} reps @ RPE ${ex.targetRpe}`} />
+            <DetailField
+              label={`#${idx + 1} ${ex.exercise.name}`}
+              value={`${ex.targetReps} reps @ RPE ${ex.targetRpe}`}
+            />
           </View>
         ))}
       </Card>
 
-      <Button
-        text="Edit Plan"
-        onPress={() =>
-          navigate('/user/edit-plan', {state: {initialPlan: plan}})
-        }
-      />
+      <ButtonRow>
+        <Button
+          text="Edit Plan"
+          onPress={() =>
+            navigate('/user/edit-plan', {state: {initialPlan: plan}})
+          }
+          fullWidth
+        />
+        <Button text="Delete Plan" onPress={handleDelete} fullWidth />
+      </ButtonRow>
     </ScreenLayout>
   );
 }

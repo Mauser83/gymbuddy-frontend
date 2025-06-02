@@ -201,3 +201,62 @@ export const GET_FILTER_OPTIONS = gql`
     }
   }
 `;
+
+export const GET_WORKOUT_SESSIONS_BY_USER = gql`
+  query GetWorkoutSessionsByUser($userId: Int!) {
+    workoutSessionsByUser(userId: $userId) {
+      id
+      startedAt
+      endedAt
+      notes
+      workoutPlan {
+        id
+        name
+      }
+      gym {
+        id
+        name
+      }
+    }
+  }
+`;
+
+export const GET_WORKOUT_SESSION_DETAIL = gql`
+  query GetWorkoutSession($id: Int!) {
+    workoutSessionById(id: $id) {
+      id
+      startedAt
+      endedAt
+      notes
+      gym {
+        id
+        name
+      }
+      workoutPlan {
+        id
+        name
+      }
+      exerciseLogs {
+        id
+        exerciseId
+        setNumber
+        reps
+        weight
+        rpe
+        notes
+        exercise {
+          id
+          name
+          primaryMuscles {
+            id
+            name
+            bodyPart {
+              id
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+`;
