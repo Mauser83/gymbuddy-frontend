@@ -9,22 +9,16 @@ import Button from 'shared/components/Button';
 import Card from 'shared/components/Card';
 import SelectableField from 'shared/components/SelectableField';
 import ToastContainer from 'shared/components/ToastContainer';
-import OptionItem from 'shared/components/OptionItem';
 import ModalWrapper from 'shared/components/ModalWrapper';
 import {GET_WORKOUT_PLAN_META} from '../graphql/workoutMeta.graphql';
 import {useQuery, useMutation} from '@apollo/client';
-import ManageWorkoutReferenceModal from '../components/ManageWorkoutReferenceModal';
-import AssignWorkoutTypesToCategoryModal from '../components/AssignWorkoutTypesToCategoryModal';
 import {
-  ASSIGN_WORKOUT_TYPES_TO_CATEGORY,
   UPDATE_MUSCLE_GROUP,
   CREATE_WORKOUT_PLAN,
   UPDATE_WORKOUT_PLAN,
 } from '../graphql/workoutReferences';
 import {MuscleGroup} from '../components/EditMuscleGroupModal';
-import EditMuscleGroupModal from '../components/EditMuscleGroupModal';
 import {GET_EXERCISES_BASIC} from '../graphql/workoutMeta.graphql';
-import SelectExerciseModal from '../components/SelectExerciseModal';
 import {useAuth} from 'modules/auth/context/AuthContext';
 import {spacing} from 'shared/theme/tokens';
 import {useTheme} from 'shared/theme/ThemeProvider';
@@ -33,25 +27,39 @@ import IconButton from 'shared/components/IconButton';
 import {useNavigate} from 'react-router-native';
 import {Exercise} from '../types/workoutplan.types';
 import {useLocation} from 'react-router-native';
+import {IntensityPreset} from '../components/ManageIntensityPresetsModal';
+
+// 🧩 Modular modals
+import EditMuscleGroupModal from '../components/EditMuscleGroupModal';
+import SelectExerciseModal from '../components/SelectExerciseModal';
+import TrainingGoalPickerModal from '../components/TrainingGoalPickerModal';
+import DifficultyPickerModal from '../components/DifficultyPickerModal';
+import ManageIntensityPresetsModal from '../components/ManageIntensityPresetsModal';
+import ManageTrainingGoalModal from '../components/ManageTrainingGoalModal';
+import ManageMuscleGroupModal from '../components/ManageMuscleGroupModal';
+import ManageTrainingMethodModal from '../components/ManageTrainingMethodModal';
+import MuscleGroupPickerModal from '../components/MuscleGroupPickerModal';
+import TrainingMethodPicker from '../components/TrainingMethodPicker';
 
 type ActiveModal =
   | null
-  | 'categoryPicker'
-  | 'typePicker'
+  | 'trainingGoalPicker'
+  | 'manageTrainingGoal'
+  | 'difficultyPicker'
+  | 'manageIntensityPresets'
+  | 'selectPresetTrainingGoal'
+  | 'selectPresetExperienceLevel'
   | 'muscleGroupPicker'
-  | 'assignWorkoutTypes'
-  | 'manageWorkoutCategory'
-  | 'manageWorkoutType'
   | 'manageMuscleGroup'
-  | 'manageTrainingMethod'
   | 'editMuscleGroup'
   | 'selectExercise'
-  | 'trainingMethodPicker';
+  | 'trainingMethodPicker'
+  | 'manageTrainingMethod';
 
 type FormValues = {
   name: string;
-  workoutCategoryId: number;
-  workoutTypeId: number;
+  trainingGoalId: number;
+  experienceLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   muscleGroupIds: number[];
   exercises: Exercise[];
 };
@@ -67,8 +75,7 @@ type MuscleGroupMeta = {
 
 const validationSchema = Yup.object().shape({
   name: Yup.string().required('Plan name is required'),
-  workoutCategoryId: Yup.number().required('Workout category is required'),
-  workoutTypeId: Yup.number().required('Workout type is required'),
+  trainingGoalId: Yup.number().required('Training goal is required'),
   muscleGroupIds: Yup.array().of(Yup.number()),
   exercises: Yup.array()
     .of(
@@ -86,7 +93,6 @@ export default function WorkoutPlanBuilderScreen() {
   const {theme} = useTheme();
   const navigate = useNavigate();
   const {data: workoutMeta, refetch} = useQuery(GET_WORKOUT_PLAN_META);
-  const [updateCategoryTypes] = useMutation(ASSIGN_WORKOUT_TYPES_TO_CATEGORY);
   const [updateMuscleGroup] = useMutation(UPDATE_MUSCLE_GROUP);
   const [createWorkoutPlan] = useMutation(CREATE_WORKOUT_PLAN);
   const [updateWorkoutPlan] = useMutation(UPDATE_WORKOUT_PLAN);
@@ -107,14 +113,29 @@ export default function WorkoutPlanBuilderScreen() {
     number | null
   >(null);
 
+  const [newPreset, setNewPreset] = useState<Partial<IntensityPreset>>({
+    trainingGoalId: workoutMeta?.getTrainingGoals?.[0]?.id,
+    experienceLevel: 'BEGINNER',
+    defaultSets: 3,
+    defaultReps: 10,
+    defaultRestSec: 60,
+    defaultRpe: 8,
+  });
+
+  const [presetModalDraft, setPresetModalDraft] =
+    useState<Partial<IntensityPreset> | null>(null);
+  const [onPresetValueSelect, setOnPresetValueSelect] = useState<
+    ((value: any) => void) | null
+  >(null);
+
   function convertPlanToInitialValues(plan: any): FormValues {
+    console.log(plan);
     const isFromSession = plan.isFromSession;
 
     if (isFromSession) {
       return {
         name: plan.name,
-        workoutCategoryId: 0, // Let user pick
-        workoutTypeId: 0,
+        trainingGoalId: plan.trainingGoal?.id,
         muscleGroupIds: [],
         exercises: plan.exercises.map((ex: any) => ({
           exerciseId: ex.exerciseId,
@@ -131,8 +152,7 @@ export default function WorkoutPlanBuilderScreen() {
     // Standard plan editing flow
     return {
       name: plan.name,
-      workoutCategoryId: plan.workoutType.categories?.[0]?.id ?? 0,
-      workoutTypeId: plan.workoutType.id,
+      trainingGoalId: plan.trainingGoal?.id,
       muscleGroupIds: plan.muscleGroups.map((mg: any) => mg.id),
       exercises: plan.exercises.map((ex: any) => ({
         exerciseId: ex.exercise.id,
@@ -211,8 +231,7 @@ export default function WorkoutPlanBuilderScreen() {
         initialValues={
           initialPlan ?? {
             name: '',
-            workoutCategoryId: 0,
-            workoutTypeId: 0,
+            trainingGoalId: 0,
             muscleGroupIds: [],
             exercises: [],
           }
@@ -221,8 +240,8 @@ export default function WorkoutPlanBuilderScreen() {
         onSubmit={async values => {
           const transformedInput = {
             name: values.name,
-            workoutTypeId: values.workoutTypeId,
-            muscleGroupIds: values.muscleGroupIds,
+            trainingGoalId: values.trainingGoalId,
+            muscleGroupIds: values.muscleGroupIds, // ✅ add this
             exercises: values.exercises.map((ex, index) => ({
               exerciseId: ex.exerciseId,
               order: index,
@@ -264,21 +283,6 @@ export default function WorkoutPlanBuilderScreen() {
           handleSubmit,
           setFieldValue,
         }) => {
-          const getReferenceItems = (mode: ActiveModal) => {
-            switch (mode) {
-              case 'manageWorkoutType':
-                return workoutMeta.getWorkoutTypes;
-              case 'manageMuscleGroup':
-                return workoutMeta.getMuscleGroups;
-              case 'manageWorkoutCategory':
-                return workoutMeta.getWorkoutCategories;
-              case 'manageTrainingMethod':
-                return workoutMeta.getTrainingMethods;
-              default:
-                return [];
-            }
-          };
-
           const selectedBodyPartIds = getSelectedBodyPartIds(
             values.muscleGroupIds,
             workoutMeta?.getMuscleGroups ?? [],
@@ -300,25 +304,18 @@ export default function WorkoutPlanBuilderScreen() {
                   error={touched.name && errors.name ? errors.name : undefined}
                 />
                 <SelectableField
-                  label="Workout Category"
+                  label="Training Goal"
                   value={
-                    workoutMeta?.getWorkoutCategories?.find(
-                      (cat: any) => cat.id === values.workoutCategoryId,
-                    )?.name || 'Select Workout Category'
+                    workoutMeta?.getTrainingGoals?.find(
+                      (goal: any) => goal.id === values.trainingGoalId,
+                    )?.name || 'Select Training Goal'
                   }
-                  onPress={() => setActiveModal('categoryPicker')}
+                  onPress={() => setActiveModal('trainingGoalPicker')}
                 />
                 <SelectableField
-                  label="Workout Type"
-                  value={
-                    workoutMeta?.getWorkoutCategories
-                      ?.find((c: any) => c.id === values.workoutCategoryId)
-                      ?.workoutTypes.find(
-                        (t: any) => t.id === values.workoutTypeId,
-                      )?.name || 'Select Workout Type'
-                  }
-                  onPress={() => setActiveModal('typePicker')}
-                  disabled={!values.workoutCategoryId}
+                  label="Planned Difficulty"
+                  value={values.experienceLevel || 'Select Difficulty'}
+                  onPress={() => setActiveModal('difficultyPicker')}
                 />
                 <SelectableField
                   label="Muscle Groups"
@@ -328,7 +325,7 @@ export default function WorkoutPlanBuilderScreen() {
                       : 'Select Muscle Groups'
                   }
                   onPress={() => setActiveModal('muscleGroupPicker')}
-                  disabled={!values.workoutTypeId}
+                  disabled={!values.trainingGoalId}
                 />
                 {isFromSession && values.muscleGroupIds.length > 0 && (
                   <Text style={{marginTop: 4, color: theme.colors.accentStart}}>
@@ -561,204 +558,88 @@ export default function WorkoutPlanBuilderScreen() {
               <ModalWrapper
                 visible={!!activeModal}
                 onClose={() => setActiveModal(null)}>
-                {activeModal === 'categoryPicker' && (
-                  <>
-                    <Title text="Select Workout Category" />
-                    <ScrollView>
-                      {workoutMeta?.getWorkoutCategories
-                        ?.slice()
-                        .sort((a: any, b: any) => a.name.localeCompare(b.name))
-                        .map((cat: any) => (
-                          <OptionItem
-                            key={cat.id}
-                            text={cat.name}
-                            onPress={() => {
-                              setFieldValue('workoutCategoryId', cat.id);
-                              setFieldValue('workoutTypeId', 0);
-                              setActiveModal(null);
-                            }}
-                          />
-                        ))}
-                    </ScrollView>
-                    <View style={{marginTop: spacing.md}}>
-                      <Button
-                        text="Close"
-                        onPress={() => setActiveModal(null)}
-                      />
-                    </View>
-                    {user &&
-                      (user.appRole === 'ADMIN' ||
-                        user.appRole === 'MODERATOR') && (
-                        <View style={{marginTop: spacing.md}}>
-                          <Button
-                            text="Manage Categories"
-                            onPress={() =>
-                              setActiveModal('manageWorkoutCategory')
-                            }
-                          />
-                        </View>
-                      )}
-                  </>
-                )}
-
-                {activeModal === 'typePicker' && (
-                  <>
-                    <Title text="Select Workout Type" />
-                    <ScrollView>
-                      {workoutMeta?.getWorkoutCategories
-                        ?.find((c: any) => c.id === values.workoutCategoryId)
-                        ?.workoutTypes.slice()
-                        .sort((a: any, b: any) => a.name.localeCompare(b.name))
-                        .map((type: any) => (
-                          <OptionItem
-                            key={type.id}
-                            text={type.name}
-                            onPress={() => {
-                              setFieldValue('workoutTypeId', type.id);
-                              setActiveModal(null);
-                            }}
-                          />
-                        ))}
-                    </ScrollView>
-                    <View style={{marginTop: spacing.md}}>
-                      <Button
-                        text="Close"
-                        onPress={() => setActiveModal(null)}
-                      />
-                    </View>
-                    {user &&
-                      (user.appRole === 'ADMIN' ||
-                        user.appRole === 'MODERATOR') && (
-                        <View style={{marginTop: spacing.md}}>
-                          <Button
-                            text="Assign Workout Types"
-                            onPress={() => {
-                              const currentCategory =
-                                workoutMeta?.getWorkoutCategories.find(
-                                  (cat: any) =>
-                                    cat.id === values.workoutCategoryId,
-                                );
-                              setSelectedTypeIds(
-                                currentCategory?.workoutTypes.map(
-                                  (t: any) => t.id,
-                                ) ?? [],
-                              );
-                              setActiveModal('assignWorkoutTypes');
-                            }}
-                          />
-                        </View>
-                      )}
-                  </>
-                )}
-
-                {activeModal === 'muscleGroupPicker' && (
-                  <>
-                    <Title text="Select Muscle Groups" />
-                    <ScrollView>
-                      {workoutMeta?.getMuscleGroups
-                        ?.slice()
-                        .sort((a: any, b: any) => a.name.localeCompare(b.name))
-                        .map((group: any) => {
-                          const selected = values.muscleGroupIds.includes(
-                            group.id,
-                          );
-                          return (
-                            <OptionItem
-                              key={group.id}
-                              text={group.name}
-                              selected={selected}
-                              onPress={() => {
-                                const newIds = selected
-                                  ? values.muscleGroupIds.filter(
-                                      (id: number) => id !== group.id,
-                                    )
-                                  : [...values.muscleGroupIds, group.id];
-                                setFieldValue('muscleGroupIds', newIds);
-                              }}
-                            />
-                          );
-                        })}
-                    </ScrollView>
-                    <View style={{marginTop: spacing.md}}>
-                      <Button
-                        text="Close"
-                        onPress={() => setActiveModal(null)}
-                      />
-                    </View>
-                    {user &&
-                      (user.appRole === 'ADMIN' ||
-                        user.appRole === 'MODERATOR') && (
-                        <View style={{marginTop: spacing.md}}>
-                          <Button
-                            text="Manage Muscle Groups"
-                            onPress={() => setActiveModal('manageMuscleGroup')}
-                          />
-                        </View>
-                      )}
-                  </>
-                )}
-
-                {activeModal === 'assignWorkoutTypes' && (
-                  <AssignWorkoutTypesToCategoryModal
+                {activeModal === 'trainingGoalPicker' && (
+                  <TrainingGoalPickerModal
                     visible
-                    onClose={() => setActiveModal(null)}
-                    workoutTypes={workoutMeta?.getWorkoutTypes ?? []}
-                    selectedTypeIds={selectedTypeIds}
-                    onChange={setSelectedTypeIds}
-                    onSave={async () => {
-                      await updateCategoryTypes({
-                        variables: {
-                          categoryId: values.workoutCategoryId,
-                          input: {workoutTypeIds: selectedTypeIds},
-                        },
-                      });
-                      await refetch();
+                    trainingGoals={workoutMeta?.getTrainingGoals ?? []}
+                    selectedId={values.trainingGoalId}
+                    onSelect={goalId => {
+                      setFieldValue('trainingGoalId', goalId);
                       setActiveModal(null);
                     }}
-                    onManage={() => setActiveModal('manageWorkoutType')}
+                    onManage={() => setActiveModal('manageTrainingGoal')}
+                    onClose={() => setActiveModal(null)}
                   />
                 )}
 
-                {[
-                  'manageWorkoutType',
-                  'manageMuscleGroup',
-                  'manageWorkoutCategory',
-                  'manageTrainingMethod',
-                ].includes(activeModal!) && (
-                  <ManageWorkoutReferenceModal
+                {activeModal === 'manageTrainingGoal' && (
+                  <ManageTrainingGoalModal
+                    visible // ✅ Fix here
+                    onClose={() => setActiveModal(null)}
+                    refetch={refetch}
+                    items={workoutMeta?.getTrainingGoals ?? []}
+                  />
+                )}
+
+                {activeModal === 'difficultyPicker' && (
+                  <DifficultyPickerModal
                     visible
-                    mode={
-                      (activeModal!
-                        .replace('manage', '')
-                        .charAt(0)
-                        .toLowerCase() +
-                        activeModal!.replace('manage', '').slice(1)) as any
+                    selectedLevel={values.experienceLevel ?? 'BEGINNER'}
+                    onSelect={level => {
+                      setFieldValue('experienceLevel', level);
+                      setActiveModal(null);
+                    }}
+                    onManage={() => setActiveModal('manageIntensityPresets')}
+                    onClose={() => setActiveModal(null)}
+                  />
+                )}
+
+                {activeModal === 'manageIntensityPresets' && (
+                  <ManageIntensityPresetsModal
+                    visible
+                    newPreset={newPreset}
+                    setNewPreset={setNewPreset}
+                    presets={workoutMeta?.getIntensityPresets ?? []}
+                    trainingGoals={workoutMeta?.getTrainingGoals ?? []}
+                    refetch={refetch}
+                    onClose={() => setActiveModal(null)}
+                    onOpenTrainingGoalPicker={(draft, callback) => {
+                      setPresetModalDraft(draft);
+                      setOnPresetValueSelect(() => (value: any) => {
+                        callback(value);
+                      });
+                      setActiveModal('selectPresetTrainingGoal');
+                    }}
+                    onOpenExperienceLevelPicker={(draft, callback) => {
+                      setPresetModalDraft(draft);
+                      setOnPresetValueSelect(() => (value: any) => {
+                        callback(value);
+                      });
+                      setActiveModal('selectPresetExperienceLevel');
+                    }}
+                  />
+                )}
+
+                {activeModal === 'muscleGroupPicker' && (
+                  <MuscleGroupPickerModal
+                    muscleGroups={workoutMeta?.getMuscleGroups ?? []}
+                    selectedIds={values.muscleGroupIds}
+                    onChange={(ids: number[]) =>
+                      setFieldValue('muscleGroupIds', ids)
                     }
                     onClose={() => setActiveModal(null)}
-                    items={getReferenceItems(activeModal)}
+                    bodyPartOptions={workoutMeta?.allBodyParts ?? []}
+                    onRefetch={refetch}
+                  />
+                )}
+
+                {activeModal === 'manageMuscleGroup' && (
+                  <ManageMuscleGroupModal
+                    visible // ✅ Fix here
+                    onClose={() => setActiveModal(null)}
+                    items={workoutMeta?.getMuscleGroups ?? []}
                     refetch={refetch}
-                    categoryId={
-                      activeModal === 'manageWorkoutType'
-                        ? values.workoutCategoryId
-                        : undefined
-                    }
-                    categoryTypeIds={
-                      activeModal === 'manageWorkoutType'
-                        ? (workoutMeta?.getWorkoutCategories
-                            ?.find(
-                              (cat: any) => cat.id === values.workoutCategoryId,
-                            )
-                            ?.workoutTypes.map((t: any) => t.id) ?? [])
-                        : []
-                    }
-                    bodyPartOptions={
-                      activeModal === 'manageMuscleGroup'
-                        ? workoutMeta?.allBodyParts?.map(({id, name}: any) => ({
-                            id,
-                            name,
-                          }))
-                        : undefined
-                    }
+                    bodyPartOptions={workoutMeta?.allBodyParts ?? []}
                     onEditMuscleGroup={muscleGroup => {
                       setEditMuscleGroupTarget(muscleGroup);
                       setActiveModal('editMuscleGroup');
@@ -793,6 +674,39 @@ export default function WorkoutPlanBuilderScreen() {
                   />
                 )}
 
+                {activeModal === 'trainingMethodPicker' && (
+                  <TrainingMethodPicker
+                    selectedId={
+                      selectedExerciseIndex !== null
+                        ? (values.exercises[selectedExerciseIndex]
+                            ?.trainingMethodId ?? null)
+                        : null
+                    }
+                    trainingMethods={workoutMeta?.getTrainingMethods ?? []}
+                    onSelect={id => {
+                      if (selectedExerciseIndex !== null) {
+                        setFieldValue(
+                          `exercises[${selectedExerciseIndex}].trainingMethodId`,
+                          id,
+                        );
+                      }
+                      setActiveModal(null);
+                      setSelectedExerciseIndex(null);
+                    }}
+                    onManage={() => setActiveModal('manageTrainingMethod')}
+                    onClose={() => setActiveModal(null)}
+                  />
+                )}
+
+                {activeModal === 'manageTrainingMethod' && (
+                  <ManageTrainingMethodModal
+                    visible={true}
+                    onClose={() => setActiveModal(null)}
+                    methods={workoutMeta?.getTrainingMethods ?? []}
+                    refetch={refetch}
+                  />
+                )}
+
                 {activeModal === 'selectExercise' && (
                   <SelectExerciseModal
                     onClose={() => setActiveModal(null)}
@@ -815,49 +729,31 @@ export default function WorkoutPlanBuilderScreen() {
                   />
                 )}
 
-                {activeModal === 'trainingMethodPicker' && (
-                  <>
-                    <Title text="Select Training Method" />
-                    <ScrollView>
-                      {workoutMeta?.getTrainingMethods
-                        ?.slice()
-                        .sort((a: any, b: any) => a.name.localeCompare(b.name))
-                        .map((method: any) => (
-                          <OptionItem
-                            key={method.id}
-                            text={method.name}
-                            onPress={() => {
-                              if (selectedExerciseIndex !== null) {
-                                setFieldValue(
-                                  `exercises[${selectedExerciseIndex}].trainingMethodId`,
-                                  method.id,
-                                );
-                              }
-                              setActiveModal(null);
-                              setSelectedExerciseIndex(null);
-                            }}
-                          />
-                        ))}
-                    </ScrollView>
-                    <View style={{marginTop: spacing.md}}>
-                      <Button
-                        text="Close"
-                        onPress={() => setActiveModal(null)}
-                      />
-                    </View>
-                    {user &&
-                      (user.appRole === 'ADMIN' ||
-                        user.appRole === 'MODERATOR') && (
-                        <View style={{marginTop: spacing.md}}>
-                          <Button
-                            text="Manage Training Methods"
-                            onPress={() =>
-                              setActiveModal('manageTrainingMethod')
-                            }
-                          />
-                        </View>
-                      )}
-                  </>
+                {activeModal === 'selectPresetTrainingGoal' && (
+                  <TrainingGoalPickerModal
+                    visible
+                    trainingGoals={workoutMeta?.getTrainingGoals ?? []}
+                    selectedId={presetModalDraft?.trainingGoalId}
+                    onSelect={id => {
+                      onPresetValueSelect?.(id);
+                      setActiveModal('manageIntensityPresets');
+                    }}
+                    onClose={() => setActiveModal('manageIntensityPresets')}
+                  />
+                )}
+
+                {activeModal === 'selectPresetExperienceLevel' && (
+                  <DifficultyPickerModal
+                    visible
+                    selectedLevel={
+                      presetModalDraft?.experienceLevel || 'BEGINNER'
+                    }
+                    onSelect={level => {
+                      onPresetValueSelect?.(level);
+                      setActiveModal('manageIntensityPresets');
+                    }}
+                    onClose={() => setActiveModal('manageIntensityPresets')}
+                  />
                 )}
               </ModalWrapper>
             </>

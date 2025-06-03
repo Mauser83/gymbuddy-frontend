@@ -39,14 +39,22 @@ export default function WorkoutPlanViewScreen() {
   }
 
   const plan = data.workoutPlanById;
+  console.log(plan);
 
   return (
     <ScreenLayout scroll>
       <Card title={plan.name} text="Your Workout Plan" />
 
       <Card>
-        <Title text="Details" subtitle={plan.workoutType.categories?.name} />
-        <DetailField label="Type" value={plan.workoutType.name} />
+        <Title text="Details" />
+        <DetailField
+          label="Training Goal"
+          value={plan.trainingGoal?.name || '–'}
+        />
+        <DetailField
+          label="Experience Level"
+          value={plan.intensityPreset?.experienceLevel || '–'}
+        />
         <DetailField
           label="Muscle Groups:"
           value={plan.muscleGroups.map((g: any) => g.name).join(', ')}

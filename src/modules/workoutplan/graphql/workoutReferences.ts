@@ -1,40 +1,5 @@
 import {gql} from '@apollo/client';
 
-// 🏷 Workout Type
-export const CREATE_WORKOUT_TYPE = gql`
-  mutation CreateWorkoutType($input: CreateWorkoutTypeInput!) {
-    createWorkoutType(input: $input) {
-      id
-      name
-      slug
-      categories {
-        id
-        name
-      }
-    }
-  }
-`;
-
-export const UPDATE_WORKOUT_TYPE = gql`
-  mutation UpdateWorkoutType($id: Int!, $input: UpdateWorkoutTypeInput!) {
-    updateWorkoutType(id: $id, input: $input) {
-      id
-      name
-      slug
-      categories {
-        id
-        name
-      }
-    }
-  }
-`;
-
-export const DELETE_WORKOUT_TYPE = gql`
-  mutation DeleteWorkoutType($id: Int!) {
-    deleteWorkoutType(id: $id)
-  }
-`;
-
 // 💪 Muscle Group
 export const CREATE_MUSCLE_GROUP = gql`
   mutation CreateMuscleGroup($input: CreateMuscleGroupInput!) {
@@ -67,36 +32,6 @@ export const UPDATE_MUSCLE_GROUP = gql`
 export const DELETE_MUSCLE_GROUP = gql`
   mutation DeleteMuscleGroup($id: Int!) {
     deleteMuscleGroup(id: $id)
-  }
-`;
-
-// 📂 Workout Category
-export const CREATE_WORKOUT_CATEGORY = gql`
-  mutation CreateWorkoutCategory($input: CreateWorkoutCategoryInput!) {
-    createWorkoutCategory(input: $input) {
-      id
-      name
-      slug
-    }
-  }
-`;
-
-export const UPDATE_WORKOUT_CATEGORY = gql`
-  mutation UpdateWorkoutCategory(
-    $id: Int!
-    $input: UpdateWorkoutCategoryInput!
-  ) {
-    updateWorkoutCategory(id: $id, input: $input) {
-      id
-      name
-      slug
-    }
-  }
-`;
-
-export const DELETE_WORKOUT_CATEGORY = gql`
-  mutation DeleteWorkoutCategory($id: Int!) {
-    deleteWorkoutCategory(id: $id)
   }
 `;
 
@@ -138,22 +73,6 @@ export const GET_BODY_PARTS_MINIMAL = gql`
   }
 `;
 
-export const ASSIGN_WORKOUT_TYPES_TO_CATEGORY = gql`
-  mutation AssignWorkoutTypesToCategory(
-    $categoryId: Int!
-    $input: UpdateWorkoutCategoryInput!
-  ) {
-    updateWorkoutCategory(id: $categoryId, input: $input) {
-      id
-      name
-      workoutTypes {
-        id
-        name
-      }
-    }
-  }
-`;
-
 export const CREATE_WORKOUT_PLAN = gql`
   mutation CreateWorkoutPlan($input: CreateWorkoutPlanInput!) {
     createWorkoutPlan(input: $input) {
@@ -177,5 +96,65 @@ export const UPDATE_WORKOUT_PLAN = gql`
 export const DELETE_WORKOUT_PLAN = gql`
   mutation DeleteWorkoutPlan($id: Int!) {
     deleteWorkoutPlan(id: $id)
+  }
+`;
+
+export const CREATE_TRAINING_GOAL = gql`
+  mutation CreateTrainingGoal($input: TrainingGoalInput!) {
+    createTrainingGoal(input: $input) {
+      id
+      name
+      slug
+    }
+  }
+`;
+
+export const UPDATE_TRAINING_GOAL = gql`
+  mutation UpdateTrainingGoal($id: Int!, $input: TrainingGoalInput!) {
+    updateTrainingGoal(id: $id, input: $input) {
+      id
+      name
+      slug
+    }
+  }
+`;
+
+export const DELETE_TRAINING_GOAL = gql`
+  mutation DeleteTrainingGoal($id: Int!) {
+    deleteTrainingGoal(id: $id)
+  }
+`;
+
+export const CREATE_INTENSITY_PRESET = gql`
+  mutation CreateIntensityPreset($input: IntensityPresetInput!) {
+    createIntensityPreset(input: $input) {
+      id
+      trainingGoalId
+      experienceLevel
+      defaultSets
+      defaultReps
+      defaultRestSec
+      defaultRpe
+    }
+  }
+`;
+
+export const UPDATE_INTENSITY_PRESET = gql`
+  mutation UpdateIntensityPreset($id: Int!, $input: IntensityPresetInput!) {
+    updateIntensityPreset(id: $id, input: $input) {
+      id
+      trainingGoalId
+      experienceLevel
+      defaultSets
+      defaultReps
+      defaultRestSec
+      defaultRpe
+    }
+  }
+`;
+
+export const DELETE_INTENSITY_PRESET = gql`
+  mutation DeleteIntensityPreset($id: Int!) {
+    deleteIntensityPreset(id: $id)
   }
 `;

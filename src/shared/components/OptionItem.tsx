@@ -6,16 +6,24 @@ import {borderWidth, spacing} from 'shared/theme/tokens';
 interface OptionItemProps {
   text: string;
   onPress: () => void;
+  onLongPress?: () => void; // ✅ Add this line
   selected?: boolean;
 }
 
-const OptionItem = ({text, onPress, selected = false}: OptionItemProps) => {
+const OptionItem = ({
+  text,
+  onPress,
+  onLongPress,
+  selected = false,
+}: OptionItemProps) => {
   const {componentStyles, theme} = useTheme();
   const styles = componentStyles.optionItem;
 
   return (
     <TouchableOpacity
       onPress={onPress}
+      onLongPress={onLongPress} // ✅ Pass it through
+      delayLongPress={5000}
       style={[
         selected
           ? {

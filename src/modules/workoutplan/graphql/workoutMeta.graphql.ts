@@ -2,20 +2,19 @@ import {gql} from '@apollo/client';
 
 export const GET_WORKOUT_PLAN_META = gql`
   query GetWorkoutPlanMetaData {
-    getWorkoutCategories {
+    getTrainingGoals {
       id
       name
       slug
-      workoutTypes {
-        id
-        name
-        slug
-      }
     }
-    getWorkoutTypes {
+    getIntensityPresets {
       id
-      name
-      slug
+      trainingGoalId
+      experienceLevel
+      defaultSets
+      defaultReps
+      defaultRestSec
+      defaultRpe
     }
     getMuscleGroups {
       id
@@ -59,13 +58,10 @@ export const GET_WORKOUT_PLAN_BY_ID = gql`
     workoutPlanById(id: $id) {
       id
       name
-      workoutType {
+      trainingGoal {
         id
         name
-        categories {
-          id
-          name
-        }
+        slug
       }
       muscleGroups {
         id
@@ -86,6 +82,20 @@ export const GET_WORKOUT_PLAN_BY_ID = gql`
           name
         }
       }
+    }
+  }
+`;
+
+export const GET_INTENSITY_PRESETS = gql`
+  query GetIntensityPresets($trainingGoalId: Int) {
+    getIntensityPresets(trainingGoalId: $trainingGoalId) {
+      id
+      trainingGoalId
+      experienceLevel
+      defaultSets
+      defaultReps
+      defaultRestSec
+      defaultRpe
     }
   }
 `;
