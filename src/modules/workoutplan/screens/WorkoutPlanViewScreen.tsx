@@ -53,7 +53,12 @@ export default function WorkoutPlanViewScreen() {
         />
         <DetailField
           label="Experience Level"
-          value={plan.intensityPreset?.experienceLevel || '–'}
+          value={
+            plan.intensityPreset?.experienceLevel
+              ? plan.intensityPreset.experienceLevel.charAt(0) +
+                plan.intensityPreset.experienceLevel.slice(1).toLowerCase()
+              : '–'
+          }
         />
         <DetailField
           label="Muscle Groups:"

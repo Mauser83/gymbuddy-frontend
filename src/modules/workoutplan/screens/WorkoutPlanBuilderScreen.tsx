@@ -1,4 +1,4 @@
-import React, {useState, useRef} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {View, ScrollView, Alert, Text, TouchableOpacity} from 'react-native';
 import {Formik, FieldArray} from 'formik';
 import * as Yup from 'yup';
@@ -59,6 +59,7 @@ type ActiveModal =
 type FormValues = {
   name: string;
   trainingGoalId: number;
+  intensityPresetId: number;
   experienceLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   muscleGroupIds: number[];
   exercises: Exercise[];
@@ -129,13 +130,14 @@ export default function WorkoutPlanBuilderScreen() {
   >(null);
 
   function convertPlanToInitialValues(plan: any): FormValues {
-    console.log(plan);
     const isFromSession = plan.isFromSession;
 
     if (isFromSession) {
       return {
         name: plan.name,
         trainingGoalId: plan.trainingGoal?.id,
+        intensityPresetId: plan.intensityPreset?.id ?? undefined, // ✅ Add this
+        experienceLevel: plan.intensityPreset?.experienceLevel ?? undefined, // ✅ Add this
         muscleGroupIds: [],
         exercises: plan.exercises.map((ex: any) => ({
           exerciseId: ex.exerciseId,
@@ -153,6 +155,8 @@ export default function WorkoutPlanBuilderScreen() {
     return {
       name: plan.name,
       trainingGoalId: plan.trainingGoal?.id,
+      intensityPresetId: plan.intensityPreset?.id ?? undefined, // ✅ Add this
+      experienceLevel: plan.intensityPreset?.experienceLevel ?? undefined, // ✅ Add this
       muscleGroupIds: plan.muscleGroups.map((mg: any) => mg.id),
       exercises: plan.exercises.map((ex: any) => ({
         exerciseId: ex.exercise.id,
@@ -232,15 +236,29 @@ export default function WorkoutPlanBuilderScreen() {
           initialPlan ?? {
             name: '',
             trainingGoalId: 0,
+            intensityPresetId: 0,
             muscleGroupIds: [],
             exercises: [],
           }
         }
         validationSchema={validationSchema}
         onSubmit={async values => {
+          console.log(
+            'Matching preset with:',
+            values.trainingGoalId,
+            values.experienceLevel,
+          );
+          console.log('Available presets:', workoutMeta?.getIntensityPresets);
+          const matchedPreset = workoutMeta?.getIntensityPresets?.find(
+            (p: any) =>
+              p.trainingGoalId === values.trainingGoalId &&
+              p.experienceLevel === values.experienceLevel,
+          );
+          console.log(matchedPreset);
           const transformedInput = {
             name: values.name,
             trainingGoalId: values.trainingGoalId,
+            intensityPresetId: matchedPreset?.id ?? null, // ✅ assign it here
             muscleGroupIds: values.muscleGroupIds, // ✅ add this
             exercises: values.exercises.map((ex, index) => ({
               exerciseId: ex.exerciseId,
@@ -252,6 +270,7 @@ export default function WorkoutPlanBuilderScreen() {
               trainingMethodId: ex.trainingMethodId ?? null,
             })),
           };
+          console.log(transformedInput);
 
           try {
             const result = isEdit
@@ -314,7 +333,12 @@ export default function WorkoutPlanBuilderScreen() {
                 />
                 <SelectableField
                   label="Planned Difficulty"
-                  value={values.experienceLevel || 'Select Difficulty'}
+                  value={
+                    values.experienceLevel
+                      ? values.experienceLevel.charAt(0) +
+                        values.experienceLevel.slice(1).toLowerCase()
+                      : 'Select Difficulty'
+                  }
                   onPress={() => setActiveModal('difficultyPicker')}
                 />
                 <SelectableField
@@ -587,6 +611,7 @@ export default function WorkoutPlanBuilderScreen() {
                     selectedLevel={values.experienceLevel ?? 'BEGINNER'}
                     onSelect={level => {
                       setFieldValue('experienceLevel', level);
+                      console.log(level);
                       setActiveModal(null);
                     }}
                     onManage={() => setActiveModal('manageIntensityPresets')}

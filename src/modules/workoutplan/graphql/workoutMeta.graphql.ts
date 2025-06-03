@@ -10,6 +10,10 @@ export const GET_WORKOUT_PLAN_META = gql`
     getIntensityPresets {
       id
       trainingGoalId
+      trainingGoal {
+        id
+        name
+      }
       experienceLevel
       defaultSets
       defaultReps
@@ -63,6 +67,19 @@ export const GET_WORKOUT_PLAN_BY_ID = gql`
         name
         slug
       }
+      intensityPreset {
+        id
+        experienceLevel
+        defaultSets
+        defaultReps
+        defaultRestSec
+        defaultRpe
+        trainingGoalId
+        trainingGoal {
+          id
+          name
+        }
+      }
       muscleGroups {
         id
         name
@@ -91,6 +108,10 @@ export const GET_INTENSITY_PRESETS = gql`
     getIntensityPresets(trainingGoalId: $trainingGoalId) {
       id
       trainingGoalId
+      trainingGoal {
+        id
+        name
+      }
       experienceLevel
       defaultSets
       defaultReps
