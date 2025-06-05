@@ -2,8 +2,7 @@ import React from 'react';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Title from 'shared/components/Title';
 import Card from 'shared/components/Card';
-import ClickableList from 'shared/components/ClickableList';
-import {ScrollView} from 'react-native';
+import {ScrollView, TouchableOpacity} from 'react-native';
 import {useNavigate} from 'react-router-native';
 
 const AdminSystemCatalogScreen = () => {
@@ -18,54 +17,20 @@ const AdminSystemCatalogScreen = () => {
 
       <ScrollView>
         {/* Equipment Category Management */}
-        <Card>
-          <Title text="Equipment Catalog" />
-          <ClickableList
-            items={[
-              {
-                id: 'equipment-admin',
-                label: 'Manage Equipment Categories & Subcategories',
-                onPress: () => navigate('/admin/catalog/equipment'),
-              },
-            ]}
-          />
-        </Card>
+        <TouchableOpacity onPress={() => navigate('/admin/catalog/equipment')}>
+          <Card title="Equipment Catalog" showChevron />
+        </TouchableOpacity>
 
         {/* Exercise Metadata Management */}
-        <Card>
-          <Title text="Exercise Metadata" />
-          <ClickableList
-            items={[
-              {
-                id: 'exercise-admin',
-                label: 'Manage Exercise Metadata',
-                onPress: () => navigate('/admin/catalog/exercise'),
-              },
-            ]}
-          />
-        </Card>
+        <TouchableOpacity onPress={() => navigate('/admin/catalog/exercise')}>
+          <Card title="Exercise Metadata" showChevron />
+        </TouchableOpacity>
 
         {/* Workout Plan Settings */}
-        <Card>
-          <Title text="Workout Plan Settings" />
-          <ClickableList
-            items={[
-              {
-                id: 'workoutplan-admin',
-                label: 'Manage Workout Plan Settings',
-                onPress: () => navigate('/admin/catalog/workoutplan'),
-              },
-            ]}
-          />
-        </Card>
-
-        {/* Metric Management */}
-        <Card>
-          <Title text="Metrics" />
-          <ClickableList
-            items={[{id: 'metric', label: 'Manage Metrics', onPress: () => {}}]}
-          />
-        </Card>
+        <TouchableOpacity
+          onPress={() => navigate('/admin/catalog/workoutplan')}>
+          <Card title="Workout Plan Settings" showChevron />
+        </TouchableOpacity>
       </ScrollView>
     </ScreenLayout>
   );

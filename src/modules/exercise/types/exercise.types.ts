@@ -97,3 +97,18 @@ export interface UpdateExerciseInput {
     options: {subcategoryId: number}[];
   }[];
 }
+
+export interface Metric {
+  id: number;
+  name: string;
+  slug: string;
+  unit: string;
+  inputType: 'number' | 'time' | 'text';
+}
+
+export interface MetricFormState {
+  name: string;
+  slug: string;
+  unit: string;
+  inputType: 'number' | 'time' | 'text';
+}

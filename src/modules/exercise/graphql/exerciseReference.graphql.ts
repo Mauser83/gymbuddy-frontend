@@ -5,6 +5,13 @@ export const GET_REFERENCE_DATA = gql`
     allExerciseTypes {
       id
       name
+      metricIds
+      metrics {
+        id
+        name
+        unit
+        inputType
+      }
     }
     allExerciseDifficulties {
       id
@@ -31,6 +38,13 @@ export const GET_REFERENCE_DATA = gql`
         name
       }
     }
+    allMetrics {
+      id
+      name
+      slug
+      unit
+      inputType
+    }
   }
 `;
 
@@ -39,6 +53,13 @@ export const GET_EXERCISE_TYPES = gql`
     allExerciseTypes {
       id
       name
+      metricIds
+      metrics {
+        id
+        name
+        unit
+        inputType
+      }
     }
   }
 `;
@@ -178,5 +199,49 @@ export const UPDATE_MUSCLE = gql`
 export const DELETE_MUSCLE = gql`
   mutation DeleteMuscle($id: Int!) {
     deleteMuscle(id: $id)
+  }
+`;
+
+// --- Metric Queries & Mutations ---
+
+export const GET_METRICS = gql`
+  query GetMetrics {
+    allMetrics {
+      id
+      name
+      slug
+      unit
+      inputType
+    }
+  }
+`;
+
+export const CREATE_METRIC = gql`
+  mutation CreateMetric($input: CreateMetricInput!) {
+    createMetric(input: $input) {
+      id
+      name
+      slug
+      unit
+      inputType
+    }
+  }
+`;
+
+export const UPDATE_METRIC = gql`
+  mutation UpdateMetric($id: Int!, $input: UpdateMetricInput!) {
+    updateMetric(id: $id, input: $input) {
+      id
+      name
+      slug
+      unit
+      inputType
+    }
+  }
+`;
+
+export const DELETE_METRIC = gql`
+  mutation DeleteMetric($id: Int!) {
+    deleteMetric(id: $id)
   }
 `;

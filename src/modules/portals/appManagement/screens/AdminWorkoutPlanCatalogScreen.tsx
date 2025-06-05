@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {ScrollView, View} from 'react-native';
+import {ScrollView, View, TouchableOpacity} from 'react-native';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Title from 'shared/components/Title';
 import Card from 'shared/components/Card';
@@ -58,6 +58,10 @@ export interface IntensityPreset {
 
 export default function AdminWorkoutPlanCatalogScreen() {
   const {theme} = useTheme();
+  const [mode, setMode] = useState<
+    'trainingGoal' | 'preset' | 'muscleGroup' | 'trainingMethod' | null
+  >(null);
+
   const {data, refetch} = useQuery(GET_WORKOUT_PLAN_META);
 
   const [newValue, setNewValue] = useState('');
@@ -302,364 +306,460 @@ export default function AdminWorkoutPlanCatalogScreen() {
     await refetch();
   };
 
+  const catalogSections: {key: typeof mode; label: string; sublabel: string}[] =
+    [
+      {
+        key: 'trainingGoal',
+        label: 'Training Goals',
+        sublabel: 'Click to manage training goals',
+      },
+      {
+        key: 'preset',
+        label: 'Intensity Presets',
+        sublabel: 'Click to manage intensity presets',
+      },
+      {
+        key: 'muscleGroup',
+        label: 'Muscle Groups',
+        sublabel: 'Click to manage muscle groups',
+      },
+      {
+        key: 'trainingMethod',
+        label: 'Training Methods',
+        sublabel: 'Click to manage training methods',
+      },
+    ];
+
   return (
     <ScreenLayout scroll>
       <Title
         text="Manage Workout Plan Catalog"
         subtitle="Admin-only control for workout metadata"
       />
+      <View>
+        {mode === 'trainingGoal' ? (
+          <Card>
+            <TouchableOpacity onPress={() => setMode(null)}>
+              <Title text="Training Goals" />
+            </TouchableOpacity>
+            <FormInput
+              label="New Training Goal"
+              value={newValue}
+              onChangeText={setNewValue}
+            />
+            <ButtonRow>
+              <Button text="Create" fullWidth onPress={handleCreate} />
+            </ButtonRow>
+            <ClickableList
+              items={trainingGoals.map((goal: {id: number; name: string}) => {
+                const isExpanded = expandedId === goal.id;
+                const currentEditValue = edits[goal.id] ?? goal.name;
 
-      <Card>
-        <Title text="Training Goals" />
-        <FormInput
-          label="New Training Goal"
-          value={newValue}
-          onChangeText={setNewValue}
-        />
-        <ButtonRow>
-          <Button text="Create" fullWidth onPress={handleCreate} />
-        </ButtonRow>
-        <ClickableList
-          items={trainingGoals.map((goal: {id: number; name: string}) => {
-            const isExpanded = expandedId === goal.id;
-            const currentEditValue = edits[goal.id] ?? goal.name;
-
-            return {
-              id: goal.id,
-              label: goal.name,
-              selected: isExpanded,
-              rightElement: isExpanded ? (
-                <FontAwesome
-                  name="chevron-down"
-                  size={16}
-                  color={theme.colors.accentStart}
-                />
-              ) : null,
-              onPress: () => {
-                setExpandedId(prev => (prev === goal.id ? null : goal.id));
-                setEdits(prev => ({...prev, [goal.id]: goal.name}));
-              },
-              content: isExpanded ? (
-                <View style={{gap: spacing.sm}}>
-                  <FormInput
-                    label="Edit Name"
-                    value={currentEditValue}
-                    onChangeText={text =>
-                      setEdits(prev => ({...prev, [goal.id]: text}))
-                    }
-                  />
-                  <ButtonRow>
-                    <Button
-                      text="Update"
-                      fullWidth
-                      onPress={() => handleUpdate(goal.id, currentEditValue)}
-                      disabled={
-                        currentEditValue.trim() === '' ||
-                        currentEditValue === goal.name
-                      }
+                return {
+                  id: goal.id,
+                  label: goal.name,
+                  selected: isExpanded,
+                  rightElement: isExpanded ? (
+                    <FontAwesome
+                      name="chevron-down"
+                      size={16}
+                      color={theme.colors.accentStart}
                     />
-                    <Button
-                      text="Delete"
-                      fullWidth
-                      onPress={() => handleDelete(goal.id)}
-                    />
-                  </ButtonRow>
-                </View>
-              ) : undefined,
-            };
-          })}
-        />
-      </Card>
+                  ) : null,
+                  onPress: () => {
+                    setExpandedId(prev => (prev === goal.id ? null : goal.id));
+                    setEdits(prev => ({...prev, [goal.id]: goal.name}));
+                  },
+                  content: isExpanded ? (
+                    <View style={{gap: spacing.sm}}>
+                      <FormInput
+                        label="Edit Name"
+                        value={currentEditValue}
+                        onChangeText={text =>
+                          setEdits(prev => ({...prev, [goal.id]: text}))
+                        }
+                      />
+                      <ButtonRow>
+                        <Button
+                          text="Update"
+                          fullWidth
+                          onPress={() =>
+                            handleUpdate(goal.id, currentEditValue)
+                          }
+                          disabled={
+                            currentEditValue.trim() === '' ||
+                            currentEditValue === goal.name
+                          }
+                        />
+                        <Button
+                          text="Delete"
+                          fullWidth
+                          onPress={() => handleDelete(goal.id)}
+                        />
+                      </ButtonRow>
+                    </View>
+                  ) : undefined,
+                };
+              })}
+            />
+          </Card>
+        ) : (
+          <TouchableOpacity onPress={() => setMode('trainingGoal')}>
+            <Card>
+              <Title
+                text="Training Goals"
+                subtitle="Click to manage training goals"
+              />
+            </Card>
+          </TouchableOpacity>
+        )}
+      </View>
 
-      <Card>
-        <Title text="Intensity Presets" />
-        <ClickableList
-          items={presets.map(
-            (preset: {
-              id: number;
-              trainingGoalId: number;
-              experienceLevel: string;
-              defaultSets: number;
-              defaultReps: number;
-              defaultRestSec: number;
-              defaultRpe: number;
-            }) => {
-              const isExpanded = expandedPresetId === preset.id;
-              const edit = presetEdits[preset.id] || preset;
-              const goal = trainingGoals.find(
-                (g: {id: number}) => g.id === edit.trainingGoalId,
-              );
-
-              return {
-                id: preset.id,
-                label: `${goal?.name || 'Goal'} – ${edit.experienceLevel}`,
-                selected: isExpanded,
-                rightElement: isExpanded ? (
-                  <FontAwesome
-                    name="chevron-down"
-                    size={16}
-                    color={theme.colors.accentStart}
-                  />
-                ) : null,
-                onPress: () => {
-                  setExpandedPresetId(prev =>
-                    prev === preset.id ? null : preset.id,
+      <View>
+        {mode === 'preset' ? (
+          <Card>
+            <TouchableOpacity onPress={() => setMode(null)}>
+              <Title text="Intensity Presets" />
+            </TouchableOpacity>
+            <ClickableList
+              items={presets.map(
+                (preset: {
+                  id: number;
+                  trainingGoalId: number;
+                  experienceLevel: string;
+                  defaultSets: number;
+                  defaultReps: number;
+                  defaultRestSec: number;
+                  defaultRpe: number;
+                }) => {
+                  const isExpanded = expandedPresetId === preset.id;
+                  const edit = presetEdits[preset.id] || preset;
+                  const goal = trainingGoals.find(
+                    (g: {id: number}) => g.id === edit.trainingGoalId,
                   );
-                  setPresetEdits(prev => ({...prev, [preset.id]: preset}));
-                },
-                content: isExpanded ? (
-                  <View style={{gap: spacing.sm}}>
-                    <SelectableField
-                      label="Training Goal"
-                      value={goal?.name || 'Select Training Goal'}
-                      onPress={() => {
-                        setEditingPresetId(preset.id);
-                        setPickerState('trainingGoal');
-                      }}
-                    />
-                    <SelectableField
-                      label="Experience Level"
-                      value={edit.experienceLevel || 'Select Experience Level'}
-                      onPress={() => {
-                        setEditingPresetId(preset.id);
-                        setPickerState('experienceLevel');
-                      }}
-                    />
-                    <FormInput
-                      label="Sets"
-                      value={String(edit.defaultSets)}
-                      keyboardType="numeric"
-                      onChangeText={v =>
-                        setPresetEdits(p => ({
-                          ...p,
-                          [preset.id]: {...edit, defaultSets: Number(v)},
-                        }))
-                      }
-                    />
-                    <FormInput
-                      label="Reps"
-                      value={String(edit.defaultReps)}
-                      keyboardType="numeric"
-                      onChangeText={v =>
-                        setPresetEdits(p => ({
-                          ...p,
-                          [preset.id]: {...edit, defaultReps: Number(v)},
-                        }))
-                      }
-                    />
-                    <FormInput
-                      label="Rest (sec)"
-                      value={String(edit.defaultRestSec)}
-                      keyboardType="numeric"
-                      onChangeText={v =>
-                        setPresetEdits(p => ({
-                          ...p,
-                          [preset.id]: {...edit, defaultRestSec: Number(v)},
-                        }))
-                      }
-                    />
-                    <FormInput
-                      label="RPE"
-                      value={String(edit.defaultRpe)}
-                      keyboardType="numeric"
-                      onChangeText={v =>
-                        setPresetEdits(p => ({
-                          ...p,
-                          [preset.id]: {...edit, defaultRpe: Number(v)},
-                        }))
-                      }
-                    />
-                    <ButtonRow>
-                      <Button
-                        text="Update"
-                        fullWidth
-                        onPress={() => handleUpdatePreset(preset.id)}
-                      />
-                      <Button
-                        text="Delete"
-                        fullWidth
-                        onPress={() => handleDeletePreset(preset.id)}
-                      />
-                    </ButtonRow>
-                  </View>
-                ) : undefined,
-              };
-            },
-          )}
-        />
-        <DividerWithLabel label="Create New" />
-        <SelectableField
-          label="Training Goal"
-          value={
-            trainingGoals.find(
-              (g: {id: number}) => g.id === newPreset.trainingGoalId,
-            )?.name || 'Select Training Goal'
-          }
-          onPress={() => {
-            setEditingPresetId(null);
-            setPickerState('trainingGoal');
-          }}
-        />
-        <SelectableField
-          label="Experience Level"
-          value={newPreset.experienceLevel || 'Select Experience Level'}
-          onPress={() => {
-            setEditingPresetId(null);
-            setPickerState('experienceLevel');
-          }}
-        />
-        <FormInput
-          label="Default Sets"
-          value={String(newPreset.defaultSets)}
-          keyboardType="numeric"
-          onChangeText={v =>
-            setNewPreset(p => ({...p, defaultSets: Number(v)}))
-          }
-        />
-        <FormInput
-          label="Default Reps"
-          value={String(newPreset.defaultReps)}
-          keyboardType="numeric"
-          onChangeText={v =>
-            setNewPreset(p => ({...p, defaultReps: Number(v)}))
-          }
-        />
-        <FormInput
-          label="Default Rest (sec)"
-          value={String(newPreset.defaultRestSec)}
-          keyboardType="numeric"
-          onChangeText={v =>
-            setNewPreset(p => ({...p, defaultRestSec: Number(v)}))
-          }
-        />
-        <FormInput
-          label="Default RPE"
-          value={String(newPreset.defaultRpe)}
-          keyboardType="numeric"
-          onChangeText={v => setNewPreset(p => ({...p, defaultRpe: Number(v)}))}
-        />
-        <ButtonRow>
-          <Button text="Create" fullWidth onPress={handleCreatePreset} />
-        </ButtonRow>
-      </Card>
 
-      <Card>
-        <Title text="Muscle Groups" />
-        <FormInput
-          label="New Muscle Group"
-          value={newGroupValue}
-          onChangeText={setNewGroupValue}
-        />
-        <ButtonRow>
-          <Button text="Create" fullWidth onPress={handleCreateGroup} />
-        </ButtonRow>
-        <Title subtitle="Long press to edit body parts" />
-        <ClickableList
-          items={muscleGroups.map((group: MuscleGroup) => {
-            const isExpanded = expandedGroupId === group.id;
-            return {
-              id: group.id,
-              label: group.name,
-              selected: isExpanded,
-              onPress: () => {
-                setExpandedGroupId(prev =>
-                  prev === group.id ? null : group.id,
-                );
-                setGroupEdits(prev => ({...prev, [group.id]: group.name}));
-              },
-              onLongPress: () => {
-                setEditMuscleGroupTarget({
+                  return {
+                    id: preset.id,
+                    label: `${goal?.name || 'Goal'} – ${edit.experienceLevel}`,
+                    selected: isExpanded,
+                    rightElement: isExpanded ? (
+                      <FontAwesome
+                        name="chevron-down"
+                        size={16}
+                        color={theme.colors.accentStart}
+                      />
+                    ) : null,
+                    onPress: () => {
+                      setExpandedPresetId(prev =>
+                        prev === preset.id ? null : preset.id,
+                      );
+                      setPresetEdits(prev => ({...prev, [preset.id]: preset}));
+                    },
+                    content: isExpanded ? (
+                      <View style={{gap: spacing.sm}}>
+                        <SelectableField
+                          label="Training Goal"
+                          value={goal?.name || 'Select Training Goal'}
+                          onPress={() => {
+                            setEditingPresetId(preset.id);
+                            setPickerState('trainingGoal');
+                          }}
+                        />
+                        <SelectableField
+                          label="Experience Level"
+                          value={
+                            edit.experienceLevel || 'Select Experience Level'
+                          }
+                          onPress={() => {
+                            setEditingPresetId(preset.id);
+                            setPickerState('experienceLevel');
+                          }}
+                        />
+                        <FormInput
+                          label="Sets"
+                          value={String(edit.defaultSets)}
+                          keyboardType="numeric"
+                          onChangeText={v =>
+                            setPresetEdits(p => ({
+                              ...p,
+                              [preset.id]: {...edit, defaultSets: Number(v)},
+                            }))
+                          }
+                        />
+                        <FormInput
+                          label="Reps"
+                          value={String(edit.defaultReps)}
+                          keyboardType="numeric"
+                          onChangeText={v =>
+                            setPresetEdits(p => ({
+                              ...p,
+                              [preset.id]: {...edit, defaultReps: Number(v)},
+                            }))
+                          }
+                        />
+                        <FormInput
+                          label="Rest (sec)"
+                          value={String(edit.defaultRestSec)}
+                          keyboardType="numeric"
+                          onChangeText={v =>
+                            setPresetEdits(p => ({
+                              ...p,
+                              [preset.id]: {...edit, defaultRestSec: Number(v)},
+                            }))
+                          }
+                        />
+                        <FormInput
+                          label="RPE"
+                          value={String(edit.defaultRpe)}
+                          keyboardType="numeric"
+                          onChangeText={v =>
+                            setPresetEdits(p => ({
+                              ...p,
+                              [preset.id]: {...edit, defaultRpe: Number(v)},
+                            }))
+                          }
+                        />
+                        <ButtonRow>
+                          <Button
+                            text="Update"
+                            fullWidth
+                            onPress={() => handleUpdatePreset(preset.id)}
+                          />
+                          <Button
+                            text="Delete"
+                            fullWidth
+                            onPress={() => handleDeletePreset(preset.id)}
+                          />
+                        </ButtonRow>
+                      </View>
+                    ) : undefined,
+                  };
+                },
+              )}
+            />
+            <DividerWithLabel label="Create New" />
+            <SelectableField
+              label="Training Goal"
+              value={
+                trainingGoals.find(
+                  (g: {id: number}) => g.id === newPreset.trainingGoalId,
+                )?.name || 'Select Training Goal'
+              }
+              onPress={() => {
+                setEditingPresetId(null);
+                setPickerState('trainingGoal');
+              }}
+            />
+            <SelectableField
+              label="Experience Level"
+              value={newPreset.experienceLevel || 'Select Experience Level'}
+              onPress={() => {
+                setEditingPresetId(null);
+                setPickerState('experienceLevel');
+              }}
+            />
+            <FormInput
+              label="Default Sets"
+              value={String(newPreset.defaultSets)}
+              keyboardType="numeric"
+              onChangeText={v =>
+                setNewPreset(p => ({...p, defaultSets: Number(v)}))
+              }
+            />
+            <FormInput
+              label="Default Reps"
+              value={String(newPreset.defaultReps)}
+              keyboardType="numeric"
+              onChangeText={v =>
+                setNewPreset(p => ({...p, defaultReps: Number(v)}))
+              }
+            />
+            <FormInput
+              label="Default Rest (sec)"
+              value={String(newPreset.defaultRestSec)}
+              keyboardType="numeric"
+              onChangeText={v =>
+                setNewPreset(p => ({...p, defaultRestSec: Number(v)}))
+              }
+            />
+            <FormInput
+              label="Default RPE"
+              value={String(newPreset.defaultRpe)}
+              keyboardType="numeric"
+              onChangeText={v =>
+                setNewPreset(p => ({...p, defaultRpe: Number(v)}))
+              }
+            />
+            <ButtonRow>
+              <Button text="Create" fullWidth onPress={handleCreatePreset} />
+            </ButtonRow>
+          </Card>
+        ) : (
+          <TouchableOpacity onPress={() => setMode('preset')}>
+            <Card>
+              <Title
+                text="Intensity Presets"
+                subtitle="Click to manage intensity presets"
+              />
+            </Card>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View>
+        {mode === 'muscleGroup' ? (
+          <Card>
+            <TouchableOpacity onPress={() => setMode(null)}>
+              <Title text="Muscle Groups" />
+            </TouchableOpacity>
+            <FormInput
+              label="New Muscle Group"
+              value={newGroupValue}
+              onChangeText={setNewGroupValue}
+            />
+            <ButtonRow>
+              <Button text="Create" fullWidth onPress={handleCreateGroup} />
+            </ButtonRow>
+            <Title subtitle="Long press to edit body parts" />
+            <ClickableList
+              items={muscleGroups.map((group: MuscleGroup) => {
+                const isExpanded = expandedGroupId === group.id;
+                return {
                   id: group.id,
-                  name: group.name,
-                  bodyParts: group.bodyParts ?? [],
-                });
-                setPickerState('editMuscleGroup');
-              },
-              content: isExpanded ? (
-                <>
-                  <FormInput
-                    label="Edit Name"
-                    value={groupEdits[group.id] || ''}
-                    onChangeText={text =>
-                      setGroupEdits(prev => ({...prev, [group.id]: text}))
-                    }
-                  />
-                  <ButtonRow>
-                    <Button
-                      text="Update"
-                      fullWidth
-                      onPress={() => handleUpdateGroup(group.id)}
-                      disabled={
-                        !groupEdits[group.id] ||
-                        groupEdits[group.id] === group.name
-                      }
-                    />
-                    <Button
-                      text="Delete"
-                      fullWidth
-                      onPress={() => handleDeleteGroup(group.id)}
-                    />
-                  </ButtonRow>
-                </>
-              ) : undefined,
-            };
-          })}
-        />
-      </Card>
+                  label: group.name,
+                  selected: isExpanded,
+                  onPress: () => {
+                    setExpandedGroupId(prev =>
+                      prev === group.id ? null : group.id,
+                    );
+                    setGroupEdits(prev => ({...prev, [group.id]: group.name}));
+                  },
+                  onLongPress: () => {
+                    setEditMuscleGroupTarget({
+                      id: group.id,
+                      name: group.name,
+                      bodyParts: group.bodyParts ?? [],
+                    });
+                    setPickerState('editMuscleGroup');
+                  },
+                  content: isExpanded ? (
+                    <>
+                      <FormInput
+                        label="Edit Name"
+                        value={groupEdits[group.id] || ''}
+                        onChangeText={text =>
+                          setGroupEdits(prev => ({...prev, [group.id]: text}))
+                        }
+                      />
+                      <ButtonRow>
+                        <Button
+                          text="Update"
+                          fullWidth
+                          onPress={() => handleUpdateGroup(group.id)}
+                          disabled={
+                            !groupEdits[group.id] ||
+                            groupEdits[group.id] === group.name
+                          }
+                        />
+                        <Button
+                          text="Delete"
+                          fullWidth
+                          onPress={() => handleDeleteGroup(group.id)}
+                        />
+                      </ButtonRow>
+                    </>
+                  ) : undefined,
+                };
+              })}
+            />
+          </Card>
+        ) : (
+          <TouchableOpacity onPress={() => setMode('muscleGroup')}>
+            <Card>
+              <Title
+                text="Muscle Groups"
+                subtitle="Click to manage muscle groups"
+              />
+            </Card>
+          </TouchableOpacity>
+        )}
+      </View>
 
-      <Card>
-        <Title text="Training Methods" />
-        <FormInput
-          label="New Method Name"
-          value={newMethodValue}
-          onChangeText={setNewMethodValue}
-        />
-        <ButtonRow>
-          <Button text="Create" fullWidth onPress={handleCreateMethod} />
-        </ButtonRow>
-        <ScrollView>
-          <ClickableList
-            items={trainingMethods.map((method: TrainingMethod) => {
-              const isExpanded = expandedMethodId === method.id;
-              const currentEdit = methodEdits[method.id] ?? method.name;
-              return {
-                id: method.id,
-                label: method.name,
-                selected: isExpanded,
-                onPress: () => {
-                  setExpandedMethodId(prev =>
-                    prev === method.id ? null : method.id,
-                  );
-                  setMethodEdits(prev => ({...prev, [method.id]: method.name}));
-                },
-                content: isExpanded ? (
-                  <View style={{gap: spacing.sm}}>
-                    <FormInput
-                      label="Edit Name"
-                      value={currentEdit}
-                      onChangeText={text =>
-                        setMethodEdits(prev => ({...prev, [method.id]: text}))
-                      }
-                    />
-                    <ButtonRow>
-                      <Button
-                        text="Update"
-                        fullWidth
-                        onPress={() => handleUpdateMethod(method.id)}
-                      />
-                      <Button
-                        text="Delete"
-                        fullWidth
-                        onPress={() => handleDeleteMethod(method.id)}
-                      />
-                    </ButtonRow>
-                  </View>
-                ) : undefined,
-              };
-            })}
-          />
-        </ScrollView>
-      </Card>
+      <View>
+        {mode === 'trainingMethod' ? (
+          <Card>
+            <TouchableOpacity onPress={() => setMode(null)}>
+              {' '}
+              <Title text="Training Methods" />
+            </TouchableOpacity>
+            <FormInput
+              label="New Method Name"
+              value={newMethodValue}
+              onChangeText={setNewMethodValue}
+            />
+            <ButtonRow>
+              <Button text="Create" fullWidth onPress={handleCreateMethod} />
+            </ButtonRow>
+            <ScrollView>
+              <ClickableList
+                items={trainingMethods.map((method: TrainingMethod) => {
+                  const isExpanded = expandedMethodId === method.id;
+                  const currentEdit = methodEdits[method.id] ?? method.name;
+                  return {
+                    id: method.id,
+                    label: method.name,
+                    selected: isExpanded,
+                    onPress: () => {
+                      setExpandedMethodId(prev =>
+                        prev === method.id ? null : method.id,
+                      );
+                      setMethodEdits(prev => ({
+                        ...prev,
+                        [method.id]: method.name,
+                      }));
+                    },
+                    content: isExpanded ? (
+                      <View style={{gap: spacing.sm}}>
+                        <FormInput
+                          label="Edit Name"
+                          value={currentEdit}
+                          onChangeText={text =>
+                            setMethodEdits(prev => ({
+                              ...prev,
+                              [method.id]: text,
+                            }))
+                          }
+                        />
+                        <ButtonRow>
+                          <Button
+                            text="Update"
+                            fullWidth
+                            onPress={() => handleUpdateMethod(method.id)}
+                          />
+                          <Button
+                            text="Delete"
+                            fullWidth
+                            onPress={() => handleDeleteMethod(method.id)}
+                          />
+                        </ButtonRow>
+                      </View>
+                    ) : undefined,
+                  };
+                })}
+              />
+            </ScrollView>
+          </Card>
+        ) : (
+          <TouchableOpacity onPress={() => setMode('trainingMethod')}>
+            <Card>
+              <Title
+                text="Training Methods"
+                subtitle="Click to manage training methods"
+              />
+            </Card>
+          </TouchableOpacity>
+        )}
+      </View>
 
       <ModalWrapper
         visible={!!pickerState}

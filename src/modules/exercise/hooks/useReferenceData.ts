@@ -4,6 +4,7 @@ import {
   ExerciseDifficulty,
   BodyPart,
   Muscle,
+  Metric,
 } from '../types/exercise.types';
 import {useQuery} from '@apollo/client';
 import {GET_REFERENCE_DATA} from '../graphql/exerciseReference.graphql';
@@ -13,6 +14,7 @@ interface ReferenceDataResponse {
   allExerciseDifficulties: ExerciseDifficulty[];
   allBodyParts: (BodyPart & {muscles: Muscle[]})[];
   equipmentSubcategories: EquipmentSubcategory[]; // ✅ matches updated query
+  allMetrics: Metric[]; // ✅ New
 }
 
 export function useReferenceData() {
@@ -24,7 +26,8 @@ export function useReferenceData() {
   const exerciseTypes = data?.allExerciseTypes || [];
   const difficulties = data?.allExerciseDifficulties || [];
   const equipmentSubcategories = data?.equipmentSubcategories || [];
-  
+  const metrics = data?.allMetrics || [];
+
   return {
     loading,
     error,
@@ -33,6 +36,7 @@ export function useReferenceData() {
     exerciseTypes,
     difficulties,
     equipmentSubcategories, // NEW
+    metrics, // ✅ New
     refetchAll: refetch,
   };
 }
