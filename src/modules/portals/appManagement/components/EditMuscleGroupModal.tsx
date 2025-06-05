@@ -1,6 +1,5 @@
 import React, {useState, useEffect} from 'react';
 import {ScrollView, View} from 'react-native';
-import ModalWrapper from 'shared/components/ModalWrapper';
 import Title from 'shared/components/Title';
 import FormInput from 'shared/components/FormInput';
 import Button from 'shared/components/Button';
@@ -48,7 +47,7 @@ export default function EditMuscleGroupModal({
   }, [visible, muscleGroup]);
 
   return (
-    <ModalWrapper visible={visible} onClose={onClose}>
+    <>
       <Title text="Edit Muscle Group" />
 
       <FormInput label="Name" value={name} onChangeText={setName} />
@@ -87,6 +86,6 @@ export default function EditMuscleGroupModal({
           />
         </ButtonRow>
       </View>
-    </ModalWrapper>
+    </>
   );
 }

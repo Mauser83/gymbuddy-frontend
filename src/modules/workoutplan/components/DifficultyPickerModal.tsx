@@ -5,14 +5,12 @@ import OptionItem from 'shared/components/OptionItem';
 import Button from 'shared/components/Button';
 import {spacing} from 'shared/theme/tokens';
 import {useTheme} from 'shared/theme/ThemeProvider';
-import { useAuth } from 'modules/auth/context/AuthContext';
 
 interface DifficultyPickerModalProps {
   visible: boolean;
   selectedLevel: string;
   onSelect: (level: string) => void;
   onClose: () => void;
-  onManage?: () => void;
 }
 
 const experienceLevels = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
@@ -22,10 +20,8 @@ export default function DifficultyPickerModal({
   selectedLevel,
   onSelect,
   onClose,
-  onManage,
 }: DifficultyPickerModalProps) {
   const {theme} = useTheme();
-  const { user } = useAuth();
 
   if (!visible) return null;
 
@@ -45,11 +41,6 @@ export default function DifficultyPickerModal({
       <View style={{marginTop: spacing.md}}>
         <Button text="Close" onPress={onClose} />
       </View>
-      {user && (user.appRole === 'ADMIN' || user.appRole === 'MODERATOR') && onManage && (
-        <View style={{marginTop: spacing.md}}>
-          <Button text="Manage Intensity Presets" onPress={onManage} />
-        </View>
-      )}
     </>
   );
 }

@@ -92,6 +92,17 @@ const AppDashboardScreen = () => {
           text="Manage Workout Plans"
         />
       </Card>
+
+            <Card variant="glass">
+        <Title
+          text="🛠️ System Catalogs"
+          subtitle="Admin-only controls for static entities"
+        />
+        <Button
+          onPress={() => navigate('/admin/catalog')}
+          text="Manage System Catalogs"
+        />
+      </Card>
     </ScreenLayout>
   );
 };

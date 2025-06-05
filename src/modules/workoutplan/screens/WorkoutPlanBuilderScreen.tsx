@@ -17,7 +17,7 @@ import {
   CREATE_WORKOUT_PLAN,
   UPDATE_WORKOUT_PLAN,
 } from '../graphql/workoutReferences';
-import {MuscleGroup} from '../components/EditMuscleGroupModal';
+import {MuscleGroup} from '../../portals/appManagement/components/EditMuscleGroupModal';
 import {GET_EXERCISES_BASIC} from '../graphql/workoutMeta.graphql';
 import {useAuth} from 'modules/auth/context/AuthContext';
 import {spacing} from 'shared/theme/tokens';
@@ -27,34 +27,22 @@ import IconButton from 'shared/components/IconButton';
 import {useNavigate} from 'react-router-native';
 import {Exercise} from '../types/workoutplan.types';
 import {useLocation} from 'react-router-native';
-import {IntensityPreset} from '../components/ManageIntensityPresetsModal';
+import { IntensityPreset } from 'modules/portals/appManagement/screens/AdminWorkoutPlanCatalogScreen';
 
 // 🧩 Modular modals
-import EditMuscleGroupModal from '../components/EditMuscleGroupModal';
 import SelectExerciseModal from '../components/SelectExerciseModal';
 import TrainingGoalPickerModal from '../components/TrainingGoalPickerModal';
 import DifficultyPickerModal from '../components/DifficultyPickerModal';
-import ManageIntensityPresetsModal from '../components/ManageIntensityPresetsModal';
-import ManageTrainingGoalModal from '../components/ManageTrainingGoalModal';
-import ManageMuscleGroupModal from '../components/ManageMuscleGroupModal';
-import ManageTrainingMethodModal from '../components/ManageTrainingMethodModal';
 import MuscleGroupPickerModal from '../components/MuscleGroupPickerModal';
 import TrainingMethodPicker from '../components/TrainingMethodPicker';
 
 type ActiveModal =
   | null
   | 'trainingGoalPicker'
-  | 'manageTrainingGoal'
   | 'difficultyPicker'
-  | 'manageIntensityPresets'
-  | 'selectPresetTrainingGoal'
-  | 'selectPresetExperienceLevel'
   | 'muscleGroupPicker'
-  | 'manageMuscleGroup'
-  | 'editMuscleGroup'
   | 'selectExercise'
   | 'trainingMethodPicker'
-  | 'manageTrainingMethod';
 
 type FormValues = {
   name: string;
@@ -591,17 +579,7 @@ export default function WorkoutPlanBuilderScreen() {
                       setFieldValue('trainingGoalId', goalId);
                       setActiveModal(null);
                     }}
-                    onManage={() => setActiveModal('manageTrainingGoal')}
                     onClose={() => setActiveModal(null)}
-                  />
-                )}
-
-                {activeModal === 'manageTrainingGoal' && (
-                  <ManageTrainingGoalModal
-                    visible // ✅ Fix here
-                    onClose={() => setActiveModal(null)}
-                    refetch={refetch}
-                    items={workoutMeta?.getTrainingGoals ?? []}
                   />
                 )}
 
@@ -614,34 +592,7 @@ export default function WorkoutPlanBuilderScreen() {
                       console.log(level);
                       setActiveModal(null);
                     }}
-                    onManage={() => setActiveModal('manageIntensityPresets')}
                     onClose={() => setActiveModal(null)}
-                  />
-                )}
-
-                {activeModal === 'manageIntensityPresets' && (
-                  <ManageIntensityPresetsModal
-                    visible
-                    newPreset={newPreset}
-                    setNewPreset={setNewPreset}
-                    presets={workoutMeta?.getIntensityPresets ?? []}
-                    trainingGoals={workoutMeta?.getTrainingGoals ?? []}
-                    refetch={refetch}
-                    onClose={() => setActiveModal(null)}
-                    onOpenTrainingGoalPicker={(draft, callback) => {
-                      setPresetModalDraft(draft);
-                      setOnPresetValueSelect(() => (value: any) => {
-                        callback(value);
-                      });
-                      setActiveModal('selectPresetTrainingGoal');
-                    }}
-                    onOpenExperienceLevelPicker={(draft, callback) => {
-                      setPresetModalDraft(draft);
-                      setOnPresetValueSelect(() => (value: any) => {
-                        callback(value);
-                      });
-                      setActiveModal('selectPresetExperienceLevel');
-                    }}
                   />
                 )}
 
@@ -653,49 +604,7 @@ export default function WorkoutPlanBuilderScreen() {
                       setFieldValue('muscleGroupIds', ids)
                     }
                     onClose={() => setActiveModal(null)}
-                    bodyPartOptions={workoutMeta?.allBodyParts ?? []}
                     onRefetch={refetch}
-                  />
-                )}
-
-                {activeModal === 'manageMuscleGroup' && (
-                  <ManageMuscleGroupModal
-                    visible // ✅ Fix here
-                    onClose={() => setActiveModal(null)}
-                    items={workoutMeta?.getMuscleGroups ?? []}
-                    refetch={refetch}
-                    bodyPartOptions={workoutMeta?.allBodyParts ?? []}
-                    onEditMuscleGroup={muscleGroup => {
-                      setEditMuscleGroupTarget(muscleGroup);
-                      setActiveModal('editMuscleGroup');
-                    }}
-                  />
-                )}
-
-                {activeModal === 'editMuscleGroup' && editMuscleGroupTarget && (
-                  <EditMuscleGroupModal
-                    visible
-                    muscleGroup={editMuscleGroupTarget}
-                    bodyPartOptions={workoutMeta?.allBodyParts ?? []}
-                    onClose={() => {
-                      setActiveModal('manageMuscleGroup');
-                      setEditMuscleGroupTarget(null);
-                    }}
-                    onSave={async (name, bodyPartIds) => {
-                      await updateMuscleGroup({
-                        variables: {
-                          id: editMuscleGroupTarget.id,
-                          input: {
-                            name,
-                            slug: name.toLowerCase().replace(/\s+/g, '-'),
-                            bodyPartIds,
-                          },
-                        },
-                      });
-                      await refetch();
-                      setEditMuscleGroupTarget(null);
-                      setActiveModal('manageMuscleGroup');
-                    }}
                   />
                 )}
 
@@ -718,17 +627,7 @@ export default function WorkoutPlanBuilderScreen() {
                       setActiveModal(null);
                       setSelectedExerciseIndex(null);
                     }}
-                    onManage={() => setActiveModal('manageTrainingMethod')}
                     onClose={() => setActiveModal(null)}
-                  />
-                )}
-
-                {activeModal === 'manageTrainingMethod' && (
-                  <ManageTrainingMethodModal
-                    visible={true}
-                    onClose={() => setActiveModal(null)}
-                    methods={workoutMeta?.getTrainingMethods ?? []}
-                    refetch={refetch}
                   />
                 )}
 
@@ -751,33 +650,6 @@ export default function WorkoutPlanBuilderScreen() {
                       setExpandedExerciseIndex(values.exercises.length);
                       setActiveModal(null);
                     }}
-                  />
-                )}
-
-                {activeModal === 'selectPresetTrainingGoal' && (
-                  <TrainingGoalPickerModal
-                    visible
-                    trainingGoals={workoutMeta?.getTrainingGoals ?? []}
-                    selectedId={presetModalDraft?.trainingGoalId}
-                    onSelect={id => {
-                      onPresetValueSelect?.(id);
-                      setActiveModal('manageIntensityPresets');
-                    }}
-                    onClose={() => setActiveModal('manageIntensityPresets')}
-                  />
-                )}
-
-                {activeModal === 'selectPresetExperienceLevel' && (
-                  <DifficultyPickerModal
-                    visible
-                    selectedLevel={
-                      presetModalDraft?.experienceLevel || 'BEGINNER'
-                    }
-                    onSelect={level => {
-                      onPresetValueSelect?.(level);
-                      setActiveModal('manageIntensityPresets');
-                    }}
-                    onClose={() => setActiveModal('manageIntensityPresets')}
                   />
                 )}
               </ModalWrapper>

@@ -44,6 +44,10 @@ import WorkoutPlanBuilderScreen from 'modules/workoutplan/screens/WorkoutPlanBui
 import WorkoutPlanViewScreen from 'modules/workoutplan/screens/WorkoutPlanViewScreen';
 import WorkoutSessionHistoryScreen from 'modules/portals/users/screens/WorkoutSessionHistoryScreen';
 import WorkoutSessionDetailScreen from 'modules/portals/users/screens/WorkoutSessionDetailScreen';
+import AdminSystemCatalogScreen from 'modules/portals/appManagement/screens/AdminSystemCatalogScreen';
+import AdminEquipmentCatalogScreen from 'modules/portals/appManagement/screens/AdminEquipmentCatalogScreen';
+import AdminExerciseCatalogScreen from 'modules/portals/appManagement/screens/AdminExerciseCatalogScreen';
+import AdminWorkoutPlanCatalogScreen from 'modules/portals/appManagement/screens/AdminWorkoutPlanCatalogScreen';
 
 const AppRoutes = () => {
   const {user, isAuthenticated, sessionLoaded} = useAuth();
@@ -77,7 +81,6 @@ const AppRoutes = () => {
           <Route path="/login" element={<LoginScreen />} />
           <Route path="/register" element={<RegisterScreen />} />
 
-
           {/* User Portal */}
           <Route path="/user" element={<UserDashboardScreen />} />
           <Route path="/user/my-plans" element={<MyWorkoutPlansScreen />} />
@@ -90,13 +93,31 @@ const AppRoutes = () => {
           <Route path="/gyms/create" element={<GymCreateScreen />} />
           <Route path="/gyms/:gymId" element={<GymDetailScreen />} />
           <Route path="/profile" element={<ProfileScreen />} />
-          <Route path="/user/exercise-library" element={<ExerciseLibraryScreen />} />
-          <Route path="/user/exercise/:exerciseId" element={<ExerciseDetailScreen />} />
+          <Route
+            path="/user/exercise-library"
+            element={<ExerciseLibraryScreen />}
+          />
+          <Route
+            path="/user/exercise/:exerciseId"
+            element={<ExerciseDetailScreen />}
+          />
           <Route path="/user/progress" element={<ProgressOverviewScreen />} />
-          <Route path="/user/view-plan/:id" element={<WorkoutPlanViewScreen />} />
-          <Route path="/user/edit-plan" element={<WorkoutPlanBuilderScreen />} />
-          <Route path="/workout-session" element={<WorkoutSessionHistoryScreen /> } />
-          <Route path="/workout-session/:sessionId" element={<WorkoutSessionDetailScreen /> } />
+          <Route
+            path="/user/view-plan/:id"
+            element={<WorkoutPlanViewScreen />}
+          />
+          <Route
+            path="/user/edit-plan"
+            element={<WorkoutPlanBuilderScreen />}
+          />
+          <Route
+            path="/workout-session"
+            element={<WorkoutSessionHistoryScreen />}
+          />
+          <Route
+            path="/workout-session/:sessionId"
+            element={<WorkoutSessionDetailScreen />}
+          />
 
           {/* App Management Portal */}
           <Route path="/admin" element={<AppDashboardScreen />} />
@@ -109,8 +130,23 @@ const AppRoutes = () => {
           <Route path="/exercise/edit/:id" element={<EditExerciseScreen />} />
           <Route path="/users" element={<UsersScreen />} />
           <Route path="/users/:id" element={<UserDetailScreen />} />
-          <Route path="/workoutplan/builder" element={<WorkoutPlanBuilderScreen/>} />
-
+          <Route
+            path="/workoutplan/builder"
+            element={<WorkoutPlanBuilderScreen />}
+          />
+          <Route path="/admin/catalog" element={<AdminSystemCatalogScreen />} />
+          <Route
+            path="/admin/catalog/equipment"
+            element={<AdminEquipmentCatalogScreen />}
+          />
+          <Route
+            path="/admin/catalog/exercise"
+            element={<AdminExerciseCatalogScreen />}
+          />
+          <Route
+            path="/admin/catalog/workoutplan"
+            element={<AdminWorkoutPlanCatalogScreen />}
+          />
 
           {/* Gym Management Portal */}
           <Route path="/gym-admin" element={<GymAdminDashboard />} />
@@ -122,7 +158,6 @@ const AppRoutes = () => {
             path="/gym-admin/gyms/:gymId/equipment"
             element={<GymEquipmentListScreen />}
           />
-
 
           {/* Fallback */}
           <Route path="*" element={<NoResults message="Page not found." />} />

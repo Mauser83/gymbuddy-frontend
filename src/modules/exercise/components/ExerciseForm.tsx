@@ -15,7 +15,6 @@ import {
   ExerciseDifficulty,
   Muscle,
 } from '../types/exercise.types';
-import ManageReferenceModal from './ManageReferenceModal';
 import Toast from 'react-native-toast-message';
 import ButtonRow from 'shared/components/ButtonRow';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
@@ -24,8 +23,6 @@ import DetailField from 'shared/components/DetailField';
 
 const screenHeight = Dimensions.get('window').height;
 const modalHeight = screenHeight * 0.8;
-
-type ManageModalType = 'type' | 'difficulty' | 'bodyPart' | 'muscle' | null;
 
 export default function ExerciseForm() {
   const {theme} = useTheme();
@@ -43,7 +40,6 @@ export default function ExerciseForm() {
   const [activeModal, setActiveModal] = useState<
     null | 'type' | 'difficulty' | 'primary' | 'secondary'
   >(null);
-  const [manageModal, setManageModal] = useState<ManageModalType>(null);
   const [selectedBodyPartId, setSelectedBodyPartId] = useState<number | null>(
     null,
   );
@@ -133,132 +129,106 @@ export default function ExerciseForm() {
 
   const renderSlotList = () => {
     return (
-        <ClickableList
-          items={(values.equipmentSlots || []).map(
-            (slot: any, index: number) => {
-              const isExpanded = expandedSlotIndex === index;
+      <ClickableList
+        items={(values.equipmentSlots || []).map((slot: any, index: number) => {
+          const isExpanded = expandedSlotIndex === index;
 
-              const slotLabel =
-                `Slot ${index + 1}: ${slot.options.length} item(s)` +
-                (slot.isRequired ? ' (Required)' : ' (Optional)');
+          const slotLabel =
+            `Slot ${index + 1}: ${slot.options.length} item(s)` +
+            (slot.isRequired ? ' (Required)' : ' (Optional)');
 
-              const optionLines = slot.options.map((opt: any) => {
-                const match = allSubcategories.find(
-                  s => s.id === opt.subcategoryId,
-                );
-                return match
-                  ? `${match.name} (${match.category?.name || 'Other'})`
-                  : `#${opt.subcategoryId}`;
-              });
+          const optionLines = slot.options.map((opt: any) => {
+            const match = allSubcategories.find(
+              s => s.id === opt.subcategoryId,
+            );
+            return match
+              ? `${match.name} (${match.category?.name || 'Other'})`
+              : `#${opt.subcategoryId}`;
+          });
 
-              return {
-                id: index,
-                label: slotLabel,
-                onPress: () => setExpandedSlotIndex(isExpanded ? null : index),
-                rightElement: (
-                  <FontAwesome
-                    name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                    size={16}
-                    color={theme.colors.accentStart}
+          return {
+            id: index,
+            label: slotLabel,
+            onPress: () => setExpandedSlotIndex(isExpanded ? null : index),
+            rightElement: (
+              <FontAwesome
+                name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color={theme.colors.accentStart}
+              />
+            ),
+            content: isExpanded && (
+              <View style={{marginTop: 8}}>
+                {optionLines.map((line: string, i: number) => (
+                  <DetailField
+                    key={i}
+                    label="•"
+                    value={line}
+                    vertical={false}
                   />
-                ),
-                content: isExpanded && (
-                  <View style={{marginTop: 8}}>
-                    {optionLines.map((line: string, i: number) => (
-                      <DetailField
-                        key={i}
-                        label="•"
-                        value={line}
-                        vertical={false}
-                      />
-                    ))}
-                    <ButtonRow style={{marginTop: 12}}>
-                      <Button
-                        text="Edit"
-                        fullWidth
-                        onPress={() => openEditSlot(index)}
-                      />
-                      <Button
-                        text="Delete"
-                        fullWidth
-                        onPress={() => deleteSlot(index)}
-                      />
-                    </ButtonRow>
-                  </View>
-                ),
-              };
-            },
-          )}
-        />
+                ))}
+                <ButtonRow style={{marginTop: 12}}>
+                  <Button
+                    text="Edit"
+                    fullWidth
+                    onPress={() => openEditSlot(index)}
+                  />
+                  <Button
+                    text="Delete"
+                    fullWidth
+                    onPress={() => deleteSlot(index)}
+                  />
+                </ButtonRow>
+              </View>
+            ),
+          };
+        })}
+      />
     );
   };
 
   const renderModalContent = () => {
     if (activeModal === 'type') {
       return (
-        <ScrollView>
-          <Title text="Select Exercise Type" />
-          <ClickableList
-            items={exerciseTypes.map((t: ExerciseType) => ({
-              id: t.id,
-              label: t.name,
-              onPress: () => {
-                setFieldValue('exerciseTypeId', t.id);
-                setActiveModal(null);
-              },
-            }))}
-          />
+        <>
+          <ScrollView>
+            <Title text="Select Exercise Type" />
+            <ClickableList
+              items={exerciseTypes.map((t: ExerciseType) => ({
+                id: t.id,
+                label: t.name,
+                onPress: () => {
+                  setFieldValue('exerciseTypeId', t.id);
+                  setActiveModal(null);
+                },
+              }))}
+            />
+          </ScrollView>
           <DividerWithLabel label="OR" />
-          <ButtonRow>
-            <Button
-              text="Back"
-              fullWidth
-              onPress={() => setActiveModal(null)}
-            />
-            <Button
-              text="Manage"
-              fullWidth
-              onPress={() => {
-                setActiveModal(null);
-                setManageModal('type');
-              }}
-            />
-          </ButtonRow>
-        </ScrollView>
+          <Button text="Back" onPress={() => setActiveModal(null)} />
+        </>
       );
     }
 
     if (activeModal === 'difficulty') {
       return (
-        <ScrollView>
-          <Title text="Select Difficulty Level" />
-          <ClickableList
-            items={difficulties.map((d: ExerciseDifficulty) => ({
-              id: d.id,
-              label: d.level,
-              onPress: () => {
-                setFieldValue('difficultyId', d.id);
-                setActiveModal(null);
-              },
-            }))}
-          />
+        <>
+          <ScrollView>
+            <Title text="Select Difficulty Level" />
+            <ClickableList
+              items={difficulties.map((d: ExerciseDifficulty) => ({
+                id: d.id,
+                label: d.level,
+                onPress: () => {
+                  setFieldValue('difficultyId', d.id);
+                  setActiveModal(null);
+                },
+              }))}
+            />
+          </ScrollView>
           <DividerWithLabel label="OR" />
-          <ButtonRow>
-            <Button
-              text="Back"
-              fullWidth
-              onPress={() => setActiveModal(null)}
-            />
-            <Button
-              text="Manage"
-              fullWidth
-              onPress={() => {
-                setActiveModal(null);
-                setManageModal('difficulty');
-              }}
-            />
-          </ButtonRow>
-        </ScrollView>
+          <Button text="Back" onPress={() => setActiveModal(null)} />
+        </>
       );
     }
 
@@ -269,72 +239,49 @@ export default function ExerciseForm() {
 
       if (muscleStep === 'bodyPart') {
         return (
-          <ScrollView>
-            <Title text="Select Body Part" />
-            <ClickableList
-              items={bodyParts.map(bp => ({
-                id: bp.id,
-                label: bp.name,
-                onPress: () => {
-                  setSelectedBodyPartId(bp.id);
-                  setMuscleStep('muscle');
-                },
-              }))}
-            />
-            <ButtonRow>
-              <Button
-                text="Back"
-                fullWidth
-                onPress={() => setActiveModal(null)}
+          <>
+            <ScrollView>
+              <Title text="Select Body Part" />
+              <ClickableList
+                items={bodyParts.map(bp => ({
+                  id: bp.id,
+                  label: bp.name,
+                  onPress: () => {
+                    setSelectedBodyPartId(bp.id);
+                    setMuscleStep('muscle');
+                  },
+                }))}
               />
-              <Button
-                text="Manage"
-                fullWidth
-                onPress={() => {
-                  setActiveModal(null);
-                  setManageModal('bodyPart');
-                }}
-              />
-            </ButtonRow>
-          </ScrollView>
+            </ScrollView>
+            <DividerWithLabel label="OR" />
+            <Button text="Back" onPress={() => setActiveModal(null)} />
+          </>
         );
       }
 
       if (muscleStep === 'muscle' && selectedBodyPartId) {
         return (
-          <ScrollView>
-            <Title text="Select Muscles" />
-            <ScrollView
-              style={{maxHeight: modalHeight - 200}}
-              contentContainerStyle={{paddingHorizontal: 16}}>
-              <ClickableList
-                items={muscles
-                  .filter((m: Muscle) => m.bodyPart.id === selectedBodyPartId)
-                  .map((m: Muscle) => ({
-                    id: m.id,
-                    label: m.name,
-                    selected: selectedMuscleIds.includes(m.id),
-                    onPress: () => handleMuscleToggle(m.id, fieldName),
-                  }))}
-              />
+          <>
+            <ScrollView>
+              <Title text="Select Muscles" />
+              <ScrollView
+                style={{maxHeight: modalHeight - 200}}
+                contentContainerStyle={{paddingHorizontal: 16}}>
+                <ClickableList
+                  items={muscles
+                    .filter((m: Muscle) => m.bodyPart.id === selectedBodyPartId)
+                    .map((m: Muscle) => ({
+                      id: m.id,
+                      label: m.name,
+                      selected: selectedMuscleIds.includes(m.id),
+                      onPress: () => handleMuscleToggle(m.id, fieldName),
+                    }))}
+                />
+              </ScrollView>
             </ScrollView>
             <DividerWithLabel label="OR" />
-            <ButtonRow>
-              <Button
-                text="Back"
-                fullWidth
-                onPress={() => setMuscleStep('bodyPart')}
-              />
-              <Button
-                text="Manage"
-                fullWidth
-                onPress={() => {
-                  setActiveModal(null);
-                  setManageModal('muscle');
-                }}
-              />
-            </ButtonRow>
-          </ScrollView>
+            <Button text="Back" onPress={() => setMuscleStep('bodyPart')} />
+          </>
         );
       }
     }
@@ -455,19 +402,6 @@ export default function ExerciseForm() {
             : undefined
         }
       />
-
-      {manageModal && (
-        <ManageReferenceModal
-          visible={!!manageModal}
-          onClose={() => {}} // Not needed anymore; handled internally
-          mode={manageModal}
-          bodyPartId={selectedBodyPartId || undefined}
-          setManageModal={setManageModal}
-          setActiveModal={setActiveModal}
-          setMuscleStep={setMuscleStep}
-          origin={activeModal === 'secondary' ? 'secondary' : 'primary'}
-        />
-      )}
     </>
   );
 }

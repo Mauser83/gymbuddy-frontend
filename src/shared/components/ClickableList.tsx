@@ -9,6 +9,7 @@ type Item = {
   id: string | number;
   label: string;
   onPress?: () => void;
+  onLongPress?: () => void;
   subLabel?: string;
   rightElement?: React.ReactNode;
   content?: React.ReactNode;
@@ -37,6 +38,7 @@ const ClickableList = ({items}: Props) => {
           ]}>
           <Pressable
             onPress={item.onPress}
+            onLongPress={item.onLongPress}
             style={[styles.item, item.disabled && {opacity: 0.5}]}
             disabled={item.disabled || !item.onPress}>
             <View style={styles.row}>
