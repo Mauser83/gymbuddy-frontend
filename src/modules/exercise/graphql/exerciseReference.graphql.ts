@@ -5,12 +5,14 @@ export const GET_REFERENCE_DATA = gql`
     allExerciseTypes {
       id
       name
-      metricIds
-      metrics {
-        id
-        name
-        unit
-        inputType
+      orderedMetrics {
+        order
+        metric {
+          id
+          name
+          unit
+          inputType
+        }
       }
     }
     allExerciseDifficulties {
@@ -53,12 +55,14 @@ export const GET_EXERCISE_TYPES = gql`
     allExerciseTypes {
       id
       name
-      metricIds
-      metrics {
-        id
-        name
-        unit
-        inputType
+      orderedMetrics {
+        order
+        metric {
+          id
+          name
+          unit
+          inputType
+        }
       }
     }
   }

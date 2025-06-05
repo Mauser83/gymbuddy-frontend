@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {ScrollView, View, TouchableOpacity, Touchable} from 'react-native';
+import {ScrollView, View, TouchableOpacity, Text} from 'react-native';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Title from 'shared/components/Title';
 import Card from 'shared/components/Card';
@@ -7,7 +7,7 @@ import FormInput from 'shared/components/FormInput';
 import Button from 'shared/components/Button';
 import ClickableList from 'shared/components/ClickableList';
 import ButtonRow from 'shared/components/ButtonRow';
-import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import FontAwesome from '@expo/vector-icons/FontAwesome5';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import {useReferenceManagement} from 'modules/exercise/hooks/useReferenceManagement';
 import DividerWithLabel from 'shared/components/DividerWithLabel';
@@ -16,7 +16,10 @@ import {useReferenceData} from 'modules/exercise/hooks/useReferenceData';
 import OptionItem from 'shared/components/OptionItem';
 import ModalWrapper from 'shared/components/ModalWrapper';
 import SelectableField from 'shared/components/SelectableField';
-import {Metric} from 'modules/exercise/types/exercise.types';
+import IconButton from 'shared/components/IconButton';
+import {OrderedMetric} from 'modules/exercise/hooks/useReferenceManagement';
+import {spacing} from 'shared/theme/tokens';
+import NoResults from 'shared/components/NoResults';
 
 export default function AdminExerciseCatalogScreen() {
   const {theme} = useTheme();
@@ -42,11 +45,26 @@ export default function AdminExerciseCatalogScreen() {
 
   const [newExerciseType, setNewExerciseType] = useState({
     name: '',
-    metricIds: [] as number[],
+    metrics: [] as OrderedMetric[],
   });
 
+  const reorderMetrics = (metrics: OrderedMetric[]): OrderedMetric[] =>
+    metrics.map((m, i) => ({...m, order: i + 1}));
+
+  const moveMetric = (
+    metrics: OrderedMetric[],
+    index: number,
+    direction: 'up' | 'down',
+  ): OrderedMetric[] => {
+    const target = direction === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= metrics.length) return metrics;
+    const updated = [...metrics];
+    [updated[index], updated[target]] = [updated[target], updated[index]];
+    return reorderMetrics(updated);
+  };
+
   const [exerciseTypeEdits, setExerciseTypeEdits] = useState<
-    Record<number, {name: string; metricIds: number[]}>
+    Record<number, {name: string; metrics: OrderedMetric[]}>
   >({});
 
   const {metrics} = useReferenceData();
@@ -114,7 +132,11 @@ export default function AdminExerciseCatalogScreen() {
                 ...prev,
                 [item.id]: {
                   name: item.name,
-                  metricIds: item.metrics?.map((m: Metric) => m.id) || [],
+                  metrics:
+                    item.orderedMetrics?.map((om: any) => ({
+                      metricId: om.metric.id,
+                      order: om.order,
+                    })) || [],
                 },
               }));
             } else {
@@ -188,11 +210,13 @@ export default function AdminExerciseCatalogScreen() {
                 <SelectableField
                   label="Metrics"
                   value={
-                    exerciseTypeEdits[item.id]?.metricIds?.length
-                      ? exerciseTypeEdits[item.id].metricIds
+                    exerciseTypeEdits[item.id]?.metrics?.length
+                      ? exerciseTypeEdits[item.id].metrics
+                          .sort((a, b) => a.order - b.order)
                           .map(
-                            id =>
-                              metrics.find(m => m.id === id)?.name || `#${id}`,
+                            m =>
+                              metrics.find(metric => metric.id === m.metricId)
+                                ?.name ?? `#${m.metricId}`,
                           )
                           .join(', ')
                       : 'Select metrics'
@@ -218,46 +242,174 @@ export default function AdminExerciseCatalogScreen() {
               <Button
                 text="Delete"
                 fullWidth
-                onPress={() => deleteItem(item.id).then(refetch)}
+                onPress={async () => {
+                  await deleteItem(item.id);
+                  await refetch();
+                }}
               />
             </ButtonRow>
             {visibleMetricPickerId === item.id && (
               <ModalWrapper
-                visible={true}
+                visible
                 onClose={() => setVisibleMetricPickerId(null)}>
                 <ScrollView>
-                  {metrics.map(metric => {
-                    const selected =
-                      exerciseTypeEdits[item.id]?.metricIds?.includes(
-                        metric.id,
-                      ) || false;
-                    return (
-                      <OptionItem
-                        key={metric.id}
-                        text={metric.name}
-                        selected={
-                          exerciseTypeEdits[item.id]?.metricIds?.includes(
-                            metric.id,
-                          ) || false
-                        }
-                        onPress={() => {
-                          setExerciseTypeEdits(prev => {
-                            const current = prev[item.id]?.metricIds || [];
-                            const updatedIds = selected
-                              ? current.filter(id => id !== metric.id)
-                              : [...current, metric.id];
-                            return {
-                              ...prev,
-                              [item.id]: {
-                                ...(prev[item.id] || {name: ''}),
-                                metricIds: updatedIds,
-                              },
-                            };
-                          });
-                        }}
-                      />
-                    );
-                  })}
+                  <Title text="Select Metrics" />
+                  {metrics.filter(
+                    metric =>
+                      !exerciseTypeEdits[item.id]?.metrics?.some(
+                        m => m.metricId === metric.id,
+                      ),
+                  ).length === 0 ? (
+                    <View style={{paddingBottom: 8}}>
+                      <NoResults message="All available metrics have been selected." />
+                    </View>
+                  ) : (
+                    metrics
+                      .filter(
+                        metric =>
+                          !exerciseTypeEdits[item.id]?.metrics?.some(
+                            m => m.metricId === metric.id,
+                          ),
+                      )
+                      .map(metric => (
+                        <OptionItem
+                          key={metric.id}
+                          text={metric.name}
+                          selected={false}
+                          onPress={() => {
+                            setExerciseTypeEdits(prev => {
+                              const current = prev[item.id]?.metrics || [];
+                              return {
+                                ...prev,
+                                [item.id]: {
+                                  ...prev[item.id],
+                                  metrics: reorderMetrics([
+                                    ...current,
+                                    {
+                                      metricId: metric.id,
+                                      order: current.length + 1,
+                                    },
+                                  ]),
+                                },
+                              };
+                            });
+                          }}
+                        />
+                      ))
+                  )}
+
+                  <Button
+                    text="Confirm"
+                    fullWidth
+                    onPress={() => setVisibleMetricPickerId(null)}
+                  />
+
+                  <DividerWithLabel label="Order selected metrics" />
+
+                  {exerciseTypeEdits[item.id]?.metrics?.length === 0 ? (
+                    <NoResults message="No metrics selected yet." />
+                  ) : (
+                    exerciseTypeEdits[item.id]?.metrics
+                      .sort((a, b) => a.order - b.order)
+                      .map((m, idx) => {
+                        const metric = metrics.find(x => x.id === m.metricId);
+                        return (
+                          <View
+                            key={m.metricId}
+                            style={{
+                              padding: spacing.sm,
+                              borderRadius: 8,
+                              borderWidth: 1,
+                              borderColor: theme.colors.accentStart,
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                            }}>
+                            <View style={{flexDirection: 'column'}}>
+                              <Text style={{color: theme.colors.textPrimary}}>
+                                #{idx + 1} {metric?.name}
+                              </Text>
+                            </View>
+                            <View style={{flexDirection: 'row'}}>
+                              <IconButton
+                                icon={
+                                  <FontAwesome
+                                    name="arrow-alt-circle-up"
+                                    size={32}
+                                    color={theme.colors.textPrimary}
+                                  />
+                                }
+                                size="small"
+                                onPress={() =>
+                                  setExerciseTypeEdits(prev => ({
+                                    ...prev,
+                                    [item.id]: {
+                                      ...prev[item.id],
+                                      metrics: moveMetric(
+                                        prev[item.id].metrics,
+                                        idx,
+                                        'up',
+                                      ),
+                                    },
+                                  }))
+                                }
+                                disabled={idx === 0}
+                              />
+                              <IconButton
+                                icon={
+                                  <FontAwesome
+                                    name="arrow-alt-circle-down"
+                                    size={32}
+                                    color={theme.colors.textPrimary}
+                                  />
+                                }
+                                size="small"
+                                onPress={() =>
+                                  setExerciseTypeEdits(prev => ({
+                                    ...prev,
+                                    [item.id]: {
+                                      ...prev[item.id],
+                                      metrics: moveMetric(
+                                        prev[item.id].metrics,
+                                        idx,
+                                        'down',
+                                      ),
+                                    },
+                                  }))
+                                }
+                                disabled={
+                                  idx ===
+                                  exerciseTypeEdits[item.id].metrics.length - 1
+                                }
+                              />
+                              <IconButton
+                                icon={
+                                  <FontAwesome
+                                    name="times-circle"
+                                    size={32}
+                                    color={theme.colors.textPrimary}
+                                  />
+                                }
+                                size="small"
+                                onPress={() =>
+                                  setExerciseTypeEdits(prev => ({
+                                    ...prev,
+                                    [item.id]: {
+                                      ...prev[item.id],
+                                      metrics: reorderMetrics(
+                                        prev[item.id].metrics.filter(
+                                          x => x.metricId !== m.metricId,
+                                        ),
+                                      ),
+                                    },
+                                  }))
+                                }
+                              />
+                            </View>
+                          </View>
+                        );
+                      })
+                  )}
                 </ScrollView>
               </ModalWrapper>
             )}
@@ -271,10 +423,13 @@ export default function AdminExerciseCatalogScreen() {
       await (
         createItem as (input: {
           name: string;
-          metricIds: number[];
+          metrics: OrderedMetric[];
         }) => Promise<any>
-      )(newExerciseType);
-      setNewExerciseType({name: '', metricIds: []});
+      )({
+        name: newExerciseType.name,
+        metrics: newExerciseType.metrics,
+      });
+      setNewExerciseType({name: '', metrics: []});
     } else if (mode === 'metric') {
       await (createItem as (input: CreateMetricInput) => Promise<any>)(
         newMetric,
@@ -304,9 +459,9 @@ export default function AdminExerciseCatalogScreen() {
       await (
         updateItem as (
           id: number,
-          input: {name: string; metricIds: number[]},
+          input: {name: string; metrics: OrderedMetric[]},
         ) => Promise<any>
-      )(id, updated);
+      )(id, {name: updated.name, metrics: updated.metrics});
     } else {
       const updated = edits[id];
       if (!updated || updated === '') return;
@@ -318,13 +473,26 @@ export default function AdminExerciseCatalogScreen() {
     refetch();
   };
 
-  const catalogSections: {key: typeof mode; label: string, sublabel: string}[] = [
-    {key: 'metric', label: 'Metrics', sublabel: 'Click to manage metrics'}, // New
-    {key: 'type', label: 'Exercise Types', sublabel: 'Click to manage exercise types'},
-    {key: 'difficulty', label: 'Difficulties', sublabel: 'Click to manage difficulties'},
-    {key: 'bodyPart', label: 'Body Parts', sublabel: 'Click to manage body parts'},
-    {key: 'muscle', label: 'Muscles', sublabel: 'Click to manage muscles'},
-  ];
+  const catalogSections: {key: typeof mode; label: string; sublabel: string}[] =
+    [
+      {key: 'metric', label: 'Metrics', sublabel: 'Click to manage metrics'}, // New
+      {
+        key: 'type',
+        label: 'Exercise Types',
+        sublabel: 'Click to manage exercise types',
+      },
+      {
+        key: 'difficulty',
+        label: 'Difficulties',
+        sublabel: 'Click to manage difficulties',
+      },
+      {
+        key: 'bodyPart',
+        label: 'Body Parts',
+        sublabel: 'Click to manage body parts',
+      },
+      {key: 'muscle', label: 'Muscles', sublabel: 'Click to manage muscles'},
+    ];
 
   return (
     <ScreenLayout scroll>
@@ -384,11 +552,11 @@ export default function AdminExerciseCatalogScreen() {
                         <SelectableField
                           label="Metrics"
                           value={
-                            newExerciseType.metricIds
+                            newExerciseType.metrics
                               .map(
-                                id =>
-                                  metrics.find(m => m.id === id)?.name ||
-                                  `#${id}`,
+                                x =>
+                                  metrics.find(m => m.id === x.metricId)
+                                    ?.name || `#${x.metricId}`,
                               )
                               .join(', ') || 'Select metrics'
                           }
@@ -419,30 +587,159 @@ export default function AdminExerciseCatalogScreen() {
                         visible
                         onClose={() => setShowNewMetricPicker(false)}>
                         <ScrollView>
-                          {metrics.map(metric => {
-                            const selected = newExerciseType.metricIds.includes(
-                              metric.id,
-                            );
-                            return (
-                              <OptionItem
-                                key={metric.id}
-                                text={metric.name}
-                                selected={newExerciseType.metricIds.includes(
-                                  metric.id,
-                                )}
-                                onPress={() => {
-                                  setNewExerciseType(prev => {
-                                    const updated = selected
-                                      ? prev.metricIds.filter(
-                                          id => id !== metric.id,
-                                        )
-                                      : [...prev.metricIds, metric.id];
-                                    return {...prev, metricIds: updated};
-                                  });
-                                }}
-                              />
-                            );
-                          })}
+                          <Title text="Select metrics" />
+                          {metrics.filter(
+                            metric =>
+                              !newExerciseType.metrics.some(
+                                m => m.metricId === metric.id,
+                              ),
+                          ).length === 0 ? (
+                            <View style={{paddingBottom: 8}}>
+                              <NoResults message="All available metrics have been selected." />
+                            </View>
+                          ) : (
+                            metrics
+                              .filter(
+                                metric =>
+                                  !newExerciseType.metrics.some(
+                                    m => m.metricId === metric.id,
+                                  ),
+                              )
+                              .map(metric => (
+                                <OptionItem
+                                  key={metric.id}
+                                  text={metric.name}
+                                  selected={false}
+                                  onPress={() => {
+                                    setNewExerciseType(prev => {
+                                      const updated = reorderMetrics([
+                                        ...prev.metrics,
+                                        {
+                                          metricId: metric.id,
+                                          order: prev.metrics.length + 1,
+                                        },
+                                      ]);
+                                      return {...prev, metrics: updated};
+                                    });
+                                  }}
+                                />
+                              ))
+                          )}
+
+                          <Button
+                            text="Confirm"
+                            fullWidth
+                            onPress={() => setShowNewMetricPicker(false)}
+                          />
+
+                          <DividerWithLabel label="Order selected metrics" />
+
+                          {newExerciseType.metrics.length > 0 ? (
+                            newExerciseType.metrics
+                              .sort((a, b) => a.order - b.order)
+                              .map((m, idx) => {
+                                const metric = metrics.find(
+                                  x => x.id === m.metricId,
+                                );
+                                return (
+                                  <View
+                                    key={m.metricId}
+                                    style={{
+                                      padding: spacing.sm,
+                                      borderRadius: 8,
+                                      borderWidth: 1,
+                                      borderColor: theme.colors.accentStart,
+                                      flexDirection: 'row',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                    }}>
+                                    <View style={{flexDirection: 'column'}}>
+                                      <Text
+                                        style={{
+                                          color: theme.colors.textPrimary,
+                                        }}>
+                                        #{idx + 1} {metric?.name}
+                                      </Text>
+                                    </View>
+                                    <View style={{flexDirection: 'row'}}>
+                                      <IconButton
+                                        icon={
+                                          <FontAwesome
+                                            name="arrow-alt-circle-up"
+                                            style={{
+                                              fontSize: 32,
+                                              color: theme.colors.textPrimary,
+                                            }}
+                                          />
+                                        }
+                                        size="small"
+                                        onPress={() =>
+                                          setNewExerciseType(prev => ({
+                                            ...prev,
+                                            metrics: moveMetric(
+                                              prev.metrics,
+                                              idx,
+                                              'up',
+                                            ),
+                                          }))
+                                        }
+                                        disabled={idx === 0}
+                                      />
+                                      <IconButton
+                                        icon={
+                                          <FontAwesome
+                                            name="arrow-alt-circle-down"
+                                            style={{
+                                              fontSize: 32,
+                                              color: theme.colors.textPrimary,
+                                            }}
+                                          />
+                                        }
+                                        size="small"
+                                        onPress={() =>
+                                          setNewExerciseType(prev => ({
+                                            ...prev,
+                                            metrics: moveMetric(
+                                              prev.metrics,
+                                              idx,
+                                              'down',
+                                            ),
+                                          }))
+                                        }
+                                        disabled={
+                                          idx ===
+                                          newExerciseType.metrics.length - 1
+                                        }
+                                      />
+                                      <IconButton
+                                        icon={
+                                          <FontAwesome
+                                            name="times-circle"
+                                            style={{
+                                              fontSize: 32,
+                                              color: theme.colors.textPrimary,
+                                            }}
+                                          />
+                                        }
+                                        size="small"
+                                        onPress={() =>
+                                          setNewExerciseType(prev => ({
+                                            ...prev,
+                                            metrics: reorderMetrics(
+                                              prev.metrics.filter(
+                                                x => x.metricId !== m.metricId,
+                                              ),
+                                            ),
+                                          }))
+                                        }
+                                      />
+                                    </View>
+                                  </View>
+                                );
+                              })
+                          ) : (
+                            <NoResults message="No metrics selected yet." />
+                          )}
                         </ScrollView>
                       </ModalWrapper>
                     )}

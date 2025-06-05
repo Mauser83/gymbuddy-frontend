@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from '@apollo/client';
+import {useQuery, useMutation} from '@apollo/client';
 import {
   GET_EXERCISE_TYPES,
   CREATE_EXERCISE_TYPE,
@@ -33,7 +33,12 @@ export type CreateMetricInput = {
 
 export type CreateExerciseTypeInput = {
   name: string;
-  metricIds: number[];
+  metrics: OrderedMetric[];
+};
+
+export type OrderedMetric = {
+  metricId: number;
+  order: number;
 };
 
 export function useReferenceManagement(mode: Mode, bodyPartId?: number) {
@@ -43,7 +48,7 @@ export function useReferenceManagement(mode: Mode, bodyPartId?: number) {
   const bodyPartQuery = useQuery(GET_BODY_PARTS);
   const muscleQuery = useQuery(GET_MUSCLES_BY_BODY_PART, {
     skip: !bodyPartId,
-    variables: { bodyPartId },
+    variables: {bodyPartId},
   });
   const metricQuery = useQuery(GET_METRICS);
 
@@ -75,21 +80,30 @@ export function useReferenceManagement(mode: Mode, bodyPartId?: number) {
         data: typeQuery.data?.allExerciseTypes,
         refetch: typeQuery.refetch,
         createItem: (input: CreateExerciseTypeInput) =>
-          createType({ variables: { input } }),
+          createType({variables: {input}}),
         updateItem: (id: number, input: CreateExerciseTypeInput) =>
-          updateType({ variables: { id, input } }),
-        deleteItem: (id: number) => deleteType({ variables: { id } }),
-      } as const;
+          updateType({variables: {id, input}}),
+        deleteItem: (id: number) => deleteType({variables: {id}}),
+      } as {
+        data: any;
+        refetch: () => void;
+        createItem: (input: CreateExerciseTypeInput) => Promise<any>;
+        updateItem: (
+          id: number,
+          input: CreateExerciseTypeInput,
+        ) => Promise<any>;
+        deleteItem: (id: number) => Promise<any>;
+      };
 
     case 'difficulty':
       return {
         data: difficultyQuery.data?.allExerciseDifficulties,
         refetch: difficultyQuery.refetch,
         createItem: (level: string) =>
-          createDifficulty({ variables: { input: { level } } }),
+          createDifficulty({variables: {input: {level}}}),
         updateItem: (id: number, level: string) =>
-          updateDifficulty({ variables: { id, input: { level } } }),
-        deleteItem: (id: number) => deleteDifficulty({ variables: { id } }),
+          updateDifficulty({variables: {id, input: {level}}}),
+        deleteItem: (id: number) => deleteDifficulty({variables: {id}}),
       };
 
     case 'bodyPart':
@@ -97,10 +111,10 @@ export function useReferenceManagement(mode: Mode, bodyPartId?: number) {
         data: bodyPartQuery.data?.allBodyParts,
         refetch: bodyPartQuery.refetch,
         createItem: (name: string) =>
-          createBodyPart({ variables: { input: { name } } }),
+          createBodyPart({variables: {input: {name}}}),
         updateItem: (id: number, name: string) =>
-          updateBodyPart({ variables: { id, input: { name } } }),
-        deleteItem: (id: number) => deleteBodyPart({ variables: { id } }),
+          updateBodyPart({variables: {id, input: {name}}}),
+        deleteItem: (id: number) => deleteBodyPart({variables: {id}}),
       };
 
     case 'muscle':
@@ -109,13 +123,13 @@ export function useReferenceManagement(mode: Mode, bodyPartId?: number) {
         refetch: muscleQuery.refetch,
         createItem: (name: string) => {
           if (!bodyPartId) throw new Error('Missing bodyPartId for muscle');
-          return createMuscle({ variables: { input: { name, bodyPartId } } });
+          return createMuscle({variables: {input: {name, bodyPartId}}});
         },
         updateItem: (id: number, name: string) => {
           if (!bodyPartId) throw new Error('Missing bodyPartId for muscle');
-          return updateMuscle({ variables: { id, input: { name, bodyPartId } } });
+          return updateMuscle({variables: {id, input: {name, bodyPartId}}});
         },
-        deleteItem: (id: number) => deleteMuscle({ variables: { id } }),
+        deleteItem: (id: number) => deleteMuscle({variables: {id}}),
       };
 
     case 'metric':
@@ -123,10 +137,10 @@ export function useReferenceManagement(mode: Mode, bodyPartId?: number) {
         data: metricQuery.data?.allMetrics,
         refetch: metricQuery.refetch,
         createItem: (input: CreateMetricInput) =>
-          createMetric({ variables: { input } }),
+          createMetric({variables: {input}}),
         updateItem: (id: number, input: Partial<CreateMetricInput>) =>
-          updateMetric({ variables: { id, input } }),
-        deleteItem: (id: number) => deleteMetric({ variables: { id } }),
+          updateMetric({variables: {id, input}}),
+        deleteItem: (id: number) => deleteMetric({variables: {id}}),
       } as const;
 
     default:
