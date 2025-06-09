@@ -61,13 +61,15 @@ const ClickableList = ({items}: Props) => {
                   </Text>
                 ) : null}
               </View>
-              {item.rightElement ?? (
-                <FontAwesome
-                  name="chevron-right"
-                  size={16}
-                  color={theme.colors.accentStart}
-                />
-              )}
+              {item.rightElement === false
+                ? null
+                : (item.rightElement ?? (
+                    <FontAwesome
+                      name="chevron-right"
+                      size={16}
+                      color={theme.colors.accentStart}
+                    />
+                  ))}
             </View>
           </Pressable>
           {item.content && (

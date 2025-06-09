@@ -27,12 +27,22 @@ import {WorkoutSessionData, ExerciseLog} from '../types/userWorkouts.types';
 import SelectableField from 'shared/components/SelectableField';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import PlanTargetChecklist from '../components/PlanTargetChecklist';
-import {PlanExercise} from '../components/PlanTargetChecklist';
+import MetricInputGroup from 'shared/components/MetricInputGroup';
+import {useMetricRegistry} from 'shared/context/MetricRegistry';
+import {generateMetricSchema} from 'shared/utils/generateMetricSchema';
+import {useExerciseLogSummary} from 'modules/exerciselog/components/ExerciseLogSummary';
 
 export default function ActiveWorkoutSessionScreen() {
   const {sessionId} = useParams<{sessionId: string}>();
   const navigate = useNavigate();
   const {theme} = useTheme();
+  const {
+    metricRegistry,
+    getMetricIdsForExercise,
+    createDefaultMetricsForExercise,
+  } = useMetricRegistry();
+
+  const formatSummary = useExerciseLogSummary();
 
   const [exercisePickerVisible, setExercisePickerVisible] = useState(false);
   const [equipmentPickerVisible, setEquipmentPickerVisible] = useState(false);
@@ -111,12 +121,10 @@ export default function ActiveWorkoutSessionScreen() {
   }, [logs, exercisesData]);
 
   const initialValues = useMemo(() => {
-    const values: any = {};
+    const values: Record<number, any> = {};
     logs.forEach(log => {
       values[log.id] = {
-        reps: log.reps ?? 0,
-        weight: log.weight ?? 0,
-        rpe: log.rpe ?? undefined,
+        metrics: log.metrics ?? {}, // this holds dynamic metric values
         notes: log.notes ?? '',
         equipmentIds: log.equipmentIds ?? [],
       };
@@ -130,8 +138,8 @@ export default function ActiveWorkoutSessionScreen() {
         exerciseId: ex.exercise.id,
         name: ex.exercise.name,
         targetSets: ex.targetSets,
-        targetReps: ex.targetReps,
-        targetRpe: ex.targetRpe,
+        // targetReps: ex.targetReps,
+        // targetRpe: ex.targetRpe,
       })) ?? [];
 
     const grouped = new Map<number, ExerciseLog[]>();
@@ -152,8 +160,8 @@ export default function ActiveWorkoutSessionScreen() {
         return {
           exerciseId: ex.exerciseId,
           name: ex.name,
-          targetReps: ex.targetReps,
-          targetRpe: ex.targetRpe,
+          // targetReps: ex.targetReps,
+          // targetRpe: ex.targetRpe,
           currentSetIndex: nextSetIndex,
         };
       }
@@ -202,8 +210,8 @@ export default function ActiveWorkoutSessionScreen() {
               exerciseId: ex.exercise.id,
               name: ex.exercise.name,
               targetSets: ex.targetSets,
-              targetReps: ex.targetReps,
-              targetRpe: ex.targetRpe,
+              // targetReps: ex.targetReps,
+              // targetRpe: ex.targetRpe,
             }))}
             exerciseLogs={logs}
           />
@@ -211,27 +219,20 @@ export default function ActiveWorkoutSessionScreen() {
         <Formik
           initialValues={initialValues}
           validationSchema={Yup.object(
-            Object.fromEntries(
-              Object.entries(initialValues).map(([logId]) => [
-                logId,
-                Yup.object({
-                  reps: Yup.number()
-                    .typeError('Reps must be a number')
-                    .required('Reps are required'),
-                  weight: Yup.number()
-                    .typeError('Weight must be a number')
-                    .required('Weight is required'),
-                  rpe: Yup.number()
-                    .typeError('RPE must be a number between 0 and 10')
-                    .min(0, 'RPE must be at least 0')
-                    .max(10, 'RPE must be 10 or less')
-                    .nullable(),
+            Object.entries(initialValues).reduce(
+              (acc, [logId]) => {
+                const log = logs.find(l => l.id === Number(logId));
+                const metricIds = log
+                  ? getMetricIdsForExercise(log.exerciseId)
+                  : [];
+                acc[logId] = Yup.object().shape({
+                  metrics: generateMetricSchema(metricIds, metricRegistry),
                   notes: Yup.string().nullable(),
-                  equipmentIds: Yup.array()
-                    .of(Yup.number())
-                    .min(1, 'At least one equipment must be selected'),
-                }),
-              ]),
+                  equipmentIds: Yup.array().of(Yup.number()).min(1),
+                });
+                return acc;
+              },
+              {} as Record<string, Yup.ObjectSchema<any>>,
             ),
           )}
           enableReinitialize
@@ -244,6 +245,7 @@ export default function ActiveWorkoutSessionScreen() {
             touched,
             validateForm,
             setTouched,
+            setFieldValue,
           }) => {
             const saveExpandedSetIfValid = async (): Promise<boolean> => {
               if (!expandedSetId) return true;
@@ -254,11 +256,7 @@ export default function ActiveWorkoutSessionScreen() {
                 if (!log) return false;
                 const input: any = {
                   setNumber: Number(log.setNumber),
-                  reps: Number(values[expandedSetId]?.reps),
-                  weight: parseFloat(values[expandedSetId]?.weight),
-                  rpe: values[expandedSetId]?.rpe
-                    ? parseFloat(values[expandedSetId]?.rpe)
-                    : null,
+                  metrics: values[expandedSetId]?.metrics ?? {},
                   notes: values[expandedSetId]?.notes ?? '',
                   equipmentIds: values[expandedSetId]?.equipmentIds ?? [],
                 };
@@ -292,7 +290,6 @@ export default function ActiveWorkoutSessionScreen() {
                     <Title text={group.name} />
                     {group.logs.map(log => {
                       const isExpanded = expandedSetId === log.id;
-                      const summary = `Set ${log.setNumber}: ${log.weight ?? 0}kg x ${log.reps ?? 0}${log.rpe ? ` (RPE ${log.rpe})` : ''}`;
 
                       return (
                         <View key={log.id} style={{marginTop: 8}}>
@@ -313,7 +310,7 @@ export default function ActiveWorkoutSessionScreen() {
                                 value={
                                   isExpanded
                                     ? `Set ${log.setNumber}: Editing...`
-                                    : summary
+                                    : formatSummary(log)
                                 }
                                 expanded={isExpanded}
                                 onPress={async () => {
@@ -379,44 +376,19 @@ export default function ActiveWorkoutSessionScreen() {
                                       />
                                     </View>
                                   </View>
-                                  <FormInput
-                                    label="Weight (kg)"
-                                    value={String(values[log.id]?.weight ?? '')}
-                                    onChangeText={handleChange(
-                                      `${log.id}.weight`,
+                                  <MetricInputGroup
+                                    metricIds={getMetricIdsForExercise(
+                                      log.exerciseId,
                                     )}
-                                    onBlur={() =>
-                                      handleBlur(`${log.id}.weight`)
+                                    values={values[log.id]?.metrics ?? {}}
+                                    onChange={(metricId, val) =>
+                                      setFieldValue(
+                                        `${log.id}.metrics.${metricId}`,
+                                        val,
+                                      )
                                     }
-                                    keyboardType="decimal-pad"
-                                    error={
-                                      (touched[log.id] as any)?.weight &&
-                                      (errors[log.id] as any)?.weight
-                                    }
-                                  />
-                                  <FormInput
-                                    label="Reps"
-                                    value={String(values[log.id]?.reps ?? '')}
-                                    onChangeText={handleChange(
-                                      `${log.id}.reps`,
-                                    )}
-                                    onBlur={() => handleBlur(`${log.id}.reps`)}
-                                    keyboardType="numeric"
-                                    error={
-                                      (touched[log.id] as any)?.reps &&
-                                      (errors[log.id] as any)?.reps
-                                    }
-                                  />
-                                  <FormInput
-                                    label="RPE"
-                                    value={String(values[log.id]?.rpe ?? '')}
-                                    onChangeText={handleChange(`${log.id}.rpe`)}
-                                    onBlur={() => handleBlur(`${log.id}.rpe`)}
-                                    keyboardType="decimal-pad"
-                                    error={
-                                      (touched[log.id] as any)?.rpe &&
-                                      (errors[log.id] as any)?.rpe
-                                    }
+                                    errors={(errors[log.id] as any)?.metrics}
+                                    touched={(touched[log.id] as any)?.metrics}
                                   />
                                   <FormInput
                                     label="Notes"
@@ -456,10 +428,11 @@ export default function ActiveWorkoutSessionScreen() {
                           <Text style={{color: theme.colors.textPrimary}}>
                             Next: Set {nextSet.currentSetIndex + 1}:{' '}
                           </Text>
-                          <Text style={{color: theme.colors.accentStart}}>
+                          #TODO
+                          {/* <Text style={{color: theme.colors.accentStart}}>
                             {nextSet.targetReps} reps @ RPE{' '}
                             {nextSet.targetRpe ?? '?'}
-                          </Text>
+                          </Text> */}
                         </Text>
                       )}
                     <Button
@@ -467,14 +440,14 @@ export default function ActiveWorkoutSessionScreen() {
                       onPress={async () => {
                         const didSave = await saveExpandedSetIfValid();
                         if (!didSave) return;
-
+                        const metrics = createDefaultMetricsForExercise(
+                          group.exerciseId,
+                        );
                         const baseLog = {
                           workoutSessionId: Number(sessionId),
                           exerciseId: group.exerciseId,
                           setNumber: group.logs.length + 1,
-                          reps: 0,
-                          weight: 0,
-                          rpe: 7,
+                          metrics, // default empty metrics; user will fill it in
                           notes: '',
                           equipmentIds: [
                             ...(group.logs.at(-1)?.equipmentIds ?? []),
@@ -514,10 +487,11 @@ export default function ActiveWorkoutSessionScreen() {
                         <Text style={{color: theme.colors.textPrimary}}>
                           Set {nextSet.currentSetIndex + 1}:{' '}
                         </Text>
-                        <Text style={{color: theme.colors.accentStart}}>
+                        #TODO
+                        {/* <Text style={{color: theme.colors.accentStart}}>
                           {nextSet.targetReps} reps @ RPE{' '}
                           {nextSet.targetRpe ?? '?'}
-                        </Text>
+                        </Text> */}
                       </Text>
                     </>
                   )}
@@ -614,15 +588,16 @@ export default function ActiveWorkoutSessionScreen() {
             );
             setEditingLogId(null);
           } else {
+            const metrics = createDefaultMetricsForExercise(
+              selectedExercise.id,
+            );
             const baseLog = {
               workoutSessionId: Number(sessionId),
               exerciseId: selectedExercise.id,
               setNumber:
                 logs.filter(log => log.exerciseId === selectedExercise.id)
                   .length + 1,
-              reps: 0,
-              weight: 0,
-              rpe: 7,
+              metrics, // default empty metrics; user will fill it in
               notes: '',
               equipmentIds,
             };

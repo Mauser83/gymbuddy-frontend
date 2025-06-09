@@ -56,6 +56,9 @@ export const GET_EXERCISES_AVAILABLE_AT_GYM = gql`
           }
         }
       }
+      exerciseType {
+        id
+      }
     }
   }
 `;
@@ -108,18 +111,19 @@ export const GET_WORKOUT_SESSION = gql`
             name
           }
           targetSets
-          targetReps
-          targetRpe
+          targetMetrics {
+            metricId
+            min
+            max
+          }
         }
       }
       exerciseLogs {
         id
         exerciseId
-        equipmentIds
         setNumber
-        reps
-        weight
-        rpe
+        equipmentIds
+        metrics
         notes
       }
     }
@@ -132,9 +136,7 @@ export const CREATE_EXERCISE_LOG = gql`
       id
       exerciseId
       setNumber
-      reps
-      weight
-      rpe
+      metrics
       notes
       equipmentIds
     }
@@ -147,9 +149,7 @@ export const UPDATE_EXERCISE_LOG = gql`
       id
       exerciseId
       setNumber
-      reps
-      weight
-      rpe
+      metrics
       notes
       equipmentIds
     }
@@ -240,13 +240,14 @@ export const GET_WORKOUT_SESSION_DETAIL = gql`
         id
         exerciseId
         setNumber
-        reps
-        weight
-        rpe
+        metrics
         notes
         exercise {
           id
           name
+          exerciseType {
+            id
+          }
           primaryMuscles {
             id
             name

@@ -3,9 +3,7 @@ export interface ExerciseLog {
   id: number;
   exerciseId: number;
   setNumber: number;
-  reps: number;
-  weight: number;
-  rpe?: number;
+  metrics?: Record<number, number | string>; // ✅ new dynamic metrics field
   notes?: string;
   equipmentIds: number[]; // 🆕
 }

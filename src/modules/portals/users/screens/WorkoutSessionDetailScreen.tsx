@@ -16,6 +16,8 @@ import {
   DELETE_WORKOUT_SESSION,
   GET_WORKOUT_SESSION_DETAIL,
 } from '../graphql/userWorkouts.graphql';
+import {useMetricRegistry} from 'shared/context/MetricRegistry';
+import {useExerciseLogSummary} from 'shared/components/ExerciseLogSummary';
 
 type Muscle = {
   id: number;
@@ -44,6 +46,9 @@ type ExerciseLog = {
 const WorkoutSessionDetailScreen = () => {
   const {sessionId} = useParams();
   const navigate = useNavigate();
+  const {metricRegistry, getMetricIdsForExercise} = useMetricRegistry();
+
+  const formatSummary = useExerciseLogSummary();
 
   const {data, loading, error} = useQuery(GET_WORKOUT_SESSION_DETAIL, {
     variables: {id: Number(sessionId)},
@@ -106,9 +111,10 @@ const WorkoutSessionDetailScreen = () => {
             <ClickableList
               items={logs.map((log: ExerciseLog) => ({
                 id: log.id,
-                label: `Set ${log.setNumber}: ${log.reps} reps @ ${log.weight}kg • RPE ${log.rpe ?? '-'}`,
+                label: formatSummary(log),
                 subLabel: log.notes || '',
-                onPress: () => {}, // optional, if sets are not interactive
+                onPress: () => {},
+                rightElement: false,
               }))}
             />
           </View>
@@ -176,17 +182,17 @@ const WorkoutSessionDetailScreen = () => {
         }}
       />
       <View style={{paddingTop: 8}}>
-      <Button
-        text="Delete Workout"
-        onPress={async () => {
-          try {
-            await deleteSession({variables: {id: Number(sessionId)}});
-            navigate('/workout-session'); // Adjust to your actual sessions list route
-          } catch (err) {
-            console.error('Failed to delete session:', err);
-          }
-        }}
-      />
+        <Button
+          text="Delete Workout"
+          onPress={async () => {
+            try {
+              await deleteSession({variables: {id: Number(sessionId)}});
+              navigate('/workout-session'); // Adjust to your actual sessions list route
+            } catch (err) {
+              console.error('Failed to delete session:', err);
+            }
+          }}
+        />
       </View>
     </ScreenLayout>
   );

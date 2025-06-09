@@ -15,8 +15,8 @@ export interface PlanExercise {
   exerciseId: number;
   name: string;
   targetSets: number;
-  targetReps: number;
-  targetRpe?: number;
+  // targetReps: number;
+  // targetRpe?: number;
 }
 
 interface ExerciseLog {
@@ -91,7 +91,8 @@ export default function PlanTargetChecklist({
                     <Text style={{color: 'green'}}>✅ Completed</Text>
                   ) : (
                     <Text style={{color: 'gray'}}>
-                      {`${ex.targetReps} reps @ RPE ${ex.targetRpe ?? '?'}`}
+                      {/* {`${ex.targetReps} reps @ RPE ${ex.targetRpe ?? '?'}`} */}
+                      Not completed
                     </Text>
                   )}
                 </View>
