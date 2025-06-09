@@ -217,6 +217,10 @@ export const GET_WORKOUT_SESSIONS_BY_USER = gql`
         id
         name
       }
+      exerciseLogs {
+        id
+        metrics
+      }
     }
   }
 `;

@@ -182,8 +182,7 @@ export const WORKOUT_SESSION_FIELDS = gql`
     exerciseLogs {
       id
       exerciseId
-      reps
-      weight
+      metrics
       setNumber
       createdAt
     }
