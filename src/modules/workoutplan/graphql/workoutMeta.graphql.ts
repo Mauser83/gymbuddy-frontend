@@ -53,6 +53,9 @@ export const GET_EXERCISES_BASIC = gql`
           name
         }
       }
+      exerciseType {
+        id
+      }
     }
   }
 `;
@@ -87,8 +90,11 @@ export const GET_WORKOUT_PLAN_BY_ID = gql`
       exercises {
         id
         targetSets
-        targetReps
-        targetRpe
+        targetMetrics {
+          metricId
+          min
+          max
+        }
         isWarmup
         trainingMethod {
           id

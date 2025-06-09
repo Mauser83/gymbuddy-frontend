@@ -13,9 +13,11 @@
 // />
 
 import React from 'react';
-import {View} from 'react-native';
+import {View, Text} from 'react-native';
 import FormInput from 'shared/components/FormInput';
 import {useMetricRegistry} from 'shared/context/MetricRegistry';
+import {metricsWithOnlyMin} from 'shared/context/MetricRegistry';
+import { useTheme } from 'shared/theme/ThemeProvider';
 
 interface TargetMetric {
   metricId: number;
@@ -24,7 +26,8 @@ interface TargetMetric {
 }
 
 interface TargetMetricInputGroupProps {
-  exerciseId: number;
+  exerciseId?: number;
+  exerciseTypeId?: number;
   values: TargetMetric[];
   onChange: (metricId: number, field: 'min' | 'max', value: string) => void;
   errors?: Record<number, {min?: string; max?: string}>;
@@ -33,13 +36,33 @@ interface TargetMetricInputGroupProps {
 
 const TargetMetricInputGroup: React.FC<TargetMetricInputGroupProps> = ({
   exerciseId,
+  exerciseTypeId,
   values,
   onChange,
   errors = {},
   touched = {},
 }) => {
-  const {metricRegistry, exerciseMetricMap} = useMetricRegistry();
-  const metricIds = exerciseMetricMap[exerciseId] ?? [];
+  const {
+    metricRegistry,
+    exerciseTypeByExerciseId,
+    getPlanningRelevantMetricIdsForExercise,
+  } = useMetricRegistry();
+
+  const { theme } = useTheme();
+
+  const resolvedTypeId =
+    exerciseTypeId ??
+    (exerciseId ? exerciseTypeByExerciseId[exerciseId] : undefined);
+
+  const metricIds = exerciseId
+    ? getPlanningRelevantMetricIdsForExercise(exerciseId)
+    : exerciseTypeId !== undefined
+      ? getPlanningRelevantMetricIdsForExercise(
+          Object.entries(exerciseTypeByExerciseId).find(
+            ([, typeId]) => typeId === exerciseTypeId,
+          )?.[0] as unknown as number,
+        )
+      : [];
 
   return (
     <View style={{gap: 12}}>
@@ -55,24 +78,39 @@ const TargetMetricInputGroup: React.FC<TargetMetricInputGroupProps> = ({
 
         return (
           <View key={metricId} style={{gap: 8}}>
-            <FormInput
-              label={`Min ${metric.name} (${metric.unit})`}
-              value={String(target.min ?? '')}
-              onChangeText={text => onChange(metricId, 'min', text)}
-              keyboardType={
-                metric.inputType === 'number' ? 'numeric' : 'default'
-              }
-              error={touched[metricId]?.min ? errors[metricId]?.min : undefined}
-            />
-            <FormInput
-              label={`Max ${metric.name} (${metric.unit})`}
-              value={String(target.max ?? '')}
-              onChangeText={text => onChange(metricId, 'max', text)}
-              keyboardType={
-                metric.inputType === 'number' ? 'numeric' : 'default'
-              }
-              error={touched[metricId]?.max ? errors[metricId]?.max : undefined}
-            />
+            <Text style={{fontWeight: '600', marginBottom: 4, color: theme.colors.textPrimary}}>
+              {metric.name}
+            </Text>
+            <View style={{flexDirection: 'row', gap: 12}}>
+              <View style={{flex: 1}}>
+                <FormInput
+                  label="Min"
+                  value={String(target.min ?? '')}
+                  onChangeText={text => onChange(metricId, 'min', text)}
+                  keyboardType={
+                    metric.inputType === 'number' ? 'numeric' : 'default'
+                  }
+                  error={
+                    touched[metricId]?.min ? errors[metricId]?.min : undefined
+                  }
+                />
+              </View>
+              {!metricsWithOnlyMin.includes(metric.name) && (
+                <View style={{flex: 1}}>
+                  <FormInput
+                    label="Max (optional)"
+                    value={String(target.max ?? '')}
+                    onChangeText={text => onChange(metricId, 'max', text)}
+                    keyboardType={
+                      metric.inputType === 'number' ? 'numeric' : 'default'
+                    }
+                    error={
+                      touched[metricId]?.max ? errors[metricId]?.max : undefined
+                    }
+                  />
+                </View>
+              )}
+            </View>
           </View>
         );
       })}

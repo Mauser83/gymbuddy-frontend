@@ -10,13 +10,17 @@ import {spacing} from 'shared/theme/tokens';
 import Icon from '@expo/vector-icons/Feather';
 import {Portal} from 'react-native-portalize';
 import {useTheme} from 'shared/theme/ThemeProvider';
+import {useMetricRegistry} from 'shared/context/MetricRegistry';
 
 export interface PlanExercise {
   exerciseId: number;
   name: string;
   targetSets: number;
-  // targetReps: number;
-  // targetRpe?: number;
+  targetMetrics: {
+    metricId: number;
+    min: number | string;
+    max?: number | string | null;
+  }[];
 }
 
 interface ExerciseLog {
@@ -41,6 +45,22 @@ export default function PlanTargetChecklist({
     const current = groupedLogs.get(log.exerciseId) || [];
     groupedLogs.set(log.exerciseId, [...current, log]);
   });
+
+  const {metricRegistry} = useMetricRegistry();
+
+  const formatMetrics = (metrics: PlanExercise['targetMetrics']): string => {
+    return metrics
+      .map(({metricId, min, max}) => {
+        const name = metricRegistry[metricId]?.name;
+        if (!name) return null;
+        if (max != null && max !== '' && max !== min) {
+          return `${name} ${min}–${max}`;
+        }
+        return `${name} ${min}`;
+      })
+      .filter(Boolean)
+      .join(', ');
+  };
 
   return (
     <Portal>
@@ -76,28 +96,36 @@ export default function PlanTargetChecklist({
             <View style={styles.headerRow}>
               <Text style={styles.headerText}>Plan</Text>
             </View>
-            {planExercises.map((ex, idx) => {
-              const setsLogged = groupedLogs.get(ex.exerciseId)?.length || 0;
-              const countBefore = planExercises
-                .slice(0, idx)
-                .filter(e => e.exerciseId === ex.exerciseId).length;
+            {planExercises.flatMap((ex, planIdx) =>
+              Array.from({length: ex.targetSets}).map((_, setIdx) => {
+                const setsLogged = groupedLogs.get(ex.exerciseId)?.length || 0;
+                const currentSetIndex = setIdx;
+                const isLogged = currentSetIndex < setsLogged;
 
-              const currentSetIndex = countBefore; // 0-based index of this set for this exercise
-              const isLogged = currentSetIndex < setsLogged;
-              return (
-                <View key={`e${ex.exerciseId}i${idx}`} style={styles.exerciseItem}>
-                  <Text style={styles.name}>{`${idx + 1}. ${ex.name}`}</Text>
-                  {isLogged ? (
-                    <Text style={{color: 'green'}}>✅ Completed</Text>
-                  ) : (
-                    <Text style={{color: 'gray'}}>
-                      {/* {`${ex.targetReps} reps @ RPE ${ex.targetRpe ?? '?'}`} */}
-                      Not completed
-                    </Text>
-                  )}
-                </View>
-              );
-            })}
+                const overallIdx =
+                  planExercises
+                    .slice(0, planIdx)
+                    .reduce((sum, p) => sum + p.targetSets, 0) + setIdx;
+
+                return (
+                  <View
+                    key={`e${ex.exerciseId}s${setIdx}`}
+                    style={styles.exerciseItem}>
+                    <Text
+                      style={
+                        styles.name
+                      }>{`${overallIdx + 1}. ${ex.name}`}</Text>
+                    {isLogged ? (
+                      <Text style={{color: 'green'}}>✅ Completed</Text>
+                    ) : (
+                      <Text style={styles.details}>
+                        {formatMetrics(ex.targetMetrics)}
+                      </Text>
+                    )}
+                  </View>
+                );
+              }),
+            )}
           </TouchableOpacity>
         </View>
       )}

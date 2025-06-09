@@ -39,8 +39,11 @@ export interface WorkoutSessionData {
           name: string;
         };
         targetSets: number;
-        targetReps: number;
-        targetRpe?: number;
+        targetMetrics: {
+          metricId: number;
+          min: number | string;
+          max?: number | string | null;
+        }[];
       }[];
     } | null;
     exerciseLogs: ExerciseLog[];

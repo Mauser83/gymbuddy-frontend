@@ -1,9 +1,9 @@
-import React, {createContext, useContext, useEffect, useState} from 'react';
-import {useQuery} from '@apollo/client';
-import {GET_ALL_METRICS_AND_EXERCISE_TYPES} from 'shared/graphql/metrics.graphql';
-import {useAuth} from 'modules/auth/context/AuthContext';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useQuery } from '@apollo/client';
+import { GET_ALL_METRICS_AND_EXERCISE_TYPES } from 'shared/graphql/metrics.graphql';
+import { useAuth } from 'modules/auth/context/AuthContext';
 
-type MetricDefinition = {
+export type MetricDefinition = {
   id: number;
   name: string;
   unit: string;
@@ -12,51 +12,63 @@ type MetricDefinition = {
 
 type MetricRegistryContextType = {
   metricRegistry: Record<number, MetricDefinition>;
-  exerciseMetricMap: Record<number, number[]>; // exerciseTypeId → ordered metricIds
-  exerciseTypeByExerciseId: Record<number, number>; // 🔧 Add this
+  exerciseMetricMap: Record<number, number[]>;
+  exerciseTypeByExerciseId: Record<number, number>;
   loading: boolean;
   getMetricIdsForExercise: (exerciseId: number) => number[];
-  createDefaultMetricsForExercise: (
-    exerciseId: number,
-  ) => Record<number, number>;
+  createDefaultMetricsForExercise: (exerciseId: number) => Record<number, number>;
+  createPlanningTargetMetrics: (
+    exerciseId: number
+  ) => { metricId: number; min: string | number; max?: string | number }[];
+  getPlanningRelevantMetricIdsForExercise: (exerciseId: number) => number[];
 };
 
-const MetricRegistryContext = createContext<MetricRegistryContextType | null>(
-  null,
-);
+const MetricRegistryContext = createContext<MetricRegistryContextType | null>(null);
 
 export const useMetricRegistry = () => {
   const ctx = useContext(MetricRegistryContext);
   if (!ctx) {
-    throw new Error(
-      'MetricRegistryContext must be used within MetricRegistryProvider',
-    );
+    throw new Error('MetricRegistryContext must be used within MetricRegistryProvider');
   }
   return ctx;
 };
 
-export const MetricRegistryProvider: React.FC<{children: React.ReactNode}> = ({
-  children,
-}) => {
-  const {user} = useAuth();
-  const {data, loading} = useQuery(GET_ALL_METRICS_AND_EXERCISE_TYPES, {
-    skip: !user, // ✅ only fetch if logged in
+// 🧠 Central filter config
+const planningRelevantMetricsByType: Record<number, string[]> = {
+  1: ['Reps', 'RPE', 'Rest time', 'Tempo'],  // Strength
+  2: ['Duration', 'Distance'],              // Cardio (example)
+  3: ['Hold time', 'Rest time'],            // Mobility (example)
+};
+
+export const metricsWithOnlyMin: string[] = ['RPE']; // Example
+
+// 🔧 Builder for externalized filter function
+export const buildGetPlanningRelevantMetricIdsForExercise = (
+  registry: Record<number, MetricDefinition>,
+  exerciseTypeByExerciseId: Record<number, number>,
+  exerciseMetricMap: Record<number, number[]>,
+  planningRelevantMetricsByType: Record<number, string[]>
+) => (exerciseId: number): number[] => {
+  const typeId = exerciseTypeByExerciseId[exerciseId];
+  const allMetricIds = exerciseMetricMap[typeId] ?? [];
+  const names = planningRelevantMetricsByType[typeId] ?? [];
+  return allMetricIds.filter(id => names.includes(registry[id]?.name));
+};
+
+export const MetricRegistryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const { data, loading } = useQuery(GET_ALL_METRICS_AND_EXERCISE_TYPES, {
+    skip: !user,
   });
 
-  const [registry, setRegistry] = useState<Record<number, MetricDefinition>>(
-    {},
-  );
-  const [exerciseMetricMap, setExerciseMetricMap] = useState<
-    Record<number, number[]>
-  >({});
-  const [exerciseTypeByExerciseId, setExerciseTypeByExerciseId] = useState<
-    Record<number, number>
-  >({});
+  const [registry, setRegistry] = useState<Record<number, MetricDefinition>>({});
+  const [exerciseMetricMap, setExerciseMetricMap] = useState<Record<number, number[]>>({});
+  const [exerciseTypeByExerciseId, setExerciseTypeByExerciseId] = useState<Record<number, number>>({});
 
   useEffect(() => {
     if (!data) return;
 
-    // Build metric registry
+    // Registry
     const metrics: Record<number, MetricDefinition> = {};
     data.allMetrics.forEach((m: any) => {
       metrics[m.id] = {
@@ -67,7 +79,7 @@ export const MetricRegistryProvider: React.FC<{children: React.ReactNode}> = ({
       };
     });
 
-    // Build exercise type → metricIds map
+    // Type → Metrics
     const typeToMetrics: Record<number, number[]> = {};
     data.allExerciseTypes.forEach((ex: any) => {
       typeToMetrics[ex.id] = [...(ex.orderedMetrics ?? [])]
@@ -75,7 +87,7 @@ export const MetricRegistryProvider: React.FC<{children: React.ReactNode}> = ({
         .map(entry => entry.metric.id);
     });
 
-    // Build exerciseId → exerciseTypeId map
+    // Exercise → Type
     const exerciseToType: Record<number, number> = {};
     data.getExercises?.forEach((ex: any) => {
       if (ex.id && ex.exerciseType?.id) {
@@ -94,11 +106,34 @@ export const MetricRegistryProvider: React.FC<{children: React.ReactNode}> = ({
   };
 
   const createDefaultMetricsForExercise = (
-    exerciseId: number,
+    exerciseId: number
   ): Record<number, number> => {
     const ids = getMetricIdsForExercise(exerciseId);
     return Object.fromEntries(ids.map(id => [id, 0]));
   };
+
+  const createPlanningTargetMetrics = (
+    exerciseId: number
+  ): { metricId: number; min: string | number; max?: string | number }[] => {
+    const getRelevant = buildGetPlanningRelevantMetricIdsForExercise(
+      registry,
+      exerciseTypeByExerciseId,
+      exerciseMetricMap,
+      planningRelevantMetricsByType
+    );
+    return getRelevant(exerciseId).map(id => ({
+      metricId: id,
+      min: '',
+      max: '',
+    }));
+  };
+
+  const getPlanningRelevantMetricIdsForExercise = buildGetPlanningRelevantMetricIdsForExercise(
+    registry,
+    exerciseTypeByExerciseId,
+    exerciseMetricMap,
+    planningRelevantMetricsByType
+  );
 
   return (
     <MetricRegistryContext.Provider
@@ -109,7 +144,10 @@ export const MetricRegistryProvider: React.FC<{children: React.ReactNode}> = ({
         loading,
         getMetricIdsForExercise,
         createDefaultMetricsForExercise,
-      }}>
+        createPlanningTargetMetrics,
+        getPlanningRelevantMetricIdsForExercise,
+      }}
+    >
       {children}
     </MetricRegistryContext.Provider>
   );

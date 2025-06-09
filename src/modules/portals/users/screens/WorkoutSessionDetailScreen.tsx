@@ -17,7 +17,7 @@ import {
   GET_WORKOUT_SESSION_DETAIL,
 } from '../graphql/userWorkouts.graphql';
 import {useMetricRegistry} from 'shared/context/MetricRegistry';
-import {useExerciseLogSummary} from 'shared/components/ExerciseLogSummary';
+import {useExerciseLogSummary} from 'shared/hooks/ExerciseLogSummary';
 
 type Muscle = {
   id: number;
@@ -32,9 +32,7 @@ type ExerciseLog = {
   id: number;
   exerciseId: number;
   setNumber: number;
-  reps: number;
-  weight: number;
-  rpe: number | null;
+  metrics: Record<number, number>; // ✅ Required now
   notes?: string | null;
   exercise: {
     id: number;
@@ -146,17 +144,41 @@ const WorkoutSessionDetailScreen = () => {
           }
           if (currentGroup) groupedExercises.push(currentGroup);
 
-          const average = (nums: number[]) =>
-            Math.round(nums.reduce((sum, n) => sum + n, 0) / nums.length);
+          const exercises = groupedExercises.map(group => {
+            const exerciseId = group.exerciseId;
+            const logs = group.logs;
 
-          const exercises = groupedExercises.map(group => ({
-            exerciseId: group.exerciseId,
-            exerciseName: group.logs[0].exercise?.name || 'Unnamed Exercise',
-            targetSets: group.logs.length,
-            targetReps: average(group.logs.map(l => l.reps)),
-            targetRpe: average(group.logs.map(l => l.rpe ?? 0)),
-            notes: group.logs.find(l => l.notes?.trim())?.notes || '',
-          }));
+            const metricIds = getMetricIdsForExercise(exerciseId);
+
+            const metricsMap = metricIds.reduce((acc: any, metricId) => {
+              const values = logs
+                .map(log => log.metrics?.[metricId])
+                .filter(val => val !== undefined && val !== null);
+
+              if (values.length > 0) {
+                const avg = Math.round(
+                  values.reduce((sum, v) => sum + Number(v), 0) / values.length,
+                );
+                acc[metricId] = avg;
+              }
+
+              return acc;
+            }, {});
+
+            return {
+              exerciseId,
+              exerciseName: logs[0].exercise?.name || 'Unnamed Exercise',
+              targetSets: logs.length,
+              targetMetrics: Object.entries(metricsMap).map(
+                ([metricId, min]) => ({
+                  metricId: Number(metricId),
+                  min,
+                }),
+              ),
+              isWarmup: false,
+              trainingMethodId: null,
+            };
+          });
 
           const bodyPartIdSet = new Set<number>();
 

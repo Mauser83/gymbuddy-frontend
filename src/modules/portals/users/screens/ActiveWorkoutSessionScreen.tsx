@@ -31,6 +31,7 @@ import MetricInputGroup from 'shared/components/MetricInputGroup';
 import {useMetricRegistry} from 'shared/context/MetricRegistry';
 import {generateMetricSchema} from 'shared/utils/generateMetricSchema';
 import {useExerciseLogSummary} from 'modules/exerciselog/components/ExerciseLogSummary';
+import {formatPlanMetrics} from 'shared/utils/formatPlanMetrics';
 
 export default function ActiveWorkoutSessionScreen() {
   const {sessionId} = useParams<{sessionId: string}>();
@@ -133,14 +134,12 @@ export default function ActiveWorkoutSessionScreen() {
   }, [logs]);
 
   const nextSet = useMemo(() => {
-    const planExercises =
-      session?.workoutPlan?.exercises.map(ex => ({
-        exerciseId: ex.exercise.id,
-        name: ex.exercise.name,
-        targetSets: ex.targetSets,
-        // targetReps: ex.targetReps,
-        // targetRpe: ex.targetRpe,
-      })) ?? [];
+    const planExercises = session?.workoutPlan?.exercises.map(ex => ({
+      exerciseId: ex.exercise.id,
+      name: ex.exercise.name,
+      targetSets: ex.targetSets,
+      targetMetrics: ex.targetMetrics ?? [],
+    })) ?? [];
 
     const grouped = new Map<number, ExerciseLog[]>();
     logs.forEach(log => {
@@ -160,9 +159,8 @@ export default function ActiveWorkoutSessionScreen() {
         return {
           exerciseId: ex.exerciseId,
           name: ex.name,
-          // targetReps: ex.targetReps,
-          // targetRpe: ex.targetRpe,
           currentSetIndex: nextSetIndex,
+          targetMetrics: ex.targetMetrics ?? [],
         };
       }
     }
@@ -206,12 +204,11 @@ export default function ActiveWorkoutSessionScreen() {
 
         {session?.workoutPlan?.exercises && (
           <PlanTargetChecklist
-            planExercises={session.workoutPlan.exercises.map(ex => ({
+            planExercises={session?.workoutPlan?.exercises.map(ex => ({
               exerciseId: ex.exercise.id,
               name: ex.exercise.name,
               targetSets: ex.targetSets,
-              // targetReps: ex.targetReps,
-              // targetRpe: ex.targetRpe,
+              targetMetrics: ex.targetMetrics ?? [],
             }))}
             exerciseLogs={logs}
           />
@@ -428,11 +425,12 @@ export default function ActiveWorkoutSessionScreen() {
                           <Text style={{color: theme.colors.textPrimary}}>
                             Next: Set {nextSet.currentSetIndex + 1}:{' '}
                           </Text>
-                          #TODO
-                          {/* <Text style={{color: theme.colors.accentStart}}>
-                            {nextSet.targetReps} reps @ RPE{' '}
-                            {nextSet.targetRpe ?? '?'}
-                          </Text> */}
+                          <Text style={{color: theme.colors.accentStart}}>
+                            {formatPlanMetrics(
+                              nextSet.targetMetrics,
+                              metricRegistry,
+                            )}
+                          </Text>
                         </Text>
                       )}
                     <Button
@@ -487,11 +485,12 @@ export default function ActiveWorkoutSessionScreen() {
                         <Text style={{color: theme.colors.textPrimary}}>
                           Set {nextSet.currentSetIndex + 1}:{' '}
                         </Text>
-                        #TODO
-                        {/* <Text style={{color: theme.colors.accentStart}}>
-                          {nextSet.targetReps} reps @ RPE{' '}
-                          {nextSet.targetRpe ?? '?'}
-                        </Text> */}
+                        <Text style={{color: theme.colors.accentStart}}>
+                          {formatPlanMetrics(
+                            nextSet.targetMetrics,
+                            metricRegistry,
+                          )}
+                        </Text>
                       </Text>
                     </>
                   )}

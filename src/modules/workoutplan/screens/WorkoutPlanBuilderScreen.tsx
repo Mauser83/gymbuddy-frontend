@@ -1,5 +1,5 @@
-import React, {useState, useRef, useEffect} from 'react';
-import {View, ScrollView, Alert, Text, TouchableOpacity} from 'react-native';
+import React, {useState, useRef} from 'react';
+import {View, Alert, Text, TouchableOpacity} from 'react-native';
 import {Formik, FieldArray} from 'formik';
 import * as Yup from 'yup';
 import ScreenLayout from 'shared/components/ScreenLayout';
@@ -13,21 +13,17 @@ import ModalWrapper from 'shared/components/ModalWrapper';
 import {GET_WORKOUT_PLAN_META} from '../graphql/workoutMeta.graphql';
 import {useQuery, useMutation} from '@apollo/client';
 import {
-  UPDATE_MUSCLE_GROUP,
   CREATE_WORKOUT_PLAN,
   UPDATE_WORKOUT_PLAN,
 } from '../graphql/workoutReferences';
-import {MuscleGroup} from '../../portals/appManagement/components/EditMuscleGroupModal';
 import {GET_EXERCISES_BASIC} from '../graphql/workoutMeta.graphql';
-import {useAuth} from 'modules/auth/context/AuthContext';
 import {spacing} from 'shared/theme/tokens';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import FontAwesome from '@expo/vector-icons/FontAwesome5';
 import IconButton from 'shared/components/IconButton';
 import {useNavigate} from 'react-router-native';
-import {Exercise} from '../types/workoutplan.types';
 import {useLocation} from 'react-router-native';
-import { IntensityPreset } from 'modules/portals/appManagement/screens/AdminWorkoutPlanCatalogScreen';
+import {IntensityPreset} from 'modules/portals/appManagement/screens/AdminWorkoutPlanCatalogScreen';
 
 // 🧩 Modular modals
 import SelectExerciseModal from '../components/SelectExerciseModal';
@@ -35,6 +31,9 @@ import TrainingGoalPickerModal from '../components/TrainingGoalPickerModal';
 import DifficultyPickerModal from '../components/DifficultyPickerModal';
 import MuscleGroupPickerModal from '../components/MuscleGroupPickerModal';
 import TrainingMethodPicker from '../components/TrainingMethodPicker';
+import {useMetricRegistry} from 'shared/context/MetricRegistry';
+import TargetMetricInputGroup from 'shared/components/TargetMetricInputGroup';
+import {useWorkoutPlanSummary} from 'shared/hooks/WorkoutPlanSummary';
 
 type ActiveModal =
   | null
@@ -42,7 +41,20 @@ type ActiveModal =
   | 'difficultyPicker'
   | 'muscleGroupPicker'
   | 'selectExercise'
-  | 'trainingMethodPicker'
+  | 'trainingMethodPicker';
+
+type ExerciseFormEntry = {
+  exerciseId: number;
+  exerciseName: string;
+  targetSets: number;
+  targetMetrics: {
+    metricId: number;
+    min: number | string;
+    max?: number | string;
+  }[];
+  isWarmup: boolean;
+  trainingMethodId?: number | null;
+};
 
 type FormValues = {
   name: string;
@@ -50,7 +62,7 @@ type FormValues = {
   intensityPresetId: number;
   experienceLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   muscleGroupIds: number[];
-  exercises: Exercise[];
+  exercises: ExerciseFormEntry[];
 };
 
 type MuscleGroupMeta = {
@@ -70,29 +82,34 @@ const validationSchema = Yup.object().shape({
     .of(
       Yup.object().shape({
         targetSets: Yup.number().min(1).required('Sets required'),
-        targetReps: Yup.number().min(1).required('Reps required'),
-        targetRpe: Yup.number().min(0).max(10).required('RPE required'),
+        targetMetrics: Yup.array()
+          .of(
+            Yup.object().shape({
+              metricId: Yup.number().required(),
+              min: Yup.mixed().required('Required'),
+              max: Yup.mixed().notRequired(),
+            }),
+          )
+          .min(1, 'At least one target metric required'),
       }),
     )
     .min(1, 'Add at least one exercise'),
 });
 
 export default function WorkoutPlanBuilderScreen() {
-  const {user} = useAuth();
   const {theme} = useTheme();
   const navigate = useNavigate();
   const {data: workoutMeta, refetch} = useQuery(GET_WORKOUT_PLAN_META);
-  const [updateMuscleGroup] = useMutation(UPDATE_MUSCLE_GROUP);
   const [createWorkoutPlan] = useMutation(CREATE_WORKOUT_PLAN);
   const [updateWorkoutPlan] = useMutation(UPDATE_WORKOUT_PLAN);
+
+  const {createPlanningTargetMetrics} =
+    useMetricRegistry();
 
   const {data: exerciseData, loading: loadingExercises} =
     useQuery(GET_EXERCISES_BASIC);
 
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
-  const [selectedTypeIds, setSelectedTypeIds] = useState<number[]>([]);
-  const [editMuscleGroupTarget, setEditMuscleGroupTarget] =
-    useState<MuscleGroup | null>(null);
 
   const [reorderMode, setReorderMode] = useState(false);
   const [selectedExerciseIndex, setSelectedExerciseIndex] = useState<
@@ -100,21 +117,6 @@ export default function WorkoutPlanBuilderScreen() {
   >(null);
   const [expandedExerciseIndex, setExpandedExerciseIndex] = useState<
     number | null
-  >(null);
-
-  const [newPreset, setNewPreset] = useState<Partial<IntensityPreset>>({
-    trainingGoalId: workoutMeta?.getTrainingGoals?.[0]?.id,
-    experienceLevel: 'BEGINNER',
-    defaultSets: 3,
-    defaultReps: 10,
-    defaultRestSec: 60,
-    defaultRpe: 8,
-  });
-
-  const [presetModalDraft, setPresetModalDraft] =
-    useState<Partial<IntensityPreset> | null>(null);
-  const [onPresetValueSelect, setOnPresetValueSelect] = useState<
-    ((value: any) => void) | null
   >(null);
 
   function convertPlanToInitialValues(plan: any): FormValues {
@@ -128,13 +130,15 @@ export default function WorkoutPlanBuilderScreen() {
         experienceLevel: plan.intensityPreset?.experienceLevel ?? undefined, // ✅ Add this
         muscleGroupIds: [],
         exercises: plan.exercises.map((ex: any) => ({
-          exerciseId: ex.exerciseId,
-          exerciseName: ex.exerciseName,
+          exerciseId: ex.exerciseId ?? ex.exercise.id,
+          exerciseName: ex.exerciseName ?? ex.exercise.name,
           targetSets: ex.targetSets,
-          targetReps: ex.targetReps,
-          targetRpe: ex.targetRpe,
-          trainingMethodId: null,
-          isWarmup: false,
+          targetMetrics: ex.targetMetrics?.length
+            ? ex.targetMetrics
+            : createPlanningTargetMetrics(ex.exerciseId ?? ex.exercise.id),
+          trainingMethodId:
+            ex.trainingMethodId ?? ex.trainingMethod?.id ?? null,
+          isWarmup: ex.isWarmup ?? false,
         })),
       };
     }
@@ -147,12 +151,12 @@ export default function WorkoutPlanBuilderScreen() {
       experienceLevel: plan.intensityPreset?.experienceLevel ?? undefined, // ✅ Add this
       muscleGroupIds: plan.muscleGroups.map((mg: any) => mg.id),
       exercises: plan.exercises.map((ex: any) => ({
-        exerciseId: ex.exercise.id,
-        exerciseName: ex.exercise.name,
+        exerciseId: ex.exerciseId,
+        exerciseName: ex.exerciseName,
         targetSets: ex.targetSets,
-        targetReps: ex.targetReps,
-        targetRpe: ex.targetRpe,
-        trainingMethodId: ex.trainingMethod?.id,
+        targetMetrics:
+          ex.targetMetrics ?? createPlanningTargetMetrics(ex.exerciseId),
+        trainingMethodId: ex.trainingMethodId ?? null,
         isWarmup: ex.isWarmup ?? false,
       })),
     };
@@ -252,8 +256,16 @@ export default function WorkoutPlanBuilderScreen() {
               exerciseId: ex.exerciseId,
               order: index,
               targetSets: ex.targetSets,
-              targetReps: ex.targetReps,
-              targetRpe: ex.targetRpe,
+              targetMetrics: ex.targetMetrics.map(m => ({
+                metricId: m.metricId,
+                min: typeof m.min === 'string' ? parseFloat(m.min) : m.min,
+                max:
+                  m.max != null && m.max !== ''
+                    ? typeof m.max === 'string'
+                      ? parseFloat(m.max)
+                      : m.max
+                    : null,
+              })),
               isWarmup: ex.isWarmup ?? false,
               trainingMethodId: ex.trainingMethodId ?? null,
             })),
@@ -299,6 +311,8 @@ export default function WorkoutPlanBuilderScreen() {
             exerciseData?.getExercises ?? [],
             selectedBodyPartIds,
           );
+
+          const renderSummary = useWorkoutPlanSummary();
 
           return (
             <>
@@ -389,9 +403,10 @@ export default function WorkoutPlanBuilderScreen() {
                                       style={{
                                         color: theme.colors.textSecondary,
                                       }}>
-                                      {exercise.targetSets} x{' '}
-                                      {exercise.targetReps} RPE{' '}
-                                      {exercise.targetRpe}
+                                      {renderSummary({
+                                        exerciseId: exercise.exerciseId,
+                                        targetMetrics: exercise.targetMetrics,
+                                      })}
                                     </Text>
                                   </View>
                                 </TouchableOpacity>
@@ -467,10 +482,10 @@ export default function WorkoutPlanBuilderScreen() {
                                       justifyContent: 'space-between',
                                       alignItems: 'center',
                                     }}>
-                                    <Title
-                                      text={`#${idx + 1} ${exercise.exerciseName}`}
-                                      align="left"
-                                    />
+                                    <Text
+                                      style={{color: theme.colors.textPrimary}}>
+                                      {`#${idx + 1} ${exercise.exerciseName}`}
+                                    </Text>
                                     <FontAwesome
                                       name={
                                         expandedExerciseIndex === idx
@@ -497,27 +512,30 @@ export default function WorkoutPlanBuilderScreen() {
                                   }
                                   keyboardType="numeric"
                                 />
-                                <FormInput
-                                  label="Reps per Set"
-                                  value={String(exercise.targetReps)}
-                                  onChangeText={text =>
+                                <TargetMetricInputGroup
+                                  exerciseId={exercise.exerciseId}
+                                  values={exercise.targetMetrics}
+                                  onChange={(metricId, field, value) => {
+                                    const updated = exercise.targetMetrics.map(
+                                      m =>
+                                        m.metricId === metricId
+                                          ? {...m, [field]: value}
+                                          : m,
+                                    );
                                     setFieldValue(
-                                      `exercises[${idx}].targetReps`,
-                                      parseInt(text, 10) || 0,
-                                    )
+                                      `exercises[${idx}].targetMetrics`,
+                                      updated,
+                                    );
+                                  }}
+                                  errors={
+                                    Array.isArray(errors.exercises?.[idx])
+                                      ? undefined
+                                      : (errors.exercises?.[idx] as any)
+                                          ?.targetMetrics
                                   }
-                                  keyboardType="numeric"
-                                />
-                                <FormInput
-                                  label="Target RPE"
-                                  value={String(exercise.targetRpe)}
-                                  onChangeText={text =>
-                                    setFieldValue(
-                                      `exercises[${idx}].targetRpe`,
-                                      parseFloat(text) || 0,
-                                    )
+                                  touched={
+                                    touched.exercises?.[idx]?.targetMetrics
                                   }
-                                  keyboardType="numeric"
                                 />
                                 <SelectableField
                                   label="Training Method"
@@ -641,8 +659,7 @@ export default function WorkoutPlanBuilderScreen() {
                           exerciseId: e.id,
                           exerciseName: e.name,
                           targetSets: 3,
-                          targetReps: 10,
-                          targetRpe: 8,
+                          targetMetrics: createPlanningTargetMetrics(e.id),
                           isWarmup: false,
                           trainingMethodId: undefined,
                         }),

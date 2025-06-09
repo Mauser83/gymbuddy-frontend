@@ -13,6 +13,7 @@ import DetailField from 'shared/components/DetailField';
 import {useMutation} from '@apollo/client';
 import {DELETE_WORKOUT_PLAN} from '../graphql/workoutReferences';
 import ButtonRow from 'shared/components/ButtonRow';
+import {useWorkoutPlanSummary} from 'shared/hooks/WorkoutPlanSummary';
 
 export default function WorkoutPlanViewScreen() {
   const {id} = useParams();
@@ -23,6 +24,8 @@ export default function WorkoutPlanViewScreen() {
     fetchPolicy: 'network-only',
   });
   const [deleteWorkoutPlan] = useMutation(DELETE_WORKOUT_PLAN);
+
+  const renderSummary = useWorkoutPlanSummary();
 
   const handleDelete = async () => {
     try {
@@ -39,6 +42,7 @@ export default function WorkoutPlanViewScreen() {
   }
 
   const plan = data.workoutPlanById;
+
   console.log(plan);
 
   return (
@@ -73,7 +77,11 @@ export default function WorkoutPlanViewScreen() {
           <View key={idx} style={{marginBottom: 12}}>
             <DetailField
               label={`#${idx + 1} ${ex.exercise.name}`}
-              value={`${ex.targetReps} reps @ RPE ${ex.targetRpe}`}
+              value={renderSummary({
+                exerciseId: ex.exercise.id,
+                targetMetrics: ex.targetMetrics ?? [],
+                targetSets: ex.targetSets,
+              })}
             />
           </View>
         ))}
@@ -82,9 +90,26 @@ export default function WorkoutPlanViewScreen() {
       <ButtonRow>
         <Button
           text="Edit Plan"
-          onPress={() =>
-            navigate('/user/edit-plan', {state: {initialPlan: plan}})
-          }
+          onPress={() => {
+            const formattedPlan = {
+              ...plan,
+              isFromSession: false,
+              exercises: plan.exercises.map((ex: any) => ({
+                exerciseId: ex.exercise.id,
+                exerciseName: ex.exercise.name,
+                targetSets: ex.targetSets,
+                targetMetrics: ex.targetMetrics.map((m: any) => ({
+                  metricId: m.metricId,
+                  min: m.min,
+                  max: m.max,
+                })),
+                trainingMethodId: ex.trainingMethod?.id ?? null,
+                isWarmup: ex.isWarmup ?? false,
+              })),
+            };
+
+            navigate('/user/edit-plan', {state: {initialPlan: formattedPlan}});
+          }}
           fullWidth
         />
         <Button text="Delete Plan" onPress={handleDelete} fullWidth />
