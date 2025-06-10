@@ -158,3 +158,16 @@ export const DELETE_INTENSITY_PRESET = gql`
     deleteIntensityPreset(id: $id)
   }
 `;
+
+export const UPDATE_TRAINING_METHOD_GOALS = gql`
+  mutation UPDATE_TRAINING_METHOD_GOALS($input: UpdateTrainingMethodGoalsInput!) {
+    updateTrainingMethodGoals(input: $input) {
+      id
+      name
+      trainingGoals {
+        id
+        name
+      }
+    }
+  }
+`;

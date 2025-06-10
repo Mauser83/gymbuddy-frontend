@@ -34,6 +34,10 @@ export const GET_WORKOUT_PLAN_META = gql`
       name
       slug
       description
+      trainingGoals {
+        id
+        name
+      }
     }
     allBodyParts {
       id

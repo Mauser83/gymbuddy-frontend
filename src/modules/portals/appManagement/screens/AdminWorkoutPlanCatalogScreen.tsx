@@ -28,10 +28,12 @@ import {
   CREATE_TRAINING_METHOD,
   UPDATE_TRAINING_METHOD,
   DELETE_TRAINING_METHOD,
+  UPDATE_TRAINING_METHOD_GOALS,
 } from 'modules/workoutplan/graphql/workoutReferences';
 import {useQuery, useMutation} from '@apollo/client';
 import {GET_WORKOUT_PLAN_META} from 'modules/workoutplan/graphql/workoutMeta.graphql';
 import ModalWrapper from 'shared/components/ModalWrapper';
+import OptionItem from 'shared/components/OptionItem';
 
 interface MuscleGroup {
   id: number;
@@ -44,6 +46,7 @@ interface TrainingMethod {
   name: string;
   slug: string;
   description?: string;
+  trainingGoals?: {id: number; name: string}[]; // ← Add this
 }
 
 export interface IntensityPreset {
@@ -103,6 +106,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
   const [createMethod] = useMutation(CREATE_TRAINING_METHOD);
   const [updateMethod] = useMutation(UPDATE_TRAINING_METHOD);
   const [deleteMethod] = useMutation(DELETE_TRAINING_METHOD);
+  const [updateMethodGoals] = useMutation(UPDATE_TRAINING_METHOD_GOALS);
 
   const trainingGoals = data?.getTrainingGoals || [];
   const presets = data?.getIntensityPresets || [];
@@ -689,7 +693,6 @@ export default function AdminWorkoutPlanCatalogScreen() {
         {mode === 'trainingMethod' ? (
           <Card>
             <TouchableOpacity onPress={() => setMode(null)}>
-              {' '}
               <Title text="Training Methods" />
             </TouchableOpacity>
             <FormInput
@@ -730,6 +733,50 @@ export default function AdminWorkoutPlanCatalogScreen() {
                             }))
                           }
                         />
+
+                        {/* NEW: Checkboxes for selecting training goals */}
+                        <Title
+                          text="Linked Training Goals"
+                          subtitle="Tap to toggle"
+                        />
+                        {trainingGoals.map(
+                          (goal: {id: number; name: string}) => {
+                            const isLinked = method.trainingGoals?.some(
+                              (g: {id: number}) => g.id === goal.id,
+                            );
+                            return (
+                              <OptionItem
+                                key={goal.id}
+                                text={goal.name}
+                                selected={isLinked}
+                                onPress={() => {
+                                  const current =
+                                    method.trainingGoals?.map(g => g.id) || [];
+                                  const next = isLinked
+                                    ? current.filter(id => id !== goal.id)
+                                    : [...current, goal.id];
+
+                                  updateMethodGoals({
+                                    variables: {
+                                      input: {
+                                        methodId: method.id,
+                                        goalIds: next,
+                                      },
+                                    },
+                                  })
+                                    .then(() => refetch())
+                                    .catch(err =>
+                                      console.error(
+                                        'Failed to update training method goals',
+                                        err,
+                                      ),
+                                    );
+                                }}
+                              />
+                            );
+                          },
+                        )}
+
                         <ButtonRow>
                           <Button
                             text="Update"
