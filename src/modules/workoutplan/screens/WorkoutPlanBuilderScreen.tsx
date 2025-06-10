@@ -103,8 +103,7 @@ export default function WorkoutPlanBuilderScreen() {
   const [createWorkoutPlan] = useMutation(CREATE_WORKOUT_PLAN);
   const [updateWorkoutPlan] = useMutation(UPDATE_WORKOUT_PLAN);
 
-  const {createPlanningTargetMetrics} =
-    useMetricRegistry();
+  const {createPlanningTargetMetrics} = useMetricRegistry();
 
   const {data: exerciseData, loading: loadingExercises} =
     useQuery(GET_EXERCISES_BASIC);
@@ -540,15 +539,21 @@ export default function WorkoutPlanBuilderScreen() {
                                 <SelectableField
                                   label="Training Method"
                                   value={
-                                    workoutMeta?.getTrainingMethods?.find(
-                                      (m: any) =>
-                                        m.id === exercise.trainingMethodId,
-                                    )?.name || 'Select Training Method'
+                                    workoutMeta?.getTrainingGoals
+                                      ?.find(
+                                        (g: { id: number; trainingMethods: any[] }) => g.id === values.trainingGoalId,
+                                      )
+                                      ?.trainingMethods?.find(
+                                        (m: any) =>
+                                          m.id === exercise.trainingMethodId,
+                                      )?.name || 'Select Training Method'
                                   }
                                   onPress={() => {
-                                    setSelectedExerciseIndex(idx); // track which index we’re editing
+                                    if (!values.trainingGoalId) return; // block if goal not selected
+                                    setSelectedExerciseIndex(idx);
                                     setActiveModal('trainingMethodPicker');
                                   }}
+                                  disabled={!values.trainingGoalId}
                                 />
                                 <View style={{marginBottom: spacing.sm}}>
                                   <Button
@@ -634,7 +639,11 @@ export default function WorkoutPlanBuilderScreen() {
                             ?.trainingMethodId ?? null)
                         : null
                     }
-                    trainingMethods={workoutMeta?.getTrainingMethods ?? []}
+                    trainingMethods={
+                      workoutMeta?.getTrainingGoals?.find(
+                        (g: { id: number; trainingMethods: any[] }) => g.id === values.trainingGoalId,
+                      )?.trainingMethods ?? []
+                    }
                     onSelect={id => {
                       if (selectedExerciseIndex !== null) {
                         setFieldValue(

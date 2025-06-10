@@ -5,7 +5,11 @@ export const GET_WORKOUT_PLAN_META = gql`
     getTrainingGoals {
       id
       name
-      slug
+      trainingMethods {
+        id
+        name
+        slug
+      }
     }
     getIntensityPresets {
       id
@@ -25,16 +29,6 @@ export const GET_WORKOUT_PLAN_META = gql`
       name
       slug
       bodyParts {
-        id
-        name
-      }
-    }
-    getTrainingMethods {
-      id
-      name
-      slug
-      description
-      trainingGoals {
         id
         name
       }
