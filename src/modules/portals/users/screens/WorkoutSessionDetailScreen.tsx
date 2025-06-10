@@ -1,6 +1,6 @@
 import React from 'react';
-import {View} from 'react-native';
-import {useQuery, gql, useMutation} from '@apollo/client';
+import {View, FlatList} from 'react-native';
+import {useQuery, useMutation} from '@apollo/client';
 import {useParams, useNavigate} from 'react-router-native';
 import {format} from 'date-fns';
 
@@ -18,7 +18,9 @@ import {
 } from '../graphql/userWorkouts.graphql';
 import {useMetricRegistry} from 'shared/context/MetricRegistry';
 import {useExerciseLogSummary} from 'shared/hooks/ExerciseLogSummary';
+import {spacing} from 'shared/theme/tokens';
 
+// ... (Your type definitions remain the same)
 type Muscle = {
   id: number;
   name: string;
@@ -32,19 +34,20 @@ type ExerciseLog = {
   id: number;
   exerciseId: number;
   setNumber: number;
-  metrics: Record<number, number>; // ✅ Required now
+  metrics: Record<number, number>;
   notes?: string | null;
   exercise: {
     id: number;
     name: string;
     primaryMuscles?: Muscle[];
   };
+  equipmentIds?: number[];
 };
 
 const WorkoutSessionDetailScreen = () => {
   const {sessionId} = useParams();
   const navigate = useNavigate();
-  const {metricRegistry, getMetricIdsForExercise} = useMetricRegistry();
+  const {getMetricIdsForExercise} = useMetricRegistry();
 
   const formatSummary = useExerciseLogSummary();
 
@@ -87,8 +90,8 @@ const WorkoutSessionDetailScreen = () => {
   }
   if (currentGroup) groupedByConsecutive.push(currentGroup);
 
-  return (
-    <ScreenLayout>
+  const ListHeader = () => (
+    <>
       <Title
         text={session.workoutPlan?.name || 'Ad-hoc Session'}
         subtitle={startDate}
@@ -99,26 +102,11 @@ const WorkoutSessionDetailScreen = () => {
         <DetailField label="Gym" value={session.gym?.name || 'Not specified'} />
         <DetailField label="Notes" value={session.notes || 'None'} />
       </Card>
+    </>
+  );
 
-      <View style={{marginVertical: 16}}>
-        {groupedByConsecutive.map(({exerciseName, logs}) => (
-          <View
-            key={`group-${logs.map(log => log.id).join('-')}`}
-            style={{marginBottom: 16}}>
-            <Title text={exerciseName} align="left" />
-            <ClickableList
-              items={logs.map((log: ExerciseLog) => ({
-                id: log.id,
-                label: formatSummary(log),
-                subLabel: log.notes || '',
-                onPress: () => {},
-                rightElement: false,
-              }))}
-            />
-          </View>
-        ))}
-      </View>
-
+  const ListFooter = () => (
+    <View style={{paddingHorizontal: spacing.md, paddingBottom: spacing.md}}>
       <Button
         text="Save as New Plan"
         onPress={() => {
@@ -203,19 +191,44 @@ const WorkoutSessionDetailScreen = () => {
           });
         }}
       />
-      <View style={{paddingTop: 8}}>
-        <Button
-          text="Delete Workout"
-          onPress={async () => {
-            try {
-              await deleteSession({variables: {id: Number(sessionId)}});
-              navigate('/workout-session'); // Adjust to your actual sessions list route
-            } catch (err) {
-              console.error('Failed to delete session:', err);
-            }
-          }}
-        />
-      </View>
+      <Button
+        text="Delete Workout"
+        onPress={async () => {
+          try {
+            await deleteSession({variables: {id: Number(sessionId)}});
+            navigate('/workout-session');
+          } catch (err) {
+            console.error('Failed to delete session:', err);
+          }
+        }}
+      />
+    </View>
+  );
+
+  const renderItemGroup = ({item}: {item: ConsecutiveGroup}) => (
+    <View style={{marginVertical: spacing.md}}>
+      <Title text={item.exerciseName} align="left" />
+      <ClickableList
+        items={item.logs.map((log: ExerciseLog) => ({
+          id: log.id,
+          label: formatSummary(log),
+          subLabel: log.notes || '',
+          onPress: () => {},
+          rightElement: false,
+        }))}
+      />
+    </View>
+  );
+
+  return (
+    <ScreenLayout>
+      <FlatList
+        data={groupedByConsecutive}
+        keyExtractor={item => item.exerciseName}
+        renderItem={renderItemGroup}
+        ListHeaderComponent={ListHeader}
+        ListFooterComponent={ListFooter}
+      />
     </ScreenLayout>
   );
 };

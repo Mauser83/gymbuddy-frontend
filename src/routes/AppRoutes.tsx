@@ -27,7 +27,6 @@ import GlobalEquipmentListScreen from 'modules/equipment/screens/GlobalEquipment
 
 import GymAdminDashboard from 'modules/portals/gymManagement/screens/GymManagementDashboardScreen';
 import GymManagementScreen from 'modules/portals/gymManagement/screens/GymManagementScreen';
-import ContentContainer from 'shared/components/ContentContainer';
 import CreateEquipmentScreen from 'modules/equipment/screens/CreateEquipmentScreen';
 import EditEquipmentScreen from 'modules/equipment/screens/EditEquipmentScreen';
 import GymEquipmentListScreen from 'modules/gym/screens/GymEquipmentListScreen';
@@ -74,7 +73,6 @@ const AppRoutes = () => {
 
   return (
     <MetricRegistryProvider>
-      <ContentContainer>
         <Header />
         <View style={{flex: 1}}>
           <Routes>
@@ -175,7 +173,6 @@ const AppRoutes = () => {
           </Routes>
         </View>
         <Footer />
-      </ContentContainer>
     </MetricRegistryProvider>
   );
 };

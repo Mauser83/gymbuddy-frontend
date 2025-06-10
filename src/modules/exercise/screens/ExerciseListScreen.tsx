@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Alert } from 'react-native';
+import { View, Alert, FlatList } from 'react-native';
 import { useNavigate } from 'react-router-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
@@ -16,6 +16,7 @@ import ButtonRow from 'shared/components/ButtonRow';
 import { spacing } from 'shared/theme/tokens';
 import { useTheme } from 'shared/theme/ThemeProvider';
 import { useAuth } from 'modules/auth/context/AuthContext';
+import Card from 'shared/components/Card';
 
 export default function ExerciseListScreen() {
   const { user } = useAuth();
@@ -25,96 +26,101 @@ export default function ExerciseListScreen() {
 
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [filtered, setFiltered] = useState<Exercise[]>([]);
 
   const { data, loading, refetch } = getMyExercises();
 
   useEffect(() => {
-    if (!user) navigate('/');
-  }, [user]);
+    if (!user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
+  
+  // --- FIX APPLIED HERE ---
+  // Changed data?.myExercises to data?.getExercises to match the actual query result.
+  const exercises = data?.getExercises.filter((ex: Exercise) => 
+    ex.name.toLowerCase().includes(search.toLowerCase())
+  ) ?? [];
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!search?.trim()) {
-        setFiltered(data?.getExercises || []);
-      } else {
-        const query = search.toLowerCase();
-        const results = data?.getExercises.filter(ex =>
-          ex.name.toLowerCase().includes(query)
-        ) || [];
-        setFiltered(results);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search, data]);
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteExercise({ variables: { id } });
+      Alert.alert('Success', 'Exercise deleted.');
+      refetch();
+    } catch (err) {
+      console.error('Failed to delete exercise', err);
+      Alert.alert('Error', 'Failed to delete exercise.');
+    }
+  };
 
-const handleDelete = async (id: number) => {
-  try {
-    await deleteExercise({ variables: { id } });
-    await refetch();
-  } catch (err) {
-    console.error('Failed to delete exercise', err);
-  }
-};
-
-  if (loading) {
+  const renderItem = ({ item }: { item: Exercise }) => {
+    const isExpanded = expandedId === item.id;
     return (
-      <ScreenLayout variant="centered">
-        <LoadingState text="Loading exercises..." />
-      </ScreenLayout>
+        <Card variant='glass' style={{ marginBottom: spacing.md }}>
+            <ClickableList
+                items={[{
+                    id: item.id,
+                    label: item.name,
+                    subLabel: item.exerciseType?.name || '—',
+                    selected: isExpanded,
+                    onPress: () => setExpandedId(prev => (prev === item.id ? null : item.id)),
+                    rightElement: (
+                        <FontAwesome
+                            name={isExpanded ? 'chevron-down' : 'chevron-right'}
+                            size={16}
+                            color={theme.colors.accentStart}
+                        />
+                    ),
+                    content: isExpanded ? (
+                        <ButtonRow>
+                            <Button
+                                text="Edit"
+                                fullWidth
+                                onPress={() => navigate(`/exercise/edit/${item.id}`)}
+                            />
+                            <Button
+                                text="Delete"
+                                fullWidth
+                                onPress={() => handleDelete(item.id)}
+                            />
+                        </ButtonRow>
+                    ) : undefined,
+                }]}
+            />
+        </Card>
     );
-  }
-
-  const items = filtered.map((exercise: Exercise) => {
-    const isExpanded = expandedId === exercise.id;
-    return {
-      id: exercise.id,
-      label: exercise.name,
-      subLabel: exercise.exerciseType?.name || '—',
-      selected: isExpanded,
-      onPress: () => setExpandedId(prev => (prev === exercise.id ? null : exercise.id)),
-      rightElement: (
-        <FontAwesome
-          name={isExpanded ? 'chevron-down' : 'chevron-right'}
-          size={16}
-          color={theme.colors.accentStart}
+  };
+  
+  const ListHeader = () => (
+    <>
+        <SearchInput
+            placeholder="Search exercises..."
+            value={search}
+            onChange={setSearch}
+            onClear={() => setSearch('')}
         />
-      ),
-      content: isExpanded ? (
-        <ButtonRow>
-          <Button
-            text="Edit"
-            fullWidth
-            onPress={() => navigate(`/exercise/edit/${exercise.id}`)}
-          />
-          <Button
-            text="Delete"
-            fullWidth
-            onPress={() => handleDelete(exercise.id)}
-          />
-        </ButtonRow>
-      ) : undefined,
-    };
-  });
+        <View style={{ marginVertical: spacing.md }}>
+            <Button
+                text="➕ Create New Exercise"
+                onPress={() => navigate('/exercise/create')}
+            />
+        </View>
+    </>
+  );
 
   return (
+    // Use non-scrolling layout as FlatList provides its own scroll
     <ScreenLayout>
-      <SearchInput
-        placeholder="Search exercises..."
-        value={search}
-        onChange={setSearch}
-        onClear={() => setSearch('')}
-      />
-      <View style={{ marginBottom: spacing.sm }}>
-        <Button
-          text="➕ Create New Exercise"
-          onPress={() => navigate('/exercise/create')}
-        />
-      </View>
-      {items.length === 0 ? (
-        <NoResults message="No exercises found." />
+      {loading && !data ? (
+        <LoadingState text="Loading exercises..." />
       ) : (
-        <ClickableList items={items} />
+        <FlatList
+          data={exercises}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id.toString()}
+          ListHeaderComponent={ListHeader}
+          ListEmptyComponent={<NoResults message="No exercises found." />}
+          showsVerticalScrollIndicator={false}
+        />
       )}
     </ScreenLayout>
   );

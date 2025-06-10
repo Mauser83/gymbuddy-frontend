@@ -16,14 +16,14 @@ import ErrorMessage from 'shared/components/ErrorMessage';
 
 const GymDetailScreen = () => {
   const {gymId: idParam} = useParams<{gymId: string}>();
-    if (!idParam) {
-      throw new Error('Missing ID in URL');
+  if (!idParam) {
+    throw new Error('Missing ID in URL');
   }
-    const gymId = parseInt(idParam, 10);
-  
-    if (isNaN(gymId)) {
-      throw new Error('Invalid ID in URL');
-    }
+  const gymId = parseInt(idParam, 10);
+
+  if (isNaN(gymId)) {
+    throw new Error('Invalid ID in URL');
+  }
   const {user} = useAuth();
   const navigate = useNavigate();
 
@@ -52,12 +52,12 @@ const GymDetailScreen = () => {
     if (!isGymAdmin) {
       navigate('/');
     }
-  }, [user, gym]);
+  }, [user, gym, navigate]);
 
   useSubscription(GYM_APPROVED_SUBSCRIPTION, {
     skip: gym?.isApproved,
-    onData: ({client, data}) => {
-      const updatedGym = data.data?.gymApproved;
+    onData: ({client, data: subData}) => {
+      const updatedGym = subData.data?.gymApproved;
       if (!updatedGym) return;
       client.writeFragment({
         id: `Gym:${updatedGym.id}`,
@@ -88,7 +88,9 @@ const GymDetailScreen = () => {
   }
 
   return (
-    <ScreenLayout>
+    // --- FIX APPLIED HERE ---
+    // Added the `scroll` prop to handle potentially long content
+    <ScreenLayout scroll>
       <Card variant="glass" compact title={gym.name} />
 
       <Card variant="glass">
@@ -99,23 +101,23 @@ const GymDetailScreen = () => {
         {gym.city && <DetailField label="🏙️ City:" value={gym.city} />}
         {gym.country && <DetailField label="🌍 Country:" value={gym.country} />}
         {gym.gymEquipment?.length > 0 && (
-  <>
-    <Title subtitle="🏋️ Equipment:" align="left" />
-    {gym.gymEquipment.map((ge: Gym['gymEquipment'][number]) => (
-      <DetailField
-        key={ge.id}
-        label={`${ge.equipment.name} (${ge.quantity}x)`}
-        value={
-          ge.note
-            ? `Note: ${ge.note}`
-            : ge.equipment.brand
-            ? `Brand: ${ge.equipment.brand}`
-            : ''
-        }
-      />
-    ))}
-  </>
-)}
+          <>
+            <Title subtitle="🏋️ Equipment:" align="left" />
+            {gym.gymEquipment.map((ge: Gym['gymEquipment'][number]) => (
+              <DetailField
+                key={ge.id}
+                label={`${ge.equipment.name} (${ge.quantity}x)`}
+                value={
+                  ge.note
+                    ? `Note: ${ge.note}`
+                    : ge.equipment.brand
+                    ? `Brand: ${ge.equipment.brand}`
+                    : ''
+                }
+              />
+            ))}
+          </>
+        )}
         {gym.trainers?.length > 0 && (
           <DetailField
             label="🧑‍🏫 Trainers Count:"

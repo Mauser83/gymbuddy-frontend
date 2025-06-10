@@ -7,6 +7,8 @@ import Card from 'shared/components/Card';
 import Title from 'shared/components/Title';
 import NoResults from 'shared/components/NoResults';
 import ClickableList from 'shared/components/ClickableList';
+import { spacing } from 'shared/theme/tokens';
+import { View } from 'react-native';
 
 const GymAdminDashboard = () => {
   const {user} = useAuth();
@@ -25,33 +27,33 @@ const GymAdminDashboard = () => {
     if (!user || (!isGymManager && !isAppAdmin)) {
       navigate('/');
     }
-  }, [user]);
+  }, [user, navigate]);
 
   const gyms = user?.gymManagementRoles?.map(r => r.gym) ?? [];
 
   return (
-    <ScreenLayout>
-      <Card variant="glass" title="Gym Management Dashboard" compact />
+    // --- FIX APPLIED HERE ---
+    // Added the `scroll` prop to ensure the dashboard is scrollable.
+    <ScreenLayout scroll>
+        <Card variant="glass" title="Gym Management Dashboard" compact style={{ marginBottom: spacing.md }}/>
 
-      {/* My Gyms Section */}
-      <Card variant="glass">
-        <Title text="🏢 My Gyms" />
-        {gyms.length === 0 ? (
-          <NoResults message="No gyms assigned yet." />
-        ) : (
-          <ClickableList
-            items={gyms.map(gym => ({
-              id: gym.id,
-              label: gym.name,
-              subLabel: gym.isApproved ? undefined : '(Pending)',
-              onPress: () => navigate(`/gym-admin/gyms/${gym.id}`),
-            }))}
-          />
-        )}
-      </Card>
+        <Card variant="glass">
+            <Title text="🏢 My Gyms" />
+            {gyms.length === 0 ? (
+            <NoResults message="No gyms assigned yet." />
+            ) : (
+            <ClickableList
+                items={gyms.map(gym => ({
+                id: gym.id,
+                label: gym.name,
+                subLabel: gym.isApproved ? undefined : '(Pending)',
+                onPress: () => navigate(`/gym-admin/gyms/${gym.id}`),
+                }))}
+            />
+            )}
+        </Card>
     </ScreenLayout>
   );
 };
 
 export default GymAdminDashboard;
-

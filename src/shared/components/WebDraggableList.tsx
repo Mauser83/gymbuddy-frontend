@@ -1,90 +1,128 @@
-// WebDraggableList.tsx (Corrected)
-import React from 'react';
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import {CSS} from '@dnd-kit/utilities';
-// We no longer need to import View from 'react-native' for this component
+// WebDraggableList.tsx
+import React, {useState} from 'react';
+import {StyleSheet, ScrollView} from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  runOnJS,
+  LinearTransition,
+} from 'react-native-reanimated';
+import {GestureDetector, Gesture} from 'react-native-gesture-handler';
 
-// This is the individual draggable item
-function SortableItem(props: { id: any; children: React.ReactNode }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({id: props.id});
+type DraggableItem = {
+  instanceId: string;
+  exerciseName: string;
+};
 
-  // This is a React.CSSProperties object, compatible with a <div>
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1, // Make item semi-transparent while dragging
+type Props = {
+  data: DraggableItem[];
+  onDragEnd: (data: DraggableItem[]) => void;
+  keyExtractor?: (item: DraggableItem) => string;
+  renderItem: (params: {
+    item: DraggableItem;
+    index: number;
+  }) => React.ReactElement;
+  ListHeaderComponent?: React.ReactElement;
+  ListFooterComponent?: React.ReactElement;
+};
+export function WebDraggableList({
+  data,
+  onDragEnd,
+  keyExtractor,
+  renderItem,
+  ListHeaderComponent,
+  ListFooterComponent,
+}: Props) {
+  const [items, setItems] = useState(data);
+
+  const updateOrder = (fromIndex: number, toIndex: number) => {
+    const updated = [...items];
+    const moved = updated.splice(fromIndex, 1)[0];
+    updated.splice(toIndex, 0, moved);
+    setItems(updated);
+    onDragEnd(updated);
   };
 
-  // --- THIS IS THE FIX ---
-  // Change the <View> to a <div>.
-  // The 'ref' from dnd-kit is now compatible.
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      {props.children}
-    </div>
+    <ScrollView contentContainerStyle={styles.container}>
+      {ListHeaderComponent}
+
+      {items.map((item, index) => (
+        <DraggableRow
+          key={keyExtractor ? keyExtractor(item) : item.instanceId}
+          item={item}
+          index={index}
+          items={items}
+          updateOrder={updateOrder}
+          renderItem={renderItem}
+        />
+      ))}
+
+      {ListFooterComponent}
+    </ScrollView>
   );
 }
 
+function DraggableRow({
+  item,
+  index,
+  items,
+  updateOrder,
+  renderItem,
+}: {
+  item: DraggableItem;
+  index: number;
+  items: DraggableItem[];
+  updateOrder: (from: number, to: number) => void;
+  renderItem: (params: {
+    item: DraggableItem;
+    index: number;
+  }) => React.ReactElement;
+}) {
+  const translateY = useSharedValue(0);
 
-// This is the main list component for the web
-export function WebDraggableList({ data, onDragEnd, renderItem, keyExtractor }: any) {
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      // Require a small movement before a drag starts, to allow for clicks
-      activationConstraint: {
-        distance: 8,
-      },
+  const gesture = Gesture.Pan()
+    .onUpdate(event => {
+      translateY.value = event.translationY;
     })
-  );
-  
-  const handleDragEnd = (event: any) => {
-    const {active, over} = event;
-    if (!over) return; // Dropped outside of a valid target
+    .onEnd(() => {
+      // Find if item moved enough to reorder
+      const itemHeight = 72; // Approx. height incl. margin/padding
+      const newIndex = index + Math.round(translateY.value / itemHeight);
 
-    if (active.id !== over.id) {
-      const oldIndex = data.findIndex((item: any) => keyExtractor(item, oldIndex) === active.id);
-      const newIndex = data.findIndex((item: any) => keyExtractor(item, newIndex) === over.id);
-      
-      onDragEnd({ data: arrayMove(data, oldIndex, newIndex) });
-    }
-  };
+      const clampedIndex = Math.max(0, Math.min(items.length - 1, newIndex));
+      if (clampedIndex !== index) {
+        runOnJS(updateOrder)(index, clampedIndex);
+      }
+
+      translateY.value = 0;
+    });
+
+  const style = useAnimatedStyle(() => ({
+    transform: [{translateY: translateY.value}],
+    zIndex: translateY.value !== 0 ? 10 : 0,
+  }));
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-    >
-      <SortableContext 
-        items={data.map((item: any, index: number) => keyExtractor(item, index))} 
-        strategy={verticalListSortingStrategy}
-      >
-        {data.map((item: any, index: number) => (
-          <SortableItem key={keyExtractor(item, index)} id={keyExtractor(item, index)}>
-            {/* The content inside is still your React Native component, which is fine! */}
-            {renderItem({ item, index, drag: () => {}, isActive: false })}
-          </SortableItem>
-        ))}
-      </SortableContext>
-    </DndContext>
+    <GestureDetector gesture={gesture}>
+      <Animated.View
+        style={[styles.row, style]}
+        layout={LinearTransition.duration(200)}>
+        {renderItem({item, index})}
+      </Animated.View>
+    </GestureDetector>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    paddingVertical: 16,
+  },
+  row: {
+    borderRadius: 8,
+    elevation: 2,
+  },
+  text: {
+    fontSize: 16,
+  },
+});

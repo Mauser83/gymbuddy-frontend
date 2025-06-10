@@ -22,7 +22,7 @@ export default function UserDashboardScreen() {
   const activeSession = data?.activeWorkoutSession;
 
   return (
-    <ScreenLayout>
+    <ScreenLayout scroll>
       <Title
         text={`Welcome back${user?.username ? `, ${user.username}` : ''}`}
       />

@@ -1,5 +1,5 @@
 import React from 'react';
-import {View} from 'react-native';
+import {View, StyleSheet} from 'react-native'; // Import StyleSheet
 import {Formik} from 'formik';
 import * as Yup from 'yup';
 import {useAuthService} from '../hooks/useAuthService';
@@ -37,7 +37,7 @@ const RegisterScreen = () => {
     registerError?.graphQLErrors?.map(e => e.message).join(', ') || null;
 
   return (
-    <ScreenLayout variant="centered">
+    <ScreenLayout scroll variant="centered">
         <Card variant="glass" title="Register" compact />
 
         {errorMessage && <FormError message={errorMessage} />}
@@ -62,7 +62,9 @@ const RegisterScreen = () => {
             touched,
             setFieldTouched,
           }) => (
-            <View>
+            // --- FIX APPLIED HERE ---
+            // This View now stretches to fill the parent container's width
+            <View style={styles.formContainer}>
               <FormInput
                 label="Username"
                 placeholder="Enter username"
@@ -120,5 +122,11 @@ const RegisterScreen = () => {
     </ScreenLayout>
   );
 };
+
+const styles = StyleSheet.create({
+    formContainer: {
+        width: '100%',
+    }
+})
 
 export default RegisterScreen;

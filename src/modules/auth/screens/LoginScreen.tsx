@@ -1,5 +1,5 @@
 import React from 'react';
-import {View} from 'react-native';
+import {View, StyleSheet} from 'react-native'; // Import StyleSheet
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import {Formik} from 'formik';
 import * as Yup from 'yup';
@@ -25,7 +25,7 @@ const LoginScreen = () => {
     loginError?.graphQLErrors?.map(e => e.message).join(', ') || null;
 
   return (
-    <ScreenLayout variant="centered">
+    <ScreenLayout scroll variant="centered">
       <Card variant="glass" title="Login" compact />
 
       {errorMessage && <FormError message={errorMessage} />}
@@ -42,7 +42,9 @@ const LoginScreen = () => {
           touched,
           setFieldTouched,
         }) => (
-          <View>
+          // --- FIX APPLIED HERE ---
+          // This View now stretches to fill the parent container's width
+          <View style={styles.formContainer}>
             <FormInput
               label="Email"
               placeholder="Enter your email"
@@ -98,4 +100,11 @@ const LoginScreen = () => {
   );
 };
 
+const styles = StyleSheet.create({
+    formContainer: {
+        width: '100%',
+    }
+})
+
 export default LoginScreen;
+

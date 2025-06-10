@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Pressable} from 'react-native';
+import {View, Pressable, FlatList, SectionList, Text} from 'react-native';
 import {useNavigate} from 'react-router-native';
 import {useQuery} from '@apollo/client';
 import ScreenLayout from '../../../../shared/components/ScreenLayout';
@@ -24,36 +24,49 @@ export default function MyWorkoutPlansScreen() {
 
   const myPlans = myData?.workoutPlans ?? [];
   const sharedPlans = sharedData?.sharedWorkoutPlans ?? [];
+  
+  const sections = [
+      { title: 'My Plans', data: myPlans },
+      { title: 'Shared With Me', data: sharedPlans },
+  ];
 
-  if (loadingMy || loadingShared)
-    return <LoadingState text="Loading plans..." />;
+  const renderPlan = ({item: plan}: {item: any}) => (
+    <Pressable
+        key={plan.id}
+        onPress={() => navigate(`/user/view-plan/${plan.id}`)}
+        style={{marginTop: spacing.md}}>
+        <Card title={plan.name} text={plan.description} showChevron />
+    </Pressable>
+  );
 
-  const renderPlans = (plans: any[], sectionTitle: string) => (
-    <View style={{marginBottom: spacing.md, marginTop: spacing.md}}>
-      <Title text={sectionTitle} />
-      {plans.length === 0 ? (
-        <NoResults message="No plans found." />
-      ) : (
-        plans.map(plan => (
-          <Pressable
-            key={plan.id}
-            onPress={() => navigate(`/user/view-plan/${plan.id}`)}
-            style={{marginTop: spacing.md}}>
-            <Card title={plan.name} text={plan.description} showChevron />
-          </Pressable>
-        ))
-      )}
+  const renderSectionHeader = ({section: {title, data}}: {section: any}) => (
+    <View style={{ marginTop: spacing.lg }}>
+        <Title text={title} />
+        {data.length === 0 && <NoResults message="No plans found in this section." />}
     </View>
   );
 
+  if (loadingMy || loadingShared) {
+    return <LoadingState text="Loading plans..." />;
+  }
+    
   return (
+    // Use a non-scrolling layout as SectionList will handle it
     <ScreenLayout>
-      {renderPlans(myPlans, 'My Plans')}
-      <Button
-        text="Create workout plan"
-        onPress={() => navigate('/workoutplan/builder')}
+      <SectionList
+        sections={sections}
+        keyExtractor={(item, index) => item.id + index}
+        renderItem={renderPlan}
+        renderSectionHeader={renderSectionHeader}
+        ListFooterComponent={
+            <View style={{ padding: spacing.md }}>
+                <Button
+                    text="Create New Workout Plan"
+                    onPress={() => navigate('/workoutplan/builder')}
+                />
+            </View>
+        }
       />
-      {renderPlans(sharedPlans, 'Shared With Me')}
     </ScreenLayout>
   );
 }

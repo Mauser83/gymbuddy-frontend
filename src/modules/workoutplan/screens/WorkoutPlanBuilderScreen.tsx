@@ -1,4 +1,4 @@
-import React, {useState, useRef} from 'react';
+import React, {useState, useRef, useMemo} from 'react';
 import {
   View,
   Alert,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Pressable,
   Platform,
+  FlatList, // Import FlatList
 } from 'react-native';
 import {Formik, FieldArray} from 'formik';
 import * as Yup from 'yup';
@@ -27,10 +28,8 @@ import {GET_EXERCISES_BASIC} from '../graphql/workoutMeta.graphql';
 import {spacing} from 'shared/theme/tokens';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import FontAwesome from '@expo/vector-icons/FontAwesome5';
-import IconButton from 'shared/components/IconButton';
 import {useNavigate} from 'react-router-native';
 import {useLocation} from 'react-router-native';
-import {IntensityPreset} from 'modules/portals/appManagement/screens/AdminWorkoutPlanCatalogScreen';
 
 // 🧩 Modular modals
 import SelectExerciseModal from '../components/SelectExerciseModal';
@@ -55,6 +54,7 @@ type ActiveModal =
   | 'trainingMethodPicker';
 
 type ExerciseFormEntry = {
+  instanceId: string; // <-- Add this line
   exerciseId: number;
   exerciseName: string;
   targetSets: number;
@@ -129,6 +129,10 @@ export default function WorkoutPlanBuilderScreen() {
     number | null
   >(null);
 
+  const generateUniqueId = () => {
+    return Date.now().toString(36) + Math.random().toString(36).substring(2);
+  };
+
   function convertPlanToInitialValues(plan: any): FormValues {
     const isFromSession = plan.isFromSession;
 
@@ -136,10 +140,11 @@ export default function WorkoutPlanBuilderScreen() {
       return {
         name: plan.name,
         trainingGoalId: plan.trainingGoal?.id,
-        intensityPresetId: plan.intensityPreset?.id ?? undefined, // ✅ Add this
-        experienceLevel: plan.intensityPreset?.experienceLevel ?? undefined, // ✅ Add this
+        intensityPresetId: plan.intensityPreset?.id ?? undefined,
+        experienceLevel: plan.intensityPreset?.experienceLevel ?? undefined,
         muscleGroupIds: [],
         exercises: plan.exercises.map((ex: any) => ({
+          instanceId: generateUniqueId(), // <-- Add this
           exerciseId: ex.exerciseId ?? ex.exercise.id,
           exerciseName: ex.exerciseName ?? ex.exercise.name,
           targetSets: ex.targetSets,
@@ -153,14 +158,14 @@ export default function WorkoutPlanBuilderScreen() {
       };
     }
 
-    // Standard plan editing flow
     return {
       name: plan.name,
       trainingGoalId: plan.trainingGoal?.id,
-      intensityPresetId: plan.intensityPreset?.id ?? undefined, // ✅ Add this
-      experienceLevel: plan.intensityPreset?.experienceLevel ?? undefined, // ✅ Add this
+      intensityPresetId: plan.intensityPreset?.id ?? undefined,
+      experienceLevel: plan.intensityPreset?.experienceLevel ?? undefined,
       muscleGroupIds: plan.muscleGroups.map((mg: any) => mg.id),
       exercises: plan.exercises.map((ex: any) => ({
+        instanceId: generateUniqueId(), // <-- Add this
         exerciseId: ex.exerciseId,
         exerciseName: ex.exerciseName,
         targetSets: ex.targetSets,
@@ -174,7 +179,35 @@ export default function WorkoutPlanBuilderScreen() {
 
   const location = useLocation();
   const rawPlan = location.state?.initialPlan;
-  const initialPlan = rawPlan ? convertPlanToInitialValues(rawPlan) : undefined;
+
+  const formInitialValues = useMemo(() => {
+    const plan = rawPlan ? convertPlanToInitialValues(rawPlan) : undefined;
+
+    // Logic to auto-select muscle groups (moved inside useMemo)
+    if (plan && rawPlan.isFromSession && plan.muscleGroupIds.length === 0) {
+      const bodyPartIds = rawPlan?.bodyPartIds ?? [];
+      const autoDetectedMuscleGroupIds =
+        workoutMeta?.getMuscleGroups
+          ?.filter((group: MuscleGroupMeta) =>
+            group.bodyParts.some((bp: any) => bodyPartIds.includes(bp.id)),
+          )
+          .map((group: MuscleGroupMeta) => group.id) ?? [];
+      plan.muscleGroupIds = autoDetectedMuscleGroupIds;
+    }
+
+    // Return the final plan or a default empty object
+    return (
+      plan ?? {
+        name: '',
+        trainingGoalId: 0,
+        intensityPresetId: 0,
+        muscleGroupIds: [],
+        exercises: [],
+      }
+    );
+  }, [rawPlan, workoutMeta?.getMuscleGroups]); // Dependencies
+
+  const isEdit = !!rawPlan && !rawPlan.isFromSession;
 
   const pushRef = useRef<(item: any) => void>(() => {});
 
@@ -215,53 +248,31 @@ export default function WorkoutPlanBuilderScreen() {
       )
       .map((group: MuscleGroupMeta) => group.id) ?? [];
 
-  if (isFromSession && initialPlan && initialPlan.muscleGroupIds.length === 0) {
-    initialPlan.muscleGroupIds = autoDetectedMuscleGroupIds;
+  if (
+    isFromSession &&
+    formInitialValues &&
+    formInitialValues.muscleGroupIds.length === 0
+  ) {
+    formInitialValues.muscleGroupIds = autoDetectedMuscleGroupIds;
   }
 
-  const isEdit = !!initialPlan && !isFromSession;
-
   return (
-    <ScreenLayout scroll>
-      <Title
-        text={initialPlan ? 'Edit Workout Plan' : 'Build Workout Plan'}
-        subtitle={
-          initialPlan
-            ? 'Modify your existing workout session'
-            : 'Create a reusable workout session'
-        }
-      />
-
+    <ScreenLayout>
       <Formik<FormValues>
         enableReinitialize
-        initialValues={
-          initialPlan ?? {
-            name: '',
-            trainingGoalId: 0,
-            intensityPresetId: 0,
-            muscleGroupIds: [],
-            exercises: [],
-          }
-        }
+        initialValues={formInitialValues} // <-- Use the memoized values
         validationSchema={validationSchema}
         onSubmit={async values => {
-          console.log(
-            'Matching preset with:',
-            values.trainingGoalId,
-            values.experienceLevel,
-          );
-          console.log('Available presets:', workoutMeta?.getIntensityPresets);
           const matchedPreset = workoutMeta?.getIntensityPresets?.find(
             (p: any) =>
               p.trainingGoalId === values.trainingGoalId &&
               p.experienceLevel === values.experienceLevel,
           );
-          console.log(matchedPreset);
           const transformedInput = {
             name: values.name,
             trainingGoalId: values.trainingGoalId,
-            intensityPresetId: matchedPreset?.id ?? null, // ✅ assign it here
-            muscleGroupIds: values.muscleGroupIds, // ✅ add this
+            intensityPresetId: matchedPreset?.id ?? null,
+            muscleGroupIds: values.muscleGroupIds,
             exercises: values.exercises.map((ex, index) => ({
               exerciseId: ex.exerciseId,
               order: index,
@@ -280,7 +291,6 @@ export default function WorkoutPlanBuilderScreen() {
               trainingMethodId: ex.trainingMethodId ?? null,
             })),
           };
-          console.log(transformedInput);
 
           try {
             const result = isEdit
@@ -289,10 +299,6 @@ export default function WorkoutPlanBuilderScreen() {
                 })
               : await createWorkoutPlan({variables: {input: transformedInput}});
 
-            console.log(
-              `✅ Workout Plan ${isEdit ? 'Updated' : 'Created'}:`,
-              result,
-            );
             Alert.alert(
               `Workout Plan ${isEdit ? 'Updated' : 'Created'}!`,
               `Plan successfully ${isEdit ? 'updated' : 'created'}.`,
@@ -312,6 +318,7 @@ export default function WorkoutPlanBuilderScreen() {
           handleSubmit,
           setFieldValue,
         }) => {
+
           const selectedBodyPartIds = getSelectedBodyPartIds(
             values.muscleGroupIds,
             workoutMeta?.getMuscleGroups ?? [],
@@ -324,412 +331,449 @@ export default function WorkoutPlanBuilderScreen() {
 
           const renderSummary = useWorkoutPlanSummary();
 
+          // We need to use FieldArray to get the 'push' method for adding exercises
           return (
-            <>
-              <Card title="Plan Details">
-                <FormInput
-                  label="Plan Name"
-                  value={values.name}
-                  onChangeText={handleChange('name')}
-                  onBlur={() => handleBlur('name')}
-                  error={touched.name && errors.name ? errors.name : undefined}
-                />
-                <SelectableField
-                  label="Training Goal"
-                  value={
-                    workoutMeta?.getTrainingGoals?.find(
-                      (goal: any) => goal.id === values.trainingGoalId,
-                    )?.name || 'Select Training Goal'
-                  }
-                  onPress={() => setActiveModal('trainingGoalPicker')}
-                />
-                <SelectableField
-                  label="Planned Difficulty"
-                  value={
-                    values.experienceLevel
-                      ? values.experienceLevel.charAt(0) +
-                        values.experienceLevel.slice(1).toLowerCase()
-                      : 'Select Difficulty'
-                  }
-                  onPress={() => setActiveModal('difficultyPicker')}
-                />
-                <SelectableField
-                  label="Muscle Groups"
-                  value={
-                    values.muscleGroupIds.length > 0
-                      ? `${values.muscleGroupIds.length} selected`
-                      : 'Select Muscle Groups'
-                  }
-                  onPress={() => setActiveModal('muscleGroupPicker')}
-                  disabled={!values.trainingGoalId}
-                />
-                {isFromSession && values.muscleGroupIds.length > 0 && (
-                  <Text style={{marginTop: 4, color: theme.colors.accentStart}}>
-                    Muscle groups auto-selected based on your session. You can
-                    adjust them.
-                  </Text>
-                )}
-              </Card>
+            <FieldArray name="exercises">
+              {({push}) => {
+                // Assign the push function to our ref so we can call it from the modal
+                pushRef.current = push;
 
-              <Card title="Exercises">
-                <View style={{marginBottom: spacing.md}}>
-                  <Button
-                    text={reorderMode ? 'Done Reordering' : 'Edit Order'}
-                    disabled={values.exercises.length < 1}
-                    onPress={() => setReorderMode(prev => !prev)}
-                  />
-                </View>
-                <FieldArray name="exercises">
-                  {({push, move}) => {
-                    pushRef.current = push;
-
-                    return (
-                      <>
-                        {reorderMode ? (
-                          // 3. Add the platform check
-                          Platform.OS === 'web' ? (
-                            <WebDraggableList
-                              data={values.exercises}
-                              keyExtractor={(item: any, index: number) =>
-                                `exercise-${item.exerciseId}-${index}`
-                              }
-                              onDragEnd={({data}: {data: any[]}) =>
-                                setFieldValue('exercises', data)
-                              }
-                              renderItem={(params: any) => {
-                                // The web version renderItem won't have `drag` or `isActive`
-                                // but we can still reuse the same visual component.
-                                const {item, index} = params;
-                                return (
-                                  <Pressable
-                                    // @ts-ignore
-                                    style={{
-                                      marginBottom: spacing.md,
-                                      padding: spacing.sm,
-                                      borderRadius: 8,
-                                      borderWidth: 1,
-                                      borderColor: theme.colors.accentStart,
-                                      backgroundColor: theme.colors.background, // isActive is false for web
-                                      // Add a cursor to indicate it's draggable on web
-                                      cursor: 'grab',
-                                    }}>
-                                    <Text
-                                      style={{color: theme.colors.textPrimary}}>
-                                      #{index + 1} {item.exerciseName}
-                                    </Text>
-                                    <Text
-                                      style={{
-                                        color: theme.colors.textSecondary,
-                                      }}>
-                                      Sets: {item.targetSets}
-                                    </Text>
-                                    <Text
-                                      style={{
-                                        color: theme.colors.textSecondary,
-                                      }}>
-                                      {renderSummary({
-                                        exerciseId: item.exerciseId,
-                                        targetMetrics: item.targetMetrics,
-                                      })}
-                                    </Text>
-                                  </Pressable>
-                                );
-                              }}
-                            />
-                          ) : (
-                            // This is your original DraggableFlatList for mobile
-                            <DraggableFlatList
-                              data={values.exercises}
-                              keyExtractor={(item, index) =>
-                                `exercise-${item.exerciseId}-${index}`
-                              }
-                              onDragEnd={({data}) =>
-                                setFieldValue('exercises', data)
-                              }
-                              renderItem={params => {
-                                const {item, drag, isActive, getIndex} = params;
-                                const index = getIndex?.() ?? 0;
-                                return (
-                                  <ScaleDecorator>
-                                    <Pressable
-                                      onLongPress={drag}
-                                      style={{
-                                        marginBottom: spacing.md,
-                                        padding: spacing.sm,
-                                        borderRadius: 8,
-                                        borderWidth: 1,
-                                        borderColor: theme.colors.accentStart,
-                                        backgroundColor: isActive
-                                          ? theme.colors.accentStart
-                                          : theme.colors.background,
-                                      }}>
-                                      <Text
-                                        style={{
-                                          color: theme.colors.textPrimary,
-                                        }}>
-                                        #{index + 1} {item.exerciseName}
-                                      </Text>
-                                      <Text
-                                        style={{
-                                          color: theme.colors.textSecondary,
-                                        }}>
-                                        Sets: {item.targetSets}
-                                      </Text>
-                                      <Text
-                                        style={{
-                                          color: theme.colors.textSecondary,
-                                        }}>
-                                        {renderSummary({
-                                          exerciseId: item.exerciseId,
-                                          targetMetrics: item.targetMetrics,
-                                        })}
-                                      </Text>
-                                    </Pressable>
-                                  </ScaleDecorator>
-                                );
-                              }}
-                            />
-                          )
-                        ) : (
-                          values.exercises.map((exercise, idx) => (
-                            <View
-                              key={idx}
-                              style={{
-                                marginBottom: spacing.md,
-                                padding: spacing.sm,
-                                borderRadius: 8,
-                                borderWidth: 1,
-                                borderColor: theme.colors.accentStart,
-                              }}>
-                              <TouchableOpacity
-                                onPress={() =>
-                                  setExpandedExerciseIndex(
-                                    expandedExerciseIndex === idx ? null : idx,
-                                  )
-                                }>
-                                <View
-                                  style={{
-                                    flexDirection: 'row',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                  }}>
-                                  <Text
-                                    style={{
-                                      color: theme.colors.textPrimary,
-                                    }}>
-                                    #{idx + 1} {exercise.exerciseName}
-                                  </Text>
-                                  <FontAwesome
-                                    name={
-                                      expandedExerciseIndex === idx
-                                        ? 'chevron-up'
-                                        : 'chevron-down'
-                                    }
-                                    style={{
-                                      fontSize: 16,
-                                      color: theme.colors.accentStart,
-                                      paddingRight: 5,
-                                      paddingBottom: 8,
-                                    }}
-                                  />
-                                </View>
-                              </TouchableOpacity>
-                              {expandedExerciseIndex === idx && (
-                                <>
-                                  <FormInput
-                                    label="Sets"
-                                    value={String(exercise.targetSets)}
-                                    onChangeText={text =>
-                                      setFieldValue(
-                                        `exercises[${idx}].targetSets`,
-                                        parseInt(text, 10) || 0,
-                                      )
-                                    }
-                                    keyboardType="numeric"
-                                  />
-                                  <TargetMetricInputGroup
-                                    exerciseId={exercise.exerciseId}
-                                    values={exercise.targetMetrics}
-                                    onChange={(metricId, field, value) => {
-                                      const updated =
-                                        exercise.targetMetrics.map(m =>
-                                          m.metricId === metricId
-                                            ? {...m, [field]: value}
-                                            : m,
-                                        );
-                                      setFieldValue(
-                                        `exercises[${idx}].targetMetrics`,
-                                        updated,
-                                      );
-                                    }}
-                                    errors={
-                                      Array.isArray(errors.exercises?.[idx])
-                                        ? undefined
-                                        : (errors.exercises?.[idx] as any)
-                                            ?.targetMetrics
-                                    }
-                                    touched={
-                                      touched.exercises?.[idx]?.targetMetrics
-                                    }
-                                  />
-                                  <SelectableField
-                                    label="Training Method"
-                                    value={
-                                      values.trainingGoalId
-                                        ? workoutMeta?.getTrainingGoals
-                                            ?.find(
-                                              (g: {
-                                                id: number;
-                                                trainingMethods: any[];
-                                              }) =>
-                                                g.id === values.trainingGoalId,
-                                            )
-                                            ?.trainingMethods?.find(
-                                              (m: {id: number; name: string}) =>
-                                                m.id ===
-                                                exercise.trainingMethodId,
-                                            )?.name || 'Select Training Method'
-                                        : 'Select training goal to enable'
-                                    }
-                                    onPress={() => {
-                                      if (!values.trainingGoalId) return;
-                                      setSelectedExerciseIndex(idx);
-                                      setActiveModal('trainingMethodPicker');
-                                    }}
-                                    disabled={!values.trainingGoalId}
-                                  />
-                                  <View style={{marginBottom: spacing.sm}}>
-                                    <Button
-                                      text="Remove Exercise"
-                                      onPress={() => {
-                                        const newExercises = [
-                                          ...values.exercises,
-                                        ];
-                                        newExercises.splice(idx, 1);
-                                        setFieldValue(
-                                          'exercises',
-                                          newExercises,
-                                        );
-                                        setExpandedExerciseIndex(null);
-                                      }}
-                                    />
-                                  </View>
-                                </>
-                              )}
-                            </View>
-                          ))
-                        )}
-
-                        <Button
-                          text="Add Exercise"
-                          onPress={() => setActiveModal('selectExercise')}
-                        />
-                      </>
-                    );
-                  }}
-                </FieldArray>
-              </Card>
-
-              <Button
-                text={isEdit ? 'Update Plan' : 'Save Plan'}
-                onPress={handleSubmit as any}
-              />
-
-              <ModalWrapper
-                visible={!!activeModal}
-                onClose={() => setActiveModal(null)}>
-                {activeModal === 'trainingGoalPicker' && (
-                  <TrainingGoalPickerModal
-                    visible
-                    trainingGoals={workoutMeta?.getTrainingGoals ?? []}
-                    selectedId={values.trainingGoalId}
-                    onSelect={goalId => {
-                      setFieldValue('trainingGoalId', goalId);
-                      setActiveModal(null);
-                    }}
-                    onClose={() => setActiveModal(null)}
-                  />
-                )}
-
-                {activeModal === 'difficultyPicker' && (
-                  <DifficultyPickerModal
-                    visible
-                    selectedLevel={values.experienceLevel ?? 'BEGINNER'}
-                    onSelect={level => {
-                      setFieldValue('experienceLevel', level);
-                      console.log(level);
-                      setActiveModal(null);
-                    }}
-                    onClose={() => setActiveModal(null)}
-                  />
-                )}
-
-                {activeModal === 'muscleGroupPicker' && (
-                  <MuscleGroupPickerModal
-                    muscleGroups={workoutMeta?.getMuscleGroups ?? []}
-                    selectedIds={values.muscleGroupIds}
-                    onChange={(ids: number[]) =>
-                      setFieldValue('muscleGroupIds', ids)
-                    }
-                    onClose={() => setActiveModal(null)}
-                    onRefetch={refetch}
-                  />
-                )}
-
-                {activeModal === 'trainingMethodPicker' && (
-                  <TrainingMethodPicker
-                    selectedId={
-                      selectedExerciseIndex !== null
-                        ? (values.exercises[selectedExerciseIndex]
-                            ?.trainingMethodId ?? null)
-                        : null
-                    }
-                    trainingMethods={
-                      workoutMeta?.getTrainingGoals?.find(
-                        (g: {id: number; trainingMethods: any[]}) =>
-                          g.id === values.trainingGoalId,
-                      )?.trainingMethods ?? []
-                    }
-                    onSelect={id => {
-                      if (selectedExerciseIndex !== null) {
-                        setFieldValue(
-                          `exercises[${selectedExerciseIndex}].trainingMethodId`,
-                          id,
-                        );
+                const ListHeader = (
+                  <>
+                    <Title
+                      text={
+                        formInitialValues
+                          ? 'Edit Workout Plan'
+                          : 'Build Workout Plan'
                       }
-                      setActiveModal(null);
-                      setSelectedExerciseIndex(null);
-                    }}
-                    onClose={() => setActiveModal(null)}
-                  />
-                )}
+                      subtitle={
+                        formInitialValues
+                          ? 'Modify your existing workout session'
+                          : 'Create a reusable workout session'
+                      }
+                    />
+                    <Card title="Plan Details">
+                      <FormInput
+                        label="Plan Name"
+                        value={values.name}
+                        onChangeText={handleChange('name')}
+                        onBlur={() => handleBlur('name')}
+                        error={
+                          touched.name && errors.name ? errors.name : undefined
+                        }
+                      />
+                      <SelectableField
+                        label="Training Goal"
+                        value={
+                          workoutMeta?.getTrainingGoals?.find(
+                            (goal: any) => goal.id === values.trainingGoalId,
+                          )?.name || 'Select Training Goal'
+                        }
+                        onPress={() => setActiveModal('trainingGoalPicker')}
+                      />
+                      <SelectableField
+                        label="Planned Difficulty"
+                        value={
+                          values.experienceLevel
+                            ? values.experienceLevel.charAt(0) +
+                              values.experienceLevel.slice(1).toLowerCase()
+                            : 'Select Difficulty'
+                        }
+                        onPress={() => setActiveModal('difficultyPicker')}
+                      />
+                      <SelectableField
+                        label="Muscle Groups"
+                        value={
+                          values.muscleGroupIds.length > 0
+                            ? `${values.muscleGroupIds.length} selected`
+                            : 'Select Muscle Groups'
+                        }
+                        onPress={() => setActiveModal('muscleGroupPicker')}
+                        disabled={!values.trainingGoalId}
+                      />
+                      {isFromSession && values.muscleGroupIds.length > 0 && (
+                        <Text
+                          style={{
+                            marginTop: 4,
+                            color: theme.colors.accentStart,
+                          }}>
+                          Muscle groups auto-selected based on your session. You
+                          can adjust them.
+                        </Text>
+                      )}
+                    </Card>
+                    <View style={{padding: spacing.md}}>
+                      <Title text="Exercises" />
+                      <Button
+                        text={reorderMode ? 'Done Reordering' : 'Edit Order'}
+                        disabled={values.exercises.length < 1}
+                        onPress={() => setReorderMode(prev => !prev)}
+                      />
+                    </View>
+                  </>
+                );
 
-                {activeModal === 'selectExercise' && (
-                  <SelectExerciseModal
-                    onClose={() => setActiveModal(null)}
-                    filteredExercises={filteredExercises}
-                    onSelect={newExercises => {
-                      newExercises.forEach(e =>
-                        pushRef.current?.({
-                          exerciseId: e.id,
-                          exerciseName: e.name,
-                          targetSets: 3,
-                          targetMetrics: createPlanningTargetMetrics(e.id),
-                          isWarmup: false,
-                          trainingMethodId: undefined,
-                        }),
-                      );
-                      setExpandedExerciseIndex(values.exercises.length);
-                      setActiveModal(null);
-                    }}
-                  />
-                )}
-              </ModalWrapper>
-            </>
+                const ListFooter = (
+                  <View style={{padding: spacing.md}}>
+                    <View style={{paddingBottom: spacing.md}}>
+                      <Button
+                        text="Add Exercise"
+                        onPress={() => setActiveModal('selectExercise')}
+                      />
+                    </View>
+                    <Button
+                      text={isEdit ? 'Update Plan' : 'Save Plan'}
+                      onPress={handleSubmit as any}
+                    />
+                  </View>
+                );
+
+                const renderNormalItem = ({
+                  item: exercise,
+                  index: idx,
+                }: {
+                  item: ExerciseFormEntry;
+                  index: number;
+                }) => (
+                  <View
+                    key={idx}
+                    style={{
+                      marginBottom: spacing.md,
+                      padding: spacing.sm,
+                      marginHorizontal: spacing.md,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: theme.colors.accentStart,
+                    }}>
+                    <TouchableOpacity
+                      onPress={() =>
+                        setExpandedExerciseIndex(
+                          expandedExerciseIndex === idx ? null : idx,
+                        )
+                      }>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}>
+                        <Text style={{color: theme.colors.textPrimary}}>
+                          #{idx + 1} {exercise.exerciseName}
+                        </Text>
+                        <FontAwesome
+                          name={
+                            expandedExerciseIndex === idx
+                              ? 'chevron-up'
+                              : 'chevron-down'
+                          }
+                          style={{
+                            fontSize: 16,
+                            color: theme.colors.accentStart,
+                            paddingRight: 5,
+                            paddingBottom: 8,
+                          }}
+                        />
+                      </View>
+                    </TouchableOpacity>
+                    {expandedExerciseIndex === idx && (
+                      <>
+                        <FormInput
+                          label="Sets"
+                          value={String(exercise.targetSets)}
+                          onChangeText={text =>
+                            setFieldValue(
+                              `exercises[${idx}].targetSets`,
+                              parseInt(text, 10) || 0,
+                            )
+                          }
+                          keyboardType="numeric"
+                        />
+                        <TargetMetricInputGroup
+                          exerciseId={exercise.exerciseId}
+                          values={exercise.targetMetrics}
+                          onChange={(metricId, field, value) => {
+                            const updated = exercise.targetMetrics.map(m =>
+                              m.metricId === metricId
+                                ? {...m, [field]: value}
+                                : m,
+                            );
+                            setFieldValue(
+                              `exercises[${idx}].targetMetrics`,
+                              updated,
+                            );
+                          }}
+                          errors={
+                            Array.isArray(errors.exercises?.[idx])
+                              ? undefined
+                              : (errors.exercises?.[idx] as any)?.targetMetrics
+                          }
+                          touched={touched.exercises?.[idx]?.targetMetrics}
+                        />
+                        <SelectableField
+                          label="Training Method"
+                          value={
+                            values.trainingGoalId
+                              ? workoutMeta?.getTrainingGoals
+                                  ?.find(
+                                    (g: {id: number; trainingMethods: any[]}) =>
+                                      g.id === values.trainingGoalId,
+                                  )
+                                  ?.trainingMethods?.find(
+                                    (m: {id: number; name: string}) =>
+                                      m.id === exercise.trainingMethodId,
+                                  )?.name || 'Select Training Method'
+                              : 'Select training goal to enable'
+                          }
+                          onPress={() => {
+                            if (!values.trainingGoalId) return;
+                            setSelectedExerciseIndex(idx);
+                            setActiveModal('trainingMethodPicker');
+                          }}
+                          disabled={!values.trainingGoalId}
+                        />
+                        <View
+                          style={{
+                            marginBottom: spacing.sm,
+                            marginTop: spacing.md,
+                          }}>
+                          <Button
+                            text="Remove Exercise"
+                            onPress={() => {
+                              const newExercises = [...values.exercises];
+                              newExercises.splice(idx, 1);
+                              setFieldValue('exercises', newExercises);
+                              setExpandedExerciseIndex(null);
+                            }}
+                          />
+                        </View>
+                      </>
+                    )}
+                  </View>
+                );
+
+                const renderDraggableItem = (params: any) => {
+                  const {item, drag, isActive, getIndex} = params;
+                  const index = getIndex?.() ?? 0;
+
+                  return (
+                    <ScaleDecorator>
+                      <Pressable
+                        onLongPress={drag}
+                        style={{
+                          marginBottom: spacing.md,
+                          padding: spacing.sm,
+                          marginHorizontal: spacing.md,
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: theme.colors.accentStart,
+                          backgroundColor: isActive
+                            ? theme.colors.surface
+                            : theme.colors.background,
+                        }}>
+                        <Text style={{color: theme.colors.textPrimary}}>
+                          #{index + 1} {item.exerciseName}
+                        </Text>
+                        <Text style={{color: theme.colors.textSecondary}}>
+                          Sets: {item.targetSets}
+                        </Text>
+                        <Text style={{color: theme.colors.textSecondary}}>
+                          {renderSummary({
+                            exerciseId: item.exerciseId,
+                            targetMetrics: item.targetMetrics,
+                          })}
+                        </Text>
+                      </Pressable>
+                    </ScaleDecorator>
+                  );
+                };
+
+                const renderWebDraggableItem = (params: any) => {
+                  const {item, index} = params;
+                  return (
+                    <Pressable
+                      // @ts-ignore
+                      style={{
+                        marginBottom: spacing.md,
+                        padding: spacing.sm,
+                        marginHorizontal: spacing.md,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: theme.colors.accentStart,
+                        backgroundColor: theme.colors.background,
+                        cursor: 'grab',
+                      }}>
+                      <Text style={{color: theme.colors.textPrimary}}>
+                        #{index + 1} {item.exerciseName}
+                      </Text>
+                      <Text style={{color: theme.colors.textSecondary}}>
+                        Sets: {item.targetSets}
+                      </Text>
+                      <Text style={{color: theme.colors.textSecondary}}>
+                        {renderSummary({
+                          exerciseId: item.exerciseId,
+                          targetMetrics: item.targetMetrics,
+                        })}
+                      </Text>
+                    </Pressable>
+                  );
+                };
+
+                return (
+                  <>
+                    {reorderMode ? (
+                      Platform.OS === 'web' ? (
+                        <WebDraggableList
+                          data={values.exercises}
+                          keyExtractor={(item: any) => item.instanceId}
+                          onDragEnd={newOrder => {
+                            setFieldValue('exercises', newOrder);
+                          }}
+                          ListHeaderComponent={ListHeader}
+                          ListFooterComponent={ListFooter}
+                          renderItem={renderWebDraggableItem}
+                        />
+                      ) : (
+                        <DraggableFlatList
+                          data={values.exercises}
+                          keyExtractor={item => item.instanceId} // <-- Use the stable ID
+                          onDragEnd={({data}) =>
+                            setFieldValue('exercises', data)
+                          }
+                          ListHeaderComponent={ListHeader}
+                          ListFooterComponent={ListFooter}
+                          renderItem={renderDraggableItem}
+                        />
+                      )
+                    ) : (
+                      <FlatList
+                        data={values.exercises}
+                        keyExtractor={item => item.instanceId} // <-- Use the stable ID
+                        ListHeaderComponent={ListHeader}
+                        ListFooterComponent={ListFooter}
+                        renderItem={renderNormalItem}
+                      />
+                    )}
+
+                    {/* The ModalWrapper stays outside the list */}
+                    <ModalWrapper
+                      visible={!!activeModal}
+                      onClose={() => setActiveModal(null)}>
+                      {activeModal === 'trainingGoalPicker' && (
+                        <TrainingGoalPickerModal
+                          visible
+                          trainingGoals={workoutMeta?.getTrainingGoals ?? []}
+                          selectedId={values.trainingGoalId}
+                          onSelect={goalId => {
+                            setFieldValue('trainingGoalId', goalId);
+                            setActiveModal(null);
+                          }}
+                          onClose={() => setActiveModal(null)}
+                        />
+                      )}
+                      {activeModal === 'difficultyPicker' && (
+                        <DifficultyPickerModal
+                          visible
+                          selectedLevel={values.experienceLevel ?? 'BEGINNER'}
+                          onSelect={level => {
+                            setFieldValue('experienceLevel', level);
+                            setActiveModal(null);
+                          }}
+                          onClose={() => setActiveModal(null)}
+                        />
+                      )}
+                      {activeModal === 'muscleGroupPicker' && (
+                        <MuscleGroupPickerModal
+                          muscleGroups={workoutMeta?.getMuscleGroups ?? []}
+                          selectedIds={values.muscleGroupIds}
+                          onChange={(ids: number[]) =>
+                            setFieldValue('muscleGroupIds', ids)
+                          }
+                          onClose={() => setActiveModal(null)}
+                          onRefetch={refetch}
+                        />
+                      )}
+                      {activeModal === 'trainingMethodPicker' && (
+                        <TrainingMethodPicker
+                          selectedId={
+                            selectedExerciseIndex !== null
+                              ? (values.exercises[selectedExerciseIndex]
+                                  ?.trainingMethodId ?? null)
+                              : null
+                          }
+                          trainingMethods={
+                            workoutMeta?.getTrainingGoals?.find(
+                              (g: {id: number; trainingMethods: any[]}) =>
+                                g.id === values.trainingGoalId,
+                            )?.trainingMethods ?? []
+                          }
+                          onSelect={id => {
+                            if (selectedExerciseIndex !== null) {
+                              setFieldValue(
+                                `exercises[${selectedExerciseIndex}].trainingMethodId`,
+                                id,
+                              );
+                            }
+                            setActiveModal(null);
+                            setSelectedExerciseIndex(null);
+                          }}
+                          onClose={() => setActiveModal(null)}
+                        />
+                      )}
+                      {activeModal === 'selectExercise' && (
+                        <SelectExerciseModal
+                          onClose={() => setActiveModal(null)}
+                          filteredExercises={filteredExercises}
+                          onSelect={newExercises => {
+                            if (!pushRef.current) {
+                              console.error(
+                                '[DEBUG] FATAL: pushRef.current is not set! Cannot add exercises.',
+                              );
+                              return;
+                            }
+
+                            try {
+                              newExercises.forEach(e => {
+                                // This function is defined in your original code
+                                const newTargetMetrics =
+                                  createPlanningTargetMetrics(e.id);
+
+                                const newExerciseObject = {
+                                  instanceId: generateUniqueId(), // The unique ID we added
+                                  exerciseId: e.id,
+                                  exerciseName: e.name,
+                                  targetSets: 3,
+                                  targetMetrics: newTargetMetrics,
+                                  isWarmup: false,
+                                  trainingMethodId: undefined,
+                                };
+
+                                pushRef.current(newExerciseObject);
+                              });
+
+                              // This sets the newly added exercise to be the one that is expanded.
+                              setExpandedExerciseIndex(
+                                values.exercises.length +
+                                  newExercises.length -
+                                  1,
+                              );
+                              setActiveModal(null);
+                            } catch (error) {
+                              console.error(
+                                '[DEBUG] An error occurred while adding an exercise:',
+                                error,
+                              );
+                            }
+                          }}
+                        />
+                      )}
+                    </ModalWrapper>
+                  </>
+                );
+              }}
+            </FieldArray>
           );
         }}
       </Formik>
-
       <ToastContainer />
     </ScreenLayout>
   );

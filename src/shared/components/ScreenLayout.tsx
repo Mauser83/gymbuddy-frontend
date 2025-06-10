@@ -1,3 +1,5 @@
+// The final, correct version of src/shared/components/ScreenLayout.tsx
+
 import React from 'react';
 import {
   View,
@@ -5,6 +7,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  SafeAreaView,
+  ViewStyle, // Import ViewStyle
 } from 'react-native';
 import {LinearGradient} from 'expo-linear-gradient';
 import {useTheme} from 'shared/theme/ThemeProvider';
@@ -18,48 +22,53 @@ interface ScreenLayoutProps {
 const ScreenLayout = ({
   children,
   variant = 'default',
-  scroll = true,
+  scroll = false,
 }: ScreenLayoutProps) => {
-  const { theme, componentStyles } = useTheme();
-  const layoutStyle =
+  const {theme, componentStyles} = useTheme();
+
+  const contentStyle =
     componentStyles.screenLayout[
       variant === 'centered' ? 'centeredContainer' : 'container'
     ];
 
-  const Container = scroll ? ScrollView : View;
-  const containerProps = scroll
-    ? {
-        contentContainerStyle: layoutStyle,
-        keyboardShouldPersistTaps: 'handled' as const,
-      }
-    : {
-        style: layoutStyle,
-      };
+  const webContainerStyle: ViewStyle =
+    Platform.OS === 'web'
+      ? {
+          width: '100%', // Restore this for responsiveness
+          maxWidth: 400,
+          alignSelf: 'center',
+        }
+      : {};
 
   return (
     <LinearGradient
       colors={[theme.colors.background, theme.colors.surface]}
-      style={styles.gradient}
-      pointerEvents="box-none" // ensure modals show properly
-    >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardAvoiding}
-      >
-        <Container {...containerProps}>{children}</Container>
-      </KeyboardAvoidingView>
+      style={styles.gradient}>
+      <SafeAreaView style={styles.flex}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.flex}>
+          <View style={[styles.flex, webContainerStyle]}>
+            {scroll ? (
+              <ScrollView
+                style={styles.flex}
+                contentContainerStyle={contentStyle}
+                keyboardShouldPersistTaps="handled">
+                {children}
+              </ScrollView>
+            ) : (
+              <View style={[styles.flex, contentStyle]}>{children}</View>
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
-  keyboardAvoiding: {
-    flex: 1,
-    width: '100%',
-  },
+  gradient: { flex: 1 },
+  flex: { flex: 1 },
 });
 
 export default ScreenLayout;

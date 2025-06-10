@@ -88,7 +88,6 @@ const WorkoutSessionHistoryScreen = () => {
 
       {!loading && !error && (
         <FlatList
-          contentContainerStyle={{padding: 16}}
           data={data?.workoutSessionsByUser || []}
           keyExtractor={item => item.id.toString()}
           renderItem={renderSessionCard}

@@ -1,4 +1,5 @@
 import React from 'react';
+import 'react-native-reanimated';
 import {ActivityIndicator, StatusBar} from 'react-native';
 import {useFonts} from 'expo-font';
 import {Host} from 'react-native-portalize';

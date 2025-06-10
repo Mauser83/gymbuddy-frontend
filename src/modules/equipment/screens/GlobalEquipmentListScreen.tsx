@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {useQuery, useMutation} from '@apollo/client';
 import {useNavigate} from 'react-router-native';
-import {View, Text} from 'react-native';
+import {View, FlatList} from 'react-native'; // Import FlatList
 
 import {useAuth} from '../../auth/context/AuthContext';
 import {
@@ -21,6 +21,7 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import ButtonRow from 'shared/components/ButtonRow';
 import DividerWithLabel from 'shared/components/DividerWithLabel';
+import Card from 'shared/components/Card';
 
 const GlobalEquipmentListScreen = () => {
   const {user} = useAuth();
@@ -28,131 +29,126 @@ const GlobalEquipmentListScreen = () => {
   const {theme} = useTheme();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [exerciseSearch, setExerciseSearch] = useState('');
 
   const {data, loading, refetch} = useQuery(GET_ALL_EQUIPMENTS, {
     fetchPolicy: 'cache-and-network',
+    variables: { search: searchQuery || undefined }
   });
   const [deleteEquipment] = useMutation(DELETE_EQUIPMENT);
-  const [exerciseSearch, setExerciseSearch] = useState('');
-
-  const handleDelete = async (id: number) => {
-    try {
-      await deleteEquipment({variables: {id}});
-      await refetch();
-    } catch (err) {
-      console.error('Failed to delete equipment', err);
-    }
-  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
       refetch({search: searchQuery || undefined});
     }, 500);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  useEffect(() => {
-    if (data?.allEquipments) {
-      setEquipments(data.allEquipments);
-    }
-  }, [data]);
+  }, [searchQuery, refetch]);
 
   useEffect(() => {
     if (!user) navigate('/');
-  }, [user]);
+  }, [user, navigate]);
 
-  const equipmentItems =
-    equipments?.map((item: Equipment) => {
-      const isExpanded = expandedId === item.id;
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteEquipment({variables: {id}});
+      refetch();
+    } catch (err) {
+      console.error('Failed to delete equipment', err);
+    }
+  };
 
-      // 🔍 Only compute if expanded
-      const filteredExercises = isExpanded
-        ? (item.compatibleExercises?.filter(ex =>
-            ex.name.toLowerCase().includes(exerciseSearch.toLowerCase()),
-          ) ?? [])
-        : [];
+  const equipments = data?.allEquipments ?? [];
 
-      return {
-        id: item.id,
-        label: item.name,
-        subLabel: `${item.brand} • ${item.compatibleExercises?.length ?? 0} exercises`,
-        selected: isExpanded,
-        onPress: () => {
-          setExpandedId(prev => (prev === item.id ? null : item.id));
-        },
-        rightElement: (
-          <FontAwesome
-            name={isExpanded ? 'chevron-down' : 'chevron-right'}
-            size={16}
-            color={theme.colors.accentStart}
-          />
-        ),
-        content: isExpanded ? (
-          <>
-            <ButtonRow>
-              <Button
-                text="Edit"
-                fullWidth
-                onPress={() => navigate(`/equipment/edit/${item.id}`)}
-              />
-              <Button
-                text="Delete"
-                fullWidth
-                onPress={() => handleDelete(item.id)}
-              />
-            </ButtonRow>
-            <DividerWithLabel label="Exercises" />
-            <SearchInput
-              placeholder="Search exercises..."
-              value={exerciseSearch}
-              onChange={setExerciseSearch}
-              onClear={() => setExerciseSearch('')}
-            />
-            {filteredExercises.length ? (
-              <ClickableList
-                items={filteredExercises.map(ex => ({
-                  id: ex.id,
-                  label: ex.name,
-                  onPress: () => navigate(`/exercise/${ex.id}`),
-                }))}
-              />
-            ) : (
-              <NoResults message="No matching exercises found." />
-            )}
-          </>
-        ) : undefined,
-      };
-    }) ?? [];
+  const renderEquipmentItem = ({ item }: { item: Equipment }) => {
+    const isExpanded = expandedId === item.id;
+    const filteredExercises = isExpanded
+      ? (item.compatibleExercises?.filter(ex =>
+          ex.name.toLowerCase().includes(exerciseSearch.toLowerCase()),
+        ) ?? [])
+      : [];
 
-  if (loading) {
     return (
-      <ScreenLayout variant="centered">
-        <LoadingState text="Loading equipments..." />
-      </ScreenLayout>
+      <Card variant="glass" style={{ marginBottom: spacing.md }}>
+        <ClickableList
+            items={[{
+                id: item.id,
+                label: item.name,
+                subLabel: `${item.brand} • ${item.compatibleExercises?.length ?? 0} exercises`,
+                selected: isExpanded,
+                onPress: () => {
+                    setExpandedId(prev => (prev === item.id ? null : item.id));
+                    setExerciseSearch(''); // Reset exercise search on toggle
+                },
+                rightElement: (
+                    <FontAwesome
+                        name={isExpanded ? 'chevron-down' : 'chevron-right'}
+                        size={16}
+                        color={theme.colors.accentStart}
+                    />
+                ),
+                content: isExpanded ? (
+                    <>
+                        <ButtonRow>
+                            <Button text="Edit" fullWidth onPress={() => navigate(`/equipment/edit/${item.id}`)} />
+                            <Button text="Delete" fullWidth onPress={() => handleDelete(item.id)} />
+                        </ButtonRow>
+                        <DividerWithLabel label="Compatible Exercises" />
+                        <SearchInput
+                            placeholder="Search exercises..."
+                            value={exerciseSearch}
+                            onChange={setExerciseSearch}
+                            onClear={() => setExerciseSearch('')}
+                        />
+                        {filteredExercises.length > 0 ? (
+                            <ClickableList
+                                items={filteredExercises.map(ex => ({
+                                    id: ex.id,
+                                    label: ex.name,
+                                    onPress: () => navigate(`/exercise/${ex.id}`),
+                                }))}
+                            />
+                        ) : (
+                            <NoResults message="No matching exercises." />
+                        )}
+                    </>
+                ) : undefined
+            }]}
+        />
+      </Card>
     );
-  }
+  };
+
+  const ListHeader = (
+      <>
+        <SearchInput
+            placeholder="Search equipment..."
+            onChange={setSearchQuery}
+            value={searchQuery}
+            onClear={() => setSearchQuery('')}
+        />
+        <View style={{ marginVertical: spacing.md }}>
+            <Button
+                text="➕ Create New Equipment"
+                onPress={() => navigate('/equipment/create')}
+            />
+        </View>
+      </>
+  );
 
   return (
     <ScreenLayout>
-      <SearchInput
-        placeholder="Search equipment..."
-        onChange={setSearchQuery}
-        value={searchQuery}
-        onClear={() => setSearchQuery('')}
-      />
-      <View style={{position: 'relative', marginBottom: spacing.sm}}>
-        <Button
-          text="➕ Create New Equipment"
-          onPress={() => navigate('/equipment/create')}
-        />
-      </View>
-      {equipments.length === 0 ? (
-        <NoResults message="No equipment found." />
-      ) : (
-        <ClickableList items={equipmentItems} />
-      )}
+        {loading && equipments.length === 0 ? (
+            <LoadingState text="Loading equipment..." />
+        ) : (
+            <FlatList
+                data={equipments}
+                renderItem={renderEquipmentItem}
+                keyExtractor={item => item.id.toString()}
+                ListHeaderComponent={ListHeader}
+                ListEmptyComponent={<NoResults message="No equipment found." />}
+            />
+        )}
     </ScreenLayout>
   );
 };

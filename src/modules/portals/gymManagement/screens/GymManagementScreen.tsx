@@ -12,6 +12,7 @@ import Card from 'shared/components/Card';
 import Title from 'shared/components/Title';
 import DetailField from 'shared/components/DetailField';
 import Button from 'shared/components/Button';
+import { spacing } from 'shared/theme/tokens';
 
 const GymManagementScreen = () => {
   const {gymId: idParam} = useParams();
@@ -34,7 +35,7 @@ const GymManagementScreen = () => {
 
   useEffect(() => {
     if (!user) navigate('/');
-  }, [user]);
+  }, [user, navigate]);
 
   if (loading || !gym) {
     return (
@@ -49,17 +50,18 @@ const GymManagementScreen = () => {
   }
 
   return (
-    <ScreenLayout>
-      {/* Gym Header */}
+    // --- FIX APPLIED HERE ---
+    // Added the `scroll` prop to ensure the screen is scrollable.
+    <ScreenLayout scroll>
       <Card
         variant="glass"
         title={gym.name}
-        text="⏳ Pending Approval"
+        text={!gym.isApproved ? "⏳ Pending Approval" : undefined}
         compact
+        style={{ marginBottom: spacing.md }}
       />
 
-      {/* Gym Info */}
-      <Card variant="glass">
+      <Card variant="glass" style={{ marginBottom: spacing.md }}>
         <Title text="🏢 Gym Information" />
         <DetailField
           label="📝 Description"
@@ -78,8 +80,7 @@ const GymManagementScreen = () => {
         />
       </Card>
 
-      {/* Equipment Info */}
-      <Card variant="glass">
+      <Card variant="glass" style={{ marginBottom: spacing.md }}>
         <Title text="Equipment" />
         <DetailField
           label="🏋️ Equipment Items"
@@ -91,7 +92,6 @@ const GymManagementScreen = () => {
         />
       </Card>
 
-      {/* Staff Info */}
       <Card variant="glass">
         <Title text="🧑‍💼 Staff" />
         {['GYM_ADMIN', 'GYM_MODERATOR'].map(roleKey => {

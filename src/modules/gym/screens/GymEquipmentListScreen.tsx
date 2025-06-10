@@ -8,7 +8,7 @@ import LoadingState from 'shared/components/LoadingState';
 import NoResults from 'shared/components/NoResults';
 import {useGymEquipment} from '../hooks/useGymEquipment';
 import {GymEquipment} from 'modules/gym/types/gym.types'; // ✅ Use correct type
-import AddEquipmentToGymModal from 'modules/gym/screens/AddEquipmentToGymModal';
+import AddEquipmentToGymModal from 'modules/gym/components/AddEquipmentToGymModal';
 
 export default function GymEquipmentListScreen() {
   const {gymId} = useParams<{gymId: string}>();

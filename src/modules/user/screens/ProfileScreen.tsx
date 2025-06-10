@@ -25,7 +25,7 @@ const ProfileScreen = () => {
   }
 
   return (
-    <ScreenLayout>
+    <ScreenLayout scroll>
             <Card variant="glass" compact title="My profile" />
 
         <Card variant="user">
