@@ -1,5 +1,12 @@
 import React, {useState, useRef} from 'react';
-import {View, Alert, Text, TouchableOpacity} from 'react-native';
+import {
+  View,
+  Alert,
+  Text,
+  TouchableOpacity,
+  Pressable,
+  Platform,
+} from 'react-native';
 import {Formik, FieldArray} from 'formik';
 import * as Yup from 'yup';
 import ScreenLayout from 'shared/components/ScreenLayout';
@@ -34,6 +41,10 @@ import TrainingMethodPicker from '../components/TrainingMethodPicker';
 import {useMetricRegistry} from 'shared/context/MetricRegistry';
 import TargetMetricInputGroup from 'shared/components/TargetMetricInputGroup';
 import {useWorkoutPlanSummary} from 'shared/hooks/WorkoutPlanSummary';
+import DraggableFlatList, {
+  ScaleDecorator,
+} from 'react-native-draggable-flatlist';
+import {WebDraggableList} from 'shared/components/WebDraggableList';
 
 type ActiveModal =
   | null
@@ -374,206 +385,240 @@ export default function WorkoutPlanBuilderScreen() {
 
                     return (
                       <>
-                        {values.exercises.map((exercise, idx) => (
-                          <View
-                            key={idx}
-                            style={{
-                              marginBottom: spacing.md,
-                              padding: spacing.sm,
-                              borderRadius: 8,
-                              borderWidth: 1,
-                              borderColor: theme.colors.accentStart,
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                            }}>
-                            {/* Collapsed summary */}
-                            {reorderMode || expandedExerciseIndex !== idx ? (
-                              <>
-                                <TouchableOpacity
-                                  onPress={() => setExpandedExerciseIndex(idx)}
-                                  style={{flex: 1}}>
-                                  <View style={{flexDirection: 'column'}}>
+                        {reorderMode ? (
+                          // 3. Add the platform check
+                          Platform.OS === 'web' ? (
+                            <WebDraggableList
+                              data={values.exercises}
+                              keyExtractor={(item: any, index: number) =>
+                                `exercise-${item.exerciseId}-${index}`
+                              }
+                              onDragEnd={({data}: {data: any[]}) =>
+                                setFieldValue('exercises', data)
+                              }
+                              renderItem={(params: any) => {
+                                // The web version renderItem won't have `drag` or `isActive`
+                                // but we can still reuse the same visual component.
+                                const {item, index} = params;
+                                return (
+                                  <Pressable
+                                    // @ts-ignore
+                                    style={{
+                                      marginBottom: spacing.md,
+                                      padding: spacing.sm,
+                                      borderRadius: 8,
+                                      borderWidth: 1,
+                                      borderColor: theme.colors.accentStart,
+                                      backgroundColor: theme.colors.background, // isActive is false for web
+                                      // Add a cursor to indicate it's draggable on web
+                                      cursor: 'grab',
+                                    }}>
                                     <Text
                                       style={{color: theme.colors.textPrimary}}>
-                                      {`#${idx + 1} ${exercise.exerciseName}`}
+                                      #{index + 1} {item.exerciseName}
+                                    </Text>
+                                    <Text
+                                      style={{
+                                        color: theme.colors.textSecondary,
+                                      }}>
+                                      Sets: {item.targetSets}
                                     </Text>
                                     <Text
                                       style={{
                                         color: theme.colors.textSecondary,
                                       }}>
                                       {renderSummary({
-                                        exerciseId: exercise.exerciseId,
-                                        targetMetrics: exercise.targetMetrics,
+                                        exerciseId: item.exerciseId,
+                                        targetMetrics: item.targetMetrics,
                                       })}
                                     </Text>
-                                  </View>
-                                </TouchableOpacity>
-                                <View style={{flexDirection: 'row'}}>
-                                  {reorderMode ? (
-                                    <>
-                                      <IconButton
-                                        icon={
-                                          <FontAwesome
-                                            name="arrow-alt-circle-up"
-                                            style={{
-                                              fontSize: 32,
-                                              color: theme.colors.textPrimary,
-                                            }}
-                                          />
-                                        }
-                                        size="small"
-                                        onPress={() => move(idx, idx - 1)}
-                                        disabled={idx === 0}
-                                      />
-                                      <IconButton
-                                        icon={
-                                          <FontAwesome
-                                            name="arrow-alt-circle-down"
-                                            style={{
-                                              fontSize: 32,
-                                              color: theme.colors.textPrimary,
-                                            }}
-                                          />
-                                        }
-                                        size="small"
-                                        onPress={() => move(idx, idx + 1)}
-                                        disabled={
-                                          idx === values.exercises.length - 1
-                                        }
-                                      />
-                                    </>
-                                  ) : (
-                                    <TouchableOpacity
-                                      onPress={() =>
-                                        setExpandedExerciseIndex(idx)
-                                      }>
-                                      <View style={{paddingRight: 5}}>
-                                        <FontAwesome
-                                          name={
-                                            expandedExerciseIndex === idx
-                                              ? 'chevron-up'
-                                              : 'chevron-down'
-                                          }
-                                          style={{
-                                            fontSize: 16,
-                                            color: theme.colors.accentStart,
-                                          }}
-                                        />
-                                      </View>
-                                    </TouchableOpacity>
-                                  )}
-                                </View>
-                              </>
-                            ) : (
-                              <View style={{flex: 1}}>
-                                <TouchableOpacity
-                                  onPress={() =>
-                                    setExpandedExerciseIndex(
-                                      expandedExerciseIndex === idx
-                                        ? null
-                                        : idx,
-                                    )
-                                  }>
-                                  <View
-                                    style={{
-                                      flexDirection: 'row',
-                                      justifyContent: 'space-between',
-                                      alignItems: 'center',
-                                    }}>
-                                    <Text
-                                      style={{color: theme.colors.textPrimary}}>
-                                      {`#${idx + 1} ${exercise.exerciseName}`}
-                                    </Text>
-                                    <FontAwesome
-                                      name={
-                                        expandedExerciseIndex === idx
-                                          ? 'chevron-up'
-                                          : 'chevron-down'
-                                      }
+                                  </Pressable>
+                                );
+                              }}
+                            />
+                          ) : (
+                            // This is your original DraggableFlatList for mobile
+                            <DraggableFlatList
+                              data={values.exercises}
+                              keyExtractor={(item, index) =>
+                                `exercise-${item.exerciseId}-${index}`
+                              }
+                              onDragEnd={({data}) =>
+                                setFieldValue('exercises', data)
+                              }
+                              renderItem={params => {
+                                const {item, drag, isActive, getIndex} = params;
+                                const index = getIndex?.() ?? 0;
+                                return (
+                                  <ScaleDecorator>
+                                    <Pressable
+                                      onLongPress={drag}
                                       style={{
-                                        fontSize: 16,
-                                        color: theme.colors.accentStart,
-                                        paddingRight: 5,
-                                        paddingBottom: 8,
-                                      }}
-                                    />
-                                  </View>
-                                </TouchableOpacity>
-                                <FormInput
-                                  label="Sets"
-                                  value={String(exercise.targetSets)}
-                                  onChangeText={text =>
-                                    setFieldValue(
-                                      `exercises[${idx}].targetSets`,
-                                      parseInt(text, 10) || 0,
-                                    )
-                                  }
-                                  keyboardType="numeric"
-                                />
-                                <TargetMetricInputGroup
-                                  exerciseId={exercise.exerciseId}
-                                  values={exercise.targetMetrics}
-                                  onChange={(metricId, field, value) => {
-                                    const updated = exercise.targetMetrics.map(
-                                      m =>
-                                        m.metricId === metricId
-                                          ? {...m, [field]: value}
-                                          : m,
-                                    );
-                                    setFieldValue(
-                                      `exercises[${idx}].targetMetrics`,
-                                      updated,
-                                    );
-                                  }}
-                                  errors={
-                                    Array.isArray(errors.exercises?.[idx])
-                                      ? undefined
-                                      : (errors.exercises?.[idx] as any)
-                                          ?.targetMetrics
-                                  }
-                                  touched={
-                                    touched.exercises?.[idx]?.targetMetrics
-                                  }
-                                />
-                                <SelectableField
-                                  label="Training Method"
-                                  value={
-                                    workoutMeta?.getTrainingGoals
-                                      ?.find(
-                                        (g: { id: number; trainingMethods: any[] }) => g.id === values.trainingGoalId,
-                                      )
-                                      ?.trainingMethods?.find(
-                                        (m: any) =>
-                                          m.id === exercise.trainingMethodId,
-                                      )?.name || 'Select Training Method'
-                                  }
-                                  onPress={() => {
-                                    if (!values.trainingGoalId) return; // block if goal not selected
-                                    setSelectedExerciseIndex(idx);
-                                    setActiveModal('trainingMethodPicker');
-                                  }}
-                                  disabled={!values.trainingGoalId}
-                                />
-                                <View style={{marginBottom: spacing.sm}}>
-                                  <Button
-                                    text="Remove Exercise"
-                                    onPress={() => {
-                                      const newExercises = [
-                                        ...values.exercises,
-                                      ];
-                                      newExercises.splice(idx, 1);
-                                      setFieldValue('exercises', newExercises);
-
-                                      // Optionally reset expanded index
-                                      setExpandedExerciseIndex(null);
+                                        marginBottom: spacing.md,
+                                        padding: spacing.sm,
+                                        borderRadius: 8,
+                                        borderWidth: 1,
+                                        borderColor: theme.colors.accentStart,
+                                        backgroundColor: isActive
+                                          ? theme.colors.accentStart
+                                          : theme.colors.background,
+                                      }}>
+                                      <Text
+                                        style={{
+                                          color: theme.colors.textPrimary,
+                                        }}>
+                                        #{index + 1} {item.exerciseName}
+                                      </Text>
+                                      <Text
+                                        style={{
+                                          color: theme.colors.textSecondary,
+                                        }}>
+                                        Sets: {item.targetSets}
+                                      </Text>
+                                      <Text
+                                        style={{
+                                          color: theme.colors.textSecondary,
+                                        }}>
+                                        {renderSummary({
+                                          exerciseId: item.exerciseId,
+                                          targetMetrics: item.targetMetrics,
+                                        })}
+                                      </Text>
+                                    </Pressable>
+                                  </ScaleDecorator>
+                                );
+                              }}
+                            />
+                          )
+                        ) : (
+                          values.exercises.map((exercise, idx) => (
+                            <View
+                              key={idx}
+                              style={{
+                                marginBottom: spacing.md,
+                                padding: spacing.sm,
+                                borderRadius: 8,
+                                borderWidth: 1,
+                                borderColor: theme.colors.accentStart,
+                              }}>
+                              <TouchableOpacity
+                                onPress={() =>
+                                  setExpandedExerciseIndex(
+                                    expandedExerciseIndex === idx ? null : idx,
+                                  )
+                                }>
+                                <View
+                                  style={{
+                                    flexDirection: 'row',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                  }}>
+                                  <Text
+                                    style={{
+                                      color: theme.colors.textPrimary,
+                                    }}>
+                                    #{idx + 1} {exercise.exerciseName}
+                                  </Text>
+                                  <FontAwesome
+                                    name={
+                                      expandedExerciseIndex === idx
+                                        ? 'chevron-up'
+                                        : 'chevron-down'
+                                    }
+                                    style={{
+                                      fontSize: 16,
+                                      color: theme.colors.accentStart,
+                                      paddingRight: 5,
+                                      paddingBottom: 8,
                                     }}
                                   />
                                 </View>
-                              </View>
-                            )}
-                          </View>
-                        ))}
+                              </TouchableOpacity>
+                              {expandedExerciseIndex === idx && (
+                                <>
+                                  <FormInput
+                                    label="Sets"
+                                    value={String(exercise.targetSets)}
+                                    onChangeText={text =>
+                                      setFieldValue(
+                                        `exercises[${idx}].targetSets`,
+                                        parseInt(text, 10) || 0,
+                                      )
+                                    }
+                                    keyboardType="numeric"
+                                  />
+                                  <TargetMetricInputGroup
+                                    exerciseId={exercise.exerciseId}
+                                    values={exercise.targetMetrics}
+                                    onChange={(metricId, field, value) => {
+                                      const updated =
+                                        exercise.targetMetrics.map(m =>
+                                          m.metricId === metricId
+                                            ? {...m, [field]: value}
+                                            : m,
+                                        );
+                                      setFieldValue(
+                                        `exercises[${idx}].targetMetrics`,
+                                        updated,
+                                      );
+                                    }}
+                                    errors={
+                                      Array.isArray(errors.exercises?.[idx])
+                                        ? undefined
+                                        : (errors.exercises?.[idx] as any)
+                                            ?.targetMetrics
+                                    }
+                                    touched={
+                                      touched.exercises?.[idx]?.targetMetrics
+                                    }
+                                  />
+                                  <SelectableField
+                                    label="Training Method"
+                                    value={
+                                      values.trainingGoalId
+                                        ? workoutMeta?.getTrainingGoals
+                                            ?.find(
+                                              (g: {
+                                                id: number;
+                                                trainingMethods: any[];
+                                              }) =>
+                                                g.id === values.trainingGoalId,
+                                            )
+                                            ?.trainingMethods?.find(
+                                              (m: {id: number; name: string}) =>
+                                                m.id ===
+                                                exercise.trainingMethodId,
+                                            )?.name || 'Select Training Method'
+                                        : 'Select training goal to enable'
+                                    }
+                                    onPress={() => {
+                                      if (!values.trainingGoalId) return;
+                                      setSelectedExerciseIndex(idx);
+                                      setActiveModal('trainingMethodPicker');
+                                    }}
+                                    disabled={!values.trainingGoalId}
+                                  />
+                                  <View style={{marginBottom: spacing.sm}}>
+                                    <Button
+                                      text="Remove Exercise"
+                                      onPress={() => {
+                                        const newExercises = [
+                                          ...values.exercises,
+                                        ];
+                                        newExercises.splice(idx, 1);
+                                        setFieldValue(
+                                          'exercises',
+                                          newExercises,
+                                        );
+                                        setExpandedExerciseIndex(null);
+                                      }}
+                                    />
+                                  </View>
+                                </>
+                              )}
+                            </View>
+                          ))
+                        )}
 
                         <Button
                           text="Add Exercise"
@@ -641,7 +686,8 @@ export default function WorkoutPlanBuilderScreen() {
                     }
                     trainingMethods={
                       workoutMeta?.getTrainingGoals?.find(
-                        (g: { id: number; trainingMethods: any[] }) => g.id === values.trainingGoalId,
+                        (g: {id: number; trainingMethods: any[]}) =>
+                          g.id === values.trainingGoalId,
                       )?.trainingMethods ?? []
                     }
                     onSelect={id => {

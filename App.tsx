@@ -17,6 +17,7 @@ import ToastContainer from 'shared/components/ToastContainer';
 import {useApolloClient} from './src/services/apollo/hooks/useApolloClient'; // adjust path if needed
 import LoadingState from 'shared/components/LoadingState';
 import ContentContainer from 'shared/components/ContentContainer';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
 
 const AppContent = () => {
   const {sessionLoaded, isAuthenticated} = useAuth();
@@ -31,6 +32,7 @@ const AppContent = () => {
     return (
       <>
         <StatusBar />
+
         <ContentContainer>
           <LoadingState text="Connecting to backend..." />
         </ContentContainer>
@@ -65,13 +67,15 @@ const App = () => {
   }
 
   return (
-    <AuthProvider>
-      <CustomThemeProvider>
-        <NativeRouter>
+    <GestureHandlerRootView style={{flex: 1}}>
+      <AuthProvider>
+        <CustomThemeProvider>
+          <NativeRouter>
             <AppContent />
-        </NativeRouter>
-      </CustomThemeProvider>
-    </AuthProvider>
+          </NativeRouter>
+        </CustomThemeProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 };
 

@@ -11,6 +11,7 @@ import ScreenLayout from 'shared/components/ScreenLayout';
 import Card from 'shared/components/Card';
 import Title from 'shared/components/Title';
 import Button from 'shared/components/Button';
+import DraggableExerciseDemo from 'modules/workoutplan/screens/DraggableExerciseList';
 
 const AppDashboardScreen = () => {
   const navigate = useNavigate();
@@ -103,6 +104,7 @@ const AppDashboardScreen = () => {
           text="Manage System Catalogs"
         />
       </Card>
+
     </ScreenLayout>
   );
 };
