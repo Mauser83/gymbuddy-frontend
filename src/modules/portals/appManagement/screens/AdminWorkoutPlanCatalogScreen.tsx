@@ -47,6 +47,8 @@ interface TrainingMethod {
   slug: string;
   description?: string;
   trainingGoals?: {id: number; name: string}[]; // ← Add this
+  minGroupSize?: number; // ✅ Add this
+  maxGroupSize?: number; // ✅ Add this
 }
 
 export interface IntensityPreset {
@@ -92,7 +94,9 @@ export default function AdminWorkoutPlanCatalogScreen() {
     useState<MuscleGroup | null>(null);
   const [newMethodValue, setNewMethodValue] = useState('');
   const [expandedMethodId, setExpandedMethodId] = useState<number | null>(null);
-  const [methodEdits, setMethodEdits] = useState<Record<number, string>>({});
+  const [methodEdits, setMethodEdits] = useState<
+    Record<number, Partial<TrainingMethod>>
+  >({});
 
   const [createTrainingGoal] = useMutation(CREATE_TRAINING_GOAL);
   const [updateTrainingGoal] = useMutation(UPDATE_TRAINING_GOAL);
@@ -291,8 +295,18 @@ export default function AdminWorkoutPlanCatalogScreen() {
       variables: {
         id,
         input: {
-          name: methodEdits[id],
-          slug: methodEdits[id].toLowerCase().replace(/\s+/g, '-'),
+          name: methodEdits[id]?.name || '',
+          slug: (methodEdits[id]?.name || '')
+            .toLowerCase()
+            .replace(/\s+/g, '-'),
+          minGroupSize:
+            methodEdits[id]?.minGroupSize === undefined
+              ? null
+              : methodEdits[id]?.minGroupSize,
+          maxGroupSize:
+            methodEdits[id]?.maxGroupSize === undefined
+              ? null
+              : methodEdits[id]?.maxGroupSize,
         },
       },
     });
@@ -707,7 +721,6 @@ export default function AdminWorkoutPlanCatalogScreen() {
               <ClickableList
                 items={trainingMethods.map((method: TrainingMethod) => {
                   const isExpanded = expandedMethodId === method.id;
-                  const currentEdit = methodEdits[method.id] ?? method.name;
                   return {
                     id: method.id,
                     label: method.name,
@@ -718,22 +731,68 @@ export default function AdminWorkoutPlanCatalogScreen() {
                       );
                       setMethodEdits(prev => ({
                         ...prev,
-                        [method.id]: method.name,
+                        [method.id]: {
+                          name: method.name,
+                          minGroupSize: method.minGroupSize ?? undefined,
+                          maxGroupSize: method.maxGroupSize ?? undefined,
+                        },
                       }));
                     },
                     content: isExpanded ? (
                       <View style={{gap: spacing.sm}}>
                         <FormInput
                           label="Edit Name"
-                          value={currentEdit}
+                          value={methodEdits[method.id]?.name ?? method.name}
                           onChangeText={text =>
                             setMethodEdits(prev => ({
                               ...prev,
-                              [method.id]: text,
+                              [method.id]: {
+                                ...prev[method.id],
+                                name: text,
+                              },
                             }))
                           }
                         />
-
+                        <View style={{flexDirection: 'row', gap: 12}}>
+                          <View style={{flex: 1}}>
+                            <FormInput
+                              label="Min Group Size"
+                              keyboardType="numeric"
+                              value={String(
+                                methodEdits[method.id]?.minGroupSize ?? '',
+                              )}
+                              onChangeText={v =>
+                                setMethodEdits(prev => ({
+                                  ...prev,
+                                  [method.id]: {
+                                    ...prev[method.id],
+                                    minGroupSize:
+                                      v === '' ? undefined : Number(v),
+                                  },
+                                }))
+                              }
+                            />
+                          </View>
+                          <View style={{flex: 1}}>
+                            <FormInput
+                              label="Max Group Size"
+                              keyboardType="numeric"
+                              value={String(
+                                methodEdits[method.id]?.maxGroupSize ?? '',
+                              )}
+                              onChangeText={v =>
+                                setMethodEdits(prev => ({
+                                  ...prev,
+                                  [method.id]: {
+                                    ...prev[method.id],
+                                    maxGroupSize:
+                                      v === '' ? undefined : Number(v),
+                                  },
+                                }))
+                              }
+                            />
+                          </View>
+                        </View>
                         {/* NEW: Checkboxes for selecting training goals */}
                         <Title
                           text="Linked Training Goals"

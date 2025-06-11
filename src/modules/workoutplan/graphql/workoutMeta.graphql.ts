@@ -9,6 +9,8 @@ export const GET_WORKOUT_PLAN_META = gql`
         id
         name
         slug
+        minGroupSize
+        maxGroupSize
       }
     }
     getIntensityPresets {
@@ -36,6 +38,16 @@ export const GET_WORKOUT_PLAN_META = gql`
     allBodyParts {
       id
       name
+    }
+    getTrainingMethods {
+      id
+      name
+      slug
+      trainingGoals {
+        id
+      }
+      minGroupSize
+      maxGroupSize
     }
   }
 `;
@@ -67,6 +79,8 @@ export const GET_WORKOUT_PLAN_BY_ID = gql`
         id
         name
         slug
+        minGroupSize
+        maxGroupSize
       }
       intensityPreset {
         id
