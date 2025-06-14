@@ -80,6 +80,7 @@ export type ExerciseFormEntry = {
   isWarmup: boolean;
   trainingMethodId?: number | null;
   groupId?: number | null;
+  order: number; // 👈 add this
 };
 
 export type ExerciseGroup = {
@@ -449,30 +450,38 @@ export default function WorkoutPlanBuilderScreen() {
             trainingGoalId: values.trainingGoalId,
             intensityPresetId: matchedPreset?.id ?? null,
             muscleGroupIds: values.muscleGroupIds,
-            exercises: values.exercises.map((ex, index) => {
-              const isInValidGroup =
-                ex.groupId && validGroupIds.has(ex.groupId);
-              return {
-                exerciseId: ex.exerciseId,
-                order: index,
-                targetSets: ex.targetSets,
-                targetMetrics: ex.targetMetrics.map(m => ({
-                  metricId: m.metricId,
-                  min: typeof m.min === 'string' ? parseFloat(m.min) : m.min,
-                  max:
-                    m.max != null && m.max !== ''
-                      ? typeof m.max === 'string'
-                        ? parseFloat(m.max)
-                        : m.max
-                      : null,
-                })),
-                isWarmup: ex.isWarmup ?? false,
-                trainingMethodId: isInValidGroup
-                  ? (ex.trainingMethodId ?? null)
-                  : null,
-                groupId: isInValidGroup ? (ex.groupId ?? null) : null,
-              };
-            }),
+            exercises: [...values.exercises]
+              .sort((a, b) => {
+                // Sort by groupId (nulls last), then by order within group
+                if (a.groupId === b.groupId) return a.order - b.order;
+                if (a.groupId == null) return 1;
+                if (b.groupId == null) return -1;
+                return a.groupId - b.groupId;
+              })
+              .map((ex, index) => {
+                const isInValidGroup =
+                  ex.groupId && validGroupIds.has(ex.groupId);
+                return {
+                  exerciseId: ex.exerciseId,
+                  order: index,
+                  targetSets: ex.targetSets,
+                  targetMetrics: ex.targetMetrics.map(m => ({
+                    metricId: m.metricId,
+                    min: typeof m.min === 'string' ? parseFloat(m.min) : m.min,
+                    max:
+                      m.max != null && m.max !== ''
+                        ? typeof m.max === 'string'
+                          ? parseFloat(m.max)
+                          : m.max
+                        : null,
+                  })),
+                  isWarmup: ex.isWarmup ?? false,
+                  trainingMethodId: isInValidGroup
+                    ? (ex.trainingMethodId ?? null)
+                    : null,
+                  groupId: isInValidGroup ? (ex.groupId ?? null) : null,
+                };
+              }),
           };
 
           try {
@@ -528,65 +537,88 @@ export default function WorkoutPlanBuilderScreen() {
             return group ? getGroupLabel(group) : 'None';
           };
 
-          const handleDrop = (
-            x: number,
-            y: number,
-            draggedItemInstanceId: string,
-          ) => {
-            console.log('Dropped at:', x, y);
-            console.log('Group layouts:', groupLayouts.current);
-            console.log('Exercise layouts:', exerciseLayouts.current);
-            // Priority 1: Check if dropped on a group
-            for (const groupIdStr in groupLayouts.current) {
-              const layout = groupLayouts.current[groupIdStr];
-              if (
-                x >= layout.x &&
-                x <= layout.x + layout.width &&
-                y >= layout.y &&
-                y <= layout.y + layout.height
-              ) {
-                const targetGroupId = parseInt(groupIdStr, 10);
-                updateExerciseGroup(
-                  draggedItemInstanceId,
-                  targetGroupId,
-                  values.exercises,
-                  values.groups,
-                  setFieldValue,
-                );
-                return;
-              }
-            }
-
-            // Priority 2: Check if dropped on another exercise to reorder
-            for (const targetInstanceId in exerciseLayouts.current) {
-              if (targetInstanceId === draggedItemInstanceId) continue;
-              const layout = exerciseLayouts.current[targetInstanceId];
-              if (
-                x >= layout.x &&
-                x <= layout.x + layout.width &&
-                y >= layout.y &&
-                y <= layout.y + layout.height
-              ) {
-                reorderExercises(
-                  draggedItemInstanceId,
-                  targetInstanceId,
-                  values.exercises,
-                  setFieldValue,
-                );
-                return;
-              }
-            }
-
-            // Priority 3: Dropped in empty space, so un-group it
-            updateExerciseGroup(
-              draggedItemInstanceId,
-              null,
-              values.exercises,
-              values.groups,
-              setFieldValue,
-            );
+          const getGroupedExercises = (groupId: number) => {
+            return values.exercises
+              .filter(ex => ex.groupId === groupId)
+              .sort((a, b) => a.order - b.order);
           };
 
+          const getUngroupedExercises = () => {
+            return values.exercises
+              .filter(ex => ex.groupId == null)
+              .sort((a, b) => a.order - b.order);
+          };
+
+const handleDrop = (
+  x: number,
+  y: number,
+  draggedItemInstanceId: string,
+) => {
+  const draggedItem = values.exercises.find(
+    ex => ex.instanceId === draggedItemInstanceId,
+  );
+  if (!draggedItem) return;
+
+  // Priority 1: Check if dropped on another exercise to reorder
+  // This will now correctly trigger for items within the same group.
+  for (const targetInstanceId in exerciseLayouts.current) {
+    if (targetInstanceId === draggedItemInstanceId) continue;
+    const layout = exerciseLayouts.current[targetInstanceId];
+    if (
+      x >= layout.x &&
+      x <= layout.x + layout.width &&
+      y >= layout.y &&
+      y <= layout.y + layout.height
+    ) {
+      const targetItem = values.exercises.find(
+        ex => ex.instanceId === targetInstanceId,
+      );
+      // Only reorder if they are in the same group (or both are ungrouped)
+      if (targetItem && targetItem.groupId === draggedItem.groupId) {
+        reorderExercises(
+          draggedItemInstanceId,
+          targetInstanceId,
+          values.exercises,
+          setFieldValue,
+        );
+        return; // Reordering handled, so we're done.
+      }
+    }
+  }
+
+  // Priority 2: Check if dropped on a group zone to change its group
+  for (const groupIdStr in groupLayouts.current) {
+    const layout = groupLayouts.current[groupIdStr];
+    if (
+      x >= layout.x &&
+      x <= layout.x + layout.width &&
+      y >= layout.y &&
+      y <= layout.y + layout.height
+    ) {
+      const targetGroupId = parseInt(groupIdStr, 10);
+      // Only update if it's being moved to a *different* group
+      if (draggedItem.groupId !== targetGroupId) {
+        updateExerciseGroup(
+          draggedItemInstanceId,
+          targetGroupId,
+          values.exercises,
+          values.groups,
+          setFieldValue,
+        );
+      }
+      return; // Group assignment handled (or skipped), so we're done.
+    }
+  }
+
+  // Priority 3: Dropped in empty space, so un-group it
+  updateExerciseGroup(
+    draggedItemInstanceId,
+    null, // Setting groupId to null un-groups it
+    values.exercises,
+    values.groups,
+    setFieldValue,
+  );
+};
           const updateExerciseGroup = (
             instanceId: string,
             groupId: number | null,
@@ -622,10 +654,15 @@ export default function WorkoutPlanBuilderScreen() {
             const updatedExercises = [...currentExercises];
             if (exerciseIndex === -1) return;
 
+            const nextOrder = currentExercises.filter(
+              e => e.groupId === groupId,
+            ).length;
+
             updatedExercises[exerciseIndex] = {
               ...updatedExercises[exerciseIndex],
               groupId,
               trainingMethodId: newTrainingMethodId,
+              order: nextOrder,
             };
 
             setFieldValueFn('groups', updatedGroups);
@@ -640,19 +677,47 @@ export default function WorkoutPlanBuilderScreen() {
             currentExercises: ExerciseFormEntry[],
             setFieldValueFn: (field: string, value: any) => void,
           ) => {
-            const newExercises = [...currentExercises];
-            const draggedIndex = newExercises.findIndex(
+            const draggedItem = currentExercises.find(
               ex => ex.instanceId === draggedId,
             );
-            const targetIndex = newExercises.findIndex(
+            const targetItem = currentExercises.find(
               ex => ex.instanceId === targetId,
             );
-            if (draggedIndex === -1 || targetIndex === -1) return;
-            const [draggedItem] = newExercises.splice(draggedIndex, 1);
-            newExercises.splice(targetIndex, 0, draggedItem);
-            setFieldValueFn('exercises', newExercises);
-          };
+            if (!draggedItem || !targetItem) return;
 
+            // Only allow reordering within same groupId (including null for ungrouped)
+            if (draggedItem.groupId !== targetItem.groupId) return;
+
+            const reorderedExercises = [...currentExercises]; // Create a mutable copy
+
+            const draggedIndex = reorderedExercises.findIndex(
+              ex => ex.instanceId === draggedId,
+            );
+            const targetIndex = reorderedExercises.findIndex(
+              ex => ex.instanceId === targetId,
+            );
+
+            if (draggedIndex === -1 || targetIndex === -1) return;
+
+            // 1. Remove the dragged item from its original position
+            const [movedItem] = reorderedExercises.splice(draggedIndex, 1);
+
+            // 2. Find the new target index in the modified array
+            const newTargetIndex = reorderedExercises.findIndex(
+              ex => ex.instanceId === targetId,
+            );
+
+            // 3. Insert it at the target's position
+            reorderedExercises.splice(newTargetIndex, 0, movedItem);
+
+            // 4. Re-assign the 'order' property for ALL exercises to guarantee consistency
+            const finalExercises = reorderedExercises.map((ex, index) => ({
+              ...ex,
+              order: index, // This is the key change: re-index everything
+            }));
+
+            setFieldValueFn('exercises', finalExercises);
+          };
           const ListHeader = (
             <>
               <Title
@@ -846,38 +911,36 @@ export default function WorkoutPlanBuilderScreen() {
                             Unassigned Exercises
                           </Text>
                           <View style={{marginHorizontal: spacing.md}}>
-                            {values.exercises
-                              .filter(ex => ex.groupId === null)
-                              .map(item => (
-                                <MeasuredExerciseItem
-                                  key={item.instanceId}
-                                  item={item}
-                                  onDrop={handleDrop}>
-                                  <View
+                            {getUngroupedExercises().map(item => (
+                              <MeasuredExerciseItem
+                                key={item.instanceId}
+                                item={item}
+                                onDrop={handleDrop}>
+                                <View
+                                  style={{
+                                    backgroundColor: theme.colors.background,
+                                    padding: spacing.md,
+                                    marginBottom: spacing.md,
+                                    borderRadius: 8,
+                                    borderWidth: 1,
+                                    borderColor: theme.colors.accentStart,
+                                  }}>
+                                  <Text
                                     style={{
-                                      backgroundColor: theme.colors.background,
-                                      padding: spacing.md,
-                                      marginBottom: spacing.md,
-                                      borderRadius: 8,
-                                      borderWidth: 1,
-                                      borderColor: theme.colors.accentStart,
+                                      color: theme.colors.textPrimary,
+                                      fontWeight: 'bold',
                                     }}>
-                                    <Text
-                                      style={{
-                                        color: theme.colors.textPrimary,
-                                        fontWeight: 'bold',
-                                      }}>
-                                      {item.exerciseName}
-                                    </Text>
-                                    <Text
-                                      style={{
-                                        color: theme.colors.textSecondary,
-                                      }}>
-                                      {renderSummary(item)}
-                                    </Text>
-                                  </View>
-                                </MeasuredExerciseItem>
-                              ))}
+                                    {item.exerciseName}
+                                  </Text>
+                                  <Text
+                                    style={{
+                                      color: theme.colors.textSecondary,
+                                    }}>
+                                    {renderSummary(item)}
+                                  </Text>
+                                </View>
+                              </MeasuredExerciseItem>
+                            ))}
                           </View>
                         </View>
                       </ScrollView>
@@ -937,9 +1000,10 @@ export default function WorkoutPlanBuilderScreen() {
                         ListFooterComponent={ListFooter}
                         renderItem={({item}) => {
                           if (item.type === 'group') {
-                            const groupExercises = values.exercises.filter(
-                              ex => ex.groupId === item.group.id,
+                            const groupExercises = getGroupedExercises(
+                              item.group.id,
                             );
+
                             groupExercises.forEach(ex =>
                               renderedExerciseIds.current.add(ex.instanceId),
                             ); // mark them as rendered
@@ -1241,6 +1305,17 @@ export default function WorkoutPlanBuilderScreen() {
                               newExercises.forEach(e => {
                                 const newTargetMetrics =
                                   createPlanningTargetMetrics(e.id);
+                                const getNextUngroupedOrder = (): number => {
+                                  const ungrouped = values.exercises.filter(
+                                    ex => ex.groupId == null,
+                                  );
+                                  if (ungrouped.length === 0) return 0;
+                                  return (
+                                    Math.max(
+                                      ...ungrouped.map(ex => ex.order ?? 0),
+                                    ) + 1
+                                  );
+                                };
                                 const newExerciseObject = {
                                   instanceId: generateUniqueId(),
                                   exerciseId: e.id,
@@ -1250,6 +1325,7 @@ export default function WorkoutPlanBuilderScreen() {
                                   isWarmup: false,
                                   trainingMethodId: undefined,
                                   groupId: null,
+                                  order: getNextUngroupedOrder(), // 👈 custom function, defined below
                                 };
                                 pushRef.current(newExerciseObject);
                               });
