@@ -7,8 +7,6 @@ import {
   Pressable,
   Platform,
   FlatList,
-  LayoutChangeEvent,
-  ScrollView,
 } from 'react-native';
 import {Formik, FieldArray} from 'formik';
 import * as Yup from 'yup';
@@ -37,6 +35,7 @@ import {useLocation} from 'react-router-native';
 import {
   PanGestureHandler,
   PanGestureHandlerGestureEvent,
+  ScrollView,
 } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedGestureHandler,
@@ -92,6 +91,9 @@ type DraggableItemProps = {
   item: ExerciseFormEntry;
   children: React.ReactNode;
   onDrop: (x: number, y: number, instanceId: string) => void;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
+  simultaneousHandlers?: any;
 };
 
 type FormValues = {
@@ -146,15 +148,47 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
   item,
   children,
   onDrop,
+  onDragStart,
+  onDragEnd,
+  simultaneousHandlers,
 }) => {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const isDragging = useSharedValue(false);
+  const [draggingJS, setDraggingJS] = useState(false);
+  const [layoutSize, setLayoutSize] = useState<{width: number; height: number}>(
+    {
+      width: 0,
+      height: 0,
+    },
+  );
+
+  const handleStartJS = () => {
+    if (!draggingJS) {
+      setDraggingJS(true);
+      if (onDragStart) {
+        onDragStart();
+      }
+    }
+  };
+
+  const handleEndJS = () => {
+    if (draggingJS) {
+      setDraggingJS(false);
+      if (onDragEnd) {
+        onDragEnd();
+      }
+    }
+  };
 
   const gestureHandler = useAnimatedGestureHandler<
     PanGestureHandlerGestureEvent,
     {startX: number; startY: number}
   >({
+    onBegin: () => {
+      isDragging.value = true;
+      runOnJS(handleStartJS)();
+    },
     onStart: (_, ctx) => {
       isDragging.value = true;
       ctx.startX = translateX.value;
@@ -169,6 +203,7 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
       translateX.value = withSpring(0);
       translateY.value = withSpring(0);
       isDragging.value = false;
+      runOnJS(handleEndJS)();
     },
   });
 
@@ -188,15 +223,41 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
   });
 
   return (
-    <PanGestureHandler onGestureEvent={gestureHandler}>
-      <Animated.View
-        style={[
-          animatedStyle,
-          {width: '100%'}, // Or a fixed width if needed
-        ]}>
-        {children}
-      </Animated.View>
-    </PanGestureHandler>
+    <View
+      style={{
+        width: '100%',
+        height: layoutSize.height > 0 ? layoutSize.height : undefined,
+      }}>
+      {draggingJS && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            opacity: 0.3,
+          }}>
+          {children}
+        </View>
+      )}
+      <PanGestureHandler
+        onGestureEvent={gestureHandler}
+        simultaneousHandlers={simultaneousHandlers}>
+        <Animated.View
+          onLayout={e =>
+            setLayoutSize({
+              width: e.nativeEvent.layout.width,
+              height: e.nativeEvent.layout.height,
+            })
+          }
+          onTouchStart={handleStartJS}
+          onTouchEnd={handleEndJS}
+          style={[animatedStyle, {width: '100%'}]}>
+          {children}
+        </Animated.View>
+      </PanGestureHandler>
+    </View>
   );
 };
 
@@ -225,8 +286,17 @@ export default function WorkoutPlanBuilderScreen() {
   const exerciseLayouts = useRef<Record<string, Layout>>({});
 
   const [scrollOffsetY, setScrollOffsetY] = useState(0);
-  const viewRef = useRef(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const [isDraggingItem, setIsDraggingItem] = useState(false);
 
+  const handleDragStart = () => {
+    setIsDraggingItem(true);
+    scrollRef.current?.setNativeProps({scrollEnabled: false});
+  };
+  const handleDragEnd = () => {
+    setIsDraggingItem(false);
+    scrollRef.current?.setNativeProps({scrollEnabled: true});
+  };
   const generateUniqueId = () => {
     return Date.now().toString(36) + Math.random().toString(36).substring(2);
   };
@@ -360,13 +430,19 @@ export default function WorkoutPlanBuilderScreen() {
     item: ExerciseFormEntry;
     onDrop: (x: number, y: number, id: string) => void;
     children: React.ReactNode; // ✅ add this
+    simultaneousHandlers?: any;
+    onDragStart?: () => void;
+    onDragEnd?: () => void;
   };
 
-  const MeasuredExerciseItem: React.FC<MeasuredExerciseItemProps> = ({
+  const MeasuredExerciseItemComponent = ({
     item,
     onDrop,
     children,
-  }) => {
+    simultaneousHandlers,
+    onDragStart,
+    onDragEnd,
+  }: MeasuredExerciseItemProps) => {
     const ref = useRef<View>(null);
 
     useEffect(() => {
@@ -382,12 +458,19 @@ export default function WorkoutPlanBuilderScreen() {
 
     return (
       <View ref={ref}>
-        <DraggableItem item={item} onDrop={onDrop}>
+        <DraggableItem
+          item={item}
+          onDrop={onDrop}
+          simultaneousHandlers={simultaneousHandlers}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}>
           {children}
         </DraggableItem>
       </View>
     );
   };
+
+  const MeasuredExerciseItem = React.memo(MeasuredExerciseItemComponent);
 
   type MeasuredGroupZoneProps = {
     group: ExerciseGroup;
@@ -549,76 +632,76 @@ export default function WorkoutPlanBuilderScreen() {
               .sort((a, b) => a.order - b.order);
           };
 
-const handleDrop = (
-  x: number,
-  y: number,
-  draggedItemInstanceId: string,
-) => {
-  const draggedItem = values.exercises.find(
-    ex => ex.instanceId === draggedItemInstanceId,
-  );
-  if (!draggedItem) return;
+          const handleDrop = (
+            x: number,
+            y: number,
+            draggedItemInstanceId: string,
+          ) => {
+            const draggedItem = values.exercises.find(
+              ex => ex.instanceId === draggedItemInstanceId,
+            );
+            if (!draggedItem) return;
 
-  // Priority 1: Check if dropped on another exercise to reorder
-  // This will now correctly trigger for items within the same group.
-  for (const targetInstanceId in exerciseLayouts.current) {
-    if (targetInstanceId === draggedItemInstanceId) continue;
-    const layout = exerciseLayouts.current[targetInstanceId];
-    if (
-      x >= layout.x &&
-      x <= layout.x + layout.width &&
-      y >= layout.y &&
-      y <= layout.y + layout.height
-    ) {
-      const targetItem = values.exercises.find(
-        ex => ex.instanceId === targetInstanceId,
-      );
-      // Only reorder if they are in the same group (or both are ungrouped)
-      if (targetItem && targetItem.groupId === draggedItem.groupId) {
-        reorderExercises(
-          draggedItemInstanceId,
-          targetInstanceId,
-          values.exercises,
-          setFieldValue,
-        );
-        return; // Reordering handled, so we're done.
-      }
-    }
-  }
+            // Priority 1: Check if dropped on another exercise to reorder
+            // This will now correctly trigger for items within the same group.
+            for (const targetInstanceId in exerciseLayouts.current) {
+              if (targetInstanceId === draggedItemInstanceId) continue;
+              const layout = exerciseLayouts.current[targetInstanceId];
+              if (
+                x >= layout.x &&
+                x <= layout.x + layout.width &&
+                y >= layout.y &&
+                y <= layout.y + layout.height
+              ) {
+                const targetItem = values.exercises.find(
+                  ex => ex.instanceId === targetInstanceId,
+                );
+                // Only reorder if they are in the same group (or both are ungrouped)
+                if (targetItem && targetItem.groupId === draggedItem.groupId) {
+                  reorderExercises(
+                    draggedItemInstanceId,
+                    targetInstanceId,
+                    values.exercises,
+                    setFieldValue,
+                  );
+                  return; // Reordering handled, so we're done.
+                }
+              }
+            }
 
-  // Priority 2: Check if dropped on a group zone to change its group
-  for (const groupIdStr in groupLayouts.current) {
-    const layout = groupLayouts.current[groupIdStr];
-    if (
-      x >= layout.x &&
-      x <= layout.x + layout.width &&
-      y >= layout.y &&
-      y <= layout.y + layout.height
-    ) {
-      const targetGroupId = parseInt(groupIdStr, 10);
-      // Only update if it's being moved to a *different* group
-      if (draggedItem.groupId !== targetGroupId) {
-        updateExerciseGroup(
-          draggedItemInstanceId,
-          targetGroupId,
-          values.exercises,
-          values.groups,
-          setFieldValue,
-        );
-      }
-      return; // Group assignment handled (or skipped), so we're done.
-    }
-  }
+            // Priority 2: Check if dropped on a group zone to change its group
+            for (const groupIdStr in groupLayouts.current) {
+              const layout = groupLayouts.current[groupIdStr];
+              if (
+                x >= layout.x &&
+                x <= layout.x + layout.width &&
+                y >= layout.y &&
+                y <= layout.y + layout.height
+              ) {
+                const targetGroupId = parseInt(groupIdStr, 10);
+                // Only update if it's being moved to a *different* group
+                if (draggedItem.groupId !== targetGroupId) {
+                  updateExerciseGroup(
+                    draggedItemInstanceId,
+                    targetGroupId,
+                    values.exercises,
+                    values.groups,
+                    setFieldValue,
+                  );
+                }
+                return; // Group assignment handled (or skipped), so we're done.
+              }
+            }
 
-  // Priority 3: Dropped in empty space, so un-group it
-  updateExerciseGroup(
-    draggedItemInstanceId,
-    null, // Setting groupId to null un-groups it
-    values.exercises,
-    values.groups,
-    setFieldValue,
-  );
-};
+            // Priority 3: Dropped in empty space, so un-group it
+            updateExerciseGroup(
+              draggedItemInstanceId,
+              null, // Setting groupId to null un-groups it
+              values.exercises,
+              values.groups,
+              setFieldValue,
+            );
+          };
           const updateExerciseGroup = (
             instanceId: string,
             groupId: number | null,
@@ -812,10 +895,12 @@ const handleDrop = (
                   <>
                     {reorderMode ? (
                       <ScrollView
+                        ref={scrollRef}
                         onScroll={e =>
                           setScrollOffsetY(e.nativeEvent.contentOffset.y)
                         }
                         scrollEventThrottle={16}
+                        scrollEnabled={!isDraggingItem}
                         style={{flex: 1}}>
                         <View style={{padding: spacing.md}}>
                           <Title
@@ -851,7 +936,10 @@ const handleDrop = (
                                     <MeasuredExerciseItem
                                       key={item.instanceId}
                                       item={item}
-                                      onDrop={handleDrop}>
+                                      onDrop={handleDrop}
+                                      simultaneousHandlers={scrollRef}
+                                      onDragStart={handleDragStart}
+                                      onDragEnd={handleDragEnd}>
                                       <View
                                         style={{
                                           marginHorizontal: spacing.md,
@@ -915,7 +1003,10 @@ const handleDrop = (
                               <MeasuredExerciseItem
                                 key={item.instanceId}
                                 item={item}
-                                onDrop={handleDrop}>
+                                onDrop={handleDrop}
+                                simultaneousHandlers={scrollRef}
+                                onDragStart={handleDragStart}
+                                onDragEnd={handleDragEnd}>
                                 <View
                                   style={{
                                     backgroundColor: theme.colors.background,
