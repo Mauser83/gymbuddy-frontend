@@ -43,6 +43,10 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   runOnJS,
+  useAnimatedRef,
+  scrollTo,
+  useAnimatedScrollHandler,
+  useWorkletCallback,
 } from 'react-native-reanimated';
 
 // MODULAR MODAL IMPORTS
@@ -93,6 +97,7 @@ type DraggableItemProps = {
   onDrop: (x: number, y: number, instanceId: string) => void;
   onDragStart?: () => void;
   onDragEnd?: () => void;
+  onDragMove?: (x: number, y: number) => void;
   simultaneousHandlers?: any;
 };
 
@@ -120,6 +125,8 @@ type RenderItem =
   | {type: 'exercise'; exercise: ExerciseFormEntry};
 
 type Layout = {x: number; y: number; width: number; height: number};
+
+const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
 const validationSchema = Yup.object().shape({
   name: Yup.string().required('Plan name is required'),
@@ -150,6 +157,7 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
   onDrop,
   onDragStart,
   onDragEnd,
+  onDragMove,
   simultaneousHandlers,
 }) => {
   const translateX = useSharedValue(0);
@@ -197,6 +205,9 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
     onActive: (event, ctx) => {
       translateX.value = ctx.startX + event.translationX;
       translateY.value = ctx.startY + event.translationY;
+      if (onDragMove) {
+        onDragMove(event.absoluteX, event.absoluteY);
+      }
     },
     onEnd: event => {
       runOnJS(onDrop)(event.absoluteX, event.absoluteY, item.instanceId);
@@ -285,9 +296,11 @@ export default function WorkoutPlanBuilderScreen() {
   const groupLayouts = useRef<Record<number, Layout>>({});
   const exerciseLayouts = useRef<Record<string, Layout>>({});
 
-  const [scrollOffsetY, setScrollOffsetY] = useState(0);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollOffsetY = useSharedValue(0);
+  const scrollRef = useAnimatedRef<ScrollView>();
   const [isDraggingItem, setIsDraggingItem] = useState(false);
+  const scrollViewHeight = useSharedValue(0);
+  const contentHeight = useSharedValue(0);
 
   const handleDragStart = () => {
     setIsDraggingItem(true);
@@ -297,6 +310,37 @@ export default function WorkoutPlanBuilderScreen() {
     setIsDraggingItem(false);
     scrollRef.current?.setNativeProps({scrollEnabled: true});
   };
+
+  const handleAutoScroll = useWorkletCallback((x: number, y: number) => {
+    const threshold = 80;
+    const step = 20;
+    const topBoundary = HEADER_HEIGHT_OFFSET + threshold;
+    const bottomBoundary =
+      HEADER_HEIGHT_OFFSET + scrollViewHeight.value - threshold;
+
+    if (y < topBoundary) {
+      const newOffset = Math.max(0, scrollOffsetY.value - step);
+      if (newOffset !== scrollOffsetY.value) {
+        scrollOffsetY.value = newOffset;
+        scrollTo(scrollRef, 0, newOffset, false);
+      }
+    } else if (y > bottomBoundary) {
+      const maxOffset = Math.max(
+        0,
+        contentHeight.value - scrollViewHeight.value,
+      );
+      const newOffset = Math.min(maxOffset, scrollOffsetY.value + step);
+      if (newOffset !== scrollOffsetY.value) {
+        scrollOffsetY.value = newOffset;
+        scrollTo(scrollRef, 0, newOffset, false);
+      }
+    }
+  }, []);
+
+  const scrollHandler = useAnimatedScrollHandler(event => {
+    scrollOffsetY.value = event.contentOffset.y;
+  });
+
   const generateUniqueId = () => {
     return Date.now().toString(36) + Math.random().toString(36).substring(2);
   };
@@ -433,6 +477,7 @@ export default function WorkoutPlanBuilderScreen() {
     simultaneousHandlers?: any;
     onDragStart?: () => void;
     onDragEnd?: () => void;
+    onDragMove?: (x: number, y: number) => void;
   };
 
   const MeasuredExerciseItemComponent = ({
@@ -442,6 +487,7 @@ export default function WorkoutPlanBuilderScreen() {
     simultaneousHandlers,
     onDragStart,
     onDragEnd,
+    onDragMove,
   }: MeasuredExerciseItemProps) => {
     const ref = useRef<View>(null);
 
@@ -463,7 +509,8 @@ export default function WorkoutPlanBuilderScreen() {
           onDrop={onDrop}
           simultaneousHandlers={simultaneousHandlers}
           onDragStart={onDragStart}
-          onDragEnd={onDragEnd}>
+          onDragEnd={onDragEnd}
+          onDragMove={onDragMove}>
           {children}
         </DraggableItem>
       </View>
@@ -894,11 +941,15 @@ export default function WorkoutPlanBuilderScreen() {
                 return (
                   <>
                     {reorderMode ? (
-                      <ScrollView
+                      <AnimatedScrollView
                         ref={scrollRef}
-                        onScroll={e =>
-                          setScrollOffsetY(e.nativeEvent.contentOffset.y)
-                        }
+                        onScroll={scrollHandler}
+                        onLayout={e => {
+                          scrollViewHeight.value = e.nativeEvent.layout.height;
+                        }}
+                        onContentSizeChange={(w, h) => {
+                          contentHeight.value = h;
+                        }}
                         scrollEventThrottle={16}
                         scrollEnabled={!isDraggingItem}
                         style={{flex: 1}}>
@@ -939,7 +990,8 @@ export default function WorkoutPlanBuilderScreen() {
                                       onDrop={handleDrop}
                                       simultaneousHandlers={scrollRef}
                                       onDragStart={handleDragStart}
-                                      onDragEnd={handleDragEnd}>
+                                      onDragEnd={handleDragEnd}
+                                      onDragMove={handleAutoScroll}>
                                       <View
                                         style={{
                                           marginHorizontal: spacing.md,
@@ -1006,7 +1058,8 @@ export default function WorkoutPlanBuilderScreen() {
                                 onDrop={handleDrop}
                                 simultaneousHandlers={scrollRef}
                                 onDragStart={handleDragStart}
-                                onDragEnd={handleDragEnd}>
+                                onDragEnd={handleDragEnd}
+                                onDragMove={handleAutoScroll}>
                                 <View
                                   style={{
                                     backgroundColor: theme.colors.background,
@@ -1034,7 +1087,7 @@ export default function WorkoutPlanBuilderScreen() {
                             ))}
                           </View>
                         </View>
-                      </ScrollView>
+                      </AnimatedScrollView>
                     ) : (
                       <FlatList
                         data={(() => {
