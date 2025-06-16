@@ -214,6 +214,11 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
       }
     },
     onEnd: event => {
+      // runOnJS(console.log)('DraggableItem onEnd', {
+      //   x: event.absoluteX,
+      //   y: event.absoluteY,
+      //   instanceId: item.instanceId,
+      // });
       runOnJS(onDrop)(event.absoluteX, event.absoluteY, item.instanceId);
       translateX.value = withSpring(0);
       translateY.value = withSpring(0, {}, finished => {
@@ -506,24 +511,27 @@ export default function WorkoutPlanBuilderScreen() {
   }: MeasuredExerciseItemProps) => {
     const ref = useRef<View>(null);
 
+    const measure = () => {
+      ref.current?.measureInWindow((x, y, width, height) => {
+        if (width > 0 && height > 0) {
+          exerciseLayouts.current[item.instanceId] = {
+            x,
+            y,
+            width,
+            height,
+            scrollOffset: scrollOffsetY.value,
+          };
+        }
+      });
+    };
+
     useEffect(() => {
-      setTimeout(() => {
-        ref.current?.measureInWindow((x, y, width, height) => {
-          if (width > 0 && height > 0) {
-            exerciseLayouts.current[item.instanceId] = {
-              x,
-              y,
-              width,
-              height,
-              scrollOffset: scrollOffsetY.value,
-            };
-          }
-        });
-      }, 100);
+      const timer = setTimeout(measure, 100);
+      return () => clearTimeout(timer);
     }, [item.instanceId]);
 
     return (
-      <View ref={ref}>
+      <View ref={ref} onLayout={measure}>
         <DraggableItem
           item={item}
           onDrop={onDrop}
@@ -551,23 +559,30 @@ export default function WorkoutPlanBuilderScreen() {
   }) => {
     const ref = useRef<View>(null);
 
+    const measure = () => {
+      ref.current?.measureInWindow((x, y, width, height) => {
+        if (width > 0 && height > 0) {
+          groupLayouts.current[group.id] = {
+            x,
+            y,
+            width,
+            height,
+            scrollOffset: scrollOffsetY.value,
+          };
+        }
+      });
+    };
+
     useEffect(() => {
-      setTimeout(() => {
-        ref.current?.measureInWindow((x, y, width, height) => {
-          if (width > 0 && height > 0) {
-            groupLayouts.current[group.id] = {
-              x,
-              y,
-              width,
-              height,
-              scrollOffset: scrollOffsetY.value,
-            };
-          }
-        });
-      }, 100); // slight delay to ensure layout settles
+      const timer = setTimeout(measure, 100); // slight delay to ensure layout settles
+      return () => clearTimeout(timer);
     }, [group.id]);
 
-    return <View ref={ref}>{children}</View>;
+    return (
+      <View ref={ref} onLayout={measure}>
+        {children}
+      </View>
+    );
   };
 
   return (
@@ -710,6 +725,12 @@ export default function WorkoutPlanBuilderScreen() {
             y: number,
             draggedItemInstanceId: string,
           ) => {
+            console.log('handleDrop', {
+              x,
+              y,
+              draggedItemInstanceId,
+              scrollOffset: scrollOffsetY.value,
+            });
             const draggedItem = values.exercises.find(
               ex => ex.instanceId === draggedItemInstanceId,
             );
@@ -822,8 +843,6 @@ export default function WorkoutPlanBuilderScreen() {
               order: nextOrder,
             };
 
-            setFieldValueFn('groups', updatedGroups);
-            setFieldValueFn('exercises', updatedExercises);
             setFieldValueFn('groups', updatedGroups);
             setFieldValueFn('exercises', updatedExercises);
           };
