@@ -327,7 +327,7 @@ export default function WorkoutPlanBuilderScreen() {
   };
 
   const handleAutoScroll = useWorkletCallback((x: number, y: number) => {
-    const threshold = 40;
+    const threshold = 100;
     const step = 20;
     const topBoundary = HEADER_HEIGHT_OFFSET + threshold;
     const bottomBoundary =
@@ -973,6 +973,7 @@ export default function WorkoutPlanBuilderScreen() {
                         onScroll={scrollHandler}
                         onLayout={e => {
                           scrollViewHeight.value = e.nativeEvent.layout.height;
+                          console.log('scrollViewHeight: ', scrollViewHeight);
                         }}
                         onContentSizeChange={(w, h) => {
                           contentHeight.value = h;
