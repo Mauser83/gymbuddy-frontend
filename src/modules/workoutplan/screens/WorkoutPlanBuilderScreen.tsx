@@ -99,6 +99,12 @@ type DraggableItemProps = {
   onDragEnd?: () => void;
   onDragMove?: (x: number, y: number) => void;
   simultaneousHandlers?: any;
+  /**
+   * Current scroll offset of the parent ScrollView. This is used so that when
+   * the list auto-scrolls during a drag operation, the dragged item stays under
+   * the user's finger instead of drifting with the scroll.
+   */
+  scrollOffset?: Animated.SharedValue<number>;
 };
 
 type FormValues = {
@@ -124,8 +130,14 @@ type RenderItem =
   | {type: 'group'; group: ExerciseGroup}
   | {type: 'exercise'; exercise: ExerciseFormEntry};
 
-type Layout = {x: number; y: number; width: number; height: number};
-
+type Layout = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  /** Scroll offset of the parent ScrollView when this layout was measured */
+  scrollOffset: number;
+};
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
 const validationSchema = Yup.object().shape({
@@ -159,9 +171,11 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
   onDragEnd,
   onDragMove,
   simultaneousHandlers,
+  scrollOffset,
 }) => {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
+  const startScrollY = useSharedValue(0);
   const isDragging = useSharedValue(false);
   const [draggingJS, setDraggingJS] = useState(false);
   const [layoutSize, setLayoutSize] = useState<{width: number; height: number}>(
@@ -191,16 +205,18 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
 
   const gestureHandler = useAnimatedGestureHandler<
     PanGestureHandlerGestureEvent,
-    {startX: number; startY: number}
+    {startX: number; startY: number; startScrollY: number}
   >({
     onBegin: () => {
       isDragging.value = true;
+      startScrollY.value = scrollOffset?.value ?? 0;
       runOnJS(handleStartJS)();
     },
     onStart: (_, ctx) => {
       isDragging.value = true;
       ctx.startX = translateX.value;
       ctx.startY = translateY.value;
+      startScrollY.value = scrollOffset?.value ?? 0;
     },
     onActive: (event, ctx) => {
       translateX.value = ctx.startX + event.translationX;
@@ -212,19 +228,25 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
     onEnd: event => {
       runOnJS(onDrop)(event.absoluteX, event.absoluteY, item.instanceId);
       translateX.value = withSpring(0);
-      translateY.value = withSpring(0);
-      isDragging.value = false;
-      runOnJS(handleEndJS)();
+      translateY.value = withSpring(0, {}, finished => {
+        if (finished) {
+          isDragging.value = false;
+          runOnJS(handleEndJS)();
+        }
+      });
     },
   });
 
   const animatedStyle = useAnimatedStyle(() => {
+    const scrollDiff = isDragging.value
+      ? (scrollOffset?.value ?? 0) - startScrollY.value
+      : 0;
     return {
       position: isDragging.value ? 'absolute' : 'relative',
       zIndex: isDragging.value ? 100 : 0,
       transform: [
         {translateX: translateX.value},
-        {translateY: translateY.value},
+        {translateY: translateY.value + scrollDiff},
       ],
       elevation: isDragging.value ? 10 : 0,
       shadowRadius: isDragging.value ? 15 : 1,
@@ -247,6 +269,7 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
             top: 0,
             left: 0,
             right: 0,
+            bottom: 0,
             opacity: 0.3,
           }}>
           {children}
@@ -495,8 +518,23 @@ export default function WorkoutPlanBuilderScreen() {
       setTimeout(() => {
         ref.current?.measureInWindow((x, y, width, height) => {
           if (width > 0 && height > 0) {
-            exerciseLayouts.current[item.instanceId] = {x, y, width, height};
-            console.log('measured', item.instanceId, x, y, width, height);
+            exerciseLayouts.current[item.instanceId] = {
+              x,
+              y,
+              width,
+              height,
+              scrollOffset: scrollOffsetY.value,
+            };
+            console.log(
+              'measured',
+              item.instanceId,
+              x,
+              y,
+              width,
+              height,
+              'offset',
+              scrollOffsetY.value,
+            );
           }
         });
       }, 100);
@@ -510,7 +548,8 @@ export default function WorkoutPlanBuilderScreen() {
           simultaneousHandlers={simultaneousHandlers}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
-          onDragMove={onDragMove}>
+          onDragMove={onDragMove}
+          scrollOffset={scrollOffsetY}>
           {children}
         </DraggableItem>
       </View>
@@ -534,8 +573,23 @@ export default function WorkoutPlanBuilderScreen() {
       setTimeout(() => {
         ref.current?.measureInWindow((x, y, width, height) => {
           if (width > 0 && height > 0) {
-            groupLayouts.current[group.id] = {x, y, width, height};
-            console.log('📏 Group measured:', group.id, x, y, width, height);
+            groupLayouts.current[group.id] = {
+              x,
+              y,
+              width,
+              height,
+              scrollOffset: scrollOffsetY.value,
+            };
+            console.log(
+              '📏 Group measured:',
+              group.id,
+              x,
+              y,
+              width,
+              height,
+              'offset',
+              scrollOffsetY.value,
+            );
           }
         });
       }, 100); // slight delay to ensure layout settles
@@ -694,11 +748,13 @@ export default function WorkoutPlanBuilderScreen() {
             for (const targetInstanceId in exerciseLayouts.current) {
               if (targetInstanceId === draggedItemInstanceId) continue;
               const layout = exerciseLayouts.current[targetInstanceId];
+              const adjustedY =
+                layout.y - (scrollOffsetY.value - layout.scrollOffset);
               if (
                 x >= layout.x &&
                 x <= layout.x + layout.width &&
-                y >= layout.y &&
-                y <= layout.y + layout.height
+                y >= adjustedY &&
+                y <= adjustedY + layout.height
               ) {
                 const targetItem = values.exercises.find(
                   ex => ex.instanceId === targetInstanceId,
@@ -719,11 +775,13 @@ export default function WorkoutPlanBuilderScreen() {
             // Priority 2: Check if dropped on a group zone to change its group
             for (const groupIdStr in groupLayouts.current) {
               const layout = groupLayouts.current[groupIdStr];
+              const adjustedY =
+                layout.y - (scrollOffsetY.value - layout.scrollOffset);
               if (
                 x >= layout.x &&
                 x <= layout.x + layout.width &&
-                y >= layout.y &&
-                y <= layout.y + layout.height
+                y >= adjustedY &&
+                y <= adjustedY + layout.height
               ) {
                 const targetGroupId = parseInt(groupIdStr, 10);
                 // Only update if it's being moved to a *different* group
