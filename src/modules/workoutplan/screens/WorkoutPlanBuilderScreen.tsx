@@ -177,7 +177,6 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
   const translateY = useSharedValue(0);
   const startScrollY = useSharedValue(0);
   const isDragging = useSharedValue(false);
-  const [draggingJS, setDraggingJS] = useState(false);
   const [layoutSize, setLayoutSize] = useState<{width: number; height: number}>(
     {
       width: 0,
@@ -185,22 +184,12 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
     },
   );
 
-  const handleStartJS = () => {
-    if (!draggingJS) {
-      setDraggingJS(true);
-      if (onDragStart) {
-        onDragStart();
-      }
-    }
+  const handleTouchStart = () => {
+    onDragStart?.();
   };
 
-  const handleEndJS = () => {
-    if (draggingJS) {
-      setDraggingJS(false);
-      if (onDragEnd) {
-        onDragEnd();
-      }
-    }
+  const handleTouchEnd = () => {
+    onDragEnd?.();
   };
 
   const gestureHandler = useAnimatedGestureHandler<
@@ -210,7 +199,6 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
     onBegin: () => {
       isDragging.value = true;
       startScrollY.value = scrollOffset?.value ?? 0;
-      runOnJS(handleStartJS)();
     },
     onStart: (_, ctx) => {
       isDragging.value = true;
@@ -231,7 +219,7 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
       translateY.value = withSpring(0, {}, finished => {
         if (finished) {
           isDragging.value = false;
-          runOnJS(handleEndJS)();
+          runOnJS(handleTouchEnd)();
         }
       });
     },
@@ -255,26 +243,30 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
     };
   });
 
+  const overlayAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: isDragging.value ? 0.3 : 0,
+  }));
+
   return (
     <View
       style={{
         width: '100%',
         height: layoutSize.height > 0 ? layoutSize.height : undefined,
       }}>
-      {draggingJS && (
-        <View
-          pointerEvents="none"
-          style={{
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          {
             position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            opacity: 0.3,
-          }}>
-          {children}
-        </View>
-      )}
+          },
+          overlayAnimatedStyle,
+        ]}>
+        {children}
+      </Animated.View>
       <PanGestureHandler
         onGestureEvent={gestureHandler}
         simultaneousHandlers={simultaneousHandlers}>
@@ -285,8 +277,8 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
               height: e.nativeEvent.layout.height,
             })
           }
-          onTouchStart={handleStartJS}
-          onTouchEnd={handleEndJS}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
           style={[animatedStyle, {width: '100%'}]}>
           {children}
         </Animated.View>
@@ -321,21 +313,21 @@ export default function WorkoutPlanBuilderScreen() {
 
   const scrollOffsetY = useSharedValue(0);
   const scrollRef = useAnimatedRef<ScrollView>();
-  const [isDraggingItem, setIsDraggingItem] = useState(false);
+  const isDraggingItem = useRef(false);
   const scrollViewHeight = useSharedValue(0);
   const contentHeight = useSharedValue(0);
 
   const handleDragStart = () => {
-    setIsDraggingItem(true);
+    isDraggingItem.current = true;
     scrollRef.current?.setNativeProps({scrollEnabled: false});
   };
   const handleDragEnd = () => {
-    setIsDraggingItem(false);
+    isDraggingItem.current = false;
     scrollRef.current?.setNativeProps({scrollEnabled: true});
   };
 
   const handleAutoScroll = useWorkletCallback((x: number, y: number) => {
-    const threshold = 80;
+    const threshold = 40;
     const step = 20;
     const topBoundary = HEADER_HEIGHT_OFFSET + threshold;
     const bottomBoundary =
@@ -525,16 +517,6 @@ export default function WorkoutPlanBuilderScreen() {
               height,
               scrollOffset: scrollOffsetY.value,
             };
-            console.log(
-              'measured',
-              item.instanceId,
-              x,
-              y,
-              width,
-              height,
-              'offset',
-              scrollOffsetY.value,
-            );
           }
         });
       }, 100);
@@ -580,16 +562,6 @@ export default function WorkoutPlanBuilderScreen() {
               height,
               scrollOffset: scrollOffsetY.value,
             };
-            console.log(
-              '📏 Group measured:',
-              group.id,
-              x,
-              y,
-              width,
-              height,
-              'offset',
-              scrollOffsetY.value,
-            );
           }
         });
       }, 100); // slight delay to ensure layout settles
@@ -814,9 +786,6 @@ export default function WorkoutPlanBuilderScreen() {
             currentGroups: ExerciseGroup[],
             setFieldValueFn: (field: string, value: any) => void,
           ) => {
-            console.log(
-              `💾 Updating group assignment: ${instanceId} → group ${groupId}`,
-            );
             const exerciseIndex = currentExercises.findIndex(
               ex => ex.instanceId === instanceId,
             );
@@ -1009,7 +978,7 @@ export default function WorkoutPlanBuilderScreen() {
                           contentHeight.value = h;
                         }}
                         scrollEventThrottle={16}
-                        scrollEnabled={!isDraggingItem}
+                        scrollEnabled={true}
                         style={{flex: 1}}>
                         <View style={{padding: spacing.md}}>
                           <Title
@@ -1183,14 +1152,6 @@ export default function WorkoutPlanBuilderScreen() {
                                 exercise: ex,
                               });
                             });
-                          console.log(
-                            '📦 Rendered displayList:',
-                            displayList.map(i =>
-                              i.type === 'group'
-                                ? `Group ${i.group.id}`
-                                : `Exercise ${i.exercise.exerciseName} → group ${i.exercise.groupId}`,
-                            ),
-                          );
                           return displayList;
                         })()}
                         keyExtractor={item =>
