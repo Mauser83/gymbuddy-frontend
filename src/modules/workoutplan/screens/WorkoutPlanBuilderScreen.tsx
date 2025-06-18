@@ -366,6 +366,14 @@ export default function WorkoutPlanBuilderScreen() {
   };
   const groupIdCounterRef = useRef(1);
 
+  const confirmAsync = (title: string, message: string) =>
+    new Promise<boolean>(resolve => {
+      Alert.alert(title, message, [
+        {text: 'Cancel', style: 'cancel', onPress: () => resolve(false)},
+        {text: 'Continue', onPress: () => resolve(true)},
+      ]);
+    });
+
   const renderedExerciseIds = useRef<Set<string>>(new Set());
 
   function convertPlanToInitialValues(plan: any): FormValues {
@@ -461,6 +469,17 @@ export default function WorkoutPlanBuilderScreen() {
       }
     );
   }, [rawPlan, workoutMeta?.getMuscleGroups]);
+
+  useEffect(() => {
+    const maxId = formInitialValues.groups.reduce(
+      (acc, g) => (g.id > acc ? g.id : acc),
+      0,
+    );
+    if (maxId >= groupIdCounterRef.current) {
+      groupIdCounterRef.current = maxId + 1;
+    }
+  }, [formInitialValues]);
+
   const isEdit = !!rawPlan && !rawPlan.isFromSession;
   const pushRef = useRef<(item: any) => void>(() => {});
 
@@ -596,6 +615,33 @@ export default function WorkoutPlanBuilderScreen() {
           const methodById = new Map<number, any>(
             (workoutMeta?.getTrainingMethods ?? []).map((m: any) => [m.id, m]),
           );
+          
+          const invalidGroups = values.groups.filter(g => {
+            const method = methodById.get(g.trainingMethodId);
+            if (!method) return false;
+            const exercisesInGroup = values.exercises.filter(
+              ex => ex.groupId === g.id,
+            );
+            const min = method.minGroupSize ?? 1;
+            return exercisesInGroup.length > 0 && exercisesInGroup.length < min;
+          });
+
+          if (invalidGroups.length > 0) {
+            const proceed = await confirmAsync(
+              'Group Too Small',
+              'Some groups have fewer exercises than required. Continue and ungroup them?',
+            );
+            if (!proceed) {
+              return;
+            }
+            const invalidIds = new Set(invalidGroups.map(g => g.id));
+            values.exercises = values.exercises.map(ex =>
+              ex.groupId != null && invalidIds.has(ex.groupId)
+                ? {...ex, groupId: null, trainingMethodId: null}
+                : ex,
+            );
+            values.groups = values.groups.filter(g => !invalidIds.has(g.id));
+          }
 
           const validGroupIds = new Set<number>();
 
@@ -810,6 +856,26 @@ export default function WorkoutPlanBuilderScreen() {
               ex => ex.instanceId === instanceId,
             );
             if (exerciseIndex === -1) return;
+
+            if (groupId !== null) {
+              const group = currentGroups.find(g => g.id === groupId);
+              const method = group
+                ? getMethodById(group.trainingMethodId)
+                : null;
+              const max = method?.maxGroupSize;
+              if (max != null) {
+                const currentCount = currentExercises.filter(
+                  e => e.groupId === groupId,
+                ).length;
+                if (currentCount >= max) {
+                  Alert.alert(
+                    'Group Limit Reached',
+                    `You can only add ${max} exercises to this group.`,
+                  );
+                  return;
+                }
+              }
+            }
             const newTrainingMethodId =
               groupId !== null
                 ? (currentGroups.find(g => g.id === groupId)
