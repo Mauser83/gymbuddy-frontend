@@ -101,9 +101,12 @@ export default function ActiveWorkoutSessionScreen() {
 
     for (const log of logs) {
       const lastGroup = groups.at(-1);
-      const isSameExercise = lastGroup?.exerciseId === log.exerciseId;
+      const shouldStartNew =
+        !lastGroup ||
+        lastGroup.exerciseId !== log.exerciseId ||
+        log.setNumber !== (lastGroup.logs.at(-1)?.setNumber ?? 0) + 1;
 
-      if (!isSameExercise) {
+      if (shouldStartNew) {
         currentGroup = {
           key: `${log.exerciseId}-${log.id}`, // unique per occurrence
           exerciseId: log.exerciseId,
@@ -118,7 +121,32 @@ export default function ActiveWorkoutSessionScreen() {
       currentGroup.logs.push(log);
     }
 
-    return groups.map(group => {
+    // Merge groups that belong to the same exercise when set numbering
+    // continues from a previous group. This handles the case where new sets
+    // were inserted later but should belong to an earlier instance.
+    const merged: typeof groups = [];
+    for (const group of groups) {
+      let mergedInto = false;
+      for (let i = merged.length - 1; i >= 0; i--) {
+        const prev = merged[i];
+        if (
+          prev.exerciseId === group.exerciseId &&
+          group.logs[0]?.setNumber === (prev.logs.at(-1)?.setNumber ?? 0) + 1
+        ) {
+          prev.logs.push(...group.logs);
+          group.logs.forEach(log =>
+            log.equipmentIds?.forEach(id => prev.equipmentIds.add(id)),
+          );
+          mergedInto = true;
+          break;
+        }
+      }
+      if (!mergedInto) {
+        merged.push(group);
+      }
+    }
+
+    return merged.map(group => {
       const exercise = exercisesData?.exercisesAvailableAtGym.find(
         (ex: any) => ex.id === group.exerciseId,
       );
@@ -144,45 +172,56 @@ export default function ActiveWorkoutSessionScreen() {
     return values;
   }, [logs]);
 
-const nextSet = useMemo(() => {
-  if (!session?.workoutPlan?.exercises?.length) return null;
+  const nextSet = useMemo(() => {
+    if (!session?.workoutPlan?.exercises?.length) {
+      setNextSetPlacement(null);
+      return null;
+    }
+    const planExercises = session.workoutPlan.exercises.map(ex => ({
+      exerciseId: ex.exercise.id,
+      name: ex.exercise.name,
+      targetSets: ex.targetSets,
+      targetMetrics: ex.targetMetrics ?? [],
+    }));
 
-  const planExercises = session.workoutPlan.exercises.map(ex => ({
-    exerciseId: ex.exercise.id,
-    name: ex.exercise.name,
-    targetSets: ex.targetSets,
-    targetMetrics: ex.targetMetrics ?? [],
-  }));
+    // Copy groups so we can consume them in order and match each
+    // plan exercise instance sequentially. This avoids counting sets
+    // across multiple instances of the same exercise.
+    const remainingGroups = [...groupedLogs];
 
-  // Track how many total sets are logged per exercise
-  const exerciseSetCount = logs.reduce<Record<number, number>>((acc, log) => {
-    acc[log.exerciseId] = (acc[log.exerciseId] ?? 0) + 1;
-    return acc;
-  }, {});
+    for (const ex of planExercises) {
+      let loggedSets = 0;
+      let hasGroup = false;
+      let groupKey: string | null = null;
 
-  for (const ex of planExercises) {
-    const currentSetCount = exerciseSetCount[ex.exerciseId] ?? 0;
-
-    if (currentSetCount < ex.targetSets) {
-      const matchingGroup = groupedLogs.find(
-        group => group.exerciseId === ex.exerciseId
+      // Find the first matching group for this exercise
+      const idx = remainingGroups.findIndex(
+        g => g.exerciseId === ex.exerciseId,
       );
 
-      setNextSetPlacement(matchingGroup ? 'addSet' : 'addExercise');
+      if (idx !== -1) {
+        hasGroup = true;
+        const group = remainingGroups.splice(0, idx + 1).pop()!;
+        loggedSets = group.logs.length;
+        groupKey = group.key;
+      }
 
-      return {
-        exerciseId: ex.exerciseId,
-        name: ex.name,
-        currentSetIndex: currentSetCount,
-        targetMetrics: ex.targetMetrics,
-      };
+      if (loggedSets < ex.targetSets) {
+        setNextSetPlacement(hasGroup ? 'addSet' : 'addExercise');
+
+        return {
+          exerciseId: ex.exerciseId,
+          name: ex.name,
+          currentSetIndex: loggedSets,
+          targetMetrics: ex.targetMetrics,
+          groupKey,
+        };
+      }
     }
-  }
 
-  setNextSetPlacement(null);
-  return null;
-}, [session, logs, groupedLogs]);
-
+    setNextSetPlacement(null);
+    return null;
+  }, [session, groupedLogs]);
 
   const availableExercises = useMemo(() => {
     if (!exercisesData || !equipmentData || !session?.gym?.id) return [];
@@ -296,7 +335,7 @@ const nextSet = useMemo(() => {
             return (
               <>
                 {groupedLogs.map(group => (
-                  <Card key={group.exerciseId} style={{marginBottom: 16}}>
+                  <Card key={group.key} style={{marginBottom: 16}}>
                     <Title text={group.name} />
                     {group.logs.map(log => {
                       const isExpanded = expandedSetId === log.id;
@@ -429,7 +468,7 @@ const nextSet = useMemo(() => {
                     })}
                     {nextSet &&
                       nextSetPlacement === 'addSet' &&
-                      nextSet.exerciseId === group.exerciseId && (
+                      nextSet.groupKey === group.key && (
                         <Text
                           style={{
                             marginTop: 8,
@@ -457,7 +496,7 @@ const nextSet = useMemo(() => {
                         const baseLog = {
                           workoutSessionId: Number(sessionId),
                           exerciseId: group.exerciseId,
-                          setNumber: group.logs.length + 1,
+                          setNumber: (group.logs.at(-1)?.setNumber ?? 0) + 1,
                           metrics, // default empty metrics; user will fill it in
                           notes: '',
                           equipmentIds: [
@@ -470,7 +509,16 @@ const nextSet = useMemo(() => {
                         });
 
                         const savedLog = data.createExerciseLog;
-                        setLogs(prev => [...prev, savedLog]);
+                        setLogs(prev => {
+                          const insertionIndex = group.logs.length
+                            ? prev.findIndex(
+                                l => l.id === group.logs.at(-1)!.id,
+                              ) + 1
+                            : prev.length;
+                          const newLogs = [...prev];
+                          newLogs.splice(insertionIndex, 0, savedLog);
+                          return newLogs;
+                        });
                         setExpandedSetId(savedLog.id);
                       }}
                     />
@@ -606,9 +654,7 @@ const nextSet = useMemo(() => {
             const baseLog = {
               workoutSessionId: Number(sessionId),
               exerciseId: selectedExercise.id,
-              setNumber:
-                logs.filter(log => log.exerciseId === selectedExercise.id)
-                  .length + 1,
+              setNumber: 1,
               metrics, // default empty metrics; user will fill it in
               notes: '',
               equipmentIds,

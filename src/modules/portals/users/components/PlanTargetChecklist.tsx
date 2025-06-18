@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useMemo} from 'react';
 import {
   View,
   Text,
@@ -55,8 +55,55 @@ export default function PlanTargetChecklist({
       .join(', ');
   };
 
-  // Copy logs so we can consume in order
-  const remainingLogs = [...exerciseLogs];
+    // Group logs by consecutive exerciseId and set number sequence so
+  // repeated exercises form separate instances when numbering resets.
+  const groupedLogs = useMemo(() => {
+    const groups: {exerciseId: number; logs: ExerciseLog[]}[] = [];
+    let current: {exerciseId: number; logs: ExerciseLog[]} | null = null;
+
+    for (const log of exerciseLogs) {
+      const lastGroup = groups.at(-1);
+      const shouldStartNew =
+        !lastGroup ||
+        lastGroup.exerciseId !== log.exerciseId ||
+        log.setNumber !== (lastGroup.logs.at(-1)?.setNumber ?? 0) + 1;
+
+      if (shouldStartNew) {
+        if (current) groups.push(current);
+        current = {exerciseId: log.exerciseId, logs: [log]};
+      } else {
+        current!.logs.push(log);
+      }
+    }
+
+    if (current) groups.push(current);
+
+    // Merge groups when set numbering continues from a previous group for the
+    // same exercise. This ensures sets inserted later remain with their
+    // original instance after reloading.
+    const merged: typeof groups = [];
+    for (const group of groups) {
+      let mergedInto = false;
+      for (let i = merged.length - 1; i >= 0; i--) {
+        const prev = merged[i];
+        if (
+          prev.exerciseId === group.exerciseId &&
+          group.logs[0]?.setNumber ===
+            (prev.logs.at(-1)?.setNumber ?? 0) + 1
+        ) {
+          prev.logs.push(...group.logs);
+          mergedInto = true;
+          break;
+        }
+      }
+      if (!mergedInto) merged.push(group);
+    }
+
+    return merged;
+  }, [exerciseLogs]);
+
+  // Copy groups so we can consume them in order
+  const remainingGroups = [...groupedLogs];
 
   return (
     <Portal>
@@ -104,19 +151,14 @@ export default function PlanTargetChecklist({
             </View>
 
             {planExercises.flatMap((ex, planIdx) => {
-              const matchedLogs: ExerciseLog[] = [];
-
-              // Match this instance's sets from remaining logs
-              for (let i = 0; i < ex.targetSets && remainingLogs.length > 0; i++) {
-                const idx = remainingLogs.findIndex(
-                  log => log.exerciseId === ex.exerciseId
-                );
-                if (idx !== -1) {
-                  matchedLogs.push(remainingLogs[idx]);
-                  remainingLogs.splice(idx, 1);
-                } else {
-                  break;
-                }
+              // Consume the next group for this exercise, if any
+              let matchedLogs: ExerciseLog[] = [];
+              const idx = remainingGroups.findIndex(
+                g => g.exerciseId === ex.exerciseId
+              );
+              if (idx !== -1) {
+                const group = remainingGroups.splice(0, idx + 1).pop();
+                if (group) matchedLogs = group.logs.slice(0, ex.targetSets);
               }
 
               return Array.from({length: ex.targetSets}).map((_, setIdx) => {
