@@ -6,8 +6,7 @@ import {
   StyleSheet,
   Dimensions,
 } from 'react-native';
-import {spacing} from 'shared/theme/tokens';
-import Icon from '@expo/vector-icons/Feather';
+import {borderRadius, borderWidth, spacing} from 'shared/theme/tokens';
 import {Portal} from 'react-native-portalize';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import {useMetricRegistry} from 'shared/context/MetricRegistry';
@@ -39,13 +38,8 @@ export default function PlanTargetChecklist({
 }: PlanTargetChecklistProps) {
   const [expanded, setExpanded] = useState(false);
   const {theme} = useTheme();
-
-  const groupedLogs = new Map<number, ExerciseLog[]>();
-  exerciseLogs.forEach(log => {
-    const current = groupedLogs.get(log.exerciseId) || [];
-    groupedLogs.set(log.exerciseId, [...current, log]);
-  });
-
+  const [collapsedHeight, setCollapsedHeight] = useState(0);
+  const [expandedHeight, setExpandedHeight] = useState(0);
   const {metricRegistry} = useMetricRegistry();
 
   const formatMetrics = (metrics: PlanExercise['targetMetrics']): string => {
@@ -53,14 +47,16 @@ export default function PlanTargetChecklist({
       .map(({metricId, min, max}) => {
         const name = metricRegistry[metricId]?.name;
         if (!name) return null;
-        if (max != null && max !== '' && max !== min) {
-          return `${name} ${min}–${max}`;
-        }
-        return `${name} ${min}`;
+        return max != null && max !== '' && max !== min
+          ? `${name} ${min}–${max}`
+          : `${name} ${min}`;
       })
       .filter(Boolean)
       .join(', ');
   };
+
+  // Copy logs so we can consume in order
+  const remainingLogs = [...exerciseLogs];
 
   return (
     <Portal>
@@ -68,8 +64,13 @@ export default function PlanTargetChecklist({
         <View
           style={[
             styles.collapsedWrapper,
-            {borderColor: theme.colors.accentStart},
-          ]}>
+            {
+              top: '50%',
+              transform: [{translateY: -collapsedHeight / 2}],
+              borderColor: theme.colors.accentStart,
+            },
+          ]}
+          onLayout={e => setCollapsedHeight(e.nativeEvent.layout.height)}>
           <TouchableOpacity
             style={styles.collapsedTab}
             onPress={() => setExpanded(true)}
@@ -87,8 +88,13 @@ export default function PlanTargetChecklist({
         <View
           style={[
             styles.expandedWrapper,
-            {borderColor: theme.colors.accentStart},
-          ]}>
+            {
+              top: '50%',
+              transform: [{translateY: -expandedHeight / 2}],
+              borderColor: theme.colors.accentStart,
+            },
+          ]}
+          onLayout={e => setExpandedHeight(e.nativeEvent.layout.height)}>
           <TouchableOpacity
             style={styles.expandedBox}
             activeOpacity={1}
@@ -96,11 +102,25 @@ export default function PlanTargetChecklist({
             <View style={styles.headerRow}>
               <Text style={styles.headerText}>Plan</Text>
             </View>
-            {planExercises.flatMap((ex, planIdx) =>
-              Array.from({length: ex.targetSets}).map((_, setIdx) => {
-                const setsLogged = groupedLogs.get(ex.exerciseId)?.length || 0;
-                const currentSetIndex = setIdx;
-                const isLogged = currentSetIndex < setsLogged;
+
+            {planExercises.flatMap((ex, planIdx) => {
+              const matchedLogs: ExerciseLog[] = [];
+
+              // Match this instance's sets from remaining logs
+              for (let i = 0; i < ex.targetSets && remainingLogs.length > 0; i++) {
+                const idx = remainingLogs.findIndex(
+                  log => log.exerciseId === ex.exerciseId
+                );
+                if (idx !== -1) {
+                  matchedLogs.push(remainingLogs[idx]);
+                  remainingLogs.splice(idx, 1);
+                } else {
+                  break;
+                }
+              }
+
+              return Array.from({length: ex.targetSets}).map((_, setIdx) => {
+                const isLogged = setIdx < matchedLogs.length;
 
                 const overallIdx =
                   planExercises
@@ -109,12 +129,11 @@ export default function PlanTargetChecklist({
 
                 return (
                   <View
-                    key={`e${ex.exerciseId}s${setIdx}`}
+                    key={`plan${planIdx}_set${setIdx}`}
                     style={styles.exerciseItem}>
-                    <Text
-                      style={
-                        styles.name
-                      }>{`${overallIdx + 1}. ${ex.name}`}</Text>
+                    <Text style={styles.name}>
+                      {`${overallIdx + 1}. ${ex.name}`}
+                    </Text>
                     {isLogged ? (
                       <Text style={{color: 'green'}}>✅ Completed</Text>
                     ) : (
@@ -124,8 +143,8 @@ export default function PlanTargetChecklist({
                     )}
                   </View>
                 );
-              }),
-            )}
+              });
+            })}
           </TouchableOpacity>
         </View>
       )}
@@ -136,19 +155,23 @@ export default function PlanTargetChecklist({
 const styles = StyleSheet.create({
   collapsedWrapper: {
     position: 'absolute',
-    top: Dimensions.get('window').height / 2,
     right: 0,
-    transform: [{translateY: -50}],
     zIndex: 999,
     alignItems: 'flex-end',
+    borderTopLeftRadius: 10,
+    borderBottomLeftRadius: 10,
+    borderWidth: borderWidth.thick,
+    borderRightWidth: 0,
   },
   expandedWrapper: {
     position: 'absolute',
-    top: Dimensions.get('window').height / 2,
     right: 0,
-    transform: [{translateY: -Dimensions.get('window').height * 0.25}],
     zIndex: 999,
     alignItems: 'flex-end',
+    borderTopLeftRadius: 14,
+    borderBottomLeftRadius: 14,
+    borderWidth: borderWidth.thick,
+    borderRightWidth: 0,
   },
   collapsedTab: {
     backgroundColor: '#f1f1f1',

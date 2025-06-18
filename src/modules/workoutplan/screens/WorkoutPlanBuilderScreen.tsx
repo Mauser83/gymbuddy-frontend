@@ -369,6 +369,7 @@ export default function WorkoutPlanBuilderScreen() {
   const renderedExerciseIds = useRef<Set<string>>(new Set());
 
   function convertPlanToInitialValues(plan: any): FormValues {
+    console.log('workout plan: ', plan);
     const isFromSession = plan.isFromSession;
     function deriveGroupsFromExercises(
       exercises: ExerciseFormEntry[],
@@ -647,10 +648,8 @@ export default function WorkoutPlanBuilderScreen() {
                         : null,
                   })),
                   isWarmup: ex.isWarmup ?? false,
-                  trainingMethodId: isInValidGroup
-                    ? (ex.trainingMethodId ?? null)
-                    : null,
-                  groupId: isInValidGroup ? (ex.groupId ?? null) : null,
+                  groupId: ex.groupId ?? null,
+                  trainingMethodId: ex.trainingMethodId ?? null,
                 };
               }),
           };

@@ -79,8 +79,12 @@ export const GET_WORKOUT_PLAN_BY_ID = gql`
         id
         name
         slug
-        minGroupSize
-        maxGroupSize
+        trainingMethods {
+          id
+          name
+          minGroupSize
+          maxGroupSize
+        }
       }
       intensityPreset {
         id
@@ -112,6 +116,7 @@ export const GET_WORKOUT_PLAN_BY_ID = gql`
           id
           name
         }
+        groupId
         exercise {
           id
           name

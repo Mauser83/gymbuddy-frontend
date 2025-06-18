@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { useMutation } from '@apollo/client';
-import { useNavigate } from 'react-router-native';
-import { Formik } from 'formik';
+import React, {useState} from 'react';
+import {useMutation} from '@apollo/client';
+import {useNavigate} from 'react-router-native';
+import {Formik} from 'formik';
 import * as Yup from 'yup';
 
-import { useAuth } from 'modules/auth/context/AuthContext';
-import { CREATE_WORKOUT_SESSION } from '../graphql/userWorkouts.graphql';
+import {useAuth} from 'modules/auth/context/AuthContext';
+import {CREATE_WORKOUT_SESSION} from '../graphql/userWorkouts.graphql';
 import GymPickerModal from '../components/GymPickerModal';
 import WorkoutPlanPickerModal from '../components/WorkoutPlanPickerModal';
 import ScreenLayout from 'shared/components/ScreenLayout';
@@ -14,7 +14,9 @@ import SelectableField from 'shared/components/SelectableField';
 import Button from 'shared/components/Button';
 import LoadingState from 'shared/components/LoadingState';
 import FormError from 'shared/components/FormError';
-import { Gym, WorkoutPlan } from '../types/userWorkouts.types';
+import {Gym} from 'modules/gym/types/gym.types';
+import {WorkoutPlan} from '../components/WorkoutPlanPickerModal';
+import ModalWrapper from 'shared/components/ModalWrapper';
 
 const validationSchema = Yup.object().shape({
   gym: Yup.object().required('Please select a gym'),
@@ -22,7 +24,7 @@ const validationSchema = Yup.object().shape({
 });
 
 export default function StartWorkoutScreen() {
-  const { user } = useAuth();
+  const {user} = useAuth();
   const navigate = useNavigate();
 
   const [gymModalVisible, setGymModalVisible] = useState(false);
@@ -34,16 +36,19 @@ export default function StartWorkoutScreen() {
       <Title text="Start Workout" subtitle="Set up your session" />
 
       <Formik
-        initialValues={{ gym: null as Gym | null, plan: null as WorkoutPlan | null }}
+        initialValues={{
+          gym: null as Gym | null,
+          plan: null as WorkoutPlan | null,
+        }}
         validationSchema={validationSchema}
-        onSubmit={async (values, { setSubmitting, setErrors }) => {
+        onSubmit={async (values, {setSubmitting, setErrors}) => {
           if (!user?.id) {
-            setErrors({ gym: 'User not authenticated.' });
+            setErrors({gym: 'User not authenticated.'});
             return;
           }
 
           try {
-            const { data } = await createSession({
+            const {data} = await createSession({
               variables: {
                 input: {
                   userId: user.id,
@@ -58,13 +63,12 @@ export default function StartWorkoutScreen() {
             navigate(`/active-session/${data.createWorkoutSession.id}`);
           } catch (err) {
             console.error(err);
-            setErrors({ gym: 'Failed to start session — please try again.' });
+            setErrors({gym: 'Failed to start session — please try again.'});
           } finally {
             setSubmitting(false);
           }
-        }}
-      >
-        {({ handleSubmit, setFieldValue, values, errors, isSubmitting }) => (
+        }}>
+        {({handleSubmit, setFieldValue, values, errors, isSubmitting}) => (
           <>
             <SelectableField
               label="Gym"
@@ -84,17 +88,31 @@ export default function StartWorkoutScreen() {
               <Button text="Start Workout" onPress={handleSubmit} />
             )}
 
-            <GymPickerModal
-              visible={gymModalVisible}
-              onClose={() => setGymModalVisible(false)}
-              onSelect={(gym) => setFieldValue('gym', gym)}
-            />
-
-            <WorkoutPlanPickerModal
-              visible={planModalVisible}
-              onClose={() => setPlanModalVisible(false)}
-              onSelect={(plan) => setFieldValue('plan', plan)}
-            />
+            <ModalWrapper
+              visible={gymModalVisible || planModalVisible}
+              onClose={() => {
+                setGymModalVisible(false);
+                setPlanModalVisible(false);
+              }}>
+              {gymModalVisible && (
+                <GymPickerModal
+                  onClose={() => setGymModalVisible(false)}
+                  onSelect={gym => {
+                    setFieldValue('gym', gym);
+                    setGymModalVisible(false);
+                  }}
+                />
+              )}
+              {planModalVisible && (
+                <WorkoutPlanPickerModal
+                  onClose={() => setPlanModalVisible(false)}
+                  onSelect={plan => {
+                    setFieldValue('plan', plan);
+                    setPlanModalVisible(false);
+                  }}
+                />
+              )}
+            </ModalWrapper>
           </>
         )}
       </Formik>

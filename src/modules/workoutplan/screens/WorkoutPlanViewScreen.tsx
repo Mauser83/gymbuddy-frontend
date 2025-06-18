@@ -100,6 +100,7 @@ export default function WorkoutPlanViewScreen() {
               targetMetrics: ex.targetMetrics.map((m: any) => ({...m})),
               trainingMethodId: ex.trainingMethod?.id ?? null,
               isWarmup: ex.isWarmup ?? false,
+              groupId: ex.groupId
             })),
           };
           navigate('/user/edit-plan', {state: {initialPlan: formattedPlan}});

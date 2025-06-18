@@ -1,29 +1,26 @@
-import React, {useState, useEffect} from 'react';
-import {View, Dimensions} from 'react-native';
-import {useQuery} from '@apollo/client';
-import ModalWrapper from '../../../../shared/components/ModalWrapper';
-import SearchInput from '../../../../shared/components/SearchInput';
-import ClickableList from '../../../../shared/components/ClickableList';
-import NoResults from '../../../../shared/components/NoResults';
-import {GET_WORKOUT_PLANS} from '../graphql/userWorkouts.graphql';
-import {spacing} from '../../../../shared/theme/tokens';
+import React, { useState, useEffect } from 'react';
+import { ScrollView } from 'react-native';
+import { useQuery } from '@apollo/client';
 
-interface WorkoutPlan {
+import Title from 'shared/components/Title';
+import SearchInput from 'shared/components/SearchInput';
+import NoResults from 'shared/components/NoResults';
+import ClickableListItem from 'shared/components/ClickableListItem';
+
+import { GET_WORKOUT_PLANS } from '../graphql/userWorkouts.graphql';
+
+export interface WorkoutPlan {
   id: number;
   name: string;
   description?: string;
 }
 
 interface WorkoutPlanPickerModalProps {
-  visible: boolean;
   onClose: () => void;
   onSelect: (plan: WorkoutPlan) => void;
 }
 
-const modalHeight = Dimensions.get('window').height * 0.8;
-
 export default function WorkoutPlanPickerModal({
-  visible,
   onClose,
   onSelect,
 }: WorkoutPlanPickerModalProps) {
@@ -37,38 +34,48 @@ export default function WorkoutPlanPickerModal({
     return () => clearTimeout(timeout);
   }, [search]);
 
-  const {data, loading} = useQuery(GET_WORKOUT_PLANS, {
-    variables: {search: debouncedSearch},
+  const { data, loading } = useQuery(GET_WORKOUT_PLANS, {
+    variables: { search: debouncedSearch },
   });
 
   const plans: WorkoutPlan[] = data?.workoutPlans ?? [];
 
-  return (
-    <ModalWrapper visible={visible} onClose={onClose}>
-      <View style={{padding: spacing.md, gap: spacing.md, height: modalHeight}}>
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Search workout plans"
-          onClear={() => setSearch('')}
-        />
+  const filteredPlans = plans.filter(plan => {
+    const term = debouncedSearch.toLowerCase().trim();
+    return (
+      plan.name.toLowerCase().includes(term) ||
+      plan.description?.toLowerCase().includes(term)
+    );
+  });
 
-        {!loading && plans.length === 0 ? (
+  return (
+    <>
+      <Title text="Select Workout Plan" />
+
+      <SearchInput
+        value={search}
+        onChange={setSearch}
+        placeholder="Search workout plans"
+        onClear={() => setSearch('')}
+      />
+
+      <ScrollView style={{ height: 500 }}>
+        {!loading && filteredPlans.length === 0 ? (
           <NoResults message="No plans found." />
         ) : (
-          <ClickableList
-            items={plans.map(plan => ({
-              id: String(plan.id),
-              label: plan.name,
-              subLabel: plan.description || '',
-              onPress: () => {
+          filteredPlans.map(plan => (
+            <ClickableListItem
+              key={plan.id}
+              label={plan.name}
+              subLabel={plan.description || undefined}
+              onPress={() => {
                 onSelect(plan);
                 onClose();
-              },
-            }))}
-          />
+              }}
+            />
+          ))
         )}
-      </View>
-    </ModalWrapper>
+      </ScrollView>
+    </>
   );
 }

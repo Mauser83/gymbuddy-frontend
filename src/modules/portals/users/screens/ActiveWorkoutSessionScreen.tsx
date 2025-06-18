@@ -89,29 +89,40 @@ export default function ActiveWorkoutSessionScreen() {
   }, [session]);
 
   const groupedLogs = useMemo(() => {
-    const grouped = new Map<
-      number,
-      {
-        exerciseId: number;
-        logs: ExerciseLog[];
-        equipmentIds: Set<number>;
-        name?: string;
-      }
-    >();
+    const groups: {
+      key: string;
+      exerciseId: number;
+      logs: ExerciseLog[];
+      equipmentIds: Set<number>;
+      name?: string;
+    }[] = [];
+
+    let currentGroup: (typeof groups)[number] | null = null;
+
     for (const log of logs) {
-      const group = grouped.get(log.exerciseId) ?? {
-        exerciseId: log.exerciseId,
-        logs: [],
-        equipmentIds: new Set<number>(),
-      };
-      log.equipmentIds?.forEach(id => group.equipmentIds.add(id));
-      group.logs.push(log);
-      grouped.set(log.exerciseId, group);
+      const lastGroup = groups.at(-1);
+      const isSameExercise = lastGroup?.exerciseId === log.exerciseId;
+
+      if (!isSameExercise) {
+        currentGroup = {
+          key: `${log.exerciseId}-${log.id}`, // unique per occurrence
+          exerciseId: log.exerciseId,
+          logs: [],
+          equipmentIds: new Set<number>(),
+        };
+        groups.push(currentGroup);
+      }
+
+      currentGroup = groups.at(-1)!;
+      log.equipmentIds?.forEach(id => currentGroup!.equipmentIds.add(id));
+      currentGroup.logs.push(log);
     }
-    return Array.from(grouped.values()).map(group => {
+
+    return groups.map(group => {
       const exercise = exercisesData?.exercisesAvailableAtGym.find(
         (ex: any) => ex.id === group.exerciseId,
       );
+
       return {
         ...group,
         name: exercise?.name ?? `Exercise #${group.exerciseId}`,
@@ -133,41 +144,45 @@ export default function ActiveWorkoutSessionScreen() {
     return values;
   }, [logs]);
 
-  const nextSet = useMemo(() => {
-    const planExercises = session?.workoutPlan?.exercises.map(ex => ({
-      exerciseId: ex.exercise.id,
-      name: ex.exercise.name,
-      targetSets: ex.targetSets,
-      targetMetrics: ex.targetMetrics ?? [],
-    })) ?? [];
+const nextSet = useMemo(() => {
+  if (!session?.workoutPlan?.exercises?.length) return null;
 
-    const grouped = new Map<number, ExerciseLog[]>();
-    logs.forEach(log => {
-      const group = grouped.get(log.exerciseId) || [];
-      group.push(log);
-      grouped.set(log.exerciseId, group);
-    });
+  const planExercises = session.workoutPlan.exercises.map(ex => ({
+    exerciseId: ex.exercise.id,
+    name: ex.exercise.name,
+    targetSets: ex.targetSets,
+    targetMetrics: ex.targetMetrics ?? [],
+  }));
 
-    for (const ex of planExercises) {
-      const logsForExercise = grouped.get(ex.exerciseId) || [];
-      const nextSetIndex = logsForExercise.length;
+  // Track how many total sets are logged per exercise
+  const exerciseSetCount = logs.reduce<Record<number, number>>((acc, log) => {
+    acc[log.exerciseId] = (acc[log.exerciseId] ?? 0) + 1;
+    return acc;
+  }, {});
 
-      if (nextSetIndex < ex.targetSets) {
-        const isInUI = groupedLogs.some(g => g.exerciseId === ex.exerciseId);
-        setNextSetPlacement(isInUI ? 'addSet' : 'addExercise');
+  for (const ex of planExercises) {
+    const currentSetCount = exerciseSetCount[ex.exerciseId] ?? 0;
 
-        return {
-          exerciseId: ex.exerciseId,
-          name: ex.name,
-          currentSetIndex: nextSetIndex,
-          targetMetrics: ex.targetMetrics ?? [],
-        };
-      }
+    if (currentSetCount < ex.targetSets) {
+      const matchingGroup = groupedLogs.find(
+        group => group.exerciseId === ex.exerciseId
+      );
+
+      setNextSetPlacement(matchingGroup ? 'addSet' : 'addExercise');
+
+      return {
+        exerciseId: ex.exerciseId,
+        name: ex.name,
+        currentSetIndex: currentSetCount,
+        targetMetrics: ex.targetMetrics,
+      };
     }
+  }
 
-    setNextSetPlacement(null);
-    return null;
-  }, [session, logs, groupedLogs]);
+  setNextSetPlacement(null);
+  return null;
+}, [session, logs, groupedLogs]);
+
 
   const availableExercises = useMemo(() => {
     if (!exercisesData || !equipmentData || !session?.gym?.id) return [];
@@ -177,8 +192,6 @@ export default function ActiveWorkoutSessionScreen() {
 
     return (exercisesData.exercisesAvailableAtGym ?? []).filter(
       (exercise: any) => {
-        if (usedExerciseIds.has(exercise.id)) return false;
-
         const requiredSubcategories =
           exercise.equipmentSlots?.flatMap(
             (slot: any) =>
