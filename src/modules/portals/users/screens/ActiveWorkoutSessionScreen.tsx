@@ -303,12 +303,38 @@ export default function ActiveWorkoutSessionScreen() {
               if (!setErrors || Object.keys(setErrors).length === 0) {
                 const log = logs.find(l => l.id === expandedSetId);
                 if (!log) return false;
+
+
+                const updatedMetrics = values[expandedSetId]?.metrics ?? {};
+                const updatedNotes = values[expandedSetId]?.notes ?? '';
+                const updatedEquipmentIds =
+                  values[expandedSetId]?.equipmentIds ?? [];
+
+                const arraysEqual = (a: number[], b: number[]) => {
+                  if (a.length !== b.length) return false;
+                  const sortedA = [...a].sort((x, y) => x - y);
+                  const sortedB = [...b].sort((x, y) => x - y);
+                  return sortedA.every((val, idx) => val === sortedB[idx]);
+                };
+
+                const hasChanges =
+                  JSON.stringify(log.metrics ?? {}) !==
+                    JSON.stringify(updatedMetrics) ||
+                  (log.notes ?? '') !== updatedNotes ||
+                  !arraysEqual(log.equipmentIds ?? [], updatedEquipmentIds);
+
+                if (!hasChanges) {
+                  return true;
+                }
+
+
                 const input: any = {
                   setNumber: Number(log.setNumber),
-                  metrics: values[expandedSetId]?.metrics ?? {},
-                  notes: values[expandedSetId]?.notes ?? '',
-                  equipmentIds: values[expandedSetId]?.equipmentIds ?? [],
+                  metrics: updatedMetrics,
+                  notes: updatedNotes,
+                  equipmentIds: updatedEquipmentIds,
                 };
+
                 const {data} = await updateExerciseLog({
                   variables: {id: log.id, input},
                 });
