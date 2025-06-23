@@ -92,10 +92,12 @@ export type ExerciseGroup = {
   order: number;
 };
 
+type DragData = {type: 'exercise' | 'group'; id: string};
+
 type DraggableItemProps = {
-  item: ExerciseFormEntry;
+  item: DragData;
   children: React.ReactNode;
-  onDrop: (x: number, y: number, instanceId: string) => void;
+  onDrop: (x: number, y: number, data: DragData) => void;
   onDragStart?: () => void;
   onDragEnd?: () => void;
   onDragMove?: (x: number, y: number) => void;
@@ -233,9 +235,10 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
       // runOnJS(console.log)('DraggableItem onEnd', {
       //   x: event.absoluteX,
       //   y: event.absoluteY,
-      //   instanceId: item.instanceId,
+      //   id: item.id,
+      //   type: item.type,
       // });
-      runOnJS(onDrop)(event.absoluteX, event.absoluteY, item.instanceId);
+      runOnJS(onDrop)(event.absoluteX, event.absoluteY, item);
       translateX.value = withSpring(0);
       translateY.value = withSpring(0, {}, finished => {
         if (finished) {
@@ -539,7 +542,7 @@ export default function WorkoutPlanBuilderScreen() {
 
   type MeasuredExerciseItemProps = {
     item: ExerciseFormEntry;
-    onDrop: (x: number, y: number, id: string) => void;
+    onDrop: (x: number, y: number, data: DragData) => void;
     children: React.ReactNode; // ✅ add this
     simultaneousHandlers?: any;
     onDragStart?: () => void;
@@ -580,7 +583,7 @@ export default function WorkoutPlanBuilderScreen() {
     return (
       <View ref={ref} onLayout={measure}>
         <DraggableItem
-          item={item}
+          item={{type: 'exercise', id: item.instanceId}}
           onDrop={onDrop}
           simultaneousHandlers={simultaneousHandlers}
           onDragStart={onDragStart}
@@ -595,14 +598,24 @@ export default function WorkoutPlanBuilderScreen() {
 
   const MeasuredExerciseItem = React.memo(MeasuredExerciseItemComponent);
 
-  type MeasuredGroupZoneProps = {
+  type MeasuredGroupItemProps = {
     group: ExerciseGroup;
+    onDrop: (x: number, y: number, data: DragData) => void;
     children: React.ReactNode;
+    simultaneousHandlers?: any;
+    onDragStart?: () => void;
+    onDragEnd?: () => void;
+    onDragMove?: (x: number, y: number) => void;
   };
 
-  const MeasuredGroupZone: React.FC<MeasuredGroupZoneProps> = ({
+  const MeasuredGroupItem: React.FC<MeasuredGroupItemProps> = ({
     group,
+    onDrop,
     children,
+    simultaneousHandlers,
+    onDragStart,
+    onDragEnd,
+    onDragMove,
   }) => {
     const ref = useRef<View>(null);
 
@@ -621,13 +634,22 @@ export default function WorkoutPlanBuilderScreen() {
     };
 
     useEffect(() => {
-      const timer = setTimeout(measure, 100); // slight delay to ensure layout settles
+      const timer = setTimeout(measure, 100);
       return () => clearTimeout(timer);
     }, [group.id]);
 
     return (
       <View ref={ref} onLayout={measure}>
-        {children}
+        <DraggableItem
+          item={{type: 'group', id: String(group.id)}}
+          onDrop={onDrop}
+          simultaneousHandlers={simultaneousHandlers}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          onDragMove={onDragMove}
+          scrollOffset={scrollOffsetY}>
+          {children}
+        </DraggableItem>
       </View>
     );
   };
@@ -803,23 +825,61 @@ export default function WorkoutPlanBuilderScreen() {
           const handleDrop = (
             x: number,
             y: number,
-            draggedItemInstanceId: string,
+            draggedItemData: DragData,
           ) => {
             console.log('handleDrop', {
               x,
               y,
-              draggedItemInstanceId,
+              draggedItemData,
               scrollOffset: scrollOffsetY.value,
             });
+            if (draggedItemData.type === 'group') {
+              // Reorder groups relative to other plan items
+              const allLayouts: Record<string, Layout> = {
+                ...exerciseLayouts.current,
+                ...Object.fromEntries(
+                  Object.entries(groupLayouts.current).map(([id, l]) => [
+                    String(id),
+                    l,
+                  ]),
+                ),
+              };
+
+              for (const targetId in allLayouts) {
+                if (targetId === draggedItemData.id) continue;
+                const layout = allLayouts[targetId];
+                const adjustedY =
+                  layout.y - (scrollOffsetY.value - layout.scrollOffset);
+                if (
+                  x >= layout.x &&
+                  x <= layout.x + layout.width &&
+                  y >= adjustedY &&
+                  y <= adjustedY + layout.height
+                ) {
+                  const targetData: DragData = exerciseLayouts.current[targetId]
+                    ? {type: 'exercise', id: targetId}
+                    : {type: 'group', id: targetId};
+                  reorderPlanItems(
+                    draggedItemData,
+                    targetData,
+                    values,
+                    setFieldValue,
+                  );
+                  return;
+                }
+              }
+              return;
+            }
+
             const draggedItem = values.exercises.find(
-              ex => ex.instanceId === draggedItemInstanceId,
+              ex => ex.instanceId === draggedItemData.id,
             );
             if (!draggedItem) return;
 
             // Priority 1: Check if dropped on another exercise to reorder
             // This will now correctly trigger for items within the same group.
             for (const targetInstanceId in exerciseLayouts.current) {
-              if (targetInstanceId === draggedItemInstanceId) continue;
+              if (targetInstanceId === draggedItemData.id) continue;
               const layout = exerciseLayouts.current[targetInstanceId];
               const adjustedY =
                 layout.y - (scrollOffsetY.value - layout.scrollOffset);
@@ -835,7 +895,7 @@ export default function WorkoutPlanBuilderScreen() {
                 // Only reorder if they are in the same group (or both are ungrouped)
                 if (targetItem && targetItem.groupId === draggedItem.groupId) {
                   reorderExercises(
-                    draggedItemInstanceId,
+                    draggedItemData.id,
                     targetInstanceId,
                     values.exercises,
                     setFieldValue,
@@ -860,7 +920,7 @@ export default function WorkoutPlanBuilderScreen() {
                 // Only update if it's being moved to a *different* group
                 if (draggedItem.groupId !== targetGroupId) {
                   updateExerciseGroup(
-                    draggedItemInstanceId,
+                    draggedItemData.id,
                     targetGroupId,
                     values.exercises,
                     values.groups,
@@ -873,7 +933,7 @@ export default function WorkoutPlanBuilderScreen() {
 
             // Priority 3: Dropped in empty space, so un-group it
             updateExerciseGroup(
-              draggedItemInstanceId,
+              draggedItemData.id,
               null, // Setting groupId to null un-groups it
               values.exercises,
               values.groups,
@@ -999,6 +1059,50 @@ export default function WorkoutPlanBuilderScreen() {
 
             setFieldValueFn('exercises', finalExercises);
           };
+
+          const reorderPlanItems = (
+            dragged: DragData,
+            target: DragData,
+            currentValues: FormValues,
+            setFieldValueFn: (field: string, value: any) => void,
+          ) => {
+            const items = getPlanItemsFromForm(currentValues);
+            const draggedIndex = items.findIndex(i => {
+              if (i.type !== dragged.type) return false;
+              return i.type === 'exercise'
+                ? i.data.instanceId === dragged.id
+                : String(i.data.id) === dragged.id;
+            });
+            const targetIndex = items.findIndex(i => {
+              if (i.type !== target.type) return false;
+              return i.type === 'exercise'
+                ? i.data.instanceId === target.id
+                : String(i.data.id) === target.id;
+            });
+            if (draggedIndex === -1 || targetIndex === -1) return;
+
+            const newItems = [...items];
+            const [moved] = newItems.splice(draggedIndex, 1);
+            newItems.splice(targetIndex, 0, moved);
+
+            const newExercises = [...currentValues.exercises];
+            const newGroups = [...currentValues.groups];
+
+            newItems.forEach((it, idx) => {
+              if (it.type === 'exercise') {
+                const exIdx = newExercises.findIndex(
+                  e => e.instanceId === it.data.instanceId,
+                );
+                if (exIdx !== -1) newExercises[exIdx].order = idx;
+              } else {
+                const gIdx = newGroups.findIndex(g => g.id === it.data.id);
+                if (gIdx !== -1) newGroups[gIdx].order = idx;
+              }
+            });
+
+            setFieldValueFn('exercises', newExercises);
+            setFieldValueFn('groups', newGroups);
+          };
           const ListHeader = (
             <>
               <Title
@@ -1115,98 +1219,53 @@ export default function WorkoutPlanBuilderScreen() {
                             onPress={() => setReorderMode(false)}
                           />
 
-                          <Text
-                            style={{
-                              color: theme.colors.textPrimary,
-                              fontSize: 18,
-                              fontWeight: 'bold',
-                              marginTop: spacing.lg,
-                              marginBottom: spacing.sm,
-                            }}>
-                            Groups
-                          </Text>
-                          {values.groups.map(group => (
-                            <MeasuredGroupZone
-                              key={`group-zone-${group.id}`}
-                              group={group}>
-                              <ExerciseGroupCard
-                                label={getGroupLabel(group)}
-                                borderColor={theme.colors.accentStart}
-                                textColor={theme.colors.textPrimary}>
-                                {values.exercises
-                                  .filter(ex => ex.groupId === group.id)
-                                  .map(item => (
-                                    <MeasuredExerciseItem
-                                      key={item.instanceId}
-                                      item={item}
-                                      onDrop={handleDrop}
-                                      simultaneousHandlers={scrollRef}
-                                      onDragStart={handleDragStart}
-                                      onDragEnd={handleDragEnd}
-                                      onDragMove={handleAutoScroll}>
-                                      <View
-                                        style={{
-                                          marginHorizontal: spacing.md,
-                                          marginVertical: spacing.sm,
-                                          backgroundColor: theme.colors.surface,
-                                          padding: spacing.sm,
-                                          borderRadius: 6,
-                                          borderWidth: 1,
-                                          borderColor: theme.colors.accentEnd,
-                                        }}>
-                                        <Text
-                                          style={{
-                                            color: theme.colors.textPrimary,
-                                            fontWeight: 'bold',
-                                          }}>
-                                          {item.exerciseName}
-                                        </Text>
-                                        <Text
-                                          style={{
-                                            color: theme.colors.textSecondary,
-                                          }}>
-                                          {renderSummary(item)}
-                                        </Text>
-                                      </View>
-                                    </MeasuredExerciseItem>
-                                  ))}
-
-                                {values.exercises.filter(
-                                  ex => ex.groupId === group.id,
-                                ).length === 0 && (
-                                  <View
-                                    style={{
-                                      height: 60,
-                                      justifyContent: 'center',
-                                      alignItems: 'center',
-                                    }}>
-                                    <Text
+                          {planItems.map(pi =>
+                            pi.type === 'group' ? (
+                              <MeasuredGroupItem
+                                key={`group-${pi.data.id}`}
+                                group={pi.data}
+                                onDrop={handleDrop}
+                                simultaneousHandlers={scrollRef}
+                                onDragStart={handleDragStart}
+                                onDragEnd={handleDragEnd}
+                                onDragMove={handleAutoScroll}>
+                                <ExerciseGroupCard
+                                  label={getGroupLabel(pi.data)}
+                                  borderColor={theme.colors.accentStart}
+                                  textColor={theme.colors.textPrimary}>
+                                  {getGroupedExercises(pi.data.id).map(ex => (
+                                    <View
+                                      key={ex.instanceId}
                                       style={{
-                                        color: theme.colors.textSecondary,
+                                        marginHorizontal: spacing.md,
+                                        marginVertical: spacing.sm,
+                                        backgroundColor: theme.colors.surface,
+                                        padding: spacing.sm,
+                                        borderRadius: 6,
+                                        borderWidth: 1,
+                                        borderColor: theme.colors.accentEnd,
                                       }}>
-                                      Drop exercises here
-                                    </Text>
-                                  </View>
-                                )}
-                              </ExerciseGroupCard>
-                            </MeasuredGroupZone>
-                          ))}
-
-                          <Text
-                            style={{
-                              color: theme.colors.textPrimary,
-                              fontSize: 18,
-                              fontWeight: 'bold',
-                              marginTop: spacing.lg,
-                              marginBottom: spacing.sm,
-                            }}>
-                            Unassigned Exercises
-                          </Text>
-                          <View style={{marginHorizontal: spacing.md}}>
-                            {getUngroupedExercises().map(item => (
+                                      <Text
+                                        style={{
+                                          color: theme.colors.textPrimary,
+                                          fontWeight: 'bold',
+                                        }}>
+                                        {ex.exerciseName}
+                                      </Text>
+                                      <Text
+                                        style={{
+                                          color: theme.colors.textSecondary,
+                                        }}>
+                                        {renderSummary(ex)}
+                                      </Text>
+                                    </View>
+                                  ))}
+                                </ExerciseGroupCard>
+                              </MeasuredGroupItem>
+                            ) : (
                               <MeasuredExerciseItem
-                                key={item.instanceId}
-                                item={item}
+                                key={pi.data.instanceId}
+                                item={pi.data}
                                 onDrop={handleDrop}
                                 simultaneousHandlers={scrollRef}
                                 onDragStart={handleDragStart}
@@ -1226,18 +1285,18 @@ export default function WorkoutPlanBuilderScreen() {
                                       color: theme.colors.textPrimary,
                                       fontWeight: 'bold',
                                     }}>
-                                    {item.exerciseName}
+                                    {pi.data.exerciseName}
                                   </Text>
                                   <Text
                                     style={{
                                       color: theme.colors.textSecondary,
                                     }}>
-                                    {renderSummary(item)}
+                                    {renderSummary(pi.data)}
                                   </Text>
                                 </View>
                               </MeasuredExerciseItem>
-                            ))}
-                          </View>
+                            ),
+                          )}
                         </View>
                       </AnimatedScrollView>
                     ) : (
