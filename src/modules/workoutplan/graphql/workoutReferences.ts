@@ -105,8 +105,6 @@ export const CREATE_TRAINING_GOAL = gql`
       id
       name
       slug
-      minGroupSize
-      maxGroupSize
     }
   }
 `;
@@ -117,8 +115,6 @@ export const UPDATE_TRAINING_GOAL = gql`
       id
       name
       slug
-      minGroupSize
-      maxGroupSize
     }
   }
 `;
