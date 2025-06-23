@@ -89,6 +89,7 @@ export type ExerciseFormEntry = {
 export type ExerciseGroup = {
   id: number;
   trainingMethodId: number;
+  order: number;
 };
 
 type DraggableItemProps = {
@@ -129,6 +130,21 @@ type MuscleGroupMeta = {
 type RenderItem =
   | {type: 'group'; group: ExerciseGroup}
   | {type: 'exercise'; exercise: ExerciseFormEntry};
+
+type PlanItem =
+  | {type: 'exercise'; data: ExerciseFormEntry}
+  | {type: 'group'; data: ExerciseGroup};
+
+function getPlanItemsFromForm(values: FormValues): PlanItem[] {
+  const items: PlanItem[] = [];
+  for (const group of values.groups) {
+    items.push({type: 'group', data: group});
+  }
+  for (const ex of values.exercises.filter(e => e.groupId == null)) {
+    items.push({type: 'exercise', data: ex});
+  }
+  return items.sort((a, b) => a.data.order - b.data.order);
+}
 
 type Layout = {
   x: number;
@@ -390,11 +406,12 @@ export default function WorkoutPlanBuilderScreen() {
             seen.set(key, {
               id: ex.groupId,
               trainingMethodId: ex.trainingMethodId,
+              order: 0,
             });
           }
         }
       }
-      return Array.from(seen.values());
+      return Array.from(seen.values()).map((g, idx) => ({...g, order: idx}));
     }
 
     if (isFromSession) {
@@ -418,7 +435,12 @@ export default function WorkoutPlanBuilderScreen() {
         experienceLevel: plan.intensityPreset?.experienceLevel ?? undefined,
         muscleGroupIds: [],
         exercises,
-        groups: deriveGroupsFromExercises(exercises),
+        groups:
+          plan.groups?.map((g: any) => ({
+            id: g.id,
+            trainingMethodId: g.trainingMethodId,
+            order: g.order,
+          })) ?? deriveGroupsFromExercises(exercises),
       };
     }
 
@@ -441,7 +463,12 @@ export default function WorkoutPlanBuilderScreen() {
       experienceLevel: plan.intensityPreset?.experienceLevel ?? undefined,
       muscleGroupIds: plan.muscleGroups.map((mg: any) => mg.id),
       exercises,
-      groups: deriveGroupsFromExercises(exercises),
+      groups:
+        plan.groups?.map((g: any) => ({
+          id: g.id,
+          trainingMethodId: g.trainingMethodId,
+          order: g.order,
+        })) ?? deriveGroupsFromExercises(exercises),
     };
   }
   const location = useLocation();
@@ -615,7 +642,7 @@ export default function WorkoutPlanBuilderScreen() {
           const methodById = new Map<number, any>(
             (workoutMeta?.getTrainingMethods ?? []).map((m: any) => [m.id, m]),
           );
-          
+
           const invalidGroups = values.groups.filter(g => {
             const method = methodById.get(g.trainingMethodId);
             if (!method) return false;
@@ -668,6 +695,12 @@ export default function WorkoutPlanBuilderScreen() {
             trainingGoalId: values.trainingGoalId,
             intensityPresetId: matchedPreset?.id ?? null,
             muscleGroupIds: values.muscleGroupIds,
+            groups: [...values.groups]
+              .sort((a, b) => a.order - b.order)
+              .map(g => ({
+                trainingMethodId: g.trainingMethodId,
+                order: g.order,
+              })),
             exercises: [...values.exercises]
               .sort((a, b) => {
                 // Sort by groupId (nulls last), then by order within group
@@ -752,6 +785,8 @@ export default function WorkoutPlanBuilderScreen() {
             const group = values.groups.find(g => g.id === groupId);
             return group ? getGroupLabel(group) : 'None';
           };
+
+          const planItems = getPlanItemsFromForm(values);
 
           const getGroupedExercises = (groupId: number) => {
             return values.exercises
@@ -889,9 +924,14 @@ export default function WorkoutPlanBuilderScreen() {
               const methodId =
                 currentExercises[exerciseIndex]?.trainingMethodId ??
                 newTrainingMethodId;
+              const nextGroupOrder =
+                updatedGroups.length > 0
+                  ? Math.max(...updatedGroups.map(g => g.order)) + 1
+                  : 0;
               updatedGroups.push({
                 id: groupId,
                 trainingMethodId: methodId ?? 0,
+                order: nextGroupOrder,
               });
             }
             const updatedExercises = [...currentExercises];
@@ -1203,40 +1243,40 @@ export default function WorkoutPlanBuilderScreen() {
                     ) : (
                       <FlatList
                         data={(() => {
-                          const groupedExercisesMap: Record<
+                          const groupedMap: Record<
                             number,
                             ExerciseFormEntry[]
                           > = {};
+
                           values.exercises.forEach(ex => {
                             if (ex.groupId != null) {
-                              if (!groupedExercisesMap[ex.groupId])
-                                groupedExercisesMap[ex.groupId] = [];
-                              groupedExercisesMap[ex.groupId].push(ex);
+                              if (!groupedMap[ex.groupId])
+                                groupedMap[ex.groupId] = [];
+                              groupedMap[ex.groupId].push(ex);
                             }
                           });
 
                           const displayList: RenderItem[] = [];
 
-                          values.groups.forEach(group => {
-                            displayList.push({type: 'group', group});
-                            (groupedExercisesMap[group.id] ?? []).forEach(
-                              ex => {
+                          planItems.forEach(item => {
+                            if (item.type === 'group') {
+                              displayList.push({
+                                type: 'group',
+                                group: item.data,
+                              });
+                              (groupedMap[item.data.id] ?? []).forEach(ex => {
                                 displayList.push({
                                   type: 'exercise',
                                   exercise: ex,
                                 });
-                              },
-                            );
-                          });
-
-                          values.exercises
-                            .filter(ex => ex.groupId == null)
-                            .forEach(ex => {
+                              });
+                            } else {
                               displayList.push({
                                 type: 'exercise',
-                                exercise: ex,
+                                exercise: item.data,
                               });
-                            });
+                            }
+                          });
                           return displayList;
                         })()}
                         keyExtractor={item =>
@@ -1602,14 +1642,22 @@ export default function WorkoutPlanBuilderScreen() {
                           }
                           onSelect={id => {
                             if (stagedGroupId != null) {
+                              const nextOrder =
+                                values.groups.length > 0
+                                  ? Math.max(
+                                      ...values.groups.map(g => g.order),
+                                    ) + 1
+                                  : 0;
                               const newGroup = {
                                 id: stagedGroupId,
                                 trainingMethodId: id,
+                                order: nextOrder,
                               };
                               setFieldValue('groups', [
                                 ...values.groups,
                                 newGroup,
                               ]);
+
                               setStagedGroupId(null);
                               setActiveModal(null);
                             }
