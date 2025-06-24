@@ -762,7 +762,7 @@ export default function WorkoutPlanBuilderScreen() {
     }, [item.instanceId]);
 
     return (
-      <View ref={ref} onLayout={measure}>
+      <View ref={ref} onLayout={measure} style={{zIndex: 1}}>
         <DraggableItem
           item={{type: 'exercise', id: item.instanceId}}
           onDrop={onDrop}
@@ -819,18 +819,19 @@ export default function WorkoutPlanBuilderScreen() {
       return () => clearTimeout(timer);
     }, [group.id]);
 
+    const handleProps = {
+      item: {type: 'group', id: String(group.id)} as DragData,
+      onDrop,
+      simultaneousHandlers,
+      onDragStart,
+      onDragEnd,
+      onDragMove,
+      scrollOffset: scrollOffsetY,
+    };
+
     return (
-      <View ref={ref} onLayout={measure}>
-        <DraggableItem
-          item={{type: 'group', id: String(group.id)}}
-          onDrop={onDrop}
-          simultaneousHandlers={simultaneousHandlers}
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
-          onDragMove={onDragMove}
-          scrollOffset={scrollOffsetY}>
-          {children}
-        </DraggableItem>
+      <View ref={ref} onLayout={measure} style={{zIndex: 0}}>
+        <DraggableItem {...handleProps}>{children}</DraggableItem>
       </View>
     );
   };
@@ -1433,31 +1434,39 @@ export default function WorkoutPlanBuilderScreen() {
                                   borderColor={theme.colors.accentStart}
                                   textColor={theme.colors.textPrimary}>
                                   {getGroupedExercises(pi.data.id).map(ex => (
-                                    <View
+                                    <MeasuredExerciseItem
                                       key={ex.instanceId}
-                                      style={{
-                                        marginHorizontal: spacing.md,
-                                        marginVertical: spacing.sm,
-                                        backgroundColor: theme.colors.surface,
-                                        padding: spacing.sm,
-                                        borderRadius: 6,
-                                        borderWidth: 1,
-                                        borderColor: theme.colors.accentEnd,
-                                      }}>
-                                      <Text
+                                      item={ex}
+                                      onDrop={handleDrop}
+                                      simultaneousHandlers={scrollRef}
+                                      onDragStart={handleDragStart}
+                                      onDragEnd={handleDragEnd}
+                                      onDragMove={handleAutoScroll}>
+                                      <View
                                         style={{
-                                          color: theme.colors.textPrimary,
-                                          fontWeight: 'bold',
+                                          marginHorizontal: spacing.md,
+                                          marginVertical: spacing.sm,
+                                          backgroundColor: theme.colors.surface,
+                                          padding: spacing.sm,
+                                          borderRadius: 6,
+                                          borderWidth: 1,
+                                          borderColor: theme.colors.accentEnd,
                                         }}>
-                                        {ex.exerciseName}
-                                      </Text>
-                                      <Text
-                                        style={{
-                                          color: theme.colors.textSecondary,
-                                        }}>
-                                        {renderSummary(ex)}
-                                      </Text>
-                                    </View>
+                                        <Text
+                                          style={{
+                                            color: theme.colors.textPrimary,
+                                            fontWeight: 'bold',
+                                          }}>
+                                          {ex.exerciseName}
+                                        </Text>
+                                        <Text
+                                          style={{
+                                            color: theme.colors.textSecondary,
+                                          }}>
+                                          {renderSummary(ex)}
+                                        </Text>
+                                      </View>
+                                    </MeasuredExerciseItem>
                                   ))}
                                 </ExerciseGroupCard>
                               </MeasuredGroupItem>
