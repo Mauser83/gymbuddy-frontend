@@ -418,7 +418,7 @@ export default function WorkoutPlanBuilderScreen() {
     }
 
     if (isFromSession) {
-      const exercises = plan.exercises.map((ex: any) => ({
+      const exercises = plan.exercises.map((ex: any, idx: number) => ({
         instanceId: generateUniqueId(),
         exerciseId: ex.exerciseId ?? ex.exercise.id,
         exerciseName: ex.exerciseName ?? ex.exercise.name,
@@ -429,6 +429,7 @@ export default function WorkoutPlanBuilderScreen() {
         trainingMethodId: ex.trainingMethodId ?? ex.trainingMethod?.id ?? null,
         groupId: ex.groupId ?? null,
         isWarmup: ex.isWarmup ?? false,
+        order: ex.order ?? idx,
       }));
 
       return {
@@ -447,7 +448,7 @@ export default function WorkoutPlanBuilderScreen() {
       };
     }
 
-    const exercises = plan.exercises.map((ex: any) => ({
+    const exercises = plan.exercises.map((ex: any, idx: number) => ({
       instanceId: generateUniqueId(),
       exerciseId: ex.exerciseId,
       exerciseName: ex.exerciseName,
@@ -457,6 +458,7 @@ export default function WorkoutPlanBuilderScreen() {
       trainingMethodId: ex.trainingMethodId ?? null,
       groupId: ex.groupId ?? null,
       isWarmup: ex.isWarmup ?? false,
+      order: ex.order ?? idx,
     }));
 
     return {
@@ -720,6 +722,7 @@ export default function WorkoutPlanBuilderScreen() {
             groups: [...values.groups]
               .sort((a, b) => a.order - b.order)
               .map(g => ({
+                id: g.id,
                 trainingMethodId: g.trainingMethodId,
                 order: g.order,
               })),

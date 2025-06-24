@@ -93,6 +93,12 @@ export default function WorkoutPlanViewScreen() {
           const formattedPlan = {
             ...plan,
             isFromSession: false,
+            groups:
+              plan.groups?.map((g: any) => ({
+                id: g.id,
+                trainingMethodId: g.trainingMethodId,
+                order: g.order,
+              })) ?? [],
             exercises: plan.exercises.map((ex: any) => ({
               exerciseId: ex.exercise.id,
               exerciseName: ex.exercise.name,
@@ -100,7 +106,7 @@ export default function WorkoutPlanViewScreen() {
               targetMetrics: ex.targetMetrics.map((m: any) => ({...m})),
               trainingMethodId: ex.trainingMethod?.id ?? null,
               isWarmup: ex.isWarmup ?? false,
-              groupId: ex.groupId
+              groupId: ex.groupId,
             })),
           };
           navigate('/user/edit-plan', {state: {initialPlan: formattedPlan}});

@@ -122,6 +122,11 @@ export const GET_WORKOUT_PLAN_BY_ID = gql`
           name
         }
       }
+      groups {
+        id
+        trainingMethodId
+        order
+      }
     }
   }
 `;
