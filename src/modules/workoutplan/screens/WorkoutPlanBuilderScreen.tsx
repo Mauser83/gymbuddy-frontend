@@ -727,36 +727,31 @@ export default function WorkoutPlanBuilderScreen() {
                 order: g.order,
               })),
             exercises: [...values.exercises]
-              .sort((a, b) => {
-                // Sort by groupId (nulls last), then by order within group
-                if (a.groupId === b.groupId) return a.order - b.order;
-                if (a.groupId == null) return 1;
-                if (b.groupId == null) return -1;
-                return a.groupId - b.groupId;
-              })
-              .map((ex, index) => {
-                const isInValidGroup =
-                  ex.groupId && validGroupIds.has(ex.groupId);
-                return {
-                  exerciseId: ex.exerciseId,
-                  order: index,
-                  targetSets: ex.targetSets,
-                  targetMetrics: ex.targetMetrics.map(m => ({
-                    metricId: m.metricId,
-                    min: typeof m.min === 'string' ? parseFloat(m.min) : m.min,
-                    max:
-                      m.max != null && m.max !== ''
-                        ? typeof m.max === 'string'
-                          ? parseFloat(m.max)
-                          : m.max
-                        : null,
-                  })),
-                  isWarmup: ex.isWarmup ?? false,
-                  groupId: ex.groupId ?? null,
-                  trainingMethodId: ex.trainingMethodId ?? null,
-                };
-              }),
+              .sort((a, b) => a.order - b.order)
+              .map(ex => ({
+                exerciseId: ex.exerciseId,
+                order: ex.order, // ✅ Preserve existing order
+                targetSets: ex.targetSets,
+                targetMetrics: ex.targetMetrics.map(m => ({
+                  metricId: m.metricId,
+                  min: typeof m.min === 'string' ? parseFloat(m.min) : m.min,
+                  max:
+                    m.max != null && m.max !== ''
+                      ? typeof m.max === 'string'
+                        ? parseFloat(m.max)
+                        : m.max
+                      : null,
+                })),
+                isWarmup: ex.isWarmup ?? false,
+                groupId: ex.groupId ?? null,
+                trainingMethodId: ex.trainingMethodId ?? null,
+              })),
           };
+
+          console.log(
+            'Exercise orders before submit:',
+            values.exercises.map(e => ({id: e.exerciseId, order: e.order})),
+          );
 
           try {
             const result = isEdit
