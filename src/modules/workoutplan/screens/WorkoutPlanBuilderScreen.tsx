@@ -30,6 +30,7 @@ import {useTheme} from 'shared/theme/ThemeProvider';
 import FontAwesome from '@expo/vector-icons/FontAwesome5';
 import {useNavigate} from 'react-router-native';
 import {useLocation} from 'react-router-native';
+import type {PointerEvent} from 'react-native';
 
 // IMPORTS FOR THE CUSTOM DRAG-AND-DROP
 import {
@@ -180,8 +181,8 @@ const validationSchema = Yup.object().shape({
     .min(1, 'Add at least one exercise'),
 });
 
-// --- DRAGGABLE ITEM COMPONENT ---
-const DraggableItem: React.FC<DraggableItemProps> = ({
+// --- DRAGGABLE ITEM COMPONENTS ---
+const NativeDraggableItem: React.FC<DraggableItemProps> = ({
   item,
   children,
   onDrop,
@@ -311,6 +312,140 @@ const DraggableItem: React.FC<DraggableItemProps> = ({
   );
 };
 
+const WebDraggableItem: React.FC<DraggableItemProps> = ({
+  item,
+  children,
+  onDrop,
+  onDragStart,
+  onDragEnd,
+  onDragMove,
+  simultaneousHandlers: _simultaneousHandlers,
+  scrollOffset,
+}) => {
+  const [layoutSize, setLayoutSize] = useState<{width: number; height: number}>(
+    {
+      width: 0,
+      height: 0,
+    },
+  );
+  const [isDragging, setIsDragging] = useState(false);
+  const translate = useRef({x: 0, y: 0});
+  const start = useRef({x: 0, y: 0});
+  const startScrollY = useRef(0);
+  const hasMoved = useRef(false);
+  const dragThreshold = 5;
+
+  const handlePointerDown = (e: PointerEvent) => {
+    e.preventDefault();
+    const evt = e as unknown as {
+      clientX: number;
+      clientY: number;
+      pointerId: number;
+      currentTarget: any;
+    };
+    setIsDragging(true);
+    start.current = {
+      x: evt.clientX - translate.current.x,
+      y: evt.clientY - translate.current.y,
+    };
+    startScrollY.current = scrollOffset?.value ?? 0;
+    hasMoved.current = false;
+    onDragStart?.();
+    evt.currentTarget.setPointerCapture(evt.pointerId);
+  };
+
+  const handlePointerMove = (e: PointerEvent) => {
+    const evt = e as unknown as {
+      clientX: number;
+      clientY: number;
+      currentTarget: any;
+    };
+    if (!isDragging) return;
+    const dx = evt.clientX - start.current.x;
+    const dy = evt.clientY - start.current.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    if (!hasMoved.current && distance > dragThreshold) {
+      hasMoved.current = true;
+    }
+    if (!hasMoved.current) return;
+    translate.current = {x: dx, y: dy};
+    const scrollDiff = (scrollOffset?.value ?? 0) - startScrollY.current;
+    evt.currentTarget.style.transform = `translate(${dx}px, ${dy + scrollDiff}px)`;
+    onDragMove?.(evt.clientX, evt.clientY);
+  };
+
+  const endDrag = (e: PointerEvent) => {
+    const evt = e as unknown as {
+      clientX: number;
+      clientY: number;
+      pointerId: number;
+      currentTarget: any;
+    };
+    if (!isDragging) return;
+    evt.currentTarget.releasePointerCapture(evt.pointerId);
+    setIsDragging(false);
+    translate.current = {x: 0, y: 0};
+    evt.currentTarget.style.transform = 'translate(0px, 0px)';
+    if (hasMoved.current) {
+      onDrop(evt.clientX, evt.clientY, item);
+    }
+    hasMoved.current = false;
+    onDragEnd?.();
+  };
+
+  return (
+    <View
+      style={{
+        width: '100%',
+        height: layoutSize.height > 0 ? layoutSize.height : undefined,
+      }}>
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          opacity: isDragging ? 0.3 : 0,
+        }}>
+        {children}
+      </View>
+      <View
+        onLayout={e =>
+          setLayoutSize({
+            width: e.nativeEvent.layout.width,
+            height: e.nativeEvent.layout.height,
+          })
+        }
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        style={
+          {
+            width: '100%',
+            position: isDragging ? 'absolute' : 'relative',
+            zIndex: isDragging ? 100 : 0,
+            cursor: 'grab',
+            userSelect: 'none',
+            touchAction: 'none',
+          } as any
+        }>
+        {children}
+      </View>
+    </View>
+  );
+};
+
+const DraggableItem: React.FC<DraggableItemProps> = props => {
+  return Platform.OS === 'web' ? (
+    <WebDraggableItem {...props} />
+  ) : (
+    <NativeDraggableItem {...props} />
+  );
+};
+
 const HEADER_HEIGHT_OFFSET = 61;
 
 export default function WorkoutPlanBuilderScreen() {
@@ -343,11 +478,16 @@ export default function WorkoutPlanBuilderScreen() {
 
   const handleDragStart = () => {
     isDraggingItem.current = true;
-    scrollRef.current?.setNativeProps({scrollEnabled: false});
+    if (Platform.OS !== 'web') {
+      scrollRef.current?.setNativeProps({scrollEnabled: false});
+    }
   };
+
   const handleDragEnd = () => {
     isDraggingItem.current = false;
-    scrollRef.current?.setNativeProps({scrollEnabled: true});
+    if (Platform.OS !== 'web') {
+      scrollRef.current?.setNativeProps({scrollEnabled: true});
+    }
   };
 
   const handleAutoScroll = useWorkletCallback((x: number, y: number) => {
