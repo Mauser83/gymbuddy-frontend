@@ -107,6 +107,7 @@ export default function WorkoutPlanViewScreen() {
               trainingMethodId: ex.trainingMethod?.id ?? null,
               isWarmup: ex.isWarmup ?? false,
               groupId: ex.groupId,
+              order: ex.order, // ✅ Add this line
             })),
           };
           navigate('/user/edit-plan', {state: {initialPlan: formattedPlan}});

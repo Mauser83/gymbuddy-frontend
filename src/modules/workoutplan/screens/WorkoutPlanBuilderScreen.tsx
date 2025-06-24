@@ -385,6 +385,45 @@ export default function WorkoutPlanBuilderScreen() {
   };
   const groupIdCounterRef = useRef(1);
 
+  const getNextGlobalOrder = (
+    exs: ExerciseFormEntry[],
+    grps: ExerciseGroup[],
+  ): number => {
+    const orders = [
+      ...exs.map(e => e.order ?? 0),
+      ...grps.map(g => g.order ?? 0),
+    ];
+    return orders.length > 0 ? Math.max(...orders) + 1 : 0;
+  };
+
+  const reindexAllOrders = (
+    exs: ExerciseFormEntry[],
+    grps: ExerciseGroup[],
+  ): {exercises: ExerciseFormEntry[]; groups: ExerciseGroup[]} => {
+    const items: PlanItem[] = [
+      ...grps.map(g => ({type: 'group' as const, data: g})),
+      ...exs.map(e => ({type: 'exercise' as const, data: e})),
+    ];
+    items.sort((a, b) => a.data.order - b.data.order);
+
+    const newExercises = [...exs];
+    const newGroups = [...grps];
+
+    items.forEach((it, idx) => {
+      if (it.type === 'exercise') {
+        const exIdx = newExercises.findIndex(
+          e => e.instanceId === it.data.instanceId,
+        );
+        if (exIdx !== -1) newExercises[exIdx].order = idx;
+      } else {
+        const gIdx = newGroups.findIndex(g => g.id === it.data.id);
+        if (gIdx !== -1) newGroups[gIdx].order = idx;
+      }
+    });
+
+    return {exercises: newExercises, groups: newGroups};
+  };
+
   const confirmAsync = (title: string, message: string) =>
     new Promise<boolean>(resolve => {
       Alert.alert(title, message, [
@@ -982,10 +1021,10 @@ export default function WorkoutPlanBuilderScreen() {
               const methodId =
                 currentExercises[exerciseIndex]?.trainingMethodId ??
                 newTrainingMethodId;
-              const nextGroupOrder =
-                updatedGroups.length > 0
-                  ? Math.max(...updatedGroups.map(g => g.order)) + 1
-                  : 0;
+              const nextGroupOrder = getNextGlobalOrder(
+                currentExercises,
+                updatedGroups,
+              );
               updatedGroups.push({
                 id: groupId,
                 trainingMethodId: methodId ?? 0,
@@ -995,19 +1034,41 @@ export default function WorkoutPlanBuilderScreen() {
             const updatedExercises = [...currentExercises];
             if (exerciseIndex === -1) return;
 
-            const nextOrder = currentExercises.filter(
-              e => e.groupId === groupId,
-            ).length;
+            let provisionalOrder: number;
+            if (groupId !== null) {
+              const related = updatedExercises.filter(
+                e => e.groupId === groupId && e.instanceId !== instanceId,
+              );
+              const base = [
+                ...(updatedGroups.find(g => g.id === groupId)
+                  ? [updatedGroups.find(g => g.id === groupId)!.order]
+                  : []),
+                ...related.map(e => e.order),
+              ];
+              provisionalOrder = (base.length ? Math.max(...base) : 0) + 0.1;
+            } else {
+              const ungrouped = updatedExercises.filter(
+                e => e.groupId == null && e.instanceId !== instanceId,
+              );
+              const base = [
+                ...ungrouped.map(e => e.order),
+                ...updatedGroups.map(g => g.order),
+              ];
+              provisionalOrder = (base.length ? Math.max(...base) : 0) + 0.1;
+            }
 
             updatedExercises[exerciseIndex] = {
               ...updatedExercises[exerciseIndex],
               groupId,
               trainingMethodId: newTrainingMethodId,
-              order: nextOrder,
+              order: provisionalOrder,
             };
 
-            setFieldValueFn('groups', updatedGroups);
-            setFieldValueFn('exercises', updatedExercises);
+            const {exercises: finalExercises, groups: finalGroups} =
+              reindexAllOrders(updatedExercises, updatedGroups);
+
+            setFieldValueFn('groups', finalGroups);
+            setFieldValueFn('exercises', finalExercises);
           };
 
           const reorderExercises = (
@@ -1650,17 +1711,11 @@ export default function WorkoutPlanBuilderScreen() {
                               newExercises.forEach(e => {
                                 const newTargetMetrics =
                                   createPlanningTargetMetrics(e.id);
-                                const getNextUngroupedOrder = (): number => {
-                                  const ungrouped = values.exercises.filter(
-                                    ex => ex.groupId == null,
+                                const getNextOrder = (): number =>
+                                  getNextGlobalOrder(
+                                    values.exercises,
+                                    values.groups,
                                   );
-                                  if (ungrouped.length === 0) return 0;
-                                  return (
-                                    Math.max(
-                                      ...ungrouped.map(ex => ex.order ?? 0),
-                                    ) + 1
-                                  );
-                                };
                                 const newExerciseObject = {
                                   instanceId: generateUniqueId(),
                                   exerciseId: e.id,
@@ -1670,7 +1725,7 @@ export default function WorkoutPlanBuilderScreen() {
                                   isWarmup: false,
                                   trainingMethodId: undefined,
                                   groupId: null,
-                                  order: getNextUngroupedOrder(), // 👈 custom function, defined below
+                                  order: getNextOrder(), // global ordering
                                 };
                                 pushRef.current(newExerciseObject);
                               });
@@ -1699,12 +1754,10 @@ export default function WorkoutPlanBuilderScreen() {
                           }
                           onSelect={id => {
                             if (stagedGroupId != null) {
-                              const nextOrder =
-                                values.groups.length > 0
-                                  ? Math.max(
-                                      ...values.groups.map(g => g.order),
-                                    ) + 1
-                                  : 0;
+                              const nextOrder = getNextGlobalOrder(
+                                values.exercises,
+                                values.groups,
+                              );
                               const newGroup = {
                                 id: stagedGroupId,
                                 trainingMethodId: id,
