@@ -257,6 +257,7 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
     return {
       position: isDragging.value ? 'absolute' : 'relative',
       zIndex: isDragging.value ? 100 : 0,
+      opacity: isDragging.value ? 0.3 : 1,
       transform: [
         {translateX: translateX.value},
         {translateY: translateY.value + scrollDiff},
@@ -268,30 +269,12 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
     };
   });
 
-  const overlayAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: isDragging.value ? 0.3 : 0,
-  }));
-
   return (
     <View
       style={{
         width: '100%',
         height: layoutSize.height > 0 ? layoutSize.height : undefined,
       }}>
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-          },
-          overlayAnimatedStyle,
-        ]}>
-        {children}
-      </Animated.View>
       <PanGestureHandler
         onGestureEvent={gestureHandler}
         simultaneousHandlers={simultaneousHandlers}>
@@ -400,18 +383,6 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
         height: layoutSize.height > 0 ? layoutSize.height : undefined,
       }}>
       <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          opacity: isDragging ? 0.3 : 0,
-        }}>
-        {children}
-      </View>
-      <View
         onLayout={e =>
           setLayoutSize({
             width: e.nativeEvent.layout.width,
@@ -427,6 +398,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
             width: '100%',
             position: isDragging ? 'absolute' : 'relative',
             zIndex: isDragging ? 100 : 0,
+            opacity: isDragging ? 0.3 : 1,
             cursor: 'grab',
             userSelect: 'none',
             touchAction: 'none',
@@ -999,6 +971,21 @@ export default function WorkoutPlanBuilderScreen() {
               .sort((a, b) => a.order - b.order);
           };
 
+          const isPointInLayout = (
+            pointX: number,
+            pointY: number,
+            layout: Layout,
+          ) => {
+            const adjustedY =
+              layout.y - (scrollOffsetY.value - layout.scrollOffset);
+            return (
+              pointX >= layout.x &&
+              pointX <= layout.x + layout.width &&
+              pointY >= adjustedY &&
+              pointY <= adjustedY + layout.height
+            );
+          };
+
           const handleDrop = (
             x: number,
             y: number,
@@ -1010,35 +997,40 @@ export default function WorkoutPlanBuilderScreen() {
               draggedItemData,
               scrollOffset: scrollOffsetY.value,
             });
-            if (draggedItemData.type === 'group') {
-              // Reorder groups relative to other plan items
-              const allLayouts: Record<string, Layout> = {
-                ...exerciseLayouts.current,
-                ...Object.fromEntries(
-                  Object.entries(groupLayouts.current).map(([id, l]) => [
-                    String(id),
-                    l,
-                  ]),
-                ),
-              };
 
-              for (const targetId in allLayouts) {
-                if (targetId === draggedItemData.id) continue;
-                const layout = allLayouts[targetId];
-                const adjustedY =
-                  layout.y - (scrollOffsetY.value - layout.scrollOffset);
-                if (
-                  x >= layout.x &&
-                  x <= layout.x + layout.width &&
-                  y >= adjustedY &&
-                  y <= adjustedY + layout.height
-                ) {
-                  const targetData: DragData = exerciseLayouts.current[targetId]
-                    ? {type: 'exercise', id: targetId}
-                    : {type: 'group', id: targetId};
+            if (draggedItemData.type === 'group') {
+              const allTopLevelItems: {
+                id: string;
+                type: 'exercise' | 'group';
+                layout: Layout;
+              }[] = [];
+
+              for (const id in exerciseLayouts.current) {
+                const ex = values.exercises.find(e => e.instanceId === id);
+                if (ex && ex.groupId == null) {
+                  allTopLevelItems.push({
+                    id,
+                    type: 'exercise',
+                    layout: exerciseLayouts.current[id],
+                  });
+                }
+              }
+              for (const id in groupLayouts.current) {
+                allTopLevelItems.push({
+                  id: String(id),
+                  type: 'group',
+                  layout: groupLayouts.current[id],
+                });
+              }
+
+              allTopLevelItems.sort((a, b) => a.layout.y - b.layout.y);
+
+              for (const target of allTopLevelItems) {
+                if (target.id === draggedItemData.id) continue;
+                if (isPointInLayout(x, y, target.layout)) {
                   reorderPlanItems(
                     draggedItemData,
-                    targetData,
+                    {type: target.type, id: target.id},
                     values,
                     setFieldValue,
                   );
@@ -1053,48 +1045,31 @@ export default function WorkoutPlanBuilderScreen() {
             );
             if (!draggedItem) return;
 
-            // Priority 1: Check if dropped on another exercise to reorder
-            // This will now correctly trigger for items within the same group.
-            for (const targetInstanceId in exerciseLayouts.current) {
-              if (targetInstanceId === draggedItemData.id) continue;
-              const layout = exerciseLayouts.current[targetInstanceId];
-              const adjustedY =
-                layout.y - (scrollOffsetY.value - layout.scrollOffset);
-              if (
-                x >= layout.x &&
-                x <= layout.x + layout.width &&
-                y >= adjustedY &&
-                y <= adjustedY + layout.height
-              ) {
-                const targetItem = values.exercises.find(
-                  ex => ex.instanceId === targetInstanceId,
+            // Priority 1: Drop on another exercise within same container
+            for (const targetId in exerciseLayouts.current) {
+              if (targetId === draggedItemData.id) continue;
+              const layout = exerciseLayouts.current[targetId];
+              if (isPointInLayout(x, y, layout)) {
+                const target = values.exercises.find(
+                  ex => ex.instanceId === targetId,
                 );
-                // Only reorder if they are in the same group (or both are ungrouped)
-                if (targetItem && targetItem.groupId === draggedItem.groupId) {
+                if (target && target.groupId === draggedItem.groupId) {
                   reorderExercises(
                     draggedItemData.id,
-                    targetInstanceId,
+                    targetId,
                     values.exercises,
                     setFieldValue,
                   );
-                  return; // Reordering handled, so we're done.
+                  return;
                 }
               }
             }
 
-            // Priority 2: Check if dropped on a group zone to change its group
+            // Priority 2: Drop into a group
             for (const groupIdStr in groupLayouts.current) {
               const layout = groupLayouts.current[groupIdStr];
-              const adjustedY =
-                layout.y - (scrollOffsetY.value - layout.scrollOffset);
-              if (
-                x >= layout.x &&
-                x <= layout.x + layout.width &&
-                y >= adjustedY &&
-                y <= adjustedY + layout.height
-              ) {
+              if (isPointInLayout(x, y, layout)) {
                 const targetGroupId = parseInt(groupIdStr, 10);
-                // Only update if it's being moved to a *different* group
                 if (draggedItem.groupId !== targetGroupId) {
                   updateExerciseGroup(
                     draggedItemData.id,
@@ -1104,18 +1079,20 @@ export default function WorkoutPlanBuilderScreen() {
                     setFieldValue,
                   );
                 }
-                return; // Group assignment handled (or skipped), so we're done.
+                return;
               }
             }
 
-            // Priority 3: Dropped in empty space, so un-group it
-            updateExerciseGroup(
-              draggedItemData.id,
-              null, // Setting groupId to null un-groups it
-              values.exercises,
-              values.groups,
-              setFieldValue,
-            );
+            // Priority 3: dropped in empty space -> ungroup
+            if (draggedItem.groupId !== null) {
+              updateExerciseGroup(
+                draggedItemData.id,
+                null,
+                values.exercises,
+                values.groups,
+                setFieldValue,
+              );
+            }
           };
           const updateExerciseGroup = (
             instanceId: string,
@@ -1225,38 +1202,43 @@ export default function WorkoutPlanBuilderScreen() {
             );
             if (!draggedItem || !targetItem) return;
 
-            // Only allow reordering within same groupId (including null for ungrouped)
-            if (draggedItem.groupId !== targetItem.groupId) return;
+            if (draggedItem.groupId !== targetItem.groupId) {
+              console.warn(
+                'Attempted to reorder exercises across different groups.',
+              );
+              return;
+            }
 
-            const reorderedExercises = [...currentExercises]; // Create a mutable copy
+            const containerExercises = currentExercises
+              .filter(ex => ex.groupId === draggedItem.groupId)
+              .sort((a, b) => a.order - b.order);
 
-            const draggedIndex = reorderedExercises.findIndex(
+            const fromIdx = containerExercises.findIndex(
               ex => ex.instanceId === draggedId,
             );
-            const targetIndex = reorderedExercises.findIndex(
+            const toIdx = containerExercises.findIndex(
               ex => ex.instanceId === targetId,
             );
+            if (fromIdx === -1 || toIdx === -1) return;
 
-            if (draggedIndex === -1 || targetIndex === -1) return;
+            const [moved] = containerExercises.splice(fromIdx, 1);
+            containerExercises.splice(toIdx, 0, moved);
 
-            // 1. Remove the dragged item from its original position
-            const [movedItem] = reorderedExercises.splice(draggedIndex, 1);
+            const updatedExercises = currentExercises.map(ex => {
+              const idx = containerExercises.findIndex(
+                ce => ce.instanceId === ex.instanceId,
+              );
+              if (idx !== -1) {
+                return {...ex, order: idx};
+              }
+              return ex;
+            });
 
-            // 2. Find the new target index in the modified array
-            const newTargetIndex = reorderedExercises.findIndex(
-              ex => ex.instanceId === targetId,
-            );
-
-            // 3. Insert it at the target's position
-            reorderedExercises.splice(newTargetIndex, 0, movedItem);
-
-            // 4. Re-assign the 'order' property for ALL exercises to guarantee consistency
-            const finalExercises = reorderedExercises.map((ex, index) => ({
-              ...ex,
-              order: index, // This is the key change: re-index everything
-            }));
+            const {exercises: finalExercises, groups: finalGroups} =
+              reindexAllOrders(updatedExercises, values.groups);
 
             setFieldValueFn('exercises', finalExercises);
+            setFieldValueFn('groups', finalGroups);
           };
 
           const reorderPlanItems = (
@@ -1433,31 +1415,39 @@ export default function WorkoutPlanBuilderScreen() {
                                   borderColor={theme.colors.accentStart}
                                   textColor={theme.colors.textPrimary}>
                                   {getGroupedExercises(pi.data.id).map(ex => (
-                                    <View
+                                    <MeasuredExerciseItem
                                       key={ex.instanceId}
-                                      style={{
-                                        marginHorizontal: spacing.md,
-                                        marginVertical: spacing.sm,
-                                        backgroundColor: theme.colors.surface,
-                                        padding: spacing.sm,
-                                        borderRadius: 6,
-                                        borderWidth: 1,
-                                        borderColor: theme.colors.accentEnd,
-                                      }}>
-                                      <Text
+                                      item={ex}
+                                      onDrop={handleDrop}
+                                      simultaneousHandlers={scrollRef}
+                                      onDragStart={handleDragStart}
+                                      onDragEnd={handleDragEnd}
+                                      onDragMove={handleAutoScroll}>
+                                      <View
                                         style={{
-                                          color: theme.colors.textPrimary,
-                                          fontWeight: 'bold',
+                                          marginHorizontal: spacing.md,
+                                          marginVertical: spacing.sm,
+                                          backgroundColor: theme.colors.surface,
+                                          padding: spacing.sm,
+                                          borderRadius: 6,
+                                          borderWidth: 1,
+                                          borderColor: theme.colors.accentEnd,
                                         }}>
-                                        {ex.exerciseName}
-                                      </Text>
-                                      <Text
-                                        style={{
-                                          color: theme.colors.textSecondary,
-                                        }}>
-                                        {renderSummary(ex)}
-                                      </Text>
-                                    </View>
+                                        <Text
+                                          style={{
+                                            color: theme.colors.textPrimary,
+                                            fontWeight: 'bold',
+                                          }}>
+                                          {ex.exerciseName}
+                                        </Text>
+                                        <Text
+                                          style={{
+                                            color: theme.colors.textSecondary,
+                                          }}>
+                                          {renderSummary(ex)}
+                                        </Text>
+                                      </View>
+                                    </MeasuredExerciseItem>
                                   ))}
                                 </ExerciseGroupCard>
                               </MeasuredGroupItem>
