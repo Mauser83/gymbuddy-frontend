@@ -101,7 +101,7 @@ type DraggableItemProps = {
   onDrop: (x: number, y: number, data: DragData) => void;
   onDragStart?: () => void;
   onDragEnd?: () => void;
-  onDragMove?: (x: number, y: number) => void;
+  onDragMove?: (x: number, y: number, data: DragData) => void;
   simultaneousHandlers?: any;
   /**
    * Current scroll offset of the parent ScrollView. This is used so that when
@@ -229,7 +229,7 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
       translateX.value = ctx.startX + event.translationX;
       translateY.value = ctx.startY + event.translationY;
       if (onDragMove) {
-        onDragMove(event.absoluteX, event.absoluteY);
+        onDragMove(event.absoluteX, event.absoluteY, item);
       }
     },
     onEnd: event => {
@@ -356,7 +356,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
     translate.current = {x: dx, y: dy};
     const scrollDiff = (scrollOffset?.value ?? 0) - startScrollY.current;
     evt.currentTarget.style.transform = `translate(${dx}px, ${dy + scrollDiff}px)`;
-    onDragMove?.(evt.clientX, evt.clientY);
+    onDragMove?.(evt.clientX, evt.clientY, item);
   };
 
   const endDrag = (e: PointerEvent) => {
@@ -444,6 +444,13 @@ export default function WorkoutPlanBuilderScreen() {
 
   const groupLayouts = useRef<Record<number, Layout>>({});
   const exerciseLayouts = useRef<Record<string, Layout>>({});
+  const dragOffsets = useRef<Record<string, Animated.SharedValue<number>>>({});
+
+  const resetPreviewOffsets = () => {
+    for (const key in dragOffsets.current) {
+      dragOffsets.current[key].value = 0;
+    }
+  };
 
   const scrollOffsetY = useSharedValue(0);
   const scrollRef = useAnimatedRef<ScrollView>();
@@ -456,6 +463,7 @@ export default function WorkoutPlanBuilderScreen() {
     if (Platform.OS !== 'web') {
       scrollRef.current?.setNativeProps({scrollEnabled: false});
     }
+    resetPreviewOffsets();
   };
 
   const handleDragEnd = () => {
@@ -463,6 +471,7 @@ export default function WorkoutPlanBuilderScreen() {
     if (Platform.OS !== 'web') {
       scrollRef.current?.setNativeProps({scrollEnabled: true});
     }
+    resetPreviewOffsets();
   };
 
   const handleAutoScroll = useWorkletCallback((x: number, y: number) => {
@@ -703,7 +712,7 @@ export default function WorkoutPlanBuilderScreen() {
     simultaneousHandlers?: any;
     onDragStart?: () => void;
     onDragEnd?: () => void;
-    onDragMove?: (x: number, y: number) => void;
+    onDragMove?: (x: number, y: number, data: DragData) => void;
   };
 
   const MeasuredExerciseItemComponent = ({
@@ -716,6 +725,14 @@ export default function WorkoutPlanBuilderScreen() {
     onDragMove,
   }: MeasuredExerciseItemProps) => {
     const ref = useRef<View>(null);
+    const offset = useSharedValue(0);
+
+    useEffect(() => {
+      dragOffsets.current[item.instanceId] = offset;
+      return () => {
+        delete dragOffsets.current[item.instanceId];
+      };
+    }, [item.instanceId]);
 
     const measure = () => {
       ref.current?.measureInWindow((x, y, width, height) => {
@@ -727,6 +744,7 @@ export default function WorkoutPlanBuilderScreen() {
             height,
             scrollOffset: scrollOffsetY.value,
           };
+          offset.value = 0; // ensure offset reset after measuring
         }
       });
     };
@@ -736,8 +754,15 @@ export default function WorkoutPlanBuilderScreen() {
       return () => clearTimeout(timer);
     }, [item.instanceId]);
 
+    const animatedContainerStyle = useAnimatedStyle(() => ({
+      transform: [{translateY: offset.value}],
+    }));
+
     return (
-      <View ref={ref} onLayout={measure}>
+      <Animated.View
+        ref={ref}
+        onLayout={measure}
+        style={animatedContainerStyle}>
         <DraggableItem
           item={{type: 'exercise', id: item.instanceId}}
           onDrop={onDrop}
@@ -748,7 +773,7 @@ export default function WorkoutPlanBuilderScreen() {
           scrollOffset={scrollOffsetY}>
           {children}
         </DraggableItem>
-      </View>
+      </Animated.View>
     );
   };
 
@@ -761,7 +786,7 @@ export default function WorkoutPlanBuilderScreen() {
     simultaneousHandlers?: any;
     onDragStart?: () => void;
     onDragEnd?: () => void;
-    onDragMove?: (x: number, y: number) => void;
+    onDragMove?: (x: number, y: number, data: DragData) => void;
   };
 
   const MeasuredGroupItem: React.FC<MeasuredGroupItemProps> = ({
@@ -774,6 +799,14 @@ export default function WorkoutPlanBuilderScreen() {
     onDragMove,
   }) => {
     const ref = useRef<View>(null);
+    const offset = useSharedValue(0);
+
+    useEffect(() => {
+      dragOffsets.current[String(group.id)] = offset;
+      return () => {
+        delete dragOffsets.current[String(group.id)];
+      };
+    }, [group.id]);
 
     const measure = () => {
       ref.current?.measureInWindow((x, y, width, height) => {
@@ -785,6 +818,7 @@ export default function WorkoutPlanBuilderScreen() {
             height,
             scrollOffset: scrollOffsetY.value,
           };
+          offset.value = 0;
         }
       });
     };
@@ -794,8 +828,15 @@ export default function WorkoutPlanBuilderScreen() {
       return () => clearTimeout(timer);
     }, [group.id]);
 
+    const animatedContainerStyle = useAnimatedStyle(() => ({
+      transform: [{translateY: offset.value}],
+    }));
+
     return (
-      <View ref={ref} onLayout={measure}>
+      <Animated.View
+        ref={ref}
+        onLayout={measure}
+        style={animatedContainerStyle}>
         <DraggableItem
           item={{type: 'group', id: String(group.id)}}
           onDrop={onDrop}
@@ -806,7 +847,7 @@ export default function WorkoutPlanBuilderScreen() {
           scrollOffset={scrollOffsetY}>
           {children}
         </DraggableItem>
-      </View>
+      </Animated.View>
     );
   };
 
@@ -988,6 +1029,106 @@ export default function WorkoutPlanBuilderScreen() {
               pointY <= adjustedY + layout.height
             );
           };
+
+          const updatePreviewOffsets = (
+            x: number,
+            y: number,
+            draggedItemData: DragData,
+          ) => {
+            const draggedKey =
+              draggedItemData.type === 'group'
+                ? String(draggedItemData.id)
+                : draggedItemData.id;
+
+            const containerItems: {id: string; layout: Layout}[] = [];
+
+            if (
+              draggedItemData.type === 'group' ||
+              (draggedItemData.type === 'exercise' &&
+                values.exercises.find(e => e.instanceId === draggedItemData.id)
+                  ?.groupId === null)
+            ) {
+              for (const id in exerciseLayouts.current) {
+                const ex = values.exercises.find(e => e.instanceId === id);
+                if (ex && ex.groupId == null) {
+                  containerItems.push({
+                    id,
+                    layout: exerciseLayouts.current[id],
+                  });
+                }
+              }
+              for (const id in groupLayouts.current) {
+                containerItems.push({
+                  id: String(id),
+                  layout: groupLayouts.current[id],
+                });
+              }
+              containerItems.sort((a, b) => a.layout.y - b.layout.y);
+            } else {
+              const draggedEx = values.exercises.find(
+                ex => ex.instanceId === draggedItemData.id,
+              );
+              if (!draggedEx) {
+                resetPreviewOffsets();
+                return;
+              }
+              const exs = values.exercises
+                .filter(ex => ex.groupId === draggedEx.groupId)
+                .sort((a, b) => a.order - b.order);
+              exs.forEach(ex => {
+                const layout = exerciseLayouts.current[ex.instanceId];
+                if (layout) {
+                  containerItems.push({id: ex.instanceId, layout});
+                }
+              });
+            }
+
+            const fromIdx = containerItems.findIndex(
+              it => it.id === draggedKey,
+            );
+            if (fromIdx === -1) {
+              resetPreviewOffsets();
+              return;
+            }
+
+            let toIdx = fromIdx;
+            for (let i = 0; i < containerItems.length; i++) {
+              if (i === fromIdx) continue;
+              if (isPointInLayout(x, y, containerItems[i].layout)) {
+                toIdx = i;
+                break;
+              }
+            }
+
+            resetPreviewOffsets();
+
+            if (toIdx === fromIdx) return;
+
+            const draggedHeight = containerItems[fromIdx].layout.height;
+            if (toIdx > fromIdx) {
+              for (let i = fromIdx + 1; i <= toIdx; i++) {
+                const key = containerItems[i].id;
+                if (dragOffsets.current[key]) {
+                  dragOffsets.current[key].value = -draggedHeight;
+                }
+              }
+            } else if (toIdx < fromIdx) {
+              for (let i = toIdx; i < fromIdx; i++) {
+                const key = containerItems[i].id;
+                if (dragOffsets.current[key]) {
+                  dragOffsets.current[key].value = draggedHeight;
+                }
+              }
+            }
+          };
+
+          const handleDragMove = useWorkletCallback(
+            (x: number, y: number, data: DragData) => {
+              handleAutoScroll(x, y);
+              runOnJS(updatePreviewOffsets)(x, y, data);
+            },
+            [handleAutoScroll],
+          );
 
           const handleDrop = (
             x: number,
@@ -1412,7 +1553,7 @@ export default function WorkoutPlanBuilderScreen() {
                                 simultaneousHandlers={scrollRef}
                                 onDragStart={handleDragStart}
                                 onDragEnd={handleDragEnd}
-                                onDragMove={handleAutoScroll}>
+                                onDragMove={handleDragMove}>
                                 <ExerciseGroupCard
                                   label={getGroupLabel(pi.data)}
                                   borderColor={theme.colors.accentStart}
@@ -1425,7 +1566,7 @@ export default function WorkoutPlanBuilderScreen() {
                                       simultaneousHandlers={scrollRef}
                                       onDragStart={handleDragStart}
                                       onDragEnd={handleDragEnd}
-                                      onDragMove={handleAutoScroll}>
+                                onDragMove={handleDragMove}>
                                       <View
                                         style={{
                                           marginHorizontal: spacing.md,
@@ -1462,7 +1603,7 @@ export default function WorkoutPlanBuilderScreen() {
                                 simultaneousHandlers={scrollRef}
                                 onDragStart={handleDragStart}
                                 onDragEnd={handleDragEnd}
-                                onDragMove={handleAutoScroll}>
+                                onDragMove={handleDragMove}>
                                 <View
                                   style={{
                                     backgroundColor: theme.colors.background,
