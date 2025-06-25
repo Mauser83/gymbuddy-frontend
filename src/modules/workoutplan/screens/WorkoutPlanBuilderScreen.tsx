@@ -319,6 +319,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
   const dragThreshold = 5;
 
   const handlePointerDown = (e: PointerEvent) => {
+    e.stopPropagation();
     e.preventDefault();
     const evt = e as unknown as {
       clientX: number;
@@ -338,6 +339,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
   };
 
   const handlePointerMove = (e: PointerEvent) => {
+    e.stopPropagation();
     const evt = e as unknown as {
       clientX: number;
       clientY: number;
@@ -358,6 +360,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
   };
 
   const endDrag = (e: PointerEvent) => {
+    e.stopPropagation();
     const evt = e as unknown as {
       clientX: number;
       clientY: number;
