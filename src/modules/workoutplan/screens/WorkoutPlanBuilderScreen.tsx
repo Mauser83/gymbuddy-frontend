@@ -749,10 +749,18 @@ export default function WorkoutPlanBuilderScreen() {
       });
     };
 
-    useEffect(() => {
-      const timer = setTimeout(measure, 100);
-      return () => clearTimeout(timer);
-    }, [item.instanceId]);
+useEffect(() => {
+  const timer = setTimeout(() => {
+    const hasLayout = !!exerciseLayouts.current[item.instanceId];
+    console.log(`[MeasuredExerciseItem] measured ${item.instanceId}?`, hasLayout);
+    if (hasLayout) {
+      console.log(`[MeasuredExerciseItem] layout for ${item.instanceId}:`, exerciseLayouts.current[item.instanceId]);
+    } else {
+      console.warn(`[MeasuredExerciseItem] ❌ missing layout for ${item.instanceId}`);
+    }
+  }, 300);
+  return () => clearTimeout(timer);
+}, [item.instanceId]);
 
     const animatedContainerStyle = useAnimatedStyle(() => ({
       transform: [{translateY: offset.value}],
@@ -1019,9 +1027,11 @@ export default function WorkoutPlanBuilderScreen() {
             pointX: number,
             pointY: number,
             layout: Layout,
+            id: string,
           ) => {
+            const offset = dragOffsets.current[id]?.value ?? 0;
             const adjustedY =
-              layout.y - (scrollOffsetY.value - layout.scrollOffset);
+              layout.y + offset - (scrollOffsetY.value - layout.scrollOffset);
             return (
               pointX >= layout.x &&
               pointX <= layout.x + layout.width &&
@@ -1035,10 +1045,19 @@ export default function WorkoutPlanBuilderScreen() {
             y: number,
             draggedItemData: DragData,
           ) => {
+            console.log('[updatePreviewOffsets] called with:', {
+              x,
+              y,
+              draggedItemData,
+              scrollOffset: scrollOffsetY.value,
+            });
+
             const draggedKey =
               draggedItemData.type === 'group'
                 ? String(draggedItemData.id)
                 : draggedItemData.id;
+
+            console.log('[updatePreviewOffsets] draggedKey:', draggedKey);
 
             const containerItems: {id: string; layout: Layout}[] = [];
 
@@ -1046,8 +1065,10 @@ export default function WorkoutPlanBuilderScreen() {
               draggedItemData.type === 'group' ||
               (draggedItemData.type === 'exercise' &&
                 values.exercises.find(e => e.instanceId === draggedItemData.id)
-                  ?.groupId === null)
+                  ?.groupId == null)
             ) {
+              console.log('[updatePreviewOffsets] dragging a top-level item');
+
               for (const id in exerciseLayouts.current) {
                 const ex = values.exercises.find(e => e.instanceId === id);
                 if (ex && ex.groupId == null) {
@@ -1065,16 +1086,21 @@ export default function WorkoutPlanBuilderScreen() {
               }
               containerItems.sort((a, b) => a.layout.y - b.layout.y);
             } else {
+              console.log('[updatePreviewOffsets] dragging a grouped item');
+
               const draggedEx = values.exercises.find(
                 ex => ex.instanceId === draggedItemData.id,
               );
               if (!draggedEx) {
+                console.log('[updatePreviewOffsets] ❌ draggedEx not found');
                 resetPreviewOffsets();
                 return;
               }
+
               const exs = values.exercises
                 .filter(ex => ex.groupId === draggedEx.groupId)
                 .sort((a, b) => a.order - b.order);
+
               exs.forEach(ex => {
                 const layout = exerciseLayouts.current[ex.instanceId];
                 if (layout) {
@@ -1083,10 +1109,16 @@ export default function WorkoutPlanBuilderScreen() {
               });
             }
 
+            console.log(
+              '[updatePreviewOffsets] containerItems:',
+              containerItems,
+            );
+
             const fromIdx = containerItems.findIndex(
               it => it.id === draggedKey,
             );
             if (fromIdx === -1) {
+              console.log('[updatePreviewOffsets] ❌ fromIdx not found');
               resetPreviewOffsets();
               return;
             }
@@ -1094,32 +1126,57 @@ export default function WorkoutPlanBuilderScreen() {
             let toIdx = fromIdx;
             for (let i = 0; i < containerItems.length; i++) {
               if (i === fromIdx) continue;
-              if (isPointInLayout(x, y, containerItems[i].layout)) {
+              if (
+                isPointInLayout(
+                  x,
+                  y,
+                  containerItems[i].layout,
+                  containerItems[i].id,
+                )
+              ) {
                 toIdx = i;
                 break;
               }
             }
 
+            console.log(
+              `[updatePreviewOffsets] fromIdx: ${fromIdx}, toIdx: ${toIdx}`,
+            );
+
             resetPreviewOffsets();
 
-            if (toIdx === fromIdx) return;
+            if (toIdx === fromIdx) {
+              console.log('[updatePreviewOffsets] 📎 No reordering needed');
+              return;
+            }
 
             const draggedHeight = containerItems[fromIdx].layout.height;
+
             if (toIdx > fromIdx) {
+              console.log('[updatePreviewOffsets] moving DOWN');
               for (let i = fromIdx + 1; i <= toIdx; i++) {
                 const key = containerItems[i].id;
                 if (dragOffsets.current[key]) {
+                  console.log(
+                    `[updatePreviewOffsets] setting offset for ${key} = ${-draggedHeight}`,
+                  );
                   dragOffsets.current[key].value = -draggedHeight;
                 }
               }
             } else if (toIdx < fromIdx) {
+              console.log('[updatePreviewOffsets] moving UP');
               for (let i = toIdx; i < fromIdx; i++) {
                 const key = containerItems[i].id;
                 if (dragOffsets.current[key]) {
+                  console.log(
+                    `[updatePreviewOffsets] setting offset for ${key} = ${draggedHeight}`,
+                  );
                   dragOffsets.current[key].value = draggedHeight;
                 }
               }
             }
+
+            console.log('[updatePreviewOffsets] ✅ Finished');
           };
 
           const handleDragMove = useWorkletCallback(
@@ -1167,11 +1224,16 @@ export default function WorkoutPlanBuilderScreen() {
                 });
               }
 
-              allTopLevelItems.sort((a, b) => a.layout.y - b.layout.y);
+              allTopLevelItems.sort(
+                (a, b) =>
+                  a.layout.y +
+                  (dragOffsets.current[a.id]?.value ?? 0) -
+                  (b.layout.y + (dragOffsets.current[b.id]?.value ?? 0)),
+              );
 
               for (const target of allTopLevelItems) {
                 if (target.id === draggedItemData.id) continue;
-                if (isPointInLayout(x, y, target.layout)) {
+                if (isPointInLayout(x, y, target.layout, target.id)) {
                   reorderPlanItems(
                     draggedItemData,
                     {type: target.type, id: target.id},
@@ -1193,7 +1255,7 @@ export default function WorkoutPlanBuilderScreen() {
             for (const targetId in exerciseLayouts.current) {
               if (targetId === draggedItemData.id) continue;
               const layout = exerciseLayouts.current[targetId];
-              if (isPointInLayout(x, y, layout)) {
+              if (isPointInLayout(x, y, layout, targetId)) {
                 const target = values.exercises.find(
                   ex => ex.instanceId === targetId,
                 );
@@ -1212,7 +1274,7 @@ export default function WorkoutPlanBuilderScreen() {
             // Priority 2: Drop into a group
             for (const groupIdStr in groupLayouts.current) {
               const layout = groupLayouts.current[groupIdStr];
-              if (isPointInLayout(x, y, layout)) {
+              if (isPointInLayout(x, y, layout, groupIdStr)) {
                 const targetGroupId = parseInt(groupIdStr, 10);
                 if (draggedItem.groupId !== targetGroupId) {
                   updateExerciseGroup(
@@ -1566,7 +1628,7 @@ export default function WorkoutPlanBuilderScreen() {
                                       simultaneousHandlers={scrollRef}
                                       onDragStart={handleDragStart}
                                       onDragEnd={handleDragEnd}
-                                onDragMove={handleDragMove}>
+                                      onDragMove={handleDragMove}>
                                       <View
                                         style={{
                                           marginHorizontal: spacing.md,
