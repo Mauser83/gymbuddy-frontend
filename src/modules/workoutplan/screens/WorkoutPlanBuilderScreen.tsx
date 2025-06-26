@@ -264,7 +264,7 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
       ],
       elevation: isDragging.value ? 10 : 0,
       shadowRadius: isDragging.value ? 15 : 1,
-      shadowOpacity: isDragging.value ? 0.2 : 0,
+      shadowOpacity: isDragging.value ? 0.7 : 0,
       shadowOffset: {width: 0, height: isDragging.value ? 10 : 1},
     };
   });
@@ -401,7 +401,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
             width: '100%',
             position: isDragging ? 'absolute' : 'relative',
             zIndex: isDragging ? 100 : 0,
-            opacity: isDragging ? 0.7 : 1,
+            opacity: isDragging ? 0.3 : 1,
             cursor: 'grab',
             userSelect: 'none',
             touchAction: 'none',
