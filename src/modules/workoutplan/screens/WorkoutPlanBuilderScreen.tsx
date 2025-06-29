@@ -107,6 +107,7 @@ type DraggableItemProps = {
   onDragEnd?: () => void;
   onDragMove?: (x: number, y: number, data: DragData) => void;
   simultaneousHandlers?: any;
+  resetPreviewOffsets?: () => void;
   /**
    * Current scroll offset of the parent ScrollView. This is used so that when
    * the list auto-scrolls during a drag operation, the dragged item stays under
@@ -195,6 +196,7 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
   onDragMove,
   simultaneousHandlers,
   scrollOffset,
+  resetPreviewOffsets,
 }) => {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -244,6 +246,9 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
       //   type: item.type,
       // });
       runOnJS(onDrop)(event.absoluteX, event.absoluteY, item);
+      if (resetPreviewOffsets) {
+        runOnJS(resetPreviewOffsets)();
+      }
       translateX.value = withSpring(0);
       translateY.value = withSpring(0, {}, finished => {
         if (finished) {
@@ -428,7 +433,11 @@ const DraggableItem: React.FC<DraggableItemProps> = props => {
   );
 };
 
-function DraggableRow({children, index, onDragEnd}: {
+function DraggableRow({
+  children,
+  index,
+  onDragEnd,
+}: {
   children: React.ReactNode;
   index: number;
   onDragEnd: (from: number, to: number) => void;
@@ -514,7 +523,7 @@ export default function WorkoutPlanBuilderScreen() {
     if (Platform.OS !== 'web') {
       scrollRef.current?.setNativeProps({scrollEnabled: false});
     }
-    resetPreviewOffsets();
+    // resetPreviewOffsets();
   };
 
   const handleDragEnd = () => {
@@ -522,7 +531,7 @@ export default function WorkoutPlanBuilderScreen() {
     if (Platform.OS !== 'web') {
       scrollRef.current?.setNativeProps({scrollEnabled: true});
     }
-    resetPreviewOffsets();
+    // resetPreviewOffsets();
   };
 
   const handleAutoScroll = useWorkletCallback((x: number, y: number) => {
@@ -610,7 +619,10 @@ export default function WorkoutPlanBuilderScreen() {
     }));
 
     return (
-      <Animated.View ref={ref} onLayout={measure} style={animatedContainerStyle}>
+      <Animated.View
+        ref={ref}
+        onLayout={measure}
+        style={animatedContainerStyle}>
         <DraggableItem
           item={{type: 'exercise', id: item.instanceId}}
           onDrop={onDrop}
@@ -682,7 +694,10 @@ export default function WorkoutPlanBuilderScreen() {
     }));
 
     return (
-      <Animated.View ref={ref} onLayout={measure} style={animatedContainerStyle}>
+      <Animated.View
+        ref={ref}
+        onLayout={measure}
+        style={animatedContainerStyle}>
         <DraggableItem
           item={{type: 'group', id: String(group.id)}}
           onDrop={onDrop}
@@ -898,8 +913,6 @@ export default function WorkoutPlanBuilderScreen() {
     );
   }
 
-  
-
   return (
     <ScreenLayout>
       <Formik<FormValues>
@@ -1070,7 +1083,7 @@ export default function WorkoutPlanBuilderScreen() {
               .sort((a, b) => a.order - b.order);
           };
 
-const isPointInLayout = (
+          const isPointInLayout = (
             pointX: number,
             pointY: number,
             layout: Layout,
@@ -1155,8 +1168,7 @@ const isPointInLayout = (
                 : 0;
             const lastItem = containerItems[containerItems.length - 1];
             const lastItemBottom = lastItem
-              ?
-                lastItem.layout.y -
+              ? lastItem.layout.y -
                 (scrollOffsetY.value - lastItem.layout.scrollOffset) +
                 lastItem.layout.height
               : 0;
@@ -1174,6 +1186,8 @@ const isPointInLayout = (
                 }
               }
             }
+
+            resetPreviewOffsets();
 
             if (toIdx === fromIdx) return;
 
@@ -1301,7 +1315,7 @@ const isPointInLayout = (
               );
             }
           };
-          
+
           const updateExerciseGroup = (
             instanceId: string,
             groupId: number | null,
@@ -1586,7 +1600,6 @@ const isPointInLayout = (
                   <>
                     {reorderMode ? (
                       <AnimatedScrollView
-                        
                         scrollEventThrottle={16}
                         scrollEnabled={true}
                         style={{flex: 1}}>
