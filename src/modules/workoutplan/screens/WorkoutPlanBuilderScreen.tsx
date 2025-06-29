@@ -1147,15 +1147,33 @@ const isPointInLayout = (
             }
 
             let toIdx = fromIdx;
-            for (let i = 0; i < containerItems.length; i++) {
-              if (i === fromIdx) continue;
-              if (isPointInLayout(x, y, containerItems[i].layout)) {
-                toIdx = i;
-                break;
+
+            const firstItemTop =
+              containerItems.length > 0
+                ? containerItems[0].layout.y -
+                  (scrollOffsetY.value - containerItems[0].layout.scrollOffset)
+                : 0;
+            const lastItem = containerItems[containerItems.length - 1];
+            const lastItemBottom = lastItem
+              ?
+                lastItem.layout.y -
+                (scrollOffsetY.value - lastItem.layout.scrollOffset) +
+                lastItem.layout.height
+              : 0;
+
+            if (y < firstItemTop) {
+              toIdx = 0;
+            } else if (y > lastItemBottom) {
+              toIdx = containerItems.length - 1;
+            } else {
+              for (let i = 0; i < containerItems.length; i++) {
+                if (i === fromIdx) continue;
+                if (isPointInLayout(x, y, containerItems[i].layout)) {
+                  toIdx = i;
+                  break;
+                }
               }
             }
-
-            resetPreviewOffsets();
 
             if (toIdx === fromIdx) return;
 
