@@ -239,16 +239,7 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
       }
     },
     onEnd: event => {
-      // runOnJS(console.log)('DraggableItem onEnd', {
-      //   x: event.absoluteX,
-      //   y: event.absoluteY,
-      //   id: item.id,
-      //   type: item.type,
-      // });
       runOnJS(onDrop)(event.absoluteX, event.absoluteY, item);
-      if (resetPreviewOffsets) {
-        runOnJS(resetPreviewOffsets)();
-      }
       translateX.value = withSpring(0);
       translateY.value = withSpring(0, {}, finished => {
         if (finished) {
@@ -523,7 +514,7 @@ export default function WorkoutPlanBuilderScreen() {
     if (Platform.OS !== 'web') {
       scrollRef.current?.setNativeProps({scrollEnabled: false});
     }
-    // resetPreviewOffsets();
+    resetPreviewOffsets();
   };
 
   const handleDragEnd = () => {
@@ -531,7 +522,7 @@ export default function WorkoutPlanBuilderScreen() {
     if (Platform.OS !== 'web') {
       scrollRef.current?.setNativeProps({scrollEnabled: true});
     }
-    // resetPreviewOffsets();
+    resetPreviewOffsets();
   };
 
   const handleAutoScroll = useWorkletCallback((x: number, y: number) => {
@@ -790,7 +781,7 @@ export default function WorkoutPlanBuilderScreen() {
 
     if (isFromSession) {
       const exercises = plan.exercises.map((ex: any, idx: number) => ({
-        instanceId: generateUniqueId(),
+        instanceId: ex.instanceId || generateUniqueId(),
         exerciseId: ex.exerciseId ?? ex.exercise.id,
         exerciseName: ex.exerciseName ?? ex.exercise.name,
         targetSets: ex.targetSets,
@@ -820,7 +811,7 @@ export default function WorkoutPlanBuilderScreen() {
     }
 
     const exercises = plan.exercises.map((ex: any, idx: number) => ({
-      instanceId: generateUniqueId(),
+      instanceId: ex.instanceId || generateUniqueId(),
       exerciseId: ex.exerciseId,
       exerciseName: ex.exerciseName,
       targetSets: ex.targetSets,
@@ -916,7 +907,7 @@ export default function WorkoutPlanBuilderScreen() {
   return (
     <ScreenLayout>
       <Formik<FormValues>
-        enableReinitialize
+        // enableReinitialize
         initialValues={formInitialValues}
         validationSchema={validationSchema}
         onSubmit={async values => {
@@ -1036,6 +1027,17 @@ export default function WorkoutPlanBuilderScreen() {
           handleSubmit,
           setFieldValue,
         }) => {
+          useEffect(() => {
+            console.log(
+              'DEBUG: Formik values.exercises (on render/change):',
+              values.exercises,
+            );
+            console.log(
+              'DEBUG: Formik values.groups (on render/change):',
+              values.groups,
+            );
+          }, [values.exercises, values.groups]); // Dependencies to re-run when these arrays change
+
           const selectedBodyPartIds = getSelectedBodyPartIds(
             values.muscleGroupIds,
             workoutMeta?.getMuscleGroups ?? [],
@@ -1103,64 +1105,142 @@ export default function WorkoutPlanBuilderScreen() {
             y: number,
             draggedItemData: DragData,
           ) => {
+            console.log('--- updatePreviewOffsets ---');
+            console.log('Dragged Item:', draggedItemData);
             const draggedKey =
               draggedItemData.type === 'group'
                 ? String(draggedItemData.id)
                 : draggedItemData.id;
-
             const containerItems: {id: string; layout: Layout}[] = [];
+            console.log(
+              'Searching for draggedItemData.id:',
+              draggedItemData.id,
+            );
 
+            // Add these new logs:
+            console.log('Current exerciseLayouts map:', {
+              ...exerciseLayouts.current,
+            }); // Spread to log a snapshot
+            console.log('Current groupLayouts map:', {...groupLayouts.current}); // Spread to log a snapshot
+
+            console.log(
+              'Current values.exercises instanceIds:',
+              values.exercises.map(ex => ex.instanceId),
+            );
             if (
               draggedItemData.type === 'group' ||
               (draggedItemData.type === 'exercise' &&
                 values.exercises.find(e => e.instanceId === draggedItemData.id)
                   ?.groupId === null)
             ) {
+              console.log('Processing for Group or Ungrouped Exercise Drag');
+              console.log(
+                'Current exerciseLayouts.current:',
+                Object.keys(exerciseLayouts.current),
+              );
+              console.log(
+                'Current groupLayouts.current:',
+                Object.keys(groupLayouts.current),
+              );
               for (const id in exerciseLayouts.current) {
                 const ex = values.exercises.find(e => e.instanceId === id);
+                console.log(
+                  `Checking exercise id: ${id}, found in values: ${!!ex}, groupId: ${
+                    ex?.groupId
+                  }`,
+                );
                 if (ex && ex.groupId == null) {
-                  containerItems.push({
-                    id,
-                    layout: exerciseLayouts.current[id],
-                  });
+                  if (exerciseLayouts.current[id]) {
+                    containerItems.push({
+                      id,
+                      layout: exerciseLayouts.current[id],
+                    });
+                    console.log(
+                      `Added ungrouped exercise ${id} to containerItems.`,
+                    );
+                  } else {
+                    console.warn(`Layout missing for ungrouped exercise ${id}`);
+                  }
                 }
               }
               for (const id in groupLayouts.current) {
-                containerItems.push({
-                  id: String(id),
-                  layout: groupLayouts.current[id],
-                });
+                const groupFound = values.groups.find(g => String(g.id) === id);
+                console.log(
+                  `Checking group id: ${id}, found in values: ${!!groupFound}`,
+                );
+                if (groupFound && groupLayouts.current[id]) {
+                  containerItems.push({
+                    id: String(id),
+                    layout: groupLayouts.current[id],
+                  });
+                  console.log(`Added group ${id} to containerItems.`);
+                } else {
+                  console.warn(`Layout missing for group ${id}`);
+                }
               }
               containerItems.sort((a, b) => a.layout.y - b.layout.y);
+              console.log(
+                'Container Items (IDs & Layouts - Group/Ungrouped FINAL):',
+                containerItems.map(item => ({
+                  id: item.id,
+                  y: item.layout.y,
+                  height: item.layout.height,
+                })),
+              );
             } else {
+              console.log('Processing for Grouped Exercise Drag');
               const draggedEx = values.exercises.find(
                 ex => ex.instanceId === draggedItemData.id,
               );
               if (!draggedEx) {
-                resetPreviewOffsets();
+                console.warn(
+                  'Dragged exercise not found in values.exercises for grouped drag.',
+                );
+                // runOnJS(resetPreviewOffsets)(); // This line should also be removed if present
                 return;
               }
               const exs = values.exercises
                 .filter(ex => ex.groupId === draggedEx.groupId)
                 .sort((a, b) => a.order - b.order);
+              console.log(
+                'Exercises in the same group as dragged item (exs):',
+                exs.map(ex => ({
+                  instanceId: ex.instanceId,
+                  groupId: ex.groupId,
+                  order: ex.order,
+                })),
+              );
               exs.forEach(ex => {
                 const layout = exerciseLayouts.current[ex.instanceId];
                 if (layout) {
                   containerItems.push({id: ex.instanceId, layout});
+                } else {
+                  console.warn(
+                    `Layout missing for grouped exercise ${ex.instanceId}`,
+                  );
                 }
               });
+              console.log(
+                'Container Items (IDs & Layouts - Grouped Exercise FINAL):',
+                containerItems.map(item => ({
+                  id: item.id,
+                  y: item.layout.y,
+                  height: item.layout.height,
+                })),
+              );
             }
 
             const fromIdx = containerItems.findIndex(
               it => it.id === draggedKey,
             );
             if (fromIdx === -1) {
-              resetPreviewOffsets();
+              console.warn(
+                `Dragged item ${draggedKey} not found in final containerItems.`,
+              );
               return;
             }
 
             let toIdx = fromIdx;
-
             const firstItemTop =
               containerItems.length > 0
                 ? containerItems[0].layout.y -
@@ -1179,7 +1259,9 @@ export default function WorkoutPlanBuilderScreen() {
               toIdx = containerItems.length - 1;
             } else {
               for (let i = 0; i < containerItems.length; i++) {
-                if (i === fromIdx) continue;
+                if (containerItems[i].id === draggedKey) {
+                  continue;
+                }
                 if (isPointInLayout(x, y, containerItems[i].layout)) {
                   toIdx = i;
                   break;
@@ -1187,26 +1269,32 @@ export default function WorkoutPlanBuilderScreen() {
               }
             }
 
-            resetPreviewOffsets();
-
+            console.log(`fromIdx: ${fromIdx}, toIdx: ${toIdx}`);
+            // REMOVE THE LINE BELOW
+            // runOnJS(resetPreviewOffsets)();
             if (toIdx === fromIdx) return;
 
-            const draggedHeight = containerItems[fromIdx].layout.height;
+            const draggedItemLayout = containerItems[fromIdx].layout;
+            const draggedHeight = draggedItemLayout.height;
+
             if (toIdx > fromIdx) {
               for (let i = fromIdx + 1; i <= toIdx; i++) {
                 const key = containerItems[i].id;
                 if (dragOffsets.current[key]) {
-                  dragOffsets.current[key].value = -draggedHeight;
+                  console.log(`Shifting ${key} up by -${draggedHeight}`);
+                  dragOffsets.current[key].value = withSpring(-draggedHeight);
                 }
               }
             } else if (toIdx < fromIdx) {
               for (let i = toIdx; i < fromIdx; i++) {
                 const key = containerItems[i].id;
                 if (dragOffsets.current[key]) {
-                  dragOffsets.current[key].value = draggedHeight;
+                  console.log(`Shifting ${key} down by ${draggedHeight}`);
+                  dragOffsets.current[key].value = withSpring(draggedHeight);
                 }
               }
             }
+            console.log('--- End updatePreviewOffsets ---');
           };
 
           const handleDragMove = useWorkletCallback(
@@ -1595,6 +1683,7 @@ export default function WorkoutPlanBuilderScreen() {
             <FieldArray name="exercises">
               {({push}) => {
                 pushRef.current = push;
+                console.log('DEBUG: pushRef.current assigned with:', push); // <-- ADD THIS LINE
 
                 return (
                   <>
@@ -2071,6 +2160,10 @@ export default function WorkoutPlanBuilderScreen() {
                                   order: getNextOrder(), // global ordering
                                 };
                                 pushRef.current(newExerciseObject);
+                                console.log(
+                                  'Formik values.exercises AFTER push:',
+                                  values.exercises,
+                                ); // <-- ADD THIS LINE
                               });
                               setExpandedExerciseIndex(
                                 values.exercises.length +
@@ -2110,6 +2203,10 @@ export default function WorkoutPlanBuilderScreen() {
                                 ...values.groups,
                                 newGroup,
                               ]);
+                              console.log(
+                                'Formik values.groups AFTER setFieldValue:',
+                                values.groups,
+                              ); // <-- ADD THIS LINE
 
                               setStagedGroupId(null);
                               setActiveModal(null);
