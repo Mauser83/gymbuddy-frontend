@@ -493,9 +493,209 @@ export default function WorkoutPlanBuilderScreen() {
   >(null);
   const [stagedGroupId, setStagedGroupId] = useState<number | null>(null);
 
-  
+  const groupLayouts = useRef<Record<number, Layout>>({});
+  const exerciseLayouts = useRef<Record<string, Layout>>({});
+  const dragOffsets = useRef<Record<string, Animated.SharedValue<number>>>({});
 
-  
+  const resetPreviewOffsets = () => {
+    for (const key in dragOffsets.current) {
+      dragOffsets.current[key].value = 0;
+    }
+  };
+
+  const scrollOffsetY = useSharedValue(0);
+  const scrollRef = useAnimatedRef<ScrollView>();
+  const isDraggingItem = useRef(false);
+  const scrollViewHeight = useSharedValue(0);
+  const contentHeight = useSharedValue(0);
+
+  const handleDragStart = () => {
+    isDraggingItem.current = true;
+    if (Platform.OS !== 'web') {
+      scrollRef.current?.setNativeProps({scrollEnabled: false});
+    }
+    resetPreviewOffsets();
+  };
+
+  const handleDragEnd = () => {
+    isDraggingItem.current = false;
+    if (Platform.OS !== 'web') {
+      scrollRef.current?.setNativeProps({scrollEnabled: true});
+    }
+    resetPreviewOffsets();
+  };
+
+  const handleAutoScroll = useWorkletCallback((x: number, y: number) => {
+    const threshold = 100;
+    const step = 20;
+    const topBoundary = HEADER_HEIGHT_OFFSET + threshold;
+    const bottomBoundary =
+      HEADER_HEIGHT_OFFSET + scrollViewHeight.value - threshold;
+
+    if (y < topBoundary) {
+      const newOffset = Math.max(0, scrollOffsetY.value - step);
+      if (newOffset !== scrollOffsetY.value) {
+        scrollOffsetY.value = newOffset;
+        scrollTo(scrollRef, 0, newOffset, false);
+      }
+    } else if (y > bottomBoundary) {
+      const maxOffset = Math.max(
+        0,
+        contentHeight.value - scrollViewHeight.value,
+      );
+      const newOffset = Math.min(maxOffset, scrollOffsetY.value + step);
+      if (newOffset !== scrollOffsetY.value) {
+        scrollOffsetY.value = newOffset;
+        scrollTo(scrollRef, 0, newOffset, false);
+      }
+    }
+  }, []);
+
+  const scrollHandler = useAnimatedScrollHandler(event => {
+    scrollOffsetY.value = event.contentOffset.y;
+  });
+
+  type MeasuredExerciseItemProps = {
+    item: ExerciseFormEntry;
+    onDrop: (x: number, y: number, data: DragData) => void;
+    children: React.ReactNode;
+    simultaneousHandlers?: any;
+    onDragStart?: () => void;
+    onDragEnd?: () => void;
+    onDragMove?: (x: number, y: number, data: DragData) => void;
+  };
+
+  const MeasuredExerciseItemComponent = ({
+    item,
+    onDrop,
+    children,
+    simultaneousHandlers,
+    onDragStart,
+    onDragEnd,
+    onDragMove,
+  }: MeasuredExerciseItemProps) => {
+    const ref = useRef<View>(null);
+    const offset = useSharedValue(0);
+
+    useEffect(() => {
+      dragOffsets.current[item.instanceId] = offset;
+      return () => {
+        delete dragOffsets.current[item.instanceId];
+        delete exerciseLayouts.current[item.instanceId];
+      };
+    }, [item.instanceId]);
+
+    const measure = () => {
+      ref.current?.measureInWindow((x, y, width, height) => {
+        if (width > 0 && height > 0) {
+          exerciseLayouts.current[item.instanceId] = {
+            x,
+            y,
+            width,
+            height,
+            scrollOffset: scrollOffsetY.value,
+          };
+          offset.value = 0;
+        }
+      });
+    };
+
+    useEffect(() => {
+      const timer = setTimeout(measure, 100);
+      return () => clearTimeout(timer);
+    }, [item.instanceId]);
+
+    const animatedContainerStyle = useAnimatedStyle(() => ({
+      transform: [{translateY: offset.value}],
+    }));
+
+    return (
+      <Animated.View ref={ref} onLayout={measure} style={animatedContainerStyle}>
+        <DraggableItem
+          item={{type: 'exercise', id: item.instanceId}}
+          onDrop={onDrop}
+          simultaneousHandlers={simultaneousHandlers}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          onDragMove={onDragMove}
+          scrollOffset={scrollOffsetY}>
+          {children}
+        </DraggableItem>
+      </Animated.View>
+    );
+  };
+
+  const MeasuredExerciseItem = React.memo(MeasuredExerciseItemComponent);
+
+  type MeasuredGroupItemProps = {
+    group: ExerciseGroup;
+    onDrop: (x: number, y: number, data: DragData) => void;
+    children: React.ReactNode;
+    simultaneousHandlers?: any;
+    onDragStart?: () => void;
+    onDragEnd?: () => void;
+    onDragMove?: (x: number, y: number, data: DragData) => void;
+  };
+
+  const MeasuredGroupItem: React.FC<MeasuredGroupItemProps> = ({
+    group,
+    onDrop,
+    children,
+    simultaneousHandlers,
+    onDragStart,
+    onDragEnd,
+    onDragMove,
+  }) => {
+    const ref = useRef<View>(null);
+    const offset = useSharedValue(0);
+
+    useEffect(() => {
+      dragOffsets.current[String(group.id)] = offset;
+      return () => {
+        delete dragOffsets.current[String(group.id)];
+        delete groupLayouts.current[group.id];
+      };
+    }, [group.id]);
+
+    const measure = () => {
+      ref.current?.measureInWindow((x, y, width, height) => {
+        if (width > 0 && height > 0) {
+          groupLayouts.current[group.id] = {
+            x,
+            y,
+            width,
+            height,
+            scrollOffset: scrollOffsetY.value,
+          };
+          offset.value = 0;
+        }
+      });
+    };
+
+    useEffect(() => {
+      const timer = setTimeout(measure, 100);
+      return () => clearTimeout(timer);
+    }, [group.id]);
+
+    const animatedContainerStyle = useAnimatedStyle(() => ({
+      transform: [{translateY: offset.value}],
+    }));
+
+    return (
+      <Animated.View ref={ref} onLayout={measure} style={animatedContainerStyle}>
+        <DraggableItem
+          item={{type: 'group', id: String(group.id)}}
+          onDrop={onDrop}
+          simultaneousHandlers={simultaneousHandlers}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          onDragMove={onDragMove}
+          scrollOffset={scrollOffsetY}>
+          {children}
+        </DraggableItem>
+      </Animated.View>
+    );
+  };
 
   const generateUniqueId = () => {
     return Date.now().toString(36) + Math.random().toString(36).substring(2);
@@ -870,6 +1070,219 @@ export default function WorkoutPlanBuilderScreen() {
               .sort((a, b) => a.order - b.order);
           };
 
+const isPointInLayout = (
+            pointX: number,
+            pointY: number,
+            layout: Layout,
+          ) => {
+            const adjustedY =
+              layout.y - (scrollOffsetY.value - layout.scrollOffset);
+            return (
+              pointX >= layout.x &&
+              pointX <= layout.x + layout.width &&
+              pointY >= adjustedY &&
+              pointY <= adjustedY + layout.height
+            );
+          };
+
+          const updatePreviewOffsets = (
+            x: number,
+            y: number,
+            draggedItemData: DragData,
+          ) => {
+            const draggedKey =
+              draggedItemData.type === 'group'
+                ? String(draggedItemData.id)
+                : draggedItemData.id;
+
+            const containerItems: {id: string; layout: Layout}[] = [];
+
+            if (
+              draggedItemData.type === 'group' ||
+              (draggedItemData.type === 'exercise' &&
+                values.exercises.find(e => e.instanceId === draggedItemData.id)
+                  ?.groupId === null)
+            ) {
+              for (const id in exerciseLayouts.current) {
+                const ex = values.exercises.find(e => e.instanceId === id);
+                if (ex && ex.groupId == null) {
+                  containerItems.push({
+                    id,
+                    layout: exerciseLayouts.current[id],
+                  });
+                }
+              }
+              for (const id in groupLayouts.current) {
+                containerItems.push({
+                  id: String(id),
+                  layout: groupLayouts.current[id],
+                });
+              }
+              containerItems.sort((a, b) => a.layout.y - b.layout.y);
+            } else {
+              const draggedEx = values.exercises.find(
+                ex => ex.instanceId === draggedItemData.id,
+              );
+              if (!draggedEx) {
+                resetPreviewOffsets();
+                return;
+              }
+              const exs = values.exercises
+                .filter(ex => ex.groupId === draggedEx.groupId)
+                .sort((a, b) => a.order - b.order);
+              exs.forEach(ex => {
+                const layout = exerciseLayouts.current[ex.instanceId];
+                if (layout) {
+                  containerItems.push({id: ex.instanceId, layout});
+                }
+              });
+            }
+
+            const fromIdx = containerItems.findIndex(
+              it => it.id === draggedKey,
+            );
+            if (fromIdx === -1) {
+              resetPreviewOffsets();
+              return;
+            }
+
+            let toIdx = fromIdx;
+            for (let i = 0; i < containerItems.length; i++) {
+              if (i === fromIdx) continue;
+              if (isPointInLayout(x, y, containerItems[i].layout)) {
+                toIdx = i;
+                break;
+              }
+            }
+
+            resetPreviewOffsets();
+
+            if (toIdx === fromIdx) return;
+
+            const draggedHeight = containerItems[fromIdx].layout.height;
+            if (toIdx > fromIdx) {
+              for (let i = fromIdx + 1; i <= toIdx; i++) {
+                const key = containerItems[i].id;
+                if (dragOffsets.current[key]) {
+                  dragOffsets.current[key].value = -draggedHeight;
+                }
+              }
+            } else if (toIdx < fromIdx) {
+              for (let i = toIdx; i < fromIdx; i++) {
+                const key = containerItems[i].id;
+                if (dragOffsets.current[key]) {
+                  dragOffsets.current[key].value = draggedHeight;
+                }
+              }
+            }
+          };
+
+          const handleDragMove = useWorkletCallback(
+            (x: number, y: number, data: DragData) => {
+              handleAutoScroll(x, y);
+              runOnJS(updatePreviewOffsets)(x, y, data);
+            },
+            [handleAutoScroll],
+          );
+
+          const handleDrop = (
+            x: number,
+            y: number,
+            draggedItemData: DragData,
+          ) => {
+            if (draggedItemData.type === 'group') {
+              const allTopLevelItems: {
+                id: string;
+                type: 'exercise' | 'group';
+                layout: Layout;
+              }[] = [];
+
+              for (const id in exerciseLayouts.current) {
+                const ex = values.exercises.find(e => e.instanceId === id);
+                if (ex && ex.groupId == null) {
+                  allTopLevelItems.push({
+                    id,
+                    type: 'exercise',
+                    layout: exerciseLayouts.current[id],
+                  });
+                }
+              }
+              for (const id in groupLayouts.current) {
+                allTopLevelItems.push({
+                  id: String(id),
+                  type: 'group',
+                  layout: groupLayouts.current[id],
+                });
+              }
+
+              allTopLevelItems.sort((a, b) => a.layout.y - b.layout.y);
+
+              for (const target of allTopLevelItems) {
+                if (target.id === draggedItemData.id) continue;
+                if (isPointInLayout(x, y, target.layout)) {
+                  reorderPlanItems(
+                    draggedItemData,
+                    {type: target.type, id: target.id},
+                    values,
+                    setFieldValue,
+                  );
+                  return;
+                }
+              }
+              return;
+            }
+
+            const draggedItem = values.exercises.find(
+              ex => ex.instanceId === draggedItemData.id,
+            );
+            if (!draggedItem) return;
+
+            for (const targetId in exerciseLayouts.current) {
+              if (targetId === draggedItemData.id) continue;
+              const layout = exerciseLayouts.current[targetId];
+              if (isPointInLayout(x, y, layout)) {
+                const target = values.exercises.find(
+                  ex => ex.instanceId === targetId,
+                );
+                if (target && target.groupId === draggedItem.groupId) {
+                  reorderExercises(
+                    draggedItemData.id,
+                    targetId,
+                    values.exercises,
+                    setFieldValue,
+                  );
+                  return;
+                }
+              }
+            }
+
+            for (const groupIdStr in groupLayouts.current) {
+              const layout = groupLayouts.current[groupIdStr];
+              if (isPointInLayout(x, y, layout)) {
+                const targetGroupId = parseInt(groupIdStr, 10);
+                if (draggedItem.groupId !== targetGroupId) {
+                  updateExerciseGroup(
+                    draggedItemData.id,
+                    targetGroupId,
+                    values.exercises,
+                    values.groups,
+                    setFieldValue,
+                  );
+                }
+                return;
+              }
+            }
+
+            if (draggedItem.groupId !== null) {
+              updateExerciseGroup(
+                draggedItemData.id,
+                null,
+                values.exercises,
+                values.groups,
+                setFieldValue,
+              );
+            }
+          };
           
           const updateExerciseGroup = (
             instanceId: string,
@@ -1169,67 +1582,66 @@ export default function WorkoutPlanBuilderScreen() {
                             onPress={() => setReorderMode(false)}
                           />
 
-                          {planItems.map((pi, index) => (
-                            <DraggableRow
-                              key={pi.type === 'group' ? `group-${pi.data.id}` : pi.data.instanceId}
-                              index={index}
-                              onDragEnd={(from, to) => {
-                                const reordered = [...planItems];
-                                const [moved] = reordered.splice(from, 1);
-                                reordered.splice(to, 0, moved);
-
-                                const newExercises = [...values.exercises];
-                                const newGroups = [...values.groups];
-
-                                reordered.forEach((item, newIndex) => {
-                                  if (item.type === 'exercise') {
-                                    const exIdx = newExercises.findIndex(
-                                      e => e.instanceId === item.data.instanceId,
-                                    );
-                                    if (exIdx !== -1) newExercises[exIdx].order = newIndex;
-                                  } else {
-                                    const gIdx = newGroups.findIndex(g => g.id === item.data.id);
-                                    if (gIdx !== -1) newGroups[gIdx].order = newIndex;
-                                  }
-                                });
-
-                                setFieldValue('exercises', newExercises);
-                                setFieldValue('groups', newGroups);
-                              }}>
-                              {pi.type === 'group' ? (
+                          {planItems.map(pi =>
+                            pi.type === 'group' ? (
+                              <MeasuredGroupItem
+                                key={`group-${pi.data.id}`}
+                                group={pi.data}
+                                onDrop={handleDrop}
+                                simultaneousHandlers={scrollRef}
+                                onDragStart={handleDragStart}
+                                onDragEnd={handleDragEnd}
+                                onDragMove={handleDragMove}>
                                 <ExerciseGroupCard
-                                  label={getGroupLabel(pi.data as ExerciseGroup)}
+                                  label={getGroupLabel(pi.data)}
                                   borderColor={theme.colors.accentStart}
                                   textColor={theme.colors.textPrimary}>
-                                  {getGroupedExercises((pi.data as ExerciseGroup).id).map(ex => (
-                                    <View
+                                  {getGroupedExercises(pi.data.id).map(ex => (
+                                    <MeasuredExerciseItem
                                       key={ex.instanceId}
-                                      style={{
-                                        marginHorizontal: spacing.md,
-                                        marginVertical: spacing.sm,
-                                        backgroundColor: theme.colors.surface,
-                                        padding: spacing.sm,
-                                        borderRadius: 6,
-                                        borderWidth: 1,
-                                        borderColor: theme.colors.accentEnd,
-                                      }}>
-                                      <Text
+                                      item={ex}
+                                      onDrop={handleDrop}
+                                      simultaneousHandlers={scrollRef}
+                                      onDragStart={handleDragStart}
+                                      onDragEnd={handleDragEnd}
+                                      onDragMove={handleDragMove}>
+                                      <View
                                         style={{
-                                          color: theme.colors.textPrimary,
-                                          fontWeight: 'bold',
+                                          marginHorizontal: spacing.md,
+                                          marginVertical: spacing.sm,
+                                          backgroundColor: theme.colors.surface,
+                                          padding: spacing.sm,
+                                          borderRadius: 6,
+                                          borderWidth: 1,
+                                          borderColor: theme.colors.accentEnd,
                                         }}>
-                                        {ex.exerciseName}
-                                      </Text>
-                                      <Text
-                                        style={{
-                                          color: theme.colors.textSecondary,
-                                        }}>
-                                        {renderSummary(ex)}
-                                      </Text>
-                                    </View>
+                                        <Text
+                                          style={{
+                                            color: theme.colors.textPrimary,
+                                            fontWeight: 'bold',
+                                          }}>
+                                          {ex.exerciseName}
+                                        </Text>
+                                        <Text
+                                          style={{
+                                            color: theme.colors.textSecondary,
+                                          }}>
+                                          {renderSummary(ex)}
+                                        </Text>
+                                      </View>
+                                    </MeasuredExerciseItem>
                                   ))}
                                 </ExerciseGroupCard>
-                              ) : (
+                              </MeasuredGroupItem>
+                            ) : (
+                              <MeasuredExerciseItem
+                                key={pi.data.instanceId}
+                                item={pi.data}
+                                onDrop={handleDrop}
+                                simultaneousHandlers={scrollRef}
+                                onDragStart={handleDragStart}
+                                onDragEnd={handleDragEnd}
+                                onDragMove={handleDragMove}>
                                 <View
                                   style={{
                                     backgroundColor: theme.colors.background,
@@ -1244,18 +1656,18 @@ export default function WorkoutPlanBuilderScreen() {
                                       color: theme.colors.textPrimary,
                                       fontWeight: 'bold',
                                     }}>
-                                    {(pi.data as ExerciseFormEntry).exerciseName}
+                                    {pi.data.exerciseName}
                                   </Text>
                                   <Text
                                     style={{
                                       color: theme.colors.textSecondary,
                                     }}>
-                                    {renderSummary(pi.data as ExerciseFormEntry)}
+                                    {renderSummary(pi.data)}
                                   </Text>
                                 </View>
-                              )}
-                            </DraggableRow>
-                          ))}
+                              </MeasuredExerciseItem>
+                            ),
+                          )}
                         </View>
                       </AnimatedScrollView>
                     ) : (
