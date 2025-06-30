@@ -592,20 +592,31 @@ export default function WorkoutPlanBuilderScreen() {
       };
     }, [item.instanceId]);
 
-    const measure = () => {
-      ref.current?.measureInWindow((x, y, width, height) => {
-        if (width > 0 && height > 0) {
-          exerciseLayouts.current[item.instanceId] = {
-            x,
-            y,
-            width,
-            height,
-            scrollOffset: scrollOffsetY.value,
-          };
-          offset.value = 0;
-        }
+const measure = () => {
+  ref.current?.measureInWindow((x, y, width, height) => {
+    if (Platform.OS === 'web') {
+      console.log(`WEB_MEASURE_DEBUG (Exercise ${item.instanceId}):`, {
+        measuredX: x,
+        measuredY: y,
+        measuredWidth: width,
+        measuredHeight: height,
+        currentScrollYValue: scrollOffsetY.value, // Check this value closely
+        // You might also try:
+        // windowScrollY: window.scrollY // To compare with actual browser window scroll if applicable
       });
-    };
+    }
+    if (width > 0 && height > 0) {
+      exerciseLayouts.current[item.instanceId] = {
+        x,
+        y,
+        width,
+        height,
+        scrollOffset: scrollOffsetY.value, // This is the value being stored
+      };
+      offset.value = 0;
+    }
+  });
+};
 
     useEffect(() => {
       const timer = setTimeout(() => {
@@ -673,20 +684,30 @@ export default function WorkoutPlanBuilderScreen() {
       };
     }, [group.id]);
 
-    const measure = () => {
-      ref.current?.measureInWindow((x, y, width, height) => {
-        if (width > 0 && height > 0) {
-          groupLayouts.current[group.id] = {
-            x,
-            y,
-            width,
-            height,
-            scrollOffset: scrollOffsetY.value,
-          };
-          offset.value = 0;
-        }
+const measure = () => {
+  ref.current?.measureInWindow((x, y, width, height) => {
+    if (Platform.OS === 'web') {
+      console.log(`WEB_MEASURE_DEBUG (Group ${group.id}):`, {
+        measuredX: x,
+        measuredY: y,
+        measuredWidth: width,
+        measuredHeight: height,
+        currentScrollYValue: scrollOffsetY.value, // Check this value closely
+        // windowScrollY: window.scrollY // To compare with actual browser window scroll if applicable
       });
-    };
+    }
+    if (width > 0 && height > 0) {
+      groupLayouts.current[group.id] = {
+        x,
+        y,
+        width,
+        height,
+        scrollOffset: scrollOffsetY.value, // This is the value being stored
+      };
+      offset.value = 0;
+    }
+  });
+};
 
     useEffect(() => {
       const timer = setTimeout(() => {
@@ -887,6 +908,12 @@ export default function WorkoutPlanBuilderScreen() {
     if (maxId >= groupIdCounterRef.current) {
       groupIdCounterRef.current = maxId + 1;
     }
+  }, [formInitialValues]);
+
+  // Trigger layout re-measurement when the initial form values change
+  // (e.g., when loading a saved plan for editing).
+  useEffect(() => {
+    setLayoutVersion(prev => prev + 1);
   }, [formInitialValues]);
 
   const isEdit = !!rawPlan && !rawPlan.isFromSession;
