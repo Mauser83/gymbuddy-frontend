@@ -1,4 +1,11 @@
-import React, {useState, useRef, useMemo, useEffect, useCallback} from 'react';
+import React, {
+  useState,
+  useRef,
+  useMemo,
+  useEffect,
+  useCallback,
+  useImperativeHandle,
+} from 'react';
 import {
   View,
   Alert,
@@ -159,8 +166,6 @@ type Layout = {
   y: number;
   width: number;
   height: number;
-  /** Scroll offset of the parent ScrollView when this layout was measured */
-  scrollOffset: number;
 };
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
@@ -494,6 +499,7 @@ export default function WorkoutPlanBuilderScreen() {
   >(null);
   const [stagedGroupId, setStagedGroupId] = useState<number | null>(null);
   const [layoutVersion, setLayoutVersion] = useState(0);
+  const [scrollLayoutVersion, setScrollLayoutVersion] = useState(0);
   const [scrollViewReady, setScrollViewReady] = useState(false);
 
   const scrollViewRef = useRef<ScrollView>(null);
@@ -501,6 +507,8 @@ export default function WorkoutPlanBuilderScreen() {
   const groupLayouts = useRef<Record<number, Layout>>({});
   const exerciseLayouts = useRef<Record<string, Layout>>({});
   const dragOffsets = useRef<Record<string, Animated.SharedValue<number>>>({});
+  const exerciseRefs = useRef<Map<string, {measure: () => void} | null>>(new Map());
+  const groupRefs = useRef<Map<string, {measure: () => void} | null>>(new Map());
 
   const resetPreviewOffsets = () => {
     for (const key in dragOffsets.current) {
@@ -514,7 +522,13 @@ export default function WorkoutPlanBuilderScreen() {
   const scrollViewHeight = useSharedValue(0);
   const contentHeight = useSharedValue(0);
 
+  const reMeasureAllItems = useCallback(() => {
+    exerciseRefs.current.forEach(ref => ref?.measure());
+    groupRefs.current.forEach(ref => ref?.measure());
+  }, []);
+
   const handleDragStart = () => {
+    reMeasureAllItems();
     isDraggingItem.current = true;
     if (Platform.OS !== 'web') {
       scrollRef.current?.setNativeProps({scrollEnabled: false});
@@ -558,6 +572,7 @@ export default function WorkoutPlanBuilderScreen() {
 
   const scrollHandler = useAnimatedScrollHandler(event => {
     scrollOffsetY.value = event.contentOffset.y;
+    runOnJS(setScrollLayoutVersion)(prev => prev + 1);
   });
 
   type MeasuredExerciseItemProps = {
@@ -569,75 +584,83 @@ export default function WorkoutPlanBuilderScreen() {
     onDragEnd?: () => void;
     onDragMove?: (x: number, y: number, data: DragData) => void;
     layoutVersion: number;
+    scrollLayoutVersion: number;
   };
 
-  const MeasuredExerciseItemComponent = ({
-    item,
-    onDrop,
-    children,
-    simultaneousHandlers,
-    onDragStart,
-    onDragEnd,
-    onDragMove,
-    layoutVersion,
-  }: MeasuredExerciseItemProps) => {
-    const ref = useRef<View>(null);
-    const offset = useSharedValue(0);
+  const MeasuredExerciseItemComponent = React.forwardRef<
+    {measure: () => void},
+    MeasuredExerciseItemProps
+  >(
+    (
+      {
+        item,
+        onDrop,
+        children,
+        simultaneousHandlers,
+        onDragStart,
+        onDragEnd,
+        onDragMove,
+        layoutVersion,
+        scrollLayoutVersion,
+      },
+      refProp,
+    ) => {
+      const innerRef = useRef<View>(null);
+      const offset = useSharedValue(0);
 
-    useEffect(() => {
-      dragOffsets.current[item.instanceId] = offset;
-      return () => {
-        delete dragOffsets.current[item.instanceId];
-        delete exerciseLayouts.current[item.instanceId];
+      useEffect(() => {
+        dragOffsets.current[item.instanceId] = offset;
+        return () => {
+          delete dragOffsets.current[item.instanceId];
+          delete exerciseLayouts.current[item.instanceId];
+        };
+      }, [item.instanceId]);
+
+      const measure = () => {
+        innerRef.current?.measure((x, y, width, height, pageX, pageY) => {
+          if (width > 0 && height > 0) {
+            exerciseLayouts.current[item.instanceId] = {
+              x: pageX,
+              y: pageY,
+              width,
+              height,
+            };
+            offset.value = 0;
+          }
+        });
       };
-    }, [item.instanceId]);
 
-const measure = () => {
-  ref.current?.measureInWindow((x, y, width, height) => {
-    if (width > 0 && height > 0) {
-      exerciseLayouts.current[item.instanceId] = {
-        x,
-        y,
-        width,
-        height,
-        scrollOffset: scrollOffsetY.value, // This is the value being stored
-      };
-      offset.value = 0;
-    }
-  });
-};
+      useImperativeHandle(refProp, () => ({measure}));
 
-    useEffect(() => {
-      const timer = setTimeout(() => {
+      useEffect(() => {
         measure();
-      }, 150);
-      return () => clearTimeout(timer);
-    }, [item.instanceId, item.order, layoutVersion]);
+      }, [item.instanceId, item.order, layoutVersion, scrollLayoutVersion]);
 
-    const animatedContainerStyle = useAnimatedStyle(() => ({
-      transform: [{translateY: offset.value}],
-    }));
+      const animatedContainerStyle = useAnimatedStyle(() => ({
+        transform: [{translateY: offset.value}],
+      }));
 
-    return (
-      <Animated.View
-        ref={ref}
-        onLayout={measure}
-        style={animatedContainerStyle}
-        collapsable={false} // ADD THIS PROP
-      >
-        <DraggableItem
-          item={{type: 'exercise', id: item.instanceId}}
-          onDrop={onDrop}
-          simultaneousHandlers={simultaneousHandlers}
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
-          onDragMove={onDragMove}
-          scrollOffset={scrollOffsetY}>
-          {children}
-        </DraggableItem>
-      </Animated.View>
-    );
-  };
+      return (
+        <Animated.View
+          ref={innerRef}
+          onLayout={measure}
+          style={animatedContainerStyle}
+          collapsable={false} // ADD THIS PROP
+        >
+          <DraggableItem
+            item={{type: 'exercise', id: item.instanceId}}
+            onDrop={onDrop}
+            simultaneousHandlers={simultaneousHandlers}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            onDragMove={onDragMove}
+            scrollOffset={scrollOffsetY}>
+            {children}
+          </DraggableItem>
+        </Animated.View>
+      );
+    },
+  );
 
   const MeasuredExerciseItem = React.memo(MeasuredExerciseItemComponent);
 
@@ -650,73 +673,82 @@ const measure = () => {
     onDragEnd?: () => void;
     onDragMove?: (x: number, y: number, data: DragData) => void;
     layoutVersion: number;
+    scrollLayoutVersion: number;
   };
 
-  const MeasuredGroupItem: React.FC<MeasuredGroupItemProps> = ({
-    group,
-    onDrop,
-    children,
-    simultaneousHandlers,
-    onDragStart,
-    onDragEnd,
-    onDragMove,
-    layoutVersion,
-  }) => {
-    const ref = useRef<View>(null);
-    const offset = useSharedValue(0);
+  const MeasuredGroupItem = React.forwardRef<
+    {measure: () => void},
+    MeasuredGroupItemProps
+  >(
+    (
+      {
+        group,
+        onDrop,
+        children,
+        simultaneousHandlers,
+        onDragStart,
+        onDragEnd,
+        onDragMove,
+        layoutVersion,
+        scrollLayoutVersion,
+      },
+      refProp,
+    ) => {
+      const innerRef = useRef<View>(null);
+      const offset = useSharedValue(0);
 
-    useEffect(() => {
-      dragOffsets.current[String(group.id)] = offset;
-      return () => {
-        delete dragOffsets.current[String(group.id)];
-        delete groupLayouts.current[group.id];
+      useEffect(() => {
+        dragOffsets.current[String(group.id)] = offset;
+        return () => {
+          delete dragOffsets.current[String(group.id)];
+          delete groupLayouts.current[group.id];
+        };
+      }, [group.id]);
+
+      const measure = () => {
+        innerRef.current?.measure((x, y, width, height, pageX, pageY) => {
+          if (width > 0 && height > 0) {
+            groupLayouts.current[group.id] = {
+              x: pageX,
+              y: pageY,
+              width,
+              height,
+            };
+            offset.value = 0;
+          }
+        });
       };
-    }, [group.id]);
 
-const measure = () => {
-  ref.current?.measureInWindow((x, y, width, height) => {
-    if (width > 0 && height > 0) {
-      groupLayouts.current[group.id] = {
-        x,
-        y,
-        width,
-        height,
-        scrollOffset: scrollOffsetY.value, // This is the value being stored
-      };
-      offset.value = 0;
-    }
-  });
-};
+      useImperativeHandle(refProp, () => ({measure}));
 
-    useEffect(() => {
-      const timer = setTimeout(() => {
+      useEffect(() => {
         measure();
-      }, 150);
-      return () => clearTimeout(timer);
-    }, [group.id, group.order, layoutVersion]);
+      }, [group.id, group.order, layoutVersion, scrollLayoutVersion]);
 
-    const animatedContainerStyle = useAnimatedStyle(() => ({
-      transform: [{translateY: offset.value}],
-    }));
+      const animatedContainerStyle = useAnimatedStyle(() => ({
+        transform: [{translateY: offset.value}],
+      }));
 
-    return (
-      <Animated.View
-        ref={ref}
-        onLayout={measure}
-        style={animatedContainerStyle}>
-        <DraggableItem
-          item={{type: 'group', id: String(group.id)}}
-          onDrop={onDrop}
-          simultaneousHandlers={simultaneousHandlers}
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
-          onDragMove={onDragMove}
-          scrollOffset={scrollOffsetY}>
-          {children}
-        </DraggableItem>
-      </Animated.View>
-    );
-  };
+      return (
+        <Animated.View
+          ref={innerRef}
+          onLayout={measure}
+          style={animatedContainerStyle}
+          collapsable={false}>
+          <DraggableItem
+            item={{type: 'group', id: String(group.id)}}
+            onDrop={onDrop}
+            simultaneousHandlers={simultaneousHandlers}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            onDragMove={onDragMove}
+            scrollOffset={scrollOffsetY}>
+            {children}
+          </DraggableItem>
+        </Animated.View>
+      );
+    },
+  );
 
   const generateUniqueId = () => {
     return Date.now().toString(36) + Math.random().toString(36).substring(2);
@@ -1099,13 +1131,11 @@ const measure = () => {
             pointY: number,
             layout: Layout,
           ) => {
-            const adjustedY =
-              layout.y - (scrollOffsetY.value - layout.scrollOffset);
             return (
               pointX >= layout.x &&
               pointX <= layout.x + layout.width &&
-              pointY >= adjustedY &&
-              pointY <= adjustedY + layout.height
+              pointY >= layout.y &&
+              pointY <= layout.y + layout.height
             );
           };
 
@@ -1162,7 +1192,6 @@ const measure = () => {
                   console.warn(
                     'Dragged exercise not found in values.exercises for grouped drag.',
                   );
-                  // runOnJS(resetPreviewOffsets)(); // This line should also be removed if present
                   return;
                 }
                 const exs = valuesRef.current.exercises
@@ -1192,16 +1221,10 @@ const measure = () => {
 
               let toIdx = fromIdx;
               const firstItemTop =
-                containerItems.length > 0
-                  ? containerItems[0].layout.y -
-                    (scrollOffsetY.value -
-                      containerItems[0].layout.scrollOffset)
-                  : 0;
+                containerItems.length > 0 ? containerItems[0].layout.y : 0;
               const lastItem = containerItems[containerItems.length - 1];
               const lastItemBottom = lastItem
-                ? lastItem.layout.y -
-                  (scrollOffsetY.value - lastItem.layout.scrollOffset) +
-                  lastItem.layout.height
+                ? lastItem.layout.y + lastItem.layout.height
                 : 0;
 
               if (y < firstItemTop) {
@@ -1220,8 +1243,6 @@ const measure = () => {
                 }
               }
 
-              // REMOVE THE LINE BELOW
-              // runOnJS(resetPreviewOffsets)();
               if (toIdx === fromIdx) return;
 
               const draggedItemLayout = containerItems[fromIdx].layout;
@@ -1655,13 +1676,21 @@ const measure = () => {
                             pi.type === 'group' ? (
                               <MeasuredGroupItem
                                 key={`group-${pi.data.id}`}
+                                ref={r => {
+                                  if (r) {
+                                    groupRefs.current.set(String(pi.data.id), r);
+                                  } else {
+                                    groupRefs.current.delete(String(pi.data.id));
+                                  }
+                                }}
                                 group={pi.data}
                                 onDrop={handleDrop}
                                 simultaneousHandlers={scrollRef}
                                 onDragStart={handleDragStart}
                                 onDragEnd={handleDragEnd}
                                 onDragMove={handleDragMove}
-                                layoutVersion={layoutVersion}>
+                                layoutVersion={layoutVersion}
+                                scrollLayoutVersion={scrollLayoutVersion}>
                                 <ExerciseGroupCard
                                   label={getGroupLabel(pi.data)}
                                   borderColor={theme.colors.accentStart}
@@ -1669,13 +1698,21 @@ const measure = () => {
                                   {getGroupedExercises(pi.data.id).map(ex => (
                                     <MeasuredExerciseItem
                                       key={ex.instanceId}
+                                      ref={r => {
+                                        if (r) {
+                                          exerciseRefs.current.set(ex.instanceId, r);
+                                        } else {
+                                          exerciseRefs.current.delete(ex.instanceId);
+                                        }
+                                      }}
                                       item={ex}
                                       onDrop={handleDrop}
                                       simultaneousHandlers={scrollRef}
                                       onDragStart={handleDragStart}
                                       onDragEnd={handleDragEnd}
                                       onDragMove={handleDragMove}
-                                      layoutVersion={layoutVersion}>
+                                      layoutVersion={layoutVersion}
+                                      scrollLayoutVersion={scrollLayoutVersion}>
                                       <View
                                         style={{
                                           marginHorizontal: spacing.md,
@@ -1707,13 +1744,21 @@ const measure = () => {
                             ) : (
                               <MeasuredExerciseItem
                                 key={pi.data.instanceId}
+                                ref={r => {
+                                  if (r) {
+                                    exerciseRefs.current.set(pi.data.instanceId, r);
+                                  } else {
+                                    exerciseRefs.current.delete(pi.data.instanceId);
+                                  }
+                                }}
                                 item={pi.data}
                                 onDrop={handleDrop}
                                 simultaneousHandlers={scrollRef}
                                 onDragStart={handleDragStart}
                                 onDragEnd={handleDragEnd}
                                 onDragMove={handleDragMove}
-                                layoutVersion={layoutVersion}>
+                                layoutVersion={layoutVersion}
+                                scrollLayoutVersion={scrollLayoutVersion}>
                                 <View
                                   style={{
                                     backgroundColor: theme.colors.background,
