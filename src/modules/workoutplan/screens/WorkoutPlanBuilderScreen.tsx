@@ -375,10 +375,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
     setIsDragging(false);
     translate.current = {x: 0, y: 0};
     evt.currentTarget.style.transform = 'translate(0px, 0px)';
-    runOnJS(console.log)('WEB: endDrag called');
-
     if (hasMoved.current) {
-      runOnJS(console.log)('WEB: Calling onDrop from endDrag');
       // *** CHANGE THIS LINE ***
       runOnJS(onDrop)(evt.clientX, evt.clientY, item); // Explicitly wrap onDrop with runOnJS
     }
@@ -597,17 +594,6 @@ export default function WorkoutPlanBuilderScreen() {
 
 const measure = () => {
   ref.current?.measureInWindow((x, y, width, height) => {
-    if (Platform.OS === 'web') {
-      console.log(`WEB_MEASURE_DEBUG (Exercise ${item.instanceId}):`, {
-        measuredX: x,
-        measuredY: y,
-        measuredWidth: width,
-        measuredHeight: height,
-        currentScrollYValue: scrollOffsetY.value, // Check this value closely
-        // You might also try:
-        // windowScrollY: window.scrollY // To compare with actual browser window scroll if applicable
-      });
-    }
     if (width > 0 && height > 0) {
       exerciseLayouts.current[item.instanceId] = {
         x,
@@ -689,16 +675,6 @@ const measure = () => {
 
 const measure = () => {
   ref.current?.measureInWindow((x, y, width, height) => {
-    if (Platform.OS === 'web') {
-      console.log(`WEB_MEASURE_DEBUG (Group ${group.id}):`, {
-        measuredX: x,
-        measuredY: y,
-        measuredWidth: width,
-        measuredHeight: height,
-        currentScrollYValue: scrollOffsetY.value, // Check this value closely
-        // windowScrollY: window.scrollY // To compare with actual browser window scroll if applicable
-      });
-    }
     if (width > 0 && height > 0) {
       groupLayouts.current[group.id] = {
         x,
@@ -797,7 +773,6 @@ const measure = () => {
   const renderedExerciseIds = useRef<Set<string>>(new Set());
 
   function convertPlanToInitialValues(plan: any): FormValues {
-    console.log('workout plan: ', plan);
     const isFromSession = plan.isFromSession;
     function deriveGroupsFromExercises(
       exercises: ExerciseFormEntry[],
@@ -1041,11 +1016,6 @@ const measure = () => {
               })),
           };
 
-          console.log(
-            'Exercise orders before submit:',
-            values.exercises.map(e => ({id: e.exerciseId, order: e.order})),
-          );
-
           try {
             const result = isEdit
               ? await updateWorkoutPlan({
@@ -1076,16 +1046,6 @@ const measure = () => {
           useEffect(() => {
             valuesRef.current = values;
           });
-          useEffect(() => {
-            console.log(
-              'DEBUG: Formik values.exercises (on render/change):',
-              values.exercises,
-            );
-            console.log(
-              'DEBUG: Formik values.groups (on render/change):',
-              values.groups,
-            );
-          }, [values.exercises, values.groups]); // Dependencies to re-run when these arrays change
 
           const selectedBodyPartIds = getSelectedBodyPartIds(
             values.muscleGroupIds,
@@ -1151,30 +1111,11 @@ const measure = () => {
 
           const updatePreviewOffsets = useCallback(
             (x: number, y: number, draggedItemData: DragData) => {
-              console.log('--- updatePreviewOffsets ---');
-              console.log('Dragged Item:', draggedItemData);
               const draggedKey =
                 draggedItemData.type === 'group'
                   ? String(draggedItemData.id)
                   : draggedItemData.id;
               const containerItems: {id: string; layout: Layout}[] = [];
-              console.log(
-                'Searching for draggedItemData.id:',
-                draggedItemData.id,
-              );
-
-              // Add these new logs:
-              console.log('Current exerciseLayouts map:', {
-                ...exerciseLayouts.current,
-              }); // Spread to log a snapshot
-              console.log('Current groupLayouts map:', {
-                ...groupLayouts.current,
-              }); // Spread to log a snapshot
-
-              console.log(
-                'Current values.exercises instanceIds (from ref):',
-                valuesRef.current.exercises.map(ex => ex.instanceId),
-              );
               if (
                 draggedItemData.type === 'group' ||
                 (draggedItemData.type === 'exercise' &&
@@ -1182,23 +1123,9 @@ const measure = () => {
                     e => e.instanceId === draggedItemData.id,
                   )?.groupId === null)
               ) {
-                console.log('Processing for Group or Ungrouped Exercise Drag');
-                console.log(
-                  'Current exerciseLayouts.current:',
-                  Object.keys(exerciseLayouts.current),
-                );
-                console.log(
-                  'Current groupLayouts.current:',
-                  Object.keys(groupLayouts.current),
-                );
                 for (const id in exerciseLayouts.current) {
                   const ex = valuesRef.current.exercises.find(
                     e => e.instanceId === id,
-                  );
-                  console.log(
-                    `Checking exercise id: ${id}, found in values: ${!!ex}, groupId: ${
-                      ex?.groupId
-                    }`,
                   );
                   if (ex && ex.groupId == null) {
                     if (exerciseLayouts.current[id]) {
@@ -1206,9 +1133,6 @@ const measure = () => {
                         id,
                         layout: exerciseLayouts.current[id],
                       });
-                      console.log(
-                        `Added ungrouped exercise ${id} to containerItems.`,
-                      );
                     } else {
                       console.warn(
                         `Layout missing for ungrouped exercise ${id}`,
@@ -1220,30 +1144,17 @@ const measure = () => {
                   const groupFound = valuesRef.current.groups.find(
                     g => String(g.id) === id,
                   );
-                  console.log(
-                    `Checking group id: ${id}, found in values: ${!!groupFound}`,
-                  );
                   if (groupFound && groupLayouts.current[id]) {
                     containerItems.push({
                       id: String(id),
                       layout: groupLayouts.current[id],
                     });
-                    console.log(`Added group ${id} to containerItems.`);
                   } else {
                     console.warn(`Layout missing for group ${id}`);
                   }
                 }
                 containerItems.sort((a, b) => a.layout.y - b.layout.y);
-                console.log(
-                  'Container Items (IDs & Layouts - Group/Ungrouped FINAL):',
-                  containerItems.map(item => ({
-                    id: item.id,
-                    y: item.layout.y,
-                    height: item.layout.height,
-                  })),
-                );
               } else {
-                console.log('Processing for Grouped Exercise Drag');
                 const draggedEx = valuesRef.current.exercises.find(
                   ex => ex.instanceId === draggedItemData.id,
                 );
@@ -1257,14 +1168,6 @@ const measure = () => {
                 const exs = valuesRef.current.exercises
                   .filter(ex => ex.groupId === draggedEx.groupId)
                   .sort((a, b) => a.order - b.order);
-                console.log(
-                  'Exercises in the same group as dragged item (exs):',
-                  exs.map(ex => ({
-                    instanceId: ex.instanceId,
-                    groupId: ex.groupId,
-                    order: ex.order,
-                  })),
-                );
                 exs.forEach(ex => {
                   const layout = exerciseLayouts.current[ex.instanceId];
                   if (layout) {
@@ -1275,14 +1178,6 @@ const measure = () => {
                     );
                   }
                 });
-                console.log(
-                  'Container Items (IDs & Layouts - Grouped Exercise FINAL):',
-                  containerItems.map(item => ({
-                    id: item.id,
-                    y: item.layout.y,
-                    height: item.layout.height,
-                  })),
-                );
               }
 
               const fromIdx = containerItems.findIndex(
@@ -1325,7 +1220,6 @@ const measure = () => {
                 }
               }
 
-              console.log(`fromIdx: ${fromIdx}, toIdx: ${toIdx}`);
               // REMOVE THE LINE BELOW
               // runOnJS(resetPreviewOffsets)();
               if (toIdx === fromIdx) return;
@@ -1337,7 +1231,6 @@ const measure = () => {
                 for (let i = fromIdx + 1; i <= toIdx; i++) {
                   const key = containerItems[i].id;
                   if (dragOffsets.current[key]) {
-                    console.log(`Shifting ${key} up by -${draggedHeight}`);
                     dragOffsets.current[key].value = withSpring(-draggedHeight);
                   }
                 }
@@ -1345,12 +1238,10 @@ const measure = () => {
                 for (let i = toIdx; i < fromIdx; i++) {
                   const key = containerItems[i].id;
                   if (dragOffsets.current[key]) {
-                    console.log(`Shifting ${key} down by ${draggedHeight}`);
                     dragOffsets.current[key].value = withSpring(draggedHeight);
                   }
                 }
               }
-              console.log('--- End updatePreviewOffsets ---');
             },
             [],
           );
@@ -1365,16 +1256,6 @@ const measure = () => {
 
           const handleDrop = useCallback(
             (x: number, y: number, draggedItemData: DragData) => {
-              console.log('--- handleDrop EXECUTED (First Line) ---'); // ADD THIS LINE
-              console.log('--- Layouts before sorting in handleDrop ---');
-              console.log(
-                'Exercise Layouts:',
-                JSON.stringify(exerciseLayouts.current, null, 2),
-              );
-              console.log(
-                'Group Layouts:',
-                JSON.stringify(groupLayouts.current, null, 2),
-              );
               if (draggedItemData.type === 'group') {
                 const allTopLevelItems: {
                   id: string;
@@ -1399,16 +1280,6 @@ const measure = () => {
                     layout: groupLayouts.current[id],
                   });
                 }
-
-                console.log('--- Layouts before sorting in handleDrop ---');
-                console.log(
-                  'Exercise Layouts:',
-                  JSON.stringify(exerciseLayouts.current, null, 2),
-                );
-                console.log(
-                  'Group Layouts:',
-                  JSON.stringify(groupLayouts.current, null, 2),
-                );
 
                 allTopLevelItems.sort((a, b) => a.layout.y - b.layout.y);
 
@@ -1762,7 +1633,6 @@ const measure = () => {
             <FieldArray name="exercises">
               {({push}) => {
                 pushRef.current = push;
-                console.log('DEBUG: pushRef.current assigned with:', push); // <-- ADD THIS LINE
 
                 return (
                   <>
@@ -2242,10 +2112,6 @@ const measure = () => {
                                   order: getNextOrder(), // global ordering
                                 };
                                 pushRef.current(newExerciseObject);
-                                console.log(
-                                  'Formik values.exercises AFTER push:',
-                                  values.exercises,
-                                ); // <-- ADD THIS LINE
                               });
                               setExpandedExerciseIndex(
                                 values.exercises.length +
@@ -2285,10 +2151,6 @@ const measure = () => {
                                 ...values.groups,
                                 newGroup,
                               ]);
-                              console.log(
-                                'Formik values.groups AFTER setFieldValue:',
-                                values.groups,
-                              ); // <-- ADD THIS LINE
 
                               setStagedGroupId(null);
                               setActiveModal(null);
