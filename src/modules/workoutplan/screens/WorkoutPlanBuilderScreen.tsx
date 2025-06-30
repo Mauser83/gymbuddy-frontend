@@ -375,8 +375,12 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
     setIsDragging(false);
     translate.current = {x: 0, y: 0};
     evt.currentTarget.style.transform = 'translate(0px, 0px)';
+    runOnJS(console.log)('WEB: endDrag called');
+
     if (hasMoved.current) {
-      onDrop(evt.clientX, evt.clientY, item);
+      runOnJS(console.log)('WEB: Calling onDrop from endDrag');
+      // *** CHANGE THIS LINE ***
+      runOnJS(onDrop)(evt.clientX, evt.clientY, item); // Explicitly wrap onDrop with runOnJS
     }
     hasMoved.current = false;
     onDragEnd?.();
@@ -601,9 +605,11 @@ export default function WorkoutPlanBuilderScreen() {
     };
 
     useEffect(() => {
-      const timer = setTimeout(measure, 100);
+      const timer = setTimeout(() => {
+        measure();
+      }, 150);
       return () => clearTimeout(timer);
-    }, [item.instanceId]);
+    }, [item.instanceId, item.order]);
 
     const animatedContainerStyle = useAnimatedStyle(() => ({
       transform: [{translateY: offset.value}],
@@ -613,7 +619,9 @@ export default function WorkoutPlanBuilderScreen() {
       <Animated.View
         ref={ref}
         onLayout={measure}
-        style={animatedContainerStyle}>
+        style={animatedContainerStyle}
+        collapsable={false} // ADD THIS PROP
+      >
         <DraggableItem
           item={{type: 'exercise', id: item.instanceId}}
           onDrop={onDrop}
@@ -676,9 +684,11 @@ export default function WorkoutPlanBuilderScreen() {
     };
 
     useEffect(() => {
-      const timer = setTimeout(measure, 100);
+      const timer = setTimeout(() => {
+        measure();
+      }, 150);
       return () => clearTimeout(timer);
-    }, [group.id]);
+    }, [group.id, group.order]);
 
     const animatedContainerStyle = useAnimatedStyle(() => ({
       transform: [{translateY: offset.value}],
@@ -1030,7 +1040,8 @@ export default function WorkoutPlanBuilderScreen() {
           const valuesRef = useRef<FormValues>(values);
           useEffect(() => {
             valuesRef.current = values;
-          });          useEffect(() => {
+          });
+          useEffect(() => {
             console.log(
               'DEBUG: Formik values.exercises (on render/change):',
               values.exercises,
@@ -1306,7 +1317,7 @@ export default function WorkoutPlanBuilderScreen() {
               }
               console.log('--- End updatePreviewOffsets ---');
             },
-            [scrollOffsetY.value],
+            [],
           );
 
           const handleDragMove = useWorkletCallback(
@@ -1317,105 +1328,123 @@ export default function WorkoutPlanBuilderScreen() {
             [handleAutoScroll],
           );
 
-          const handleDrop = (
-            x: number,
-            y: number,
-            draggedItemData: DragData,
-          ) => {
-            if (draggedItemData.type === 'group') {
-              const allTopLevelItems: {
-                id: string;
-                type: 'exercise' | 'group';
-                layout: Layout;
-              }[] = [];
+          const handleDrop = useCallback(
+            (x: number, y: number, draggedItemData: DragData) => {
+              console.log('--- handleDrop EXECUTED (First Line) ---'); // ADD THIS LINE
+              console.log('--- Layouts before sorting in handleDrop ---');
+              console.log(
+                'Exercise Layouts:',
+                JSON.stringify(exerciseLayouts.current, null, 2),
+              );
+              console.log(
+                'Group Layouts:',
+                JSON.stringify(groupLayouts.current, null, 2),
+              );
+              if (draggedItemData.type === 'group') {
+                const allTopLevelItems: {
+                  id: string;
+                  type: 'exercise' | 'group';
+                  layout: Layout;
+                }[] = [];
 
-              for (const id in exerciseLayouts.current) {
-                const ex = values.exercises.find(e => e.instanceId === id);
-                if (ex && ex.groupId == null) {
+                for (const id in exerciseLayouts.current) {
+                  const ex = values.exercises.find(e => e.instanceId === id);
+                  if (ex && ex.groupId == null) {
+                    allTopLevelItems.push({
+                      id,
+                      type: 'exercise',
+                      layout: exerciseLayouts.current[id],
+                    });
+                  }
+                }
+                for (const id in groupLayouts.current) {
                   allTopLevelItems.push({
-                    id,
-                    type: 'exercise',
-                    layout: exerciseLayouts.current[id],
+                    id: String(id),
+                    type: 'group',
+                    layout: groupLayouts.current[id],
                   });
                 }
-              }
-              for (const id in groupLayouts.current) {
-                allTopLevelItems.push({
-                  id: String(id),
-                  type: 'group',
-                  layout: groupLayouts.current[id],
-                });
-              }
 
-              allTopLevelItems.sort((a, b) => a.layout.y - b.layout.y);
-
-              for (const target of allTopLevelItems) {
-                if (target.id === draggedItemData.id) continue;
-                if (isPointInLayout(x, y, target.layout)) {
-                  reorderPlanItems(
-                    draggedItemData,
-                    {type: target.type, id: target.id},
-                    values,
-                    setFieldValue,
-                  );
-                  return;
-                }
-              }
-              return;
-            }
-
-            const draggedItem = values.exercises.find(
-              ex => ex.instanceId === draggedItemData.id,
-            );
-            if (!draggedItem) return;
-
-            for (const targetId in exerciseLayouts.current) {
-              if (targetId === draggedItemData.id) continue;
-              const layout = exerciseLayouts.current[targetId];
-              if (isPointInLayout(x, y, layout)) {
-                const target = values.exercises.find(
-                  ex => ex.instanceId === targetId,
+                console.log('--- Layouts before sorting in handleDrop ---');
+                console.log(
+                  'Exercise Layouts:',
+                  JSON.stringify(exerciseLayouts.current, null, 2),
                 );
-                if (target && target.groupId === draggedItem.groupId) {
-                  reorderExercises(
-                    draggedItemData.id,
-                    targetId,
-                    values.exercises,
-                    setFieldValue,
-                  );
-                  return;
-                }
-              }
-            }
+                console.log(
+                  'Group Layouts:',
+                  JSON.stringify(groupLayouts.current, null, 2),
+                );
 
-            for (const groupIdStr in groupLayouts.current) {
-              const layout = groupLayouts.current[groupIdStr];
-              if (isPointInLayout(x, y, layout)) {
-                const targetGroupId = parseInt(groupIdStr, 10);
-                if (draggedItem.groupId !== targetGroupId) {
-                  updateExerciseGroup(
-                    draggedItemData.id,
-                    targetGroupId,
-                    values.exercises,
-                    values.groups,
-                    setFieldValue,
-                  );
+                allTopLevelItems.sort((a, b) => a.layout.y - b.layout.y);
+
+                for (const target of allTopLevelItems) {
+                  if (target.id === draggedItemData.id) continue;
+                  if (isPointInLayout(x, y, target.layout)) {
+                    reorderPlanItems(
+                      draggedItemData,
+                      {type: target.type, id: target.id},
+                      values,
+                      setFieldValue,
+                    );
+                    return;
+                  }
                 }
                 return;
               }
-            }
 
-            if (draggedItem.groupId !== null) {
-              updateExerciseGroup(
-                draggedItemData.id,
-                null,
-                values.exercises,
-                values.groups,
-                setFieldValue,
+              const draggedItem = values.exercises.find(
+                ex => ex.instanceId === draggedItemData.id,
               );
-            }
-          };
+              if (!draggedItem) return;
 
+              for (const targetId in exerciseLayouts.current) {
+                if (targetId === draggedItemData.id) continue;
+                const layout = exerciseLayouts.current[targetId];
+                if (isPointInLayout(x, y, layout)) {
+                  const target = values.exercises.find(
+                    ex => ex.instanceId === targetId,
+                  );
+                  if (target && target.groupId === draggedItem.groupId) {
+                    reorderExercises(
+                      draggedItemData.id,
+                      targetId,
+                      values.exercises,
+                      setFieldValue,
+                    );
+                    return;
+                  }
+                }
+              }
+
+              for (const groupIdStr in groupLayouts.current) {
+                const layout = groupLayouts.current[groupIdStr];
+                if (isPointInLayout(x, y, layout)) {
+                  const targetGroupId = parseInt(groupIdStr, 10);
+                  if (draggedItem.groupId !== targetGroupId) {
+                    updateExerciseGroup(
+                      draggedItemData.id,
+                      targetGroupId,
+                      values.exercises,
+                      values.groups,
+                      setFieldValue,
+                    );
+                  }
+                  return;
+                }
+              }
+
+              if (draggedItem.groupId !== null) {
+                updateExerciseGroup(
+                  draggedItemData.id,
+                  null,
+                  values.exercises,
+                  values.groups,
+                  setFieldValue,
+                );
+              }
+            },
+            [setFieldValue, handleDragEnd],
+          );
           const updateExerciseGroup = (
             instanceId: string,
             groupId: number | null,
