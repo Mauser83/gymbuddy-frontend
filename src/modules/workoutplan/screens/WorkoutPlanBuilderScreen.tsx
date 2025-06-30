@@ -496,6 +496,7 @@ export default function WorkoutPlanBuilderScreen() {
     number | null
   >(null);
   const [stagedGroupId, setStagedGroupId] = useState<number | null>(null);
+  const [layoutVersion, setLayoutVersion] = useState(0);
 
   const groupLayouts = useRef<Record<number, Layout>>({});
   const exerciseLayouts = useRef<Record<string, Layout>>({});
@@ -567,6 +568,7 @@ export default function WorkoutPlanBuilderScreen() {
     onDragStart?: () => void;
     onDragEnd?: () => void;
     onDragMove?: (x: number, y: number, data: DragData) => void;
+    layoutVersion: number;
   };
 
   const MeasuredExerciseItemComponent = ({
@@ -577,6 +579,7 @@ export default function WorkoutPlanBuilderScreen() {
     onDragStart,
     onDragEnd,
     onDragMove,
+    layoutVersion,
   }: MeasuredExerciseItemProps) => {
     const ref = useRef<View>(null);
     const offset = useSharedValue(0);
@@ -609,7 +612,7 @@ export default function WorkoutPlanBuilderScreen() {
         measure();
       }, 150);
       return () => clearTimeout(timer);
-    }, [item.instanceId, item.order]);
+    }, [item.instanceId, item.order, layoutVersion]);
 
     const animatedContainerStyle = useAnimatedStyle(() => ({
       transform: [{translateY: offset.value}],
@@ -646,6 +649,7 @@ export default function WorkoutPlanBuilderScreen() {
     onDragStart?: () => void;
     onDragEnd?: () => void;
     onDragMove?: (x: number, y: number, data: DragData) => void;
+    layoutVersion: number;
   };
 
   const MeasuredGroupItem: React.FC<MeasuredGroupItemProps> = ({
@@ -656,6 +660,7 @@ export default function WorkoutPlanBuilderScreen() {
     onDragStart,
     onDragEnd,
     onDragMove,
+    layoutVersion,
   }) => {
     const ref = useRef<View>(null);
     const offset = useSharedValue(0);
@@ -688,7 +693,7 @@ export default function WorkoutPlanBuilderScreen() {
         measure();
       }, 150);
       return () => clearTimeout(timer);
-    }, [group.id, group.order]);
+    }, [group.id, group.order, layoutVersion]);
 
     const animatedContainerStyle = useAnimatedStyle(() => ({
       transform: [{translateY: offset.value}],
@@ -1537,6 +1542,7 @@ export default function WorkoutPlanBuilderScreen() {
 
             setFieldValueFn('groups', finalGroups);
             setFieldValueFn('exercises', finalExercises);
+            setLayoutVersion(prev => prev + 1);
           };
 
           const reorderExercises = (
@@ -1590,6 +1596,7 @@ export default function WorkoutPlanBuilderScreen() {
 
             setFieldValueFn('exercises', finalExercises);
             setFieldValueFn('groups', finalGroups);
+            setLayoutVersion(prev => prev + 1);
           };
 
           const reorderPlanItems = (
@@ -1634,6 +1641,7 @@ export default function WorkoutPlanBuilderScreen() {
 
             setFieldValueFn('exercises', newExercises);
             setFieldValueFn('groups', newGroups);
+            setLayoutVersion(prev => prev + 1);
           };
           const ListHeader = (
             <>
@@ -1752,7 +1760,8 @@ export default function WorkoutPlanBuilderScreen() {
                                 simultaneousHandlers={scrollRef}
                                 onDragStart={handleDragStart}
                                 onDragEnd={handleDragEnd}
-                                onDragMove={handleDragMove}>
+                                onDragMove={handleDragMove}
+                                layoutVersion={layoutVersion}>
                                 <ExerciseGroupCard
                                   label={getGroupLabel(pi.data)}
                                   borderColor={theme.colors.accentStart}
@@ -1765,7 +1774,8 @@ export default function WorkoutPlanBuilderScreen() {
                                       simultaneousHandlers={scrollRef}
                                       onDragStart={handleDragStart}
                                       onDragEnd={handleDragEnd}
-                                      onDragMove={handleDragMove}>
+                                      onDragMove={handleDragMove}
+                                      layoutVersion={layoutVersion}>
                                       <View
                                         style={{
                                           marginHorizontal: spacing.md,
@@ -1802,7 +1812,8 @@ export default function WorkoutPlanBuilderScreen() {
                                 simultaneousHandlers={scrollRef}
                                 onDragStart={handleDragStart}
                                 onDragEnd={handleDragEnd}
-                                onDragMove={handleDragMove}>
+                                onDragMove={handleDragMove}
+                                layoutVersion={layoutVersion}>
                                 <View
                                   style={{
                                     backgroundColor: theme.colors.background,
