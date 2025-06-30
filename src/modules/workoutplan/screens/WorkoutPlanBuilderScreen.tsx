@@ -497,6 +497,9 @@ export default function WorkoutPlanBuilderScreen() {
   >(null);
   const [stagedGroupId, setStagedGroupId] = useState<number | null>(null);
   const [layoutVersion, setLayoutVersion] = useState(0);
+  const [scrollViewReady, setScrollViewReady] = useState(false);
+
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const groupLayouts = useRef<Record<number, Layout>>({});
   const exerciseLayouts = useRef<Record<string, Layout>>({});
@@ -910,11 +913,11 @@ const measure = () => {
     }
   }, [formInitialValues]);
 
-  // Trigger layout re-measurement when the initial form values change
-  // (e.g., when loading a saved plan for editing).
   useEffect(() => {
-    setLayoutVersion(prev => prev + 1);
-  }, [formInitialValues]);
+    if (formInitialValues && scrollViewReady) {
+      setLayoutVersion(prev => prev + 1);
+    }
+  }, [formInitialValues, scrollViewReady]);
 
   const isEdit = !!rawPlan && !rawPlan.isFromSession;
   const pushRef = useRef<(item: any) => void>(() => {});
