@@ -1027,7 +1027,10 @@ export default function WorkoutPlanBuilderScreen() {
           handleSubmit,
           setFieldValue,
         }) => {
+          const valuesRef = useRef<FormValues>(values);
           useEffect(() => {
+            valuesRef.current = values;
+          });          useEffect(() => {
             console.log(
               'DEBUG: Formik values.exercises (on render/change):',
               values.exercises,
@@ -1100,202 +1103,211 @@ export default function WorkoutPlanBuilderScreen() {
             );
           };
 
-          const updatePreviewOffsets = (
-            x: number,
-            y: number,
-            draggedItemData: DragData,
-          ) => {
-            console.log('--- updatePreviewOffsets ---');
-            console.log('Dragged Item:', draggedItemData);
-            const draggedKey =
-              draggedItemData.type === 'group'
-                ? String(draggedItemData.id)
-                : draggedItemData.id;
-            const containerItems: {id: string; layout: Layout}[] = [];
-            console.log(
-              'Searching for draggedItemData.id:',
-              draggedItemData.id,
-            );
-
-            // Add these new logs:
-            console.log('Current exerciseLayouts map:', {
-              ...exerciseLayouts.current,
-            }); // Spread to log a snapshot
-            console.log('Current groupLayouts map:', {...groupLayouts.current}); // Spread to log a snapshot
-
-            console.log(
-              'Current values.exercises instanceIds:',
-              values.exercises.map(ex => ex.instanceId),
-            );
-            if (
-              draggedItemData.type === 'group' ||
-              (draggedItemData.type === 'exercise' &&
-                values.exercises.find(e => e.instanceId === draggedItemData.id)
-                  ?.groupId === null)
-            ) {
-              console.log('Processing for Group or Ungrouped Exercise Drag');
+          const updatePreviewOffsets = useCallback(
+            (x: number, y: number, draggedItemData: DragData) => {
+              console.log('--- updatePreviewOffsets ---');
+              console.log('Dragged Item:', draggedItemData);
+              const draggedKey =
+                draggedItemData.type === 'group'
+                  ? String(draggedItemData.id)
+                  : draggedItemData.id;
+              const containerItems: {id: string; layout: Layout}[] = [];
               console.log(
-                'Current exerciseLayouts.current:',
-                Object.keys(exerciseLayouts.current),
+                'Searching for draggedItemData.id:',
+                draggedItemData.id,
               );
+
+              // Add these new logs:
+              console.log('Current exerciseLayouts map:', {
+                ...exerciseLayouts.current,
+              }); // Spread to log a snapshot
+              console.log('Current groupLayouts map:', {
+                ...groupLayouts.current,
+              }); // Spread to log a snapshot
+
               console.log(
-                'Current groupLayouts.current:',
-                Object.keys(groupLayouts.current),
+                'Current values.exercises instanceIds (from ref):',
+                valuesRef.current.exercises.map(ex => ex.instanceId),
               );
-              for (const id in exerciseLayouts.current) {
-                const ex = values.exercises.find(e => e.instanceId === id);
+              if (
+                draggedItemData.type === 'group' ||
+                (draggedItemData.type === 'exercise' &&
+                  valuesRef.current.exercises.find(
+                    e => e.instanceId === draggedItemData.id,
+                  )?.groupId === null)
+              ) {
+                console.log('Processing for Group or Ungrouped Exercise Drag');
                 console.log(
-                  `Checking exercise id: ${id}, found in values: ${!!ex}, groupId: ${
-                    ex?.groupId
-                  }`,
+                  'Current exerciseLayouts.current:',
+                  Object.keys(exerciseLayouts.current),
                 );
-                if (ex && ex.groupId == null) {
-                  if (exerciseLayouts.current[id]) {
+                console.log(
+                  'Current groupLayouts.current:',
+                  Object.keys(groupLayouts.current),
+                );
+                for (const id in exerciseLayouts.current) {
+                  const ex = valuesRef.current.exercises.find(
+                    e => e.instanceId === id,
+                  );
+                  console.log(
+                    `Checking exercise id: ${id}, found in values: ${!!ex}, groupId: ${
+                      ex?.groupId
+                    }`,
+                  );
+                  if (ex && ex.groupId == null) {
+                    if (exerciseLayouts.current[id]) {
+                      containerItems.push({
+                        id,
+                        layout: exerciseLayouts.current[id],
+                      });
+                      console.log(
+                        `Added ungrouped exercise ${id} to containerItems.`,
+                      );
+                    } else {
+                      console.warn(
+                        `Layout missing for ungrouped exercise ${id}`,
+                      );
+                    }
+                  }
+                }
+                for (const id in groupLayouts.current) {
+                  const groupFound = valuesRef.current.groups.find(
+                    g => String(g.id) === id,
+                  );
+                  console.log(
+                    `Checking group id: ${id}, found in values: ${!!groupFound}`,
+                  );
+                  if (groupFound && groupLayouts.current[id]) {
                     containerItems.push({
-                      id,
-                      layout: exerciseLayouts.current[id],
+                      id: String(id),
+                      layout: groupLayouts.current[id],
                     });
-                    console.log(
-                      `Added ungrouped exercise ${id} to containerItems.`,
-                    );
+                    console.log(`Added group ${id} to containerItems.`);
                   } else {
-                    console.warn(`Layout missing for ungrouped exercise ${id}`);
+                    console.warn(`Layout missing for group ${id}`);
+                  }
+                }
+                containerItems.sort((a, b) => a.layout.y - b.layout.y);
+                console.log(
+                  'Container Items (IDs & Layouts - Group/Ungrouped FINAL):',
+                  containerItems.map(item => ({
+                    id: item.id,
+                    y: item.layout.y,
+                    height: item.layout.height,
+                  })),
+                );
+              } else {
+                console.log('Processing for Grouped Exercise Drag');
+                const draggedEx = valuesRef.current.exercises.find(
+                  ex => ex.instanceId === draggedItemData.id,
+                );
+                if (!draggedEx) {
+                  console.warn(
+                    'Dragged exercise not found in values.exercises for grouped drag.',
+                  );
+                  // runOnJS(resetPreviewOffsets)(); // This line should also be removed if present
+                  return;
+                }
+                const exs = valuesRef.current.exercises
+                  .filter(ex => ex.groupId === draggedEx.groupId)
+                  .sort((a, b) => a.order - b.order);
+                console.log(
+                  'Exercises in the same group as dragged item (exs):',
+                  exs.map(ex => ({
+                    instanceId: ex.instanceId,
+                    groupId: ex.groupId,
+                    order: ex.order,
+                  })),
+                );
+                exs.forEach(ex => {
+                  const layout = exerciseLayouts.current[ex.instanceId];
+                  if (layout) {
+                    containerItems.push({id: ex.instanceId, layout});
+                  } else {
+                    console.warn(
+                      `Layout missing for grouped exercise ${ex.instanceId}`,
+                    );
+                  }
+                });
+                console.log(
+                  'Container Items (IDs & Layouts - Grouped Exercise FINAL):',
+                  containerItems.map(item => ({
+                    id: item.id,
+                    y: item.layout.y,
+                    height: item.layout.height,
+                  })),
+                );
+              }
+
+              const fromIdx = containerItems.findIndex(
+                it => it.id === draggedKey,
+              );
+              if (fromIdx === -1) {
+                console.warn(
+                  `Dragged item ${draggedKey} not found in final containerItems.`,
+                );
+                return;
+              }
+
+              let toIdx = fromIdx;
+              const firstItemTop =
+                containerItems.length > 0
+                  ? containerItems[0].layout.y -
+                    (scrollOffsetY.value -
+                      containerItems[0].layout.scrollOffset)
+                  : 0;
+              const lastItem = containerItems[containerItems.length - 1];
+              const lastItemBottom = lastItem
+                ? lastItem.layout.y -
+                  (scrollOffsetY.value - lastItem.layout.scrollOffset) +
+                  lastItem.layout.height
+                : 0;
+
+              if (y < firstItemTop) {
+                toIdx = 0;
+              } else if (y > lastItemBottom) {
+                toIdx = containerItems.length - 1;
+              } else {
+                for (let i = 0; i < containerItems.length; i++) {
+                  if (containerItems[i].id === draggedKey) {
+                    continue;
+                  }
+                  if (isPointInLayout(x, y, containerItems[i].layout)) {
+                    toIdx = i;
+                    break;
                   }
                 }
               }
-              for (const id in groupLayouts.current) {
-                const groupFound = values.groups.find(g => String(g.id) === id);
-                console.log(
-                  `Checking group id: ${id}, found in values: ${!!groupFound}`,
-                );
-                if (groupFound && groupLayouts.current[id]) {
-                  containerItems.push({
-                    id: String(id),
-                    layout: groupLayouts.current[id],
-                  });
-                  console.log(`Added group ${id} to containerItems.`);
-                } else {
-                  console.warn(`Layout missing for group ${id}`);
+
+              console.log(`fromIdx: ${fromIdx}, toIdx: ${toIdx}`);
+              // REMOVE THE LINE BELOW
+              // runOnJS(resetPreviewOffsets)();
+              if (toIdx === fromIdx) return;
+
+              const draggedItemLayout = containerItems[fromIdx].layout;
+              const draggedHeight = draggedItemLayout.height;
+
+              if (toIdx > fromIdx) {
+                for (let i = fromIdx + 1; i <= toIdx; i++) {
+                  const key = containerItems[i].id;
+                  if (dragOffsets.current[key]) {
+                    console.log(`Shifting ${key} up by -${draggedHeight}`);
+                    dragOffsets.current[key].value = withSpring(-draggedHeight);
+                  }
+                }
+              } else if (toIdx < fromIdx) {
+                for (let i = toIdx; i < fromIdx; i++) {
+                  const key = containerItems[i].id;
+                  if (dragOffsets.current[key]) {
+                    console.log(`Shifting ${key} down by ${draggedHeight}`);
+                    dragOffsets.current[key].value = withSpring(draggedHeight);
+                  }
                 }
               }
-              containerItems.sort((a, b) => a.layout.y - b.layout.y);
-              console.log(
-                'Container Items (IDs & Layouts - Group/Ungrouped FINAL):',
-                containerItems.map(item => ({
-                  id: item.id,
-                  y: item.layout.y,
-                  height: item.layout.height,
-                })),
-              );
-            } else {
-              console.log('Processing for Grouped Exercise Drag');
-              const draggedEx = values.exercises.find(
-                ex => ex.instanceId === draggedItemData.id,
-              );
-              if (!draggedEx) {
-                console.warn(
-                  'Dragged exercise not found in values.exercises for grouped drag.',
-                );
-                // runOnJS(resetPreviewOffsets)(); // This line should also be removed if present
-                return;
-              }
-              const exs = values.exercises
-                .filter(ex => ex.groupId === draggedEx.groupId)
-                .sort((a, b) => a.order - b.order);
-              console.log(
-                'Exercises in the same group as dragged item (exs):',
-                exs.map(ex => ({
-                  instanceId: ex.instanceId,
-                  groupId: ex.groupId,
-                  order: ex.order,
-                })),
-              );
-              exs.forEach(ex => {
-                const layout = exerciseLayouts.current[ex.instanceId];
-                if (layout) {
-                  containerItems.push({id: ex.instanceId, layout});
-                } else {
-                  console.warn(
-                    `Layout missing for grouped exercise ${ex.instanceId}`,
-                  );
-                }
-              });
-              console.log(
-                'Container Items (IDs & Layouts - Grouped Exercise FINAL):',
-                containerItems.map(item => ({
-                  id: item.id,
-                  y: item.layout.y,
-                  height: item.layout.height,
-                })),
-              );
-            }
-
-            const fromIdx = containerItems.findIndex(
-              it => it.id === draggedKey,
-            );
-            if (fromIdx === -1) {
-              console.warn(
-                `Dragged item ${draggedKey} not found in final containerItems.`,
-              );
-              return;
-            }
-
-            let toIdx = fromIdx;
-            const firstItemTop =
-              containerItems.length > 0
-                ? containerItems[0].layout.y -
-                  (scrollOffsetY.value - containerItems[0].layout.scrollOffset)
-                : 0;
-            const lastItem = containerItems[containerItems.length - 1];
-            const lastItemBottom = lastItem
-              ? lastItem.layout.y -
-                (scrollOffsetY.value - lastItem.layout.scrollOffset) +
-                lastItem.layout.height
-              : 0;
-
-            if (y < firstItemTop) {
-              toIdx = 0;
-            } else if (y > lastItemBottom) {
-              toIdx = containerItems.length - 1;
-            } else {
-              for (let i = 0; i < containerItems.length; i++) {
-                if (containerItems[i].id === draggedKey) {
-                  continue;
-                }
-                if (isPointInLayout(x, y, containerItems[i].layout)) {
-                  toIdx = i;
-                  break;
-                }
-              }
-            }
-
-            console.log(`fromIdx: ${fromIdx}, toIdx: ${toIdx}`);
-            // REMOVE THE LINE BELOW
-            // runOnJS(resetPreviewOffsets)();
-            if (toIdx === fromIdx) return;
-
-            const draggedItemLayout = containerItems[fromIdx].layout;
-            const draggedHeight = draggedItemLayout.height;
-
-            if (toIdx > fromIdx) {
-              for (let i = fromIdx + 1; i <= toIdx; i++) {
-                const key = containerItems[i].id;
-                if (dragOffsets.current[key]) {
-                  console.log(`Shifting ${key} up by -${draggedHeight}`);
-                  dragOffsets.current[key].value = withSpring(-draggedHeight);
-                }
-              }
-            } else if (toIdx < fromIdx) {
-              for (let i = toIdx; i < fromIdx; i++) {
-                const key = containerItems[i].id;
-                if (dragOffsets.current[key]) {
-                  console.log(`Shifting ${key} down by ${draggedHeight}`);
-                  dragOffsets.current[key].value = withSpring(draggedHeight);
-                }
-              }
-            }
-            console.log('--- End updatePreviewOffsets ---');
-          };
+              console.log('--- End updatePreviewOffsets ---');
+            },
+            [scrollOffsetY.value],
+          );
 
           const handleDragMove = useWorkletCallback(
             (x: number, y: number, data: DragData) => {
