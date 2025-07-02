@@ -207,12 +207,8 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
   const translateY = useSharedValue(0);
   const startScrollY = useSharedValue(0);
   const isDragging = useSharedValue(false);
-  const [layoutSize, setLayoutSize] = useState<{width: number; height: number}>(
-    {
-      width: 0,
-      height: 0,
-    },
-  );
+  const itemHeight = useSharedValue(0);
+  const itemWidth = useSharedValue(0);
 
   const handleTouchStart = () => {
     onDragStart?.();
@@ -274,28 +270,26 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
       // DEBUG
       borderWidth: 1,
       borderColor: 'red',
-    };
+      width: itemWidth.value > 0 ? itemWidth.value : '100%',
+      height: itemHeight.value > 0 ? itemHeight.value : undefined,    };
   });
 
   return (
     <View
       style={{
         width: '100%',
-        height: layoutSize.height > 0 ? layoutSize.height : undefined,
       }}>
       <PanGestureHandler
         onGestureEvent={gestureHandler}
         simultaneousHandlers={simultaneousHandlers}>
         <Animated.View
-          onLayout={e =>
-            setLayoutSize({
-              width: e.nativeEvent.layout.width,
-              height: e.nativeEvent.layout.height,
-            })
-          }
+          onLayout={e => {
+            itemWidth.value = e.nativeEvent.layout.width;
+            itemHeight.value = e.nativeEvent.layout.height;
+          }}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          style={[animatedStyle, {width: '100%'}]}>
+          style={[animatedStyle]}>
           {children}
         </Animated.View>
       </PanGestureHandler>
