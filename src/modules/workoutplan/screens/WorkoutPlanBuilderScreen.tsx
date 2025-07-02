@@ -502,13 +502,15 @@ export default function WorkoutPlanBuilderScreen() {
   const [scrollLayoutVersion, setScrollLayoutVersion] = useState(0);
   const [scrollViewReady, setScrollViewReady] = useState(false);
 
-  const scrollViewRef = useRef<ScrollView>(null);
-
   const groupLayouts = useRef<Record<number, Layout>>({});
   const exerciseLayouts = useRef<Record<string, Layout>>({});
   const dragOffsets = useRef<Record<string, Animated.SharedValue<number>>>({});
-  const exerciseRefs = useRef<Map<string, {measure: () => void} | null>>(new Map());
-  const groupRefs = useRef<Map<string, {measure: () => void} | null>>(new Map());
+  const exerciseRefs = useRef<Map<string, {measure: () => void} | null>>(
+    new Map(),
+  );
+  const groupRefs = useRef<Map<string, {measure: () => void} | null>>(
+    new Map(),
+  );
 
   const resetPreviewOffsets = () => {
     for (const key in dragOffsets.current) {
@@ -517,10 +519,18 @@ export default function WorkoutPlanBuilderScreen() {
   };
 
   const scrollOffsetY = useSharedValue(0);
-  const scrollRef = useAnimatedRef<ScrollView>();
-  const isDraggingItem = useRef(false);
-  const scrollViewHeight = useSharedValue(0);
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
+  const scrollViewScreenLayout = useSharedValue({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+  });
+  // Track the content and visible container heights for auto scrolling
   const contentHeight = useSharedValue(0);
+  const containerHeight = useSharedValue(0);
+  // Measurement will be handled via onLayout on the ScrollView
+  const isDraggingItem = useRef(false);
 
   const reMeasureAllItems = useCallback(() => {
     exerciseRefs.current.forEach(ref => ref?.measure());
@@ -544,28 +554,114 @@ export default function WorkoutPlanBuilderScreen() {
     resetPreviewOffsets();
   };
 
-  const handleAutoScroll = useWorkletCallback((x: number, y: number) => {
-    const threshold = 100;
-    const step = 20;
-    const topBoundary = HEADER_HEIGHT_OFFSET + threshold;
-    const bottomBoundary =
-      HEADER_HEIGHT_OFFSET + scrollViewHeight.value - threshold;
+  // LOG 3: helper to log from within worklets
+  const logWorklet = useWorkletCallback((...args: any[]) => {
+    'worklet';
+    // runOnJS(console.log)('Worklet Log:', ...args);
+  });
 
-    if (y < topBoundary) {
-      const newOffset = Math.max(0, scrollOffsetY.value - step);
-      if (newOffset !== scrollOffsetY.value) {
-        scrollOffsetY.value = newOffset;
-        scrollTo(scrollRef, 0, newOffset, false);
-      }
-    } else if (y > bottomBoundary) {
-      const maxOffset = Math.max(
-        0,
-        contentHeight.value - scrollViewHeight.value,
+  const handleAutoScroll = useWorkletCallback((absoluteY: number) => {
+    'worklet';
+    // worklet-scoped constants to avoid capture issues
+    const WORKLET_DRAG_THRESHOLD_TOP = 50;
+    const WORKLET_DRAG_THRESHOLD_BOTTOM = 50;
+    const WORKLET_SCROLL_SPEED = 50;
+
+    // LOG 4: verify worklet invocation with current y position
+    logWorklet('LOG 4: handleAutoScroll called with absoluteY:', absoluteY);
+
+    // Animated.ScrollView refs expose contentSize and containerSize only
+    // inside worklets, but these are not typed in the definition.
+    const scrollView = scrollRef.current as any;
+    if (!scrollView) {
+      logWorklet('LOG 5: ScrollView ref is null, returning.');
+      return;
+    }
+    if (!scrollViewScreenLayout.value.height) {
+      logWorklet(
+        'LOG 6: scrollViewScreenLayout.value.height is 0, returning. Current layout:',
+        scrollViewScreenLayout.value,
       );
-      const newOffset = Math.min(maxOffset, scrollOffsetY.value + step);
-      if (newOffset !== scrollOffsetY.value) {
-        scrollOffsetY.value = newOffset;
-        scrollTo(scrollRef, 0, newOffset, false);
+      return;
+    }
+
+    const scrollViewAbsoluteY = scrollViewScreenLayout.value.y;
+    const scrollViewHeight = scrollViewScreenLayout.value.height;
+
+    logWorklet(
+      'LOG 7: ScrollView screen position - Y:',
+      scrollViewAbsoluteY,
+      'Height:',
+      scrollViewHeight,
+    );
+
+    // Use shared values captured from layout events
+    const scrollContentHeight = contentHeight.value;
+    const visibleViewportHeight = containerHeight.value;
+
+    logWorklet(
+      'LOG 8: ScrollView content and viewport sizes - ContentHeight:',
+      scrollContentHeight,
+      'ViewportHeight:',
+      visibleViewportHeight,
+    );
+
+    if (scrollContentHeight <= visibleViewportHeight) {
+      logWorklet(
+        'LOG 9: Content is not scrollable (ContentHeight <= ViewportHeight), returning.',
+      );
+      return;
+    }
+
+    let scrollAmount = 0;
+
+    if (absoluteY < scrollViewAbsoluteY + WORKLET_DRAG_THRESHOLD_TOP) {
+      logWorklet('LOG 10: In top auto-scroll threshold zone.');
+      const distanceIntoThreshold =
+        scrollViewAbsoluteY + WORKLET_DRAG_THRESHOLD_TOP - absoluteY;
+      scrollAmount = -Math.min(
+        WORKLET_SCROLL_SPEED,
+        (distanceIntoThreshold / WORKLET_DRAG_THRESHOLD_TOP) * WORKLET_SCROLL_SPEED,
+      );
+    } else if (
+      absoluteY >
+      scrollViewAbsoluteY + scrollViewHeight - WORKLET_DRAG_THRESHOLD_BOTTOM
+    ) {
+      logWorklet('LOG 11: In bottom auto-scroll threshold zone.');
+      const distanceIntoThreshold =
+        absoluteY -
+        (scrollViewAbsoluteY + scrollViewHeight - WORKLET_DRAG_THRESHOLD_BOTTOM);
+      scrollAmount = Math.min(
+        WORKLET_SCROLL_SPEED,
+        (distanceIntoThreshold / WORKLET_DRAG_THRESHOLD_BOTTOM) * WORKLET_SCROLL_SPEED,
+      );
+    }
+
+    logWorklet('LOG 12: Calculated scrollAmount:', scrollAmount);
+
+    if (scrollAmount !== 0) {
+      const currentScrollOffset = scrollOffsetY.value;
+      const nextScrollOffset = Math.max(
+        0,
+        Math.min(
+          currentScrollOffset + scrollAmount,
+          scrollContentHeight - visibleViewportHeight,
+        ),
+      );
+
+      logWorklet(
+        'LOG 13: Current Scroll Offset:',
+        currentScrollOffset,
+        'Next Scroll Offset:',
+        nextScrollOffset,
+      );
+
+      if (nextScrollOffset !== currentScrollOffset) {
+        logWorklet('LOG 14: Calling scrollView.scrollTo with Y:', nextScrollOffset);
+        scrollView.scrollTo({y: nextScrollOffset, animated: false});
+        scrollOffsetY.value = nextScrollOffset;
+      } else {
+        logWorklet('LOG 15: nextScrollOffset is same as currentScrollOffset, no scroll action.');
       }
     }
   }, []);
@@ -1269,7 +1365,7 @@ export default function WorkoutPlanBuilderScreen() {
 
           const handleDragMove = useWorkletCallback(
             (x: number, y: number, data: DragData) => {
-              handleAutoScroll(x, y);
+              handleAutoScroll(y);
               runOnJS(updatePreviewOffsets)(x, y, data);
             },
             [handleAutoScroll],
@@ -1659,9 +1755,53 @@ export default function WorkoutPlanBuilderScreen() {
                   <>
                     {reorderMode ? (
                       <AnimatedScrollView
+                        ref={scrollRef}
+                        onScroll={scrollHandler}
                         scrollEventThrottle={16}
+                        simultaneousHandlers={scrollRef}
                         scrollEnabled={true}
-                        style={{flex: 1}}>
+                        style={{flex: 1}}
+                        onLayout={event => {
+                          console.log('LOG C: Animated.ScrollView onLayout fired.');
+                          (scrollRef.current as any)?.measure(
+                            (
+                              x: number,
+                              y: number,
+                              width: number,
+                              height: number,
+                              pageX: number,
+                              pageY: number,
+                            ) => {
+                              if (width > 0 && height > 0) {
+                                scrollViewScreenLayout.value = {
+                                  x: pageX,
+                                  y: pageY,
+                                  width,
+                                  height,
+                                };
+                                setScrollViewReady(true);
+                                console.log('LOG 1: ScrollView Measured (onLayout):', {
+                                  x: pageX,
+                                  y: pageY,
+                                  width,
+                                  height,
+                                });
+                              } else {
+                                console.log(
+                                  'LOG 2: ScrollView measurement returned 0 or invalid dimensions (onLayout):',
+                                  {width, height},
+                                );
+                              }
+                            },
+                          );
+                          // Update container height from layout event
+                          containerHeight.value = event.nativeEvent.layout.height;
+                          console.log('LOG E: ScrollView containerHeight from onLayout event:', event.nativeEvent.layout.height);
+                        }}
+                        onContentSizeChange={(width, height) => {
+                          contentHeight.value = height;
+                          console.log('LOG F: ScrollView onContentSizeChange, contentHeight:', height);
+                        }}>
                         <View style={{padding: spacing.md}}>
                           <Title
                             text="Reorder Plan"
@@ -1678,9 +1818,14 @@ export default function WorkoutPlanBuilderScreen() {
                                 key={`group-${pi.data.id}`}
                                 ref={r => {
                                   if (r) {
-                                    groupRefs.current.set(String(pi.data.id), r);
+                                    groupRefs.current.set(
+                                      String(pi.data.id),
+                                      r,
+                                    );
                                   } else {
-                                    groupRefs.current.delete(String(pi.data.id));
+                                    groupRefs.current.delete(
+                                      String(pi.data.id),
+                                    );
                                   }
                                 }}
                                 group={pi.data}
@@ -1700,9 +1845,14 @@ export default function WorkoutPlanBuilderScreen() {
                                       key={ex.instanceId}
                                       ref={r => {
                                         if (r) {
-                                          exerciseRefs.current.set(ex.instanceId, r);
+                                          exerciseRefs.current.set(
+                                            ex.instanceId,
+                                            r,
+                                          );
                                         } else {
-                                          exerciseRefs.current.delete(ex.instanceId);
+                                          exerciseRefs.current.delete(
+                                            ex.instanceId,
+                                          );
                                         }
                                       }}
                                       item={ex}
@@ -1746,9 +1896,14 @@ export default function WorkoutPlanBuilderScreen() {
                                 key={pi.data.instanceId}
                                 ref={r => {
                                   if (r) {
-                                    exerciseRefs.current.set(pi.data.instanceId, r);
+                                    exerciseRefs.current.set(
+                                      pi.data.instanceId,
+                                      r,
+                                    );
                                   } else {
-                                    exerciseRefs.current.delete(pi.data.instanceId);
+                                    exerciseRefs.current.delete(
+                                      pi.data.instanceId,
+                                    );
                                   }
                                 }}
                                 item={pi.data}
