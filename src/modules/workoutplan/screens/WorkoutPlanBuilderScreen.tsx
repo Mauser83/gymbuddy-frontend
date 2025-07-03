@@ -53,6 +53,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   runOnJS,
+  runOnUI,
   useDerivedValue,
   useAnimatedRef,
   scrollTo,
@@ -270,11 +271,13 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
     };
   });
 
+  const containerStyle = useAnimatedStyle(() => ({
+    height:
+      isDragging.value && itemHeight.value > 0 ? itemHeight.value : undefined,
+  }));
+
   return (
-    <View
-      style={{
-        width: '100%',
-      }}>
+    <Animated.View style={[{width: '100%'}, containerStyle]}>
       <PanGestureHandler
         onGestureEvent={gestureHandler}
         simultaneousHandlers={simultaneousHandlers}>
@@ -289,7 +292,7 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
           {children}
         </Animated.View>
       </PanGestureHandler>
-    </View>
+    </Animated.View>
   );
 };
 
@@ -313,7 +316,10 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
   const dragThreshold = 5;
 
   const itemWidthRef = useRef(0);
-  const itemHeightRef = useRef(0);
+  // Track measured height to stabilize placeholder layout while dragging
+  const [measuredHeight, setMeasuredHeight] = useState<number | undefined>(
+    undefined,
+  );
 
   const applyDraggingStyles = useCallback((dragging: boolean) => {
     if (itemRef.current) {
@@ -430,13 +436,17 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
     <View
       style={{
         width: '100%',
-        height: itemHeightRef.current > 0 ? itemHeightRef.current : undefined,
+        // Maintain measured height so layout doesn't shift when dragging
+        height: measuredHeight,
       }}>
       <View
         ref={itemRef}
         onLayout={e => {
           itemWidthRef.current = e.nativeEvent.layout.width;
-          itemHeightRef.current = e.nativeEvent.layout.height;
+          const h = e.nativeEvent.layout.height;
+          if (h > 0 && h !== measuredHeight) {
+            setMeasuredHeight(h);
+          }
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -558,6 +568,7 @@ export default function WorkoutPlanBuilderScreen() {
 
   const scrollOffsetY = useSharedValue(0);
   const isAutoScrolling = useSharedValue(false);
+  const dragAbsoluteY = useSharedValue(0);
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const scrollViewScreenLayout = useSharedValue({
     x: 0,
@@ -570,6 +581,7 @@ export default function WorkoutPlanBuilderScreen() {
   const containerHeight = useSharedValue(0);
   // Measurement will be handled via onLayout on the ScrollView
   const isDraggingItem = useRef(false);
+  const autoScrollInterval = useRef<NodeJS.Timeout | null>(null);
 
   const reMeasureAllItems = useCallback(() => {
     exerciseRefs.current.forEach(ref => ref?.measure());
@@ -701,11 +713,9 @@ export default function WorkoutPlanBuilderScreen() {
       );
 
       if (nextScrollOffset !== currentScrollOffset) {
-        logWorklet(
-          'LOG 14: Calling scrollView.scrollTo with Y:',
-          nextScrollOffset,
-        );
-        scrollView.scrollTo({y: nextScrollOffset, animated: false});
+        logWorklet('LOG 14: Calling scrollTo with Y:', nextScrollOffset);
+        // Use reanimated scrollTo to support worklet execution on native
+        scrollTo(scrollRef, 0, nextScrollOffset, false);
         scrollOffsetY.value = nextScrollOffset;
         isAutoScrolling.value = true;
       } else {
@@ -718,6 +728,35 @@ export default function WorkoutPlanBuilderScreen() {
       isAutoScrolling.value = false;
     }
   }, []);
+
+    const startAutoScrollLoop = useCallback(() => {
+    if (autoScrollInterval.current) return;
+    autoScrollInterval.current = setInterval(() => {
+      runOnUI(handleAutoScroll)(dragAbsoluteY.value);
+    }, 16);
+  }, [handleAutoScroll]);
+
+  const stopAutoScrollLoop = useCallback(() => {
+    if (autoScrollInterval.current) {
+      clearInterval(autoScrollInterval.current);
+      autoScrollInterval.current = null;
+    }
+  }, []);
+
+  const toggleAutoScroll = useCallback(
+    (active: boolean) => {
+      if (active) {
+        startAutoScrollLoop();
+      } else {
+        stopAutoScrollLoop();
+      }
+    },
+    [startAutoScrollLoop, stopAutoScrollLoop],
+  );
+
+  useDerivedValue(() => {
+    runOnJS(toggleAutoScroll)(isAutoScrolling.value);
+  });
 
   const scrollHandler = useAnimatedScrollHandler(event => {
     scrollOffsetY.value = event.contentOffset.y;
@@ -1418,6 +1457,7 @@ export default function WorkoutPlanBuilderScreen() {
 
           const handleDragMove = useWorkletCallback(
             (x: number, y: number, data: DragData) => {
+              dragAbsoluteY.value = y;
               handleAutoScroll(y);
               runOnJS(updatePreviewOffsets)(x, y, data);
             },
@@ -1814,6 +1854,7 @@ export default function WorkoutPlanBuilderScreen() {
                         scrollEventThrottle={16}
                         simultaneousHandlers={scrollRef}
                         scrollEnabled={true}
+                        collapsable={false}
                         style={{flex: 1}}
                         onLayout={event => {
                           console.log(
