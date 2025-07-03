@@ -597,6 +597,14 @@ export default function WorkoutPlanBuilderScreen() {
     scrollOffsetY.value = event.contentOffset.y;
   });
 
+  useAnimatedReaction(
+    () => scrollOffsetY.value,
+    () => {
+      runOnJS(reMeasureAllItems)();
+    },
+    [],
+  );
+
   type MeasuredExerciseItemProps = {
     item: ExerciseFormEntry;
     onDrop: (x: number, y: number, data: DragData) => void;
