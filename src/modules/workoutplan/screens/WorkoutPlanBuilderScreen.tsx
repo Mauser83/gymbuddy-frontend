@@ -52,7 +52,7 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   runOnJS,
-  useDerivedValue,
+  useAnimatedReaction,
   useAnimatedRef,
   scrollTo,
   useAnimatedScrollHandler,
@@ -112,7 +112,8 @@ type DraggableItemProps = {
   onDragStart?: () => void;
   onDragEnd?: () => void;
   onDragMove?: (x: number, y: number, data: DragData) => void;
-  handleAutoScroll?: (x: number, y: number) => void;
+  isDraggingShared: Animated.SharedValue<boolean>;
+  pointerPositionY: Animated.SharedValue<number>;
   simultaneousHandlers?: any;
   resetPreviewOffsets?: () => void;
   /**
@@ -199,7 +200,8 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
   onDragStart,
   onDragEnd,
   onDragMove,
-  handleAutoScroll,
+  isDraggingShared,
+  pointerPositionY,
   simultaneousHandlers,
   scrollOffset,
   resetPreviewOffsets,
@@ -229,10 +231,12 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
   >({
     onBegin: () => {
       isDragging.value = true;
+      isDraggingShared.value = true;
       startScrollY.value = scrollOffset?.value ?? 0;
     },
     onStart: (_, ctx) => {
       isDragging.value = true;
+      isDraggingShared.value = true;
       ctx.startX = translateX.value;
       ctx.startY = translateY.value;
       startScrollY.value = scrollOffset?.value ?? 0;
@@ -240,25 +244,20 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
     onActive: (event, ctx) => {
       translateX.value = ctx.startX + event.translationX;
       translateY.value = ctx.startY + event.translationY;
-
-      if (handleAutoScroll) {
-        handleAutoScroll(event.absoluteX, event.absoluteY);
-      }
+      pointerPositionY.value = event.absoluteY;
 
       if (onDragMove) {
         onDragMove(event.absoluteX, event.absoluteY, item);
       }
     },
     onEnd: event => {
-      // Call the onDrop function on the JavaScript thread
       runOnJS(onDrop)(event.absoluteX, event.absoluteY, item);
 
-      // Instantly reset translation values without animation
       translateX.value = 0;
       translateY.value = 0;
 
-      // Immediately update state and call the final handler
       isDragging.value = false;
+      isDraggingShared.value = false;
       runOnJS(handleTouchEnd)();
     },
   });
@@ -318,7 +317,8 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
   onDragStart,
   onDragEnd,
   onDragMove,
-  handleAutoScroll: _handleAutoScroll,
+  isDraggingShared,
+  pointerPositionY,
   simultaneousHandlers: _simultaneousHandlers,
   scrollOffset,
 }) => {
@@ -345,6 +345,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
       currentTarget: any;
     };
     setIsDragging(true);
+    isDraggingShared.value = true;
     start.current = {
       x: evt.clientX - translate.current.x,
       y: evt.clientY - translate.current.y,
@@ -373,7 +374,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
     translate.current = {x: dx, y: dy};
     const scrollDiff = (scrollOffset?.value ?? 0) - startScrollY.current;
     evt.currentTarget.style.transform = `translate(${dx}px, ${dy + scrollDiff}px)`;
-    _handleAutoScroll?.(evt.clientX, evt.clientY);
+    pointerPositionY.value = evt.clientY;
     onDragMove?.(evt.clientX, evt.clientY, item);
   };
 
@@ -388,6 +389,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
     if (!isDragging) return;
     evt.currentTarget.releasePointerCapture(evt.pointerId);
     setIsDragging(false);
+    isDraggingShared.value = false;
     translate.current = {x: 0, y: 0};
     evt.currentTarget.style.transform = 'translate(0px, 0px)';
     if (hasMoved.current) {
@@ -534,6 +536,8 @@ export default function WorkoutPlanBuilderScreen() {
   const isDraggingItem = useRef(false);
   const scrollViewHeight = useSharedValue(0);
   const contentHeight = useSharedValue(0);
+  const isDragging = useSharedValue(false);
+  const pointerPositionY = useSharedValue(0);
 
   const reMeasureAllItems = useCallback(() => {
     exerciseRefs.current.forEach(ref => ref?.measure());
@@ -555,19 +559,28 @@ export default function WorkoutPlanBuilderScreen() {
       scrollRef.current?.setNativeProps({scrollEnabled: true});
     }
     resetPreviewOffsets();
+    setScrollLayoutVersion(prev => prev + 1);
   };
 
-  const handleAutoScroll = useWorkletCallback(
-    (x: number, y: number) => {
+  useAnimatedReaction(
+    () => ({
+      dragging: isDragging.value,
+      pointerY: pointerPositionY.value,
+    }),
+    ({dragging, pointerY}) => {
+      if (!dragging) {
+        return;
+      }
+
       const topBoundary = HEADER_HEIGHT_OFFSET + SCROLL_THRESHOLD;
       const bottomBoundary =
         HEADER_HEIGHT_OFFSET + scrollViewHeight.value - SCROLL_THRESHOLD;
 
       let newOffset = scrollOffsetY.value;
 
-      if (y < topBoundary) {
+      if (pointerY < topBoundary) {
         newOffset = Math.max(scrollOffsetY.value - SCROLL_SPEED, 0);
-      } else if (y > bottomBoundary) {
+      } else if (pointerY > bottomBoundary) {
         const maxOffset = contentHeight.value - scrollViewHeight.value;
         newOffset = Math.min(scrollOffsetY.value + SCROLL_SPEED, maxOffset);
       }
@@ -577,12 +590,11 @@ export default function WorkoutPlanBuilderScreen() {
         scrollTo(scrollRef, 0, newOffset, false);
       }
     },
-    [scrollOffsetY, scrollViewHeight, contentHeight],
+    [scrollOffsetY, scrollViewHeight, contentHeight, scrollRef],
   );
 
   const scrollHandler = useAnimatedScrollHandler(event => {
     scrollOffsetY.value = event.contentOffset.y;
-    runOnJS(setScrollLayoutVersion)(prev => prev + 1);
   });
 
   type MeasuredExerciseItemProps = {
@@ -664,7 +676,8 @@ export default function WorkoutPlanBuilderScreen() {
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
             onDragMove={onDragMove}
-            handleAutoScroll={handleAutoScroll}
+            isDraggingShared={isDragging}
+            pointerPositionY={pointerPositionY}
             scrollOffset={scrollOffsetY}>
             {children}
           </DraggableItem>
@@ -753,7 +766,8 @@ export default function WorkoutPlanBuilderScreen() {
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
             onDragMove={onDragMove}
-            handleAutoScroll={handleAutoScroll}
+            isDraggingShared={isDragging}
+            pointerPositionY={pointerPositionY}
             scrollOffset={scrollOffsetY}>
             {children}
           </DraggableItem>
