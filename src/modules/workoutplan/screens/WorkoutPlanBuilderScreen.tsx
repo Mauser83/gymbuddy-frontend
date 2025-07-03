@@ -112,6 +112,7 @@ type DraggableItemProps = {
   onDragStart?: () => void;
   onDragEnd?: () => void;
   onDragMove?: (x: number, y: number, data: DragData) => void;
+  handleAutoScroll?: (x: number, y: number) => void;
   simultaneousHandlers?: any;
   resetPreviewOffsets?: () => void;
   /**
@@ -198,6 +199,7 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
   onDragStart,
   onDragEnd,
   onDragMove,
+  handleAutoScroll,
   simultaneousHandlers,
   scrollOffset,
   resetPreviewOffsets,
@@ -238,6 +240,11 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
     onActive: (event, ctx) => {
       translateX.value = ctx.startX + event.translationX;
       translateY.value = ctx.startY + event.translationY;
+
+      if (handleAutoScroll) {
+        handleAutoScroll(event.absoluteX, event.absoluteY);
+      }
+
       if (onDragMove) {
         onDragMove(event.absoluteX, event.absoluteY, item);
       }
@@ -311,6 +318,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
   onDragStart,
   onDragEnd,
   onDragMove,
+  handleAutoScroll: _handleAutoScroll,
   simultaneousHandlers: _simultaneousHandlers,
   scrollOffset,
 }) => {
@@ -365,6 +373,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
     translate.current = {x: dx, y: dy};
     const scrollDiff = (scrollOffset?.value ?? 0) - startScrollY.current;
     evt.currentTarget.style.transform = `translate(${dx}px, ${dy + scrollDiff}px)`;
+    _handleAutoScroll?.(evt.clientX, evt.clientY);
     onDragMove?.(evt.clientX, evt.clientY, item);
   };
 
@@ -382,8 +391,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
     translate.current = {x: 0, y: 0};
     evt.currentTarget.style.transform = 'translate(0px, 0px)';
     if (hasMoved.current) {
-      // *** CHANGE THIS LINE ***
-      runOnJS(onDrop)(evt.clientX, evt.clientY, item); // Explicitly wrap onDrop with runOnJS
+      runOnJS(onDrop)(evt.clientX, evt.clientY, item);
     }
     hasMoved.current = false;
     onDragEnd?.();
@@ -480,6 +488,8 @@ function DraggableRow({
 }
 
 const HEADER_HEIGHT_OFFSET = 61;
+const SCROLL_THRESHOLD = 80; // Pixels from screen edges to start scrolling
+const SCROLL_SPEED = 10; // Pixels per frame scroll speed
 
 export default function WorkoutPlanBuilderScreen() {
   const {theme} = useTheme();
@@ -502,8 +512,6 @@ export default function WorkoutPlanBuilderScreen() {
   const [layoutVersion, setLayoutVersion] = useState(0);
   const [scrollLayoutVersion, setScrollLayoutVersion] = useState(0);
   const [scrollViewReady, setScrollViewReady] = useState(false);
-
-  const scrollViewRef = useRef<ScrollView>(null);
 
   const groupLayouts = useRef<Record<number, Layout>>({});
   const exerciseLayouts = useRef<Record<string, Layout>>({});
@@ -549,31 +557,28 @@ export default function WorkoutPlanBuilderScreen() {
     resetPreviewOffsets();
   };
 
-  const handleAutoScroll = useWorkletCallback((x: number, y: number) => {
-    const threshold = 100;
-    const step = 20;
-    const topBoundary = HEADER_HEIGHT_OFFSET + threshold;
-    const bottomBoundary =
-      HEADER_HEIGHT_OFFSET + scrollViewHeight.value - threshold;
+  const handleAutoScroll = useWorkletCallback(
+    (x: number, y: number) => {
+      const topBoundary = HEADER_HEIGHT_OFFSET + SCROLL_THRESHOLD;
+      const bottomBoundary =
+        HEADER_HEIGHT_OFFSET + scrollViewHeight.value - SCROLL_THRESHOLD;
 
-    if (y < topBoundary) {
-      const newOffset = Math.max(0, scrollOffsetY.value - step);
+      let newOffset = scrollOffsetY.value;
+
+      if (y < topBoundary) {
+        newOffset = Math.max(scrollOffsetY.value - SCROLL_SPEED, 0);
+      } else if (y > bottomBoundary) {
+        const maxOffset = contentHeight.value - scrollViewHeight.value;
+        newOffset = Math.min(scrollOffsetY.value + SCROLL_SPEED, maxOffset);
+      }
+
       if (newOffset !== scrollOffsetY.value) {
         scrollOffsetY.value = newOffset;
         scrollTo(scrollRef, 0, newOffset, false);
       }
-    } else if (y > bottomBoundary) {
-      const maxOffset = Math.max(
-        0,
-        contentHeight.value - scrollViewHeight.value,
-      );
-      const newOffset = Math.min(maxOffset, scrollOffsetY.value + step);
-      if (newOffset !== scrollOffsetY.value) {
-        scrollOffsetY.value = newOffset;
-        scrollTo(scrollRef, 0, newOffset, false);
-      }
-    }
-  }, []);
+    },
+    [scrollOffsetY, scrollViewHeight, contentHeight],
+  );
 
   const scrollHandler = useAnimatedScrollHandler(event => {
     scrollOffsetY.value = event.contentOffset.y;
@@ -659,6 +664,7 @@ export default function WorkoutPlanBuilderScreen() {
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
             onDragMove={onDragMove}
+            handleAutoScroll={handleAutoScroll}
             scrollOffset={scrollOffsetY}>
             {children}
           </DraggableItem>
@@ -747,6 +753,7 @@ export default function WorkoutPlanBuilderScreen() {
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
             onDragMove={onDragMove}
+            handleAutoScroll={handleAutoScroll}
             scrollOffset={scrollOffsetY}>
             {children}
           </DraggableItem>
@@ -1247,10 +1254,9 @@ export default function WorkoutPlanBuilderScreen() {
 
           const handleDragMove = useWorkletCallback(
             (x: number, y: number, data: DragData) => {
-              handleAutoScroll(x, y);
               runOnJS(updatePreviewOffsets)(x, y, data);
             },
-            [handleAutoScroll],
+            [],
           );
 
           const handleDrop = useCallback(
@@ -1637,7 +1643,17 @@ export default function WorkoutPlanBuilderScreen() {
                   <>
                     {reorderMode ? (
                       <AnimatedScrollView
+                        ref={scrollRef}
+                        onScroll={scrollHandler}
                         scrollEventThrottle={16}
+                        onLayout={event => {
+                          scrollViewHeight.value =
+                            event.nativeEvent.layout.height;
+                          runOnJS(setScrollViewReady)(true);
+                        }}
+                        onContentSizeChange={(w, h) => {
+                          contentHeight.value = h;
+                        }}
                         scrollEnabled={true}
                         style={{flex: 1}}>
                         <View style={{padding: spacing.md}}>
