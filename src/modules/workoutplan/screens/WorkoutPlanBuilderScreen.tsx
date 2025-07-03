@@ -53,12 +53,11 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   runOnJS,
-  runOnUI,
+  useDerivedValue,
   useAnimatedRef,
   scrollTo,
   useAnimatedScrollHandler,
   useWorkletCallback,
-  useFrameCallback,
   LinearTransition,
 } from 'react-native-reanimated';
 
@@ -122,10 +121,6 @@ type DraggableItemProps = {
    * the user's finger instead of drifting with the scroll.
    */
   scrollOffset?: Animated.SharedValue<number>;
-  /**
-   * Shared value to store the finger's absolute Y position during drag.
-   */
-  dragAbsoluteY?: Animated.SharedValue<number>;
 };
 
 type FormValues = {
@@ -206,15 +201,18 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
   onDragMove,
   simultaneousHandlers,
   scrollOffset,
-  dragAbsoluteY,
   resetPreviewOffsets,
 }) => {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const startScrollY = useSharedValue(0);
   const isDragging = useSharedValue(false);
-  const itemHeight = useSharedValue(0);
-  const itemWidth = useSharedValue(0);
+  const [layoutSize, setLayoutSize] = useState<{width: number; height: number}>(
+    {
+      width: 0,
+      height: 0,
+    },
+  );
 
   const handleTouchStart = () => {
     onDragStart?.();
@@ -231,11 +229,9 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
     onBegin: () => {
       isDragging.value = true;
       startScrollY.value = scrollOffset?.value ?? 0;
-      if (onDragStart) {
-        runOnJS(onDragStart)();
-      }
     },
     onStart: (_, ctx) => {
+      isDragging.value = true;
       ctx.startX = translateX.value;
       ctx.startY = translateY.value;
       startScrollY.value = scrollOffset?.value ?? 0;
@@ -243,11 +239,8 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
     onActive: (event, ctx) => {
       translateX.value = ctx.startX + event.translationX;
       translateY.value = ctx.startY + event.translationY;
-      if (dragAbsoluteY) {
-        dragAbsoluteY.value = event.absoluteY;
-      }
       if (onDragMove) {
-        runOnJS(onDragMove)(event.absoluteX, event.absoluteY, item);
+        onDragMove(event.absoluteX, event.absoluteY, item);
       }
     },
     onEnd: event => {
@@ -256,9 +249,7 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
       translateY.value = withSpring(0, {}, finished => {
         if (finished) {
           isDragging.value = false;
-          if (onDragEnd) {
-            runOnJS(onDragEnd)();
-          }
+          runOnJS(handleTouchEnd)();
         }
       });
     },
@@ -280,31 +271,35 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
       shadowRadius: isDragging.value ? 15 : 1,
       shadowOpacity: isDragging.value ? 0.7 : 0,
       shadowOffset: {width: 0, height: isDragging.value ? 10 : 1},
+      // DEBUG
+      borderWidth: 1,
+      borderColor: 'red',
     };
   });
 
-  const containerStyle = useAnimatedStyle(() => ({
-    height:
-      isDragging.value && itemHeight.value > 0 ? itemHeight.value : undefined,
-  }));
-
   return (
-    <Animated.View style={[{width: '100%'}, containerStyle]}>
+    <View
+      style={{
+        width: '100%',
+        height: layoutSize.height > 0 ? layoutSize.height : undefined,
+      }}>
       <PanGestureHandler
         onGestureEvent={gestureHandler}
         simultaneousHandlers={simultaneousHandlers}>
         <Animated.View
-          onLayout={e => {
-            itemWidth.value = e.nativeEvent.layout.width;
-            itemHeight.value = e.nativeEvent.layout.height;
-          }}
+          onLayout={e =>
+            setLayoutSize({
+              width: e.nativeEvent.layout.width,
+              height: e.nativeEvent.layout.height,
+            })
+          }
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          style={[animatedStyle]}>
+          style={[animatedStyle, {width: '100%'}]}>
           {children}
         </Animated.View>
       </PanGestureHandler>
-    </Animated.View>
+    </View>
   );
 };
 
@@ -315,173 +310,112 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
   onDragStart,
   onDragEnd,
   onDragMove,
-  simultaneousHandlers: _simultaneousHandlers, // Unused on web
+  simultaneousHandlers: _simultaneousHandlers,
   scrollOffset,
-  dragAbsoluteY,
 }) => {
-  // Use refs instead of state to avoid re-renders during drag
-  const itemRef = useRef<View>(null);
-  const isDraggingRef = useRef(false);
+  const [layoutSize, setLayoutSize] = useState<{width: number; height: number}>(
+    {
+      width: 0,
+      height: 0,
+    },
+  );
+  const [isDragging, setIsDragging] = useState(false);
   const translate = useRef({x: 0, y: 0});
   const start = useRef({x: 0, y: 0});
   const startScrollY = useRef(0);
   const hasMoved = useRef(false);
   const dragThreshold = 5;
 
-  const itemWidthRef = useRef(0);
-  // Track measured height to stabilize placeholder layout while dragging
-  const [measuredHeight, setMeasuredHeight] = useState<number | undefined>(
-    undefined,
-  );
+  const handlePointerDown = (e: PointerEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const evt = e as unknown as {
+      clientX: number;
+      clientY: number;
+      pointerId: number;
+      currentTarget: any;
+    };
+    setIsDragging(true);
+    start.current = {
+      x: evt.clientX - translate.current.x,
+      y: evt.clientY - translate.current.y,
+    };
+    startScrollY.current = scrollOffset?.value ?? 0;
+    hasMoved.current = false;
+    onDragStart?.();
+    evt.currentTarget.setPointerCapture(evt.pointerId);
+  };
 
-  const applyDraggingStyles = useCallback((dragging: boolean) => {
-    if (itemRef.current) {
-      const element = itemRef.current as unknown as HTMLElement;
-      if (dragging) {
-        element.style.position = 'absolute';
-        element.style.zIndex = '100';
-        element.style.opacity = '0.7';
-        element.style.cursor = 'grabbing';
-        element.style.boxShadow = '0px 10px 15px rgba(0,0,0,0.7)';
-      } else {
-        element.style.position = 'relative';
-        element.style.zIndex = '0';
-        element.style.opacity = '1';
-        element.style.cursor = 'grab';
-        element.style.boxShadow = 'none';
-      }
+  const handlePointerMove = (e: PointerEvent) => {
+    e.stopPropagation();
+    const evt = e as unknown as {
+      clientX: number;
+      clientY: number;
+      currentTarget: any;
+    };
+    if (!isDragging) return;
+    const dx = evt.clientX - start.current.x;
+    const dy = evt.clientY - start.current.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    if (!hasMoved.current && distance > dragThreshold) {
+      hasMoved.current = true;
     }
-  }, []);
+    if (!hasMoved.current) return;
+    translate.current = {x: dx, y: dy};
+    const scrollDiff = (scrollOffset?.value ?? 0) - startScrollY.current;
+    evt.currentTarget.style.transform = `translate(${dx}px, ${dy + scrollDiff}px)`;
+    onDragMove?.(evt.clientX, evt.clientY, item);
+  };
 
-  const handlePointerDown = useCallback(
-    (e: any) => {
-      e.stopPropagation();
-      e.preventDefault();
-
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-
-      const evt = e as unknown as {
-        clientX: number;
-        clientY: number;
-        pointerId: number;
-        currentTarget: HTMLElement;
-      };
-
-      isDraggingRef.current = true;
-      applyDraggingStyles(true);
-
-      start.current = {
-        x: evt.clientX - translate.current.x,
-        y: evt.clientY - translate.current.y,
-      };
-      startScrollY.current = scrollOffset?.value ?? 0;
-      hasMoved.current = false;
-      onDragStart?.();
-      evt.currentTarget.setPointerCapture(evt.pointerId);
-    },
-    [onDragStart, applyDraggingStyles, scrollOffset],
-  );
-
-  const handlePointerMove = useCallback(
-    (e: any) => {
-      e.stopPropagation();
-      const evt = e as unknown as {
-        clientX: number;
-        clientY: number;
-        currentTarget: HTMLElement;
-      };
-
-      if (!isDraggingRef.current) return;
-
-      const dx = evt.clientX - start.current.x;
-      const dy = evt.clientY - start.current.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      if (!hasMoved.current && distance > dragThreshold) {
-        hasMoved.current = true;
-      }
-
-      if (!hasMoved.current) return;
-
-      translate.current = {x: dx, y: dy};
-      const scrollDiff = (scrollOffset?.value ?? 0) - startScrollY.current;
-      evt.currentTarget.style.transform = `translate(${dx}px, ${dy + scrollDiff}px)`;
-      if (dragAbsoluteY) {
-        dragAbsoluteY.value = evt.clientY;
-      }
-      if (onDragMove) {
-        runOnJS(onDragMove)(evt.clientX, evt.clientY, item);
-      }
-    },
-    [dragAbsoluteY, scrollOffset],
-  );
-
-  const endDrag = useCallback(
-    (e: any) => {
-      e.stopPropagation();
-      const evt = e as unknown as {
-        clientX: number;
-        clientY: number;
-        pointerId: number;
-        currentTarget: HTMLElement;
-      };
-
-      if (!isDraggingRef.current) return;
-
-      evt.currentTarget.releasePointerCapture(evt.pointerId);
-      isDraggingRef.current = false;
-      applyDraggingStyles(false);
-
-      translate.current = {x: 0, y: 0};
-      evt.currentTarget.style.transform = 'translate(0px, 0px)';
-      evt.currentTarget.style.transition = 'transform 0.2s ease-out';
-      setTimeout(() => {
-        if (evt.currentTarget) {
-          evt.currentTarget.style.transition = '';
-        }
-      }, 200);
-
-      if (hasMoved.current) {
-        runOnJS(onDrop)(evt.clientX, evt.clientY, item);
-      }
-      hasMoved.current = false;
-      onDragEnd?.();
-    },
-    [onDrop, item, onDragEnd, applyDraggingStyles],
-  );
+  const endDrag = (e: PointerEvent) => {
+    e.stopPropagation();
+    const evt = e as unknown as {
+      clientX: number;
+      clientY: number;
+      pointerId: number;
+      currentTarget: any;
+    };
+    if (!isDragging) return;
+    evt.currentTarget.releasePointerCapture(evt.pointerId);
+    setIsDragging(false);
+    translate.current = {x: 0, y: 0};
+    evt.currentTarget.style.transform = 'translate(0px, 0px)';
+    if (hasMoved.current) {
+      // *** CHANGE THIS LINE ***
+      runOnJS(onDrop)(evt.clientX, evt.clientY, item); // Explicitly wrap onDrop with runOnJS
+    }
+    hasMoved.current = false;
+    onDragEnd?.();
+  };
 
   return (
     <View
       style={{
         width: '100%',
-        // Maintain measured height so layout doesn't shift when dragging
-        height: measuredHeight,
+        height: layoutSize.height > 0 ? layoutSize.height : undefined,
       }}>
       <View
-        ref={itemRef}
-        onLayout={e => {
-          itemWidthRef.current = e.nativeEvent.layout.width;
-          const h = e.nativeEvent.layout.height;
-          if (h > 0 && h !== measuredHeight) {
-            setMeasuredHeight(h);
-          }
-        }}
+        onLayout={e =>
+          setLayoutSize({
+            width: e.nativeEvent.layout.width,
+            height: e.nativeEvent.layout.height,
+          })
+        }
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
-        style={[
+        style={
           {
             width: '100%',
-            position: 'relative',
-            zIndex: 0,
-            opacity: 1,
+            position: isDragging ? 'absolute' : 'relative',
+            zIndex: isDragging ? 100 : 0,
+            opacity: isDragging ? 0.3 : 1,
             cursor: 'grab',
-          },
-          Platform.OS === 'web'
-            ? ({userSelect: 'none', touchAction: 'none'} as any)
-            : null,
-        ]}>
+            userSelect: 'none',
+            touchAction: 'none',
+          } as any
+        }>
         {children}
       </View>
     </View>
@@ -568,15 +502,13 @@ export default function WorkoutPlanBuilderScreen() {
   const [scrollLayoutVersion, setScrollLayoutVersion] = useState(0);
   const [scrollViewReady, setScrollViewReady] = useState(false);
 
+  const scrollViewRef = useRef<ScrollView>(null);
+
   const groupLayouts = useRef<Record<number, Layout>>({});
   const exerciseLayouts = useRef<Record<string, Layout>>({});
   const dragOffsets = useRef<Record<string, Animated.SharedValue<number>>>({});
-  const exerciseRefs = useRef<Map<string, {measure: () => void} | null>>(
-    new Map(),
-  );
-  const groupRefs = useRef<Map<string, {measure: () => void} | null>>(
-    new Map(),
-  );
+  const exerciseRefs = useRef<Map<string, {measure: () => void} | null>>(new Map());
+  const groupRefs = useRef<Map<string, {measure: () => void} | null>>(new Map());
 
   const resetPreviewOffsets = () => {
     for (const key in dragOffsets.current) {
@@ -585,21 +517,10 @@ export default function WorkoutPlanBuilderScreen() {
   };
 
   const scrollOffsetY = useSharedValue(0);
-  const dragAbsoluteY = useSharedValue(0);
-  const lastPlaceholderUpdate = useSharedValue(0);
-  const isDraggingShared = useSharedValue(false);
-  const scrollRef = useAnimatedRef<Animated.ScrollView>();
-  const scrollViewScreenLayout = useSharedValue({
-    x: 0,
-    y: 0,
-    width: 0,
-    height: 0,
-  });
-  // Track the content and visible container heights for auto scrolling
-  const contentHeight = useSharedValue(0);
-  const containerHeight = useSharedValue(0);
-  // Measurement will be handled via onLayout on the ScrollView
+  const scrollRef = useAnimatedRef<ScrollView>();
   const isDraggingItem = useRef(false);
+  const scrollViewHeight = useSharedValue(0);
+  const contentHeight = useSharedValue(0);
 
   const reMeasureAllItems = useCallback(() => {
     exerciseRefs.current.forEach(ref => ref?.measure());
@@ -609,7 +530,6 @@ export default function WorkoutPlanBuilderScreen() {
   const handleDragStart = () => {
     reMeasureAllItems();
     isDraggingItem.current = true;
-    isDraggingShared.value = true;
     if (Platform.OS !== 'web') {
       scrollRef.current?.setNativeProps({scrollEnabled: false});
     }
@@ -618,51 +538,37 @@ export default function WorkoutPlanBuilderScreen() {
 
   const handleDragEnd = () => {
     isDraggingItem.current = false;
-    isDraggingShared.value = false;
     if (Platform.OS !== 'web') {
       scrollRef.current?.setNativeProps({scrollEnabled: true});
     }
     resetPreviewOffsets();
   };
 
-  const autoScrollThreshold = 60;
-  const autoScrollSpeed = 15;
+  const handleAutoScroll = useWorkletCallback((x: number, y: number) => {
+    const threshold = 100;
+    const step = 20;
+    const topBoundary = HEADER_HEIGHT_OFFSET + threshold;
+    const bottomBoundary =
+      HEADER_HEIGHT_OFFSET + scrollViewHeight.value - threshold;
 
-  const handleAutoScroll = useWorkletCallback(() => {
-    'worklet';
-
-    const {y: scrollViewY, height: scrollViewHeight} =
-      scrollViewScreenLayout.value;
-    const upperLimit = scrollViewY + autoScrollThreshold;
-    const lowerLimit = scrollViewY + scrollViewHeight - autoScrollThreshold;
-
-    let scrollDelta = 0;
-
-    if (dragAbsoluteY.value < upperLimit) {
-      scrollDelta = -autoScrollSpeed;
-    } else if (dragAbsoluteY.value > lowerLimit) {
-      scrollDelta = autoScrollSpeed;
-    }
-
-    if (scrollDelta !== 0) {
-      const nextScrollOffset = Math.max(
+    if (y < topBoundary) {
+      const newOffset = Math.max(0, scrollOffsetY.value - step);
+      if (newOffset !== scrollOffsetY.value) {
+        scrollOffsetY.value = newOffset;
+        scrollTo(scrollRef, 0, newOffset, false);
+      }
+    } else if (y > bottomBoundary) {
+      const maxOffset = Math.max(
         0,
-        Math.min(
-          scrollOffsetY.value + scrollDelta,
-          contentHeight.value - containerHeight.value,
-        ),
+        contentHeight.value - scrollViewHeight.value,
       );
-
-      scrollTo(scrollRef, 0, nextScrollOffset, false);
-      scrollOffsetY.value = nextScrollOffset;
+      const newOffset = Math.min(maxOffset, scrollOffsetY.value + step);
+      if (newOffset !== scrollOffsetY.value) {
+        scrollOffsetY.value = newOffset;
+        scrollTo(scrollRef, 0, newOffset, false);
+      }
     }
   }, []);
-
-  useFrameCallback(() => {
-    if (isDraggingShared.value) {
-      handleAutoScroll();
-    }
-  }, true);
 
   const scrollHandler = useAnimatedScrollHandler(event => {
     scrollOffsetY.value = event.contentOffset.y;
@@ -748,8 +654,7 @@ export default function WorkoutPlanBuilderScreen() {
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
             onDragMove={onDragMove}
-            scrollOffset={scrollOffsetY}
-            dragAbsoluteY={dragAbsoluteY}>
+            scrollOffset={scrollOffsetY}>
             {children}
           </DraggableItem>
         </Animated.View>
@@ -837,8 +742,7 @@ export default function WorkoutPlanBuilderScreen() {
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
             onDragMove={onDragMove}
-            scrollOffset={scrollOffsetY}
-            dragAbsoluteY={dragAbsoluteY}>
+            scrollOffset={scrollOffsetY}>
             {children}
           </DraggableItem>
         </Animated.View>
@@ -1363,19 +1267,12 @@ export default function WorkoutPlanBuilderScreen() {
             [],
           );
 
-
           const handleDragMove = useWorkletCallback(
             (x: number, y: number, data: DragData) => {
-              'worklet';
-              dragAbsoluteY.value = y;
-
-              const now = Date.now();
-              if (now - lastPlaceholderUpdate.value > 50) {
-                lastPlaceholderUpdate.value = now;
-                runOnJS(updatePreviewOffsets)(x, y, data);
-              }
+              handleAutoScroll(x, y);
+              runOnJS(updatePreviewOffsets)(x, y, data);
             },
-            [],
+            [handleAutoScroll],
           );
 
           const handleDrop = useCallback(
@@ -1762,26 +1659,9 @@ export default function WorkoutPlanBuilderScreen() {
                   <>
                     {reorderMode ? (
                       <AnimatedScrollView
-                        ref={scrollRef}
-                        onScroll={scrollHandler}
                         scrollEventThrottle={16}
-                        simultaneousHandlers={scrollRef}
                         scrollEnabled={true}
-                        collapsable={false}
-                        style={{flex: 1}}
-                        onLayout={event => {
-                          scrollViewScreenLayout.value = {
-                            x: event.nativeEvent.layout.x,
-                            y: event.nativeEvent.layout.y,
-                            width: event.nativeEvent.layout.width,
-                            height: event.nativeEvent.layout.height,
-                          };
-                          containerHeight.value =
-                            event.nativeEvent.layout.height;
-                        }}
-                        onContentSizeChange={(width, height) => {
-                          contentHeight.value = height;
-                        }}>
+                        style={{flex: 1}}>
                         <View style={{padding: spacing.md}}>
                           <Title
                             text="Reorder Plan"
@@ -1798,14 +1678,9 @@ export default function WorkoutPlanBuilderScreen() {
                                 key={`group-${pi.data.id}`}
                                 ref={r => {
                                   if (r) {
-                                    groupRefs.current.set(
-                                      String(pi.data.id),
-                                      r,
-                                    );
+                                    groupRefs.current.set(String(pi.data.id), r);
                                   } else {
-                                    groupRefs.current.delete(
-                                      String(pi.data.id),
-                                    );
+                                    groupRefs.current.delete(String(pi.data.id));
                                   }
                                 }}
                                 group={pi.data}
@@ -1825,14 +1700,9 @@ export default function WorkoutPlanBuilderScreen() {
                                       key={ex.instanceId}
                                       ref={r => {
                                         if (r) {
-                                          exerciseRefs.current.set(
-                                            ex.instanceId,
-                                            r,
-                                          );
+                                          exerciseRefs.current.set(ex.instanceId, r);
                                         } else {
-                                          exerciseRefs.current.delete(
-                                            ex.instanceId,
-                                          );
+                                          exerciseRefs.current.delete(ex.instanceId);
                                         }
                                       }}
                                       item={ex}
@@ -1876,14 +1746,9 @@ export default function WorkoutPlanBuilderScreen() {
                                 key={pi.data.instanceId}
                                 ref={r => {
                                   if (r) {
-                                    exerciseRefs.current.set(
-                                      pi.data.instanceId,
-                                      r,
-                                    );
+                                    exerciseRefs.current.set(pi.data.instanceId, r);
                                   } else {
-                                    exerciseRefs.current.delete(
-                                      pi.data.instanceId,
-                                    );
+                                    exerciseRefs.current.delete(pi.data.instanceId);
                                   }
                                 }}
                                 item={pi.data}
