@@ -54,11 +54,11 @@ import Animated, {
   withSpring,
   runOnJS,
   runOnUI,
-  useDerivedValue,
   useAnimatedRef,
   scrollTo,
   useAnimatedScrollHandler,
   useWorkletCallback,
+  useFrameCallback,
   LinearTransition,
 } from 'react-native-reanimated';
 
@@ -122,6 +122,10 @@ type DraggableItemProps = {
    * the user's finger instead of drifting with the scroll.
    */
   scrollOffset?: Animated.SharedValue<number>;
+  /**
+   * Shared value to store the finger's absolute Y position during drag.
+   */
+  dragAbsoluteY?: Animated.SharedValue<number>;
 };
 
 type FormValues = {
@@ -202,6 +206,7 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
   onDragMove,
   simultaneousHandlers,
   scrollOffset,
+  dragAbsoluteY,
   resetPreviewOffsets,
 }) => {
   const translateX = useSharedValue(0);
@@ -226,9 +231,11 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
     onBegin: () => {
       isDragging.value = true;
       startScrollY.value = scrollOffset?.value ?? 0;
+      if (onDragStart) {
+        runOnJS(onDragStart)();
+      }
     },
     onStart: (_, ctx) => {
-      isDragging.value = true;
       ctx.startX = translateX.value;
       ctx.startY = translateY.value;
       startScrollY.value = scrollOffset?.value ?? 0;
@@ -236,8 +243,11 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
     onActive: (event, ctx) => {
       translateX.value = ctx.startX + event.translationX;
       translateY.value = ctx.startY + event.translationY;
+      if (dragAbsoluteY) {
+        dragAbsoluteY.value = event.absoluteY;
+      }
       if (onDragMove) {
-        onDragMove(event.absoluteX, event.absoluteY, item);
+        runOnJS(onDragMove)(event.absoluteX, event.absoluteY, item);
       }
     },
     onEnd: event => {
@@ -246,7 +256,9 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
       translateY.value = withSpring(0, {}, finished => {
         if (finished) {
           isDragging.value = false;
-          runOnJS(handleTouchEnd)();
+          if (onDragEnd) {
+            runOnJS(onDragEnd)();
+          }
         }
       });
     },
@@ -305,6 +317,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
   onDragMove,
   simultaneousHandlers: _simultaneousHandlers, // Unused on web
   scrollOffset,
+  dragAbsoluteY,
 }) => {
   // Use refs instead of state to avoid re-renders during drag
   const itemRef = useRef<View>(null);
@@ -393,9 +406,14 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
       translate.current = {x: dx, y: dy};
       const scrollDiff = (scrollOffset?.value ?? 0) - startScrollY.current;
       evt.currentTarget.style.transform = `translate(${dx}px, ${dy + scrollDiff}px)`;
-      onDragMove?.(evt.clientX, evt.clientY, item);
+      if (dragAbsoluteY) {
+        dragAbsoluteY.value = evt.clientY;
+      }
+      if (onDragMove) {
+        runOnJS(onDragMove)(evt.clientX, evt.clientY, item);
+      }
     },
-    [onDragMove, item, scrollOffset],
+    [dragAbsoluteY, scrollOffset],
   );
 
   const endDrag = useCallback(
@@ -567,8 +585,9 @@ export default function WorkoutPlanBuilderScreen() {
   };
 
   const scrollOffsetY = useSharedValue(0);
-  const isAutoScrolling = useSharedValue(false);
   const dragAbsoluteY = useSharedValue(0);
+  const lastPlaceholderUpdate = useSharedValue(0);
+  const isDraggingShared = useSharedValue(false);
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const scrollViewScreenLayout = useSharedValue({
     x: 0,
@@ -581,7 +600,6 @@ export default function WorkoutPlanBuilderScreen() {
   const containerHeight = useSharedValue(0);
   // Measurement will be handled via onLayout on the ScrollView
   const isDraggingItem = useRef(false);
-  const autoScrollInterval = useRef<NodeJS.Timeout | null>(null);
 
   const reMeasureAllItems = useCallback(() => {
     exerciseRefs.current.forEach(ref => ref?.measure());
@@ -591,6 +609,7 @@ export default function WorkoutPlanBuilderScreen() {
   const handleDragStart = () => {
     reMeasureAllItems();
     isDraggingItem.current = true;
+    isDraggingShared.value = true;
     if (Platform.OS !== 'web') {
       scrollRef.current?.setNativeProps({scrollEnabled: false});
     }
@@ -599,164 +618,51 @@ export default function WorkoutPlanBuilderScreen() {
 
   const handleDragEnd = () => {
     isDraggingItem.current = false;
+    isDraggingShared.value = false;
     if (Platform.OS !== 'web') {
       scrollRef.current?.setNativeProps({scrollEnabled: true});
     }
     resetPreviewOffsets();
-    isAutoScrolling.value = false;
   };
 
-  // LOG 3: helper to log from within worklets
-  const logWorklet = useWorkletCallback((...args: any[]) => {
+  const autoScrollThreshold = 60;
+  const autoScrollSpeed = 15;
+
+  const handleAutoScroll = useWorkletCallback(() => {
     'worklet';
-    // runOnJS(console.log)('Worklet Log:', ...args);
-  });
 
-  const handleAutoScroll = useWorkletCallback((absoluteY: number) => {
-    'worklet';
-    // worklet-scoped constants to avoid capture issues
-    const WORKLET_DRAG_THRESHOLD_TOP = 50;
-    const WORKLET_DRAG_THRESHOLD_BOTTOM = 50;
-    const WORKLET_SCROLL_SPEED = 50;
+    const {y: scrollViewY, height: scrollViewHeight} =
+      scrollViewScreenLayout.value;
+    const upperLimit = scrollViewY + autoScrollThreshold;
+    const lowerLimit = scrollViewY + scrollViewHeight - autoScrollThreshold;
 
-    // LOG 4: verify worklet invocation with current y position
-    logWorklet('LOG 4: handleAutoScroll called with absoluteY:', absoluteY);
+    let scrollDelta = 0;
 
-    // Animated.ScrollView refs expose contentSize and containerSize only
-    // inside worklets, but these are not typed in the definition.
-    const scrollView = scrollRef.current as any;
-    if (!scrollView) {
-      logWorklet('LOG 5: ScrollView ref is null, returning.');
-      return;
-    }
-    if (!scrollViewScreenLayout.value.height) {
-      logWorklet(
-        'LOG 6: scrollViewScreenLayout.value.height is 0, returning. Current layout:',
-        scrollViewScreenLayout.value,
-      );
-      return;
+    if (dragAbsoluteY.value < upperLimit) {
+      scrollDelta = -autoScrollSpeed;
+    } else if (dragAbsoluteY.value > lowerLimit) {
+      scrollDelta = autoScrollSpeed;
     }
 
-    const scrollViewAbsoluteY = scrollViewScreenLayout.value.y;
-    const scrollViewHeight = scrollViewScreenLayout.value.height;
-
-    logWorklet(
-      'LOG 7: ScrollView screen position - Y:',
-      scrollViewAbsoluteY,
-      'Height:',
-      scrollViewHeight,
-    );
-
-    // Use shared values captured from layout events
-    const scrollContentHeight = contentHeight.value;
-    const visibleViewportHeight = containerHeight.value;
-
-    logWorklet(
-      'LOG 8: ScrollView content and viewport sizes - ContentHeight:',
-      scrollContentHeight,
-      'ViewportHeight:',
-      visibleViewportHeight,
-    );
-
-    if (scrollContentHeight <= visibleViewportHeight) {
-      logWorklet(
-        'LOG 9: Content is not scrollable (ContentHeight <= ViewportHeight), returning.',
-      );
-      return;
-    }
-
-    let scrollAmount = 0;
-
-    if (absoluteY < scrollViewAbsoluteY + WORKLET_DRAG_THRESHOLD_TOP) {
-      logWorklet('LOG 10: In top auto-scroll threshold zone.');
-      const distanceIntoThreshold =
-        scrollViewAbsoluteY + WORKLET_DRAG_THRESHOLD_TOP - absoluteY;
-      scrollAmount = -Math.min(
-        WORKLET_SCROLL_SPEED,
-        (distanceIntoThreshold / WORKLET_DRAG_THRESHOLD_TOP) *
-          WORKLET_SCROLL_SPEED,
-      );
-    } else if (
-      absoluteY >
-      scrollViewAbsoluteY + scrollViewHeight - WORKLET_DRAG_THRESHOLD_BOTTOM
-    ) {
-      logWorklet('LOG 11: In bottom auto-scroll threshold zone.');
-      const distanceIntoThreshold =
-        absoluteY -
-        (scrollViewAbsoluteY +
-          scrollViewHeight -
-          WORKLET_DRAG_THRESHOLD_BOTTOM);
-      scrollAmount = Math.min(
-        WORKLET_SCROLL_SPEED,
-        (distanceIntoThreshold / WORKLET_DRAG_THRESHOLD_BOTTOM) *
-          WORKLET_SCROLL_SPEED,
-      );
-    }
-
-    logWorklet('LOG 12: Calculated scrollAmount:', scrollAmount);
-
-    if (scrollAmount !== 0) {
-      const currentScrollOffset = scrollOffsetY.value;
+    if (scrollDelta !== 0) {
       const nextScrollOffset = Math.max(
         0,
         Math.min(
-          currentScrollOffset + scrollAmount,
-          scrollContentHeight - visibleViewportHeight,
+          scrollOffsetY.value + scrollDelta,
+          contentHeight.value - containerHeight.value,
         ),
       );
 
-      logWorklet(
-        'LOG 13: Current Scroll Offset:',
-        currentScrollOffset,
-        'Next Scroll Offset:',
-        nextScrollOffset,
-      );
-
-      if (nextScrollOffset !== currentScrollOffset) {
-        logWorklet('LOG 14: Calling scrollTo with Y:', nextScrollOffset);
-        // Use reanimated scrollTo to support worklet execution on native
-        scrollTo(scrollRef, 0, nextScrollOffset, false);
-        scrollOffsetY.value = nextScrollOffset;
-        isAutoScrolling.value = true;
-      } else {
-        logWorklet(
-          'LOG 15: nextScrollOffset is same as currentScrollOffset, no scroll action.',
-        );
-        isAutoScrolling.value = false;
-      }
-    } else {
-      isAutoScrolling.value = false;
+      scrollTo(scrollRef, 0, nextScrollOffset, false);
+      scrollOffsetY.value = nextScrollOffset;
     }
   }, []);
 
-    const startAutoScrollLoop = useCallback(() => {
-    if (autoScrollInterval.current) return;
-    autoScrollInterval.current = setInterval(() => {
-      runOnUI(handleAutoScroll)(dragAbsoluteY.value);
-    }, 16);
-  }, [handleAutoScroll]);
-
-  const stopAutoScrollLoop = useCallback(() => {
-    if (autoScrollInterval.current) {
-      clearInterval(autoScrollInterval.current);
-      autoScrollInterval.current = null;
+  useFrameCallback(() => {
+    if (isDraggingShared.value) {
+      handleAutoScroll();
     }
-  }, []);
-
-  const toggleAutoScroll = useCallback(
-    (active: boolean) => {
-      if (active) {
-        startAutoScrollLoop();
-      } else {
-        stopAutoScrollLoop();
-      }
-    },
-    [startAutoScrollLoop, stopAutoScrollLoop],
-  );
-
-  useDerivedValue(() => {
-    runOnJS(toggleAutoScroll)(isAutoScrolling.value);
-  });
+  }, true);
 
   const scrollHandler = useAnimatedScrollHandler(event => {
     scrollOffsetY.value = event.contentOffset.y;
@@ -842,7 +748,8 @@ export default function WorkoutPlanBuilderScreen() {
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
             onDragMove={onDragMove}
-            scrollOffset={scrollOffsetY}>
+            scrollOffset={scrollOffsetY}
+            dragAbsoluteY={dragAbsoluteY}>
             {children}
           </DraggableItem>
         </Animated.View>
@@ -930,7 +837,8 @@ export default function WorkoutPlanBuilderScreen() {
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
             onDragMove={onDragMove}
-            scrollOffset={scrollOffsetY}>
+            scrollOffset={scrollOffsetY}
+            dragAbsoluteY={dragAbsoluteY}>
             {children}
           </DraggableItem>
         </Animated.View>
@@ -1455,18 +1363,23 @@ export default function WorkoutPlanBuilderScreen() {
             [],
           );
 
+
           const handleDragMove = useWorkletCallback(
             (x: number, y: number, data: DragData) => {
+              'worklet';
               dragAbsoluteY.value = y;
-              handleAutoScroll(y);
-              runOnJS(updatePreviewOffsets)(x, y, data);
+
+              const now = Date.now();
+              if (now - lastPlaceholderUpdate.value > 50) {
+                lastPlaceholderUpdate.value = now;
+                runOnJS(updatePreviewOffsets)(x, y, data);
+              }
             },
-            [handleAutoScroll],
+            [],
           );
 
           const handleDrop = useCallback(
             (x: number, y: number, draggedItemData: DragData) => {
-              isAutoScrolling.value = false;
               if (draggedItemData.type === 'group') {
                 const allTopLevelItems: {
                   id: string;
@@ -1857,57 +1770,17 @@ export default function WorkoutPlanBuilderScreen() {
                         collapsable={false}
                         style={{flex: 1}}
                         onLayout={event => {
-                          console.log(
-                            'LOG C: Animated.ScrollView onLayout fired.',
-                          );
-                          (scrollRef.current as any)?.measure(
-                            (
-                              x: number,
-                              y: number,
-                              width: number,
-                              height: number,
-                              pageX: number,
-                              pageY: number,
-                            ) => {
-                              if (width > 0 && height > 0) {
-                                scrollViewScreenLayout.value = {
-                                  x: pageX,
-                                  y: pageY,
-                                  width,
-                                  height,
-                                };
-                                setScrollViewReady(true);
-                                console.log(
-                                  'LOG 1: ScrollView Measured (onLayout):',
-                                  {
-                                    x: pageX,
-                                    y: pageY,
-                                    width,
-                                    height,
-                                  },
-                                );
-                              } else {
-                                console.log(
-                                  'LOG 2: ScrollView measurement returned 0 or invalid dimensions (onLayout):',
-                                  {width, height},
-                                );
-                              }
-                            },
-                          );
-                          // Update container height from layout event
+                          scrollViewScreenLayout.value = {
+                            x: event.nativeEvent.layout.x,
+                            y: event.nativeEvent.layout.y,
+                            width: event.nativeEvent.layout.width,
+                            height: event.nativeEvent.layout.height,
+                          };
                           containerHeight.value =
                             event.nativeEvent.layout.height;
-                          console.log(
-                            'LOG E: ScrollView containerHeight from onLayout event:',
-                            event.nativeEvent.layout.height,
-                          );
                         }}
                         onContentSizeChange={(width, height) => {
                           contentHeight.value = height;
-                          console.log(
-                            'LOG F: ScrollView onContentSizeChange, contentHeight:',
-                            height,
-                          );
                         }}>
                         <View style={{padding: spacing.md}}>
                           <Title
