@@ -51,7 +51,6 @@ import Animated, {
   useAnimatedGestureHandler,
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
   runOnJS,
   useDerivedValue,
   useAnimatedRef,
@@ -244,14 +243,16 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
       }
     },
     onEnd: event => {
+      // Call the onDrop function on the JavaScript thread
       runOnJS(onDrop)(event.absoluteX, event.absoluteY, item);
-      translateX.value = withSpring(0);
-      translateY.value = withSpring(0, {}, finished => {
-        if (finished) {
-          isDragging.value = false;
-          runOnJS(handleTouchEnd)();
-        }
-      });
+
+      // Instantly reset translation values without animation
+      translateX.value = 0;
+      translateY.value = 0;
+
+      // Immediately update state and call the final handler
+      isDragging.value = false;
+      runOnJS(handleTouchEnd)();
     },
   });
 
@@ -507,8 +508,12 @@ export default function WorkoutPlanBuilderScreen() {
   const groupLayouts = useRef<Record<number, Layout>>({});
   const exerciseLayouts = useRef<Record<string, Layout>>({});
   const dragOffsets = useRef<Record<string, Animated.SharedValue<number>>>({});
-  const exerciseRefs = useRef<Map<string, {measure: () => void} | null>>(new Map());
-  const groupRefs = useRef<Map<string, {measure: () => void} | null>>(new Map());
+  const exerciseRefs = useRef<Map<string, {measure: () => void} | null>>(
+    new Map(),
+  );
+  const groupRefs = useRef<Map<string, {measure: () => void} | null>>(
+    new Map(),
+  );
 
   const resetPreviewOffsets = () => {
     for (const key in dragOffsets.current) {
@@ -1145,7 +1150,10 @@ export default function WorkoutPlanBuilderScreen() {
                 draggedItemData.type === 'group'
                   ? String(draggedItemData.id)
                   : draggedItemData.id;
+
               const containerItems: {id: string; layout: Layout}[] = [];
+
+              // Identify relevant items
               if (
                 draggedItemData.type === 'group' ||
                 (draggedItemData.type === 'exercise' &&
@@ -1157,17 +1165,11 @@ export default function WorkoutPlanBuilderScreen() {
                   const ex = valuesRef.current.exercises.find(
                     e => e.instanceId === id,
                   );
-                  if (ex && ex.groupId == null) {
-                    if (exerciseLayouts.current[id]) {
-                      containerItems.push({
-                        id,
-                        layout: exerciseLayouts.current[id],
-                      });
-                    } else {
-                      console.warn(
-                        `Layout missing for ungrouped exercise ${id}`,
-                      );
-                    }
+                  if (ex && ex.groupId == null && exerciseLayouts.current[id]) {
+                    containerItems.push({
+                      id,
+                      layout: exerciseLayouts.current[id],
+                    });
                   }
                 }
                 for (const id in groupLayouts.current) {
@@ -1179,8 +1181,6 @@ export default function WorkoutPlanBuilderScreen() {
                       id: String(id),
                       layout: groupLayouts.current[id],
                     });
-                  } else {
-                    console.warn(`Layout missing for group ${id}`);
                   }
                 }
                 containerItems.sort((a, b) => a.layout.y - b.layout.y);
@@ -1188,78 +1188,56 @@ export default function WorkoutPlanBuilderScreen() {
                 const draggedEx = valuesRef.current.exercises.find(
                   ex => ex.instanceId === draggedItemData.id,
                 );
-                if (!draggedEx) {
-                  console.warn(
-                    'Dragged exercise not found in values.exercises for grouped drag.',
-                  );
-                  return;
-                }
+                if (!draggedEx) return;
                 const exs = valuesRef.current.exercises
                   .filter(ex => ex.groupId === draggedEx.groupId)
                   .sort((a, b) => a.order - b.order);
                 exs.forEach(ex => {
                   const layout = exerciseLayouts.current[ex.instanceId];
-                  if (layout) {
-                    containerItems.push({id: ex.instanceId, layout});
-                  } else {
-                    console.warn(
-                      `Layout missing for grouped exercise ${ex.instanceId}`,
-                    );
-                  }
+                  if (layout) containerItems.push({id: ex.instanceId, layout});
                 });
               }
 
               const fromIdx = containerItems.findIndex(
                 it => it.id === draggedKey,
               );
-              if (fromIdx === -1) {
-                console.warn(
-                  `Dragged item ${draggedKey} not found in final containerItems.`,
-                );
-                return;
-              }
+              if (fromIdx === -1) return;
 
               let toIdx = fromIdx;
-              const firstItemTop =
-                containerItems.length > 0 ? containerItems[0].layout.y : 0;
-              const lastItem = containerItems[containerItems.length - 1];
-              const lastItemBottom = lastItem
-                ? lastItem.layout.y + lastItem.layout.height
-                : 0;
 
-              if (y < firstItemTop) {
-                toIdx = 0;
-              } else if (y > lastItemBottom) {
-                toIdx = containerItems.length - 1;
-              } else {
-                for (let i = 0; i < containerItems.length; i++) {
-                  if (containerItems[i].id === draggedKey) {
-                    continue;
-                  }
-                  if (isPointInLayout(x, y, containerItems[i].layout)) {
-                    toIdx = i;
-                    break;
-                  }
+              for (let i = 0; i < containerItems.length; i++) {
+                if (containerItems[i].id === draggedKey) continue;
+                const layout = containerItems[i].layout;
+                if (y < layout.y + layout.height / 2) {
+                  toIdx = i;
+                  break;
                 }
+                if (i === containerItems.length - 1)
+                  toIdx = containerItems.length - 1;
               }
 
-              if (toIdx === fromIdx) return;
+              // Reset offsets immediately (no animation)
+              containerItems.forEach(item => {
+                if (dragOffsets.current[item.id]) {
+                  dragOffsets.current[item.id].value = 0;
+                }
+              });
 
-              const draggedItemLayout = containerItems[fromIdx].layout;
-              const draggedHeight = draggedItemLayout.height;
+              const draggedItemHeight = containerItems[fromIdx].layout.height;
 
+              // Immediate position shifting without spring animation
               if (toIdx > fromIdx) {
                 for (let i = fromIdx + 1; i <= toIdx; i++) {
                   const key = containerItems[i].id;
                   if (dragOffsets.current[key]) {
-                    dragOffsets.current[key].value = withSpring(-draggedHeight);
+                    dragOffsets.current[key].value = -draggedItemHeight;
                   }
                 }
               } else if (toIdx < fromIdx) {
                 for (let i = toIdx; i < fromIdx; i++) {
                   const key = containerItems[i].id;
                   if (dragOffsets.current[key]) {
-                    dragOffsets.current[key].value = withSpring(draggedHeight);
+                    dragOffsets.current[key].value = draggedItemHeight;
                   }
                 }
               }
@@ -1678,9 +1656,14 @@ export default function WorkoutPlanBuilderScreen() {
                                 key={`group-${pi.data.id}`}
                                 ref={r => {
                                   if (r) {
-                                    groupRefs.current.set(String(pi.data.id), r);
+                                    groupRefs.current.set(
+                                      String(pi.data.id),
+                                      r,
+                                    );
                                   } else {
-                                    groupRefs.current.delete(String(pi.data.id));
+                                    groupRefs.current.delete(
+                                      String(pi.data.id),
+                                    );
                                   }
                                 }}
                                 group={pi.data}
@@ -1700,9 +1683,14 @@ export default function WorkoutPlanBuilderScreen() {
                                       key={ex.instanceId}
                                       ref={r => {
                                         if (r) {
-                                          exerciseRefs.current.set(ex.instanceId, r);
+                                          exerciseRefs.current.set(
+                                            ex.instanceId,
+                                            r,
+                                          );
                                         } else {
-                                          exerciseRefs.current.delete(ex.instanceId);
+                                          exerciseRefs.current.delete(
+                                            ex.instanceId,
+                                          );
                                         }
                                       }}
                                       item={ex}
@@ -1746,9 +1734,14 @@ export default function WorkoutPlanBuilderScreen() {
                                 key={pi.data.instanceId}
                                 ref={r => {
                                   if (r) {
-                                    exerciseRefs.current.set(pi.data.instanceId, r);
+                                    exerciseRefs.current.set(
+                                      pi.data.instanceId,
+                                      r,
+                                    );
                                   } else {
-                                    exerciseRefs.current.delete(pi.data.instanceId);
+                                    exerciseRefs.current.delete(
+                                      pi.data.instanceId,
+                                    );
                                   }
                                 }}
                                 item={pi.data}
