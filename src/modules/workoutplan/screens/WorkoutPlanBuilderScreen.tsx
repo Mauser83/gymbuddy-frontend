@@ -267,11 +267,7 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
       shadowRadius: isDragging.value ? 15 : 1,
       shadowOpacity: isDragging.value ? 0.7 : 0,
       shadowOffset: {width: 0, height: isDragging.value ? 10 : 1},
-      // DEBUG
-      borderWidth: 1,
-      borderColor: 'red',
-      width: itemWidth.value > 0 ? itemWidth.value : '100%',
-      height: itemHeight.value > 0 ? itemHeight.value : undefined,    };
+    };
   });
 
   return (
@@ -304,112 +300,160 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
   onDragStart,
   onDragEnd,
   onDragMove,
-  simultaneousHandlers: _simultaneousHandlers,
+  simultaneousHandlers: _simultaneousHandlers, // Unused on web
   scrollOffset,
 }) => {
-  const [layoutSize, setLayoutSize] = useState<{width: number; height: number}>(
-    {
-      width: 0,
-      height: 0,
-    },
-  );
-  const [isDragging, setIsDragging] = useState(false);
+  // Use refs instead of state to avoid re-renders during drag
+  const itemRef = useRef<View>(null);
+  const isDraggingRef = useRef(false);
   const translate = useRef({x: 0, y: 0});
   const start = useRef({x: 0, y: 0});
   const startScrollY = useRef(0);
   const hasMoved = useRef(false);
   const dragThreshold = 5;
 
-  const handlePointerDown = (e: PointerEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    const evt = e as unknown as {
-      clientX: number;
-      clientY: number;
-      pointerId: number;
-      currentTarget: any;
-    };
-    setIsDragging(true);
-    start.current = {
-      x: evt.clientX - translate.current.x,
-      y: evt.clientY - translate.current.y,
-    };
-    startScrollY.current = scrollOffset?.value ?? 0;
-    hasMoved.current = false;
-    onDragStart?.();
-    evt.currentTarget.setPointerCapture(evt.pointerId);
-  };
+  const itemWidthRef = useRef(0);
+  const itemHeightRef = useRef(0);
 
-  const handlePointerMove = (e: PointerEvent) => {
-    e.stopPropagation();
-    const evt = e as unknown as {
-      clientX: number;
-      clientY: number;
-      currentTarget: any;
-    };
-    if (!isDragging) return;
-    const dx = evt.clientX - start.current.x;
-    const dy = evt.clientY - start.current.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    if (!hasMoved.current && distance > dragThreshold) {
-      hasMoved.current = true;
+  const applyDraggingStyles = useCallback((dragging: boolean) => {
+    if (itemRef.current) {
+      const element = itemRef.current as unknown as HTMLElement;
+      if (dragging) {
+        element.style.position = 'absolute';
+        element.style.zIndex = '100';
+        element.style.opacity = '0.7';
+        element.style.cursor = 'grabbing';
+        element.style.boxShadow = '0px 10px 15px rgba(0,0,0,0.7)';
+      } else {
+        element.style.position = 'relative';
+        element.style.zIndex = '0';
+        element.style.opacity = '1';
+        element.style.cursor = 'grab';
+        element.style.boxShadow = 'none';
+      }
     }
-    if (!hasMoved.current) return;
-    translate.current = {x: dx, y: dy};
-    const scrollDiff = (scrollOffset?.value ?? 0) - startScrollY.current;
-    evt.currentTarget.style.transform = `translate(${dx}px, ${dy + scrollDiff}px)`;
-    onDragMove?.(evt.clientX, evt.clientY, item);
-  };
+  }, []);
 
-  const endDrag = (e: PointerEvent) => {
-    e.stopPropagation();
-    const evt = e as unknown as {
-      clientX: number;
-      clientY: number;
-      pointerId: number;
-      currentTarget: any;
-    };
-    if (!isDragging) return;
-    evt.currentTarget.releasePointerCapture(evt.pointerId);
-    setIsDragging(false);
-    translate.current = {x: 0, y: 0};
-    evt.currentTarget.style.transform = 'translate(0px, 0px)';
-    if (hasMoved.current) {
-      // *** CHANGE THIS LINE ***
-      runOnJS(onDrop)(evt.clientX, evt.clientY, item); // Explicitly wrap onDrop with runOnJS
-    }
-    hasMoved.current = false;
-    onDragEnd?.();
-  };
+  const handlePointerDown = useCallback(
+    (e: any) => {
+      e.stopPropagation();
+      e.preventDefault();
+
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+      const evt = e as unknown as {
+        clientX: number;
+        clientY: number;
+        pointerId: number;
+        currentTarget: HTMLElement;
+      };
+
+      isDraggingRef.current = true;
+      applyDraggingStyles(true);
+
+      start.current = {
+        x: evt.clientX - translate.current.x,
+        y: evt.clientY - translate.current.y,
+      };
+      startScrollY.current = scrollOffset?.value ?? 0;
+      hasMoved.current = false;
+      onDragStart?.();
+      evt.currentTarget.setPointerCapture(evt.pointerId);
+    },
+    [onDragStart, applyDraggingStyles, scrollOffset],
+  );
+
+  const handlePointerMove = useCallback(
+    (e: any) => {
+      e.stopPropagation();
+      const evt = e as unknown as {
+        clientX: number;
+        clientY: number;
+        currentTarget: HTMLElement;
+      };
+
+      if (!isDraggingRef.current) return;
+
+      const dx = evt.clientX - start.current.x;
+      const dy = evt.clientY - start.current.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (!hasMoved.current && distance > dragThreshold) {
+        hasMoved.current = true;
+      }
+
+      if (!hasMoved.current) return;
+
+      translate.current = {x: dx, y: dy};
+      const scrollDiff = (scrollOffset?.value ?? 0) - startScrollY.current;
+      evt.currentTarget.style.transform = `translate(${dx}px, ${dy + scrollDiff}px)`;
+      onDragMove?.(evt.clientX, evt.clientY, item);
+    },
+    [onDragMove, item, scrollOffset],
+  );
+
+  const endDrag = useCallback(
+    (e: any) => {
+      e.stopPropagation();
+      const evt = e as unknown as {
+        clientX: number;
+        clientY: number;
+        pointerId: number;
+        currentTarget: HTMLElement;
+      };
+
+      if (!isDraggingRef.current) return;
+
+      evt.currentTarget.releasePointerCapture(evt.pointerId);
+      isDraggingRef.current = false;
+      applyDraggingStyles(false);
+
+      translate.current = {x: 0, y: 0};
+      evt.currentTarget.style.transform = 'translate(0px, 0px)';
+      evt.currentTarget.style.transition = 'transform 0.2s ease-out';
+      setTimeout(() => {
+        if (evt.currentTarget) {
+          evt.currentTarget.style.transition = '';
+        }
+      }, 200);
+
+      if (hasMoved.current) {
+        runOnJS(onDrop)(evt.clientX, evt.clientY, item);
+      }
+      hasMoved.current = false;
+      onDragEnd?.();
+    },
+    [onDrop, item, onDragEnd, applyDraggingStyles],
+  );
 
   return (
     <View
       style={{
         width: '100%',
-        height: layoutSize.height > 0 ? layoutSize.height : undefined,
+        height: itemHeightRef.current > 0 ? itemHeightRef.current : undefined,
       }}>
       <View
-        onLayout={e =>
-          setLayoutSize({
-            width: e.nativeEvent.layout.width,
-            height: e.nativeEvent.layout.height,
-          })
-        }
+        ref={itemRef}
+        onLayout={e => {
+          itemWidthRef.current = e.nativeEvent.layout.width;
+          itemHeightRef.current = e.nativeEvent.layout.height;
+        }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
-        style={
+        style={[
           {
             width: '100%',
-            position: isDragging ? 'absolute' : 'relative',
-            zIndex: isDragging ? 100 : 0,
-            opacity: isDragging ? 0.3 : 1,
+            position: 'relative',
+            zIndex: 0,
+            opacity: 1,
             cursor: 'grab',
-            userSelect: 'none',
-            touchAction: 'none',
-          } as any
-        }>
+          },
+          Platform.OS === 'web'
+            ? ({userSelect: 'none', touchAction: 'none'} as any)
+            : null,
+        ]}>
         {children}
       </View>
     </View>
@@ -513,6 +557,7 @@ export default function WorkoutPlanBuilderScreen() {
   };
 
   const scrollOffsetY = useSharedValue(0);
+  const isAutoScrolling = useSharedValue(false);
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const scrollViewScreenLayout = useSharedValue({
     x: 0,
@@ -546,6 +591,7 @@ export default function WorkoutPlanBuilderScreen() {
       scrollRef.current?.setNativeProps({scrollEnabled: true});
     }
     resetPreviewOffsets();
+    isAutoScrolling.value = false;
   };
 
   // LOG 3: helper to log from within worklets
@@ -615,7 +661,8 @@ export default function WorkoutPlanBuilderScreen() {
         scrollViewAbsoluteY + WORKLET_DRAG_THRESHOLD_TOP - absoluteY;
       scrollAmount = -Math.min(
         WORKLET_SCROLL_SPEED,
-        (distanceIntoThreshold / WORKLET_DRAG_THRESHOLD_TOP) * WORKLET_SCROLL_SPEED,
+        (distanceIntoThreshold / WORKLET_DRAG_THRESHOLD_TOP) *
+          WORKLET_SCROLL_SPEED,
       );
     } else if (
       absoluteY >
@@ -624,10 +671,13 @@ export default function WorkoutPlanBuilderScreen() {
       logWorklet('LOG 11: In bottom auto-scroll threshold zone.');
       const distanceIntoThreshold =
         absoluteY -
-        (scrollViewAbsoluteY + scrollViewHeight - WORKLET_DRAG_THRESHOLD_BOTTOM);
+        (scrollViewAbsoluteY +
+          scrollViewHeight -
+          WORKLET_DRAG_THRESHOLD_BOTTOM);
       scrollAmount = Math.min(
         WORKLET_SCROLL_SPEED,
-        (distanceIntoThreshold / WORKLET_DRAG_THRESHOLD_BOTTOM) * WORKLET_SCROLL_SPEED,
+        (distanceIntoThreshold / WORKLET_DRAG_THRESHOLD_BOTTOM) *
+          WORKLET_SCROLL_SPEED,
       );
     }
 
@@ -651,12 +701,21 @@ export default function WorkoutPlanBuilderScreen() {
       );
 
       if (nextScrollOffset !== currentScrollOffset) {
-        logWorklet('LOG 14: Calling scrollView.scrollTo with Y:', nextScrollOffset);
+        logWorklet(
+          'LOG 14: Calling scrollView.scrollTo with Y:',
+          nextScrollOffset,
+        );
         scrollView.scrollTo({y: nextScrollOffset, animated: false});
         scrollOffsetY.value = nextScrollOffset;
+        isAutoScrolling.value = true;
       } else {
-        logWorklet('LOG 15: nextScrollOffset is same as currentScrollOffset, no scroll action.');
+        logWorklet(
+          'LOG 15: nextScrollOffset is same as currentScrollOffset, no scroll action.',
+        );
+        isAutoScrolling.value = false;
       }
+    } else {
+      isAutoScrolling.value = false;
     }
   }, []);
 
@@ -1367,6 +1426,7 @@ export default function WorkoutPlanBuilderScreen() {
 
           const handleDrop = useCallback(
             (x: number, y: number, draggedItemData: DragData) => {
+              isAutoScrolling.value = false;
               if (draggedItemData.type === 'group') {
                 const allTopLevelItems: {
                   id: string;
@@ -1756,7 +1816,9 @@ export default function WorkoutPlanBuilderScreen() {
                         scrollEnabled={true}
                         style={{flex: 1}}
                         onLayout={event => {
-                          console.log('LOG C: Animated.ScrollView onLayout fired.');
+                          console.log(
+                            'LOG C: Animated.ScrollView onLayout fired.',
+                          );
                           (scrollRef.current as any)?.measure(
                             (
                               x: number,
@@ -1774,12 +1836,15 @@ export default function WorkoutPlanBuilderScreen() {
                                   height,
                                 };
                                 setScrollViewReady(true);
-                                console.log('LOG 1: ScrollView Measured (onLayout):', {
-                                  x: pageX,
-                                  y: pageY,
-                                  width,
-                                  height,
-                                });
+                                console.log(
+                                  'LOG 1: ScrollView Measured (onLayout):',
+                                  {
+                                    x: pageX,
+                                    y: pageY,
+                                    width,
+                                    height,
+                                  },
+                                );
                               } else {
                                 console.log(
                                   'LOG 2: ScrollView measurement returned 0 or invalid dimensions (onLayout):',
@@ -1789,12 +1854,19 @@ export default function WorkoutPlanBuilderScreen() {
                             },
                           );
                           // Update container height from layout event
-                          containerHeight.value = event.nativeEvent.layout.height;
-                          console.log('LOG E: ScrollView containerHeight from onLayout event:', event.nativeEvent.layout.height);
+                          containerHeight.value =
+                            event.nativeEvent.layout.height;
+                          console.log(
+                            'LOG E: ScrollView containerHeight from onLayout event:',
+                            event.nativeEvent.layout.height,
+                          );
                         }}
                         onContentSizeChange={(width, height) => {
                           contentHeight.value = height;
-                          console.log('LOG F: ScrollView onContentSizeChange, contentHeight:', height);
+                          console.log(
+                            'LOG F: ScrollView onContentSizeChange, contentHeight:',
+                            height,
+                          );
                         }}>
                         <View style={{padding: spacing.md}}>
                           <Title
