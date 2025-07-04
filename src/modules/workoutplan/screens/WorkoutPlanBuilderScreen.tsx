@@ -393,7 +393,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
     translate.current = {x: 0, y: 0};
     evt.currentTarget.style.transform = 'translate(0px, 0px)';
     if (hasMoved.current) {
-      runOnJS(onDrop)(evt.clientX, evt.clientY, item);
+      onDrop(evt.clientX, evt.clientY, item);
     }
     hasMoved.current = false;
     onDragEnd?.();
