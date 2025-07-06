@@ -1214,20 +1214,35 @@ export default function WorkoutPlanBuilderScreen() {
           const updatePreviewOffsets = useCallback(
             (x: number, y: number, draggedItemData: DragData) => {
               if (draggedItemData.type === 'exercise') {
+                const draggedExercise = valuesRef.current.exercises.find(
+                  e => e.instanceId === draggedItemData.id,
+                );
+
                 let foundHover = false;
-                for (const groupIdStr in groupLayouts.current) {
-                  const groupLayout = groupLayouts.current[groupIdStr];
-                  if (isPointInLayout(x, y, groupLayout)) {
-                    if (hoveredGroupId.value !== Number(groupIdStr)) {
-                      hoveredGroupId.value = Number(groupIdStr);
+                if (draggedExercise) {
+                  // Check if exercise was found before proceeding
+                  for (const groupIdStr in groupLayouts.current) {
+                    const groupLayout = groupLayouts.current[groupIdStr];
+                    const targetGroupId = Number(groupIdStr);
+
+                    // 👇 THE FIX: Check for hover AND ensure the exercise is NOT already in the target group.
+                    if (
+                      isPointInLayout(x, y, groupLayout) &&
+                      draggedExercise.groupId !== targetGroupId
+                    ) {
+                      if (hoveredGroupId.value !== targetGroupId) {
+                        hoveredGroupId.value = targetGroupId;
+                      }
+                      foundHover = true;
+                      break;
                     }
-                    foundHover = true;
-                    break;
                   }
                 }
+
                 if (!foundHover && hoveredGroupId.value !== null) {
                   hoveredGroupId.value = null;
                 }
+
                 if (foundHover) {
                   return;
                 }
