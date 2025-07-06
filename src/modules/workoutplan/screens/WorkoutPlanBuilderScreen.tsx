@@ -513,6 +513,7 @@ export default function WorkoutPlanBuilderScreen() {
   const [stagedGroupId, setStagedGroupId] = useState<number | null>(null);
   const [layoutVersion, setLayoutVersion] = useState(0);
   const [scrollLayoutVersion, setScrollLayoutVersion] = useState(0);
+  const [dragHoverRenderKey, setDragHoverRenderKey] = useState(0);
   const [scrollViewReady, setScrollViewReady] = useState(false);
 
   const groupLayouts = useRef<Record<number, Layout>>({});
@@ -524,6 +525,7 @@ export default function WorkoutPlanBuilderScreen() {
   const groupRefs = useRef<Map<string, {measure: () => void} | null>>(
     new Map(),
   );
+  const hoveredGroupIdRef = useRef<number | null>(null);
 
   const resetPreviewOffsets = () => {
     for (const key in dragOffsets.current) {
@@ -559,6 +561,10 @@ export default function WorkoutPlanBuilderScreen() {
       scrollRef.current?.setNativeProps({scrollEnabled: true});
     }
     resetPreviewOffsets();
+    if (hoveredGroupIdRef.current !== null) {
+      hoveredGroupIdRef.current = null;
+      setDragHoverRenderKey(k => k + 1);
+    }
     setScrollLayoutVersion(prev => prev + 1);
   };
 
@@ -615,6 +621,7 @@ export default function WorkoutPlanBuilderScreen() {
     onDragMove?: (x: number, y: number, data: DragData) => void;
     layoutVersion: number;
     scrollLayoutVersion: number;
+    hoverVersion: number;
   };
 
   const MeasuredExerciseItemComponent = React.forwardRef<
@@ -632,6 +639,7 @@ export default function WorkoutPlanBuilderScreen() {
         onDragMove,
         layoutVersion,
         scrollLayoutVersion,
+        hoverVersion: _hoverVersion,
       },
       refProp,
     ) => {
@@ -706,6 +714,7 @@ export default function WorkoutPlanBuilderScreen() {
     onDragMove?: (x: number, y: number, data: DragData) => void;
     layoutVersion: number;
     scrollLayoutVersion: number;
+    hoverVersion: number;
   };
 
   const MeasuredGroupItem = React.forwardRef<
@@ -723,6 +732,7 @@ export default function WorkoutPlanBuilderScreen() {
         onDragMove,
         layoutVersion,
         scrollLayoutVersion,
+        hoverVersion: _hoverVersion,
       },
       refProp,
     ) => {
@@ -1175,6 +1185,28 @@ export default function WorkoutPlanBuilderScreen() {
 
           const updatePreviewOffsets = useCallback(
             (x: number, y: number, draggedItemData: DragData) => {
+              if (draggedItemData.type === 'exercise') {
+                let foundHover = false;
+                for (const groupIdStr in groupLayouts.current) {
+                  const groupLayout = groupLayouts.current[groupIdStr];
+                  if (isPointInLayout(x, y, groupLayout)) {
+                    if (hoveredGroupIdRef.current !== Number(groupIdStr)) {
+                      hoveredGroupIdRef.current = Number(groupIdStr);
+                      setDragHoverRenderKey(k => k + 1);
+                    }
+                    foundHover = true;
+                    break;
+                  }
+                }
+                if (!foundHover && hoveredGroupIdRef.current !== null) {
+                  hoveredGroupIdRef.current = null;
+                  setDragHoverRenderKey(k => k + 1);
+                }
+                if (foundHover) {
+                  return;
+                }
+              }
+
               const draggedKey =
                 draggedItemData.type === 'group'
                   ? String(draggedItemData.id)
@@ -1395,6 +1427,27 @@ export default function WorkoutPlanBuilderScreen() {
                 if (isPointInLayout(x, y, layout)) {
                   const targetGroupId = parseInt(groupIdStr, 10);
                   if (draggedItem.groupId !== targetGroupId) {
+                    const group = values.groups.find(
+                      g => g.id === targetGroupId,
+                    );
+                    const method = group
+                      ? getMethodById(group.trainingMethodId)
+                      : null;
+                    const max = method?.maxGroupSize;
+                    const currentCount = values.exercises.filter(
+                      e => e.groupId === targetGroupId,
+                    ).length;
+                    if (max != null && currentCount >= max) {
+                      Alert.alert(
+                        'Group Limit Reached',
+                        `You can only add ${max} exercises to this group.`,
+                      );
+                      if (hoveredGroupIdRef.current !== null) {
+                        hoveredGroupIdRef.current = null;
+                        setDragHoverRenderKey(k => k + 1);
+                      }
+                      return;
+                    }
                     updateExerciseGroup(
                       draggedItemData.id,
                       targetGroupId,
@@ -1415,6 +1468,10 @@ export default function WorkoutPlanBuilderScreen() {
                   values.groups,
                   setFieldValue,
                 );
+              }
+              if (hoveredGroupIdRef.current !== null) {
+                hoveredGroupIdRef.current = null;
+                setDragHoverRenderKey(k => k + 1);
               }
             },
             [setFieldValue, handleDragEnd],
@@ -1752,7 +1809,8 @@ export default function WorkoutPlanBuilderScreen() {
                                 onDragEnd={handleDragEnd}
                                 onDragMove={handleDragMove}
                                 layoutVersion={layoutVersion}
-                                scrollLayoutVersion={scrollLayoutVersion}>
+                                scrollLayoutVersion={scrollLayoutVersion}
+                                hoverVersion={dragHoverRenderKey}>
                                 <ExerciseGroupCard
                                   label={getGroupLabel(pi.data)}
                                   borderColor={theme.colors.accentStart}
@@ -1779,7 +1837,8 @@ export default function WorkoutPlanBuilderScreen() {
                                       onDragEnd={handleDragEnd}
                                       onDragMove={handleDragMove}
                                       layoutVersion={layoutVersion}
-                                      scrollLayoutVersion={scrollLayoutVersion}>
+                                      scrollLayoutVersion={scrollLayoutVersion}
+                                      hoverVersion={dragHoverRenderKey}>
                                       <View
                                         style={{
                                           marginHorizontal: spacing.md,
@@ -1806,6 +1865,19 @@ export default function WorkoutPlanBuilderScreen() {
                                       </View>
                                     </MeasuredExerciseItem>
                                   ))}
+                                  {hoveredGroupIdRef.current === pi.data.id && (
+                                    <View
+                                      style={{
+                                        height: 48,
+                                        margin: spacing.sm,
+                                        backgroundColor: '#D7FCB5',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        borderRadius: 6,
+                                      }}>
+                                      <Text>Drop here to add to group</Text>
+                                    </View>
+                                  )}
                                 </ExerciseGroupCard>
                               </MeasuredGroupItem>
                             ) : (
@@ -1830,7 +1902,8 @@ export default function WorkoutPlanBuilderScreen() {
                                 onDragEnd={handleDragEnd}
                                 onDragMove={handleDragMove}
                                 layoutVersion={layoutVersion}
-                                scrollLayoutVersion={scrollLayoutVersion}>
+                                scrollLayoutVersion={scrollLayoutVersion}
+                                hoverVersion={dragHoverRenderKey}>
                                 <View
                                   style={{
                                     backgroundColor: theme.colors.background,
