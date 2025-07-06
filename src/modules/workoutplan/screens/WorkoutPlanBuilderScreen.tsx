@@ -1388,47 +1388,6 @@ export default function WorkoutPlanBuilderScreen() {
               );
               if (!draggedItem) return;
 
-              if (draggedItem.groupId == null) {
-                const allTopLevelItems: {
-                  id: string;
-                  type: 'exercise' | 'group';
-                  layout: Layout;
-                }[] = [];
-
-                for (const id in exerciseLayouts.current) {
-                  const ex = values.exercises.find(e => e.instanceId === id);
-                  if (ex && ex.groupId == null) {
-                    allTopLevelItems.push({
-                      id,
-                      type: 'exercise',
-                      layout: exerciseLayouts.current[id],
-                    });
-                  }
-                }
-                for (const id in groupLayouts.current) {
-                  allTopLevelItems.push({
-                    id: String(id),
-                    type: 'group',
-                    layout: groupLayouts.current[id],
-                  });
-                }
-
-                allTopLevelItems.sort((a, b) => a.layout.y - b.layout.y);
-
-                for (const target of allTopLevelItems) {
-                  if (target.id === draggedItemData.id) continue;
-                  if (isPointInLayout(x, y, target.layout)) {
-                    reorderPlanItems(
-                      draggedItemData,
-                      {type: target.type, id: target.id},
-                      values,
-                      setFieldValue,
-                    );
-                    return;
-                  }
-                }
-              }
-
               for (const targetId in exerciseLayouts.current) {
                 if (targetId === draggedItemData.id) continue;
                 const layout = exerciseLayouts.current[targetId];
@@ -1482,6 +1441,47 @@ export default function WorkoutPlanBuilderScreen() {
                     );
                   }
                   return;
+                }
+              }
+
+              if (draggedItem.groupId == null) {
+                const allTopLevelItems: {
+                  id: string;
+                  type: 'exercise' | 'group';
+                  layout: Layout;
+                }[] = [];
+
+                for (const id in exerciseLayouts.current) {
+                  const ex = values.exercises.find(e => e.instanceId === id);
+                  if (ex && ex.groupId == null) {
+                    allTopLevelItems.push({
+                      id,
+                      type: 'exercise',
+                      layout: exerciseLayouts.current[id],
+                    });
+                  }
+                }
+                for (const id in groupLayouts.current) {
+                  allTopLevelItems.push({
+                    id: String(id),
+                    type: 'group',
+                    layout: groupLayouts.current[id],
+                  });
+                }
+
+                allTopLevelItems.sort((a, b) => a.layout.y - b.layout.y);
+
+                for (const target of allTopLevelItems) {
+                  if (target.id === draggedItemData.id) continue;
+                  if (isPointInLayout(x, y, target.layout)) {
+                    reorderPlanItems(
+                      draggedItemData,
+                      {type: target.type, id: target.id},
+                      values,
+                      setFieldValue,
+                    );
+                    return;
+                  }
                 }
               }
 
