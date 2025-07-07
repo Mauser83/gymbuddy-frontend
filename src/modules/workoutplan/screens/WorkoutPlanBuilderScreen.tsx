@@ -1245,6 +1245,21 @@ export default function WorkoutPlanBuilderScreen() {
                   toIdx = containerItems.length - 1;
               }
 
+              // --- FIX STARTS HERE ---
+              // This addresses the issue where dragging an item causes the one
+              // immediately below it to shift up prematurely. We introduce a
+              // "dead zone" by checking if the pointer is still within the
+              // original vertical area of the item being dragged.
+              if (toIdx === fromIdx + 1) {
+                const draggedItemLayout = containerItems[fromIdx].layout;
+                // If the pointer hasn't moved below the dragged item's original position,
+                // cancel the reorder by resetting the target index.
+                if (y < draggedItemLayout.y + draggedItemLayout.height) {
+                  toIdx = fromIdx;
+                }
+              }
+              // --- FIX ENDS HERE ---
+
               // Reset offsets immediately (no animation)
               containerItems.forEach(item => {
                 if (dragOffsets.current[item.id]) {
