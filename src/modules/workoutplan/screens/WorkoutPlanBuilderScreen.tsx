@@ -1360,12 +1360,23 @@ export default function WorkoutPlanBuilderScreen() {
                 for (const target of allTopLevelItems) {
                   if (target.id === draggedItemData.id) continue;
                   if (isPointInLayout(x, y, target.layout)) {
-                    reorderPlanItems(
-                      draggedItemData,
-                      {type: target.type, id: target.id},
-                      values,
-                      setFieldValue,
-                    );
+                    if (target.type === 'group') {
+                      const targetGroupId = parseInt(target.id, 10);
+                      updateExerciseGroup(
+                        draggedItemData.id,
+                        targetGroupId,
+                        values.exercises,
+                        values.groups,
+                        setFieldValue,
+                      );
+                    } else {
+                      reorderPlanItems(
+                        draggedItemData,
+                        {type: target.type, id: target.id},
+                        values,
+                        setFieldValue,
+                      );
+                    }
                     return;
                   }
                 }
@@ -1757,55 +1768,100 @@ export default function WorkoutPlanBuilderScreen() {
                                   label={getGroupLabel(pi.data)}
                                   borderColor={theme.colors.accentStart}
                                   textColor={theme.colors.textPrimary}>
-                                  {getGroupedExercises(pi.data.id).map(ex => (
-                                    <MeasuredExerciseItem
-                                      key={ex.instanceId}
-                                      ref={r => {
-                                        if (r) {
-                                          exerciseRefs.current.set(
-                                            ex.instanceId,
-                                            r,
-                                          );
-                                        } else {
-                                          exerciseRefs.current.delete(
-                                            ex.instanceId,
-                                          );
-                                        }
-                                      }}
-                                      item={ex}
-                                      onDrop={handleDrop}
-                                      simultaneousHandlers={scrollRef}
-                                      onDragStart={handleDragStart}
-                                      onDragEnd={handleDragEnd}
-                                      onDragMove={handleDragMove}
-                                      layoutVersion={layoutVersion}
-                                      scrollLayoutVersion={scrollLayoutVersion}>
-                                      <View
-                                        style={{
-                                          marginHorizontal: spacing.md,
-                                          marginVertical: spacing.sm,
-                                          backgroundColor: theme.colors.surface,
-                                          padding: spacing.sm,
-                                          borderRadius: 6,
-                                          borderWidth: 1,
-                                          borderColor: theme.colors.accentEnd,
-                                        }}>
-                                        <Text
-                                          style={{
-                                            color: theme.colors.textPrimary,
-                                            fontWeight: 'bold',
-                                          }}>
-                                          {ex.exerciseName}
-                                        </Text>
-                                        <Text
-                                          style={{
-                                            color: theme.colors.textSecondary,
-                                          }}>
-                                          {renderSummary(ex)}
-                                        </Text>
-                                      </View>
-                                    </MeasuredExerciseItem>
-                                  ))}
+                                  {(() => {
+                                    const groupExercises = getGroupedExercises(
+                                      pi.data.id,
+                                    );
+                                    const method = getMethodById(
+                                      pi.data.trainingMethodId,
+                                    );
+                                    const max = method?.maxGroupSize;
+                                    const hasSpace =
+                                      max == null ||
+                                      groupExercises.length < max;
+                                    return (
+                                      <>
+                                        {groupExercises.map(ex => (
+                                          <MeasuredExerciseItem
+                                            key={ex.instanceId}
+                                            ref={r => {
+                                              if (r) {
+                                                exerciseRefs.current.set(
+                                                  ex.instanceId,
+                                                  r,
+                                                );
+                                              } else {
+                                                exerciseRefs.current.delete(
+                                                  ex.instanceId,
+                                                );
+                                              }
+                                            }}
+                                            item={ex}
+                                            onDrop={handleDrop}
+                                            simultaneousHandlers={scrollRef}
+                                            onDragStart={handleDragStart}
+                                            onDragEnd={handleDragEnd}
+                                            onDragMove={handleDragMove}
+                                            layoutVersion={layoutVersion}
+                                            scrollLayoutVersion={
+                                              scrollLayoutVersion
+                                            }>
+                                            <View
+                                              style={{
+                                                marginHorizontal: spacing.md,
+                                                marginVertical: spacing.sm,
+                                                backgroundColor:
+                                                  theme.colors.surface,
+                                                padding: spacing.sm,
+                                                borderRadius: 6,
+                                                borderWidth: 1,
+                                                borderColor:
+                                                  theme.colors.accentEnd,
+                                              }}>
+                                              <Text
+                                                style={{
+                                                  color:
+                                                    theme.colors.textPrimary,
+                                                  fontWeight: 'bold',
+                                                }}>
+                                                {ex.exerciseName}
+                                              </Text>
+                                              <Text
+                                                style={{
+                                                  color:
+                                                    theme.colors.textSecondary,
+                                                }}>
+                                                {renderSummary(ex)}
+                                              </Text>
+                                            </View>
+                                          </MeasuredExerciseItem>
+                                        ))}
+                                        {hasSpace && (
+                                          <View
+                                            style={{
+                                              marginVertical: spacing.sm,
+                                              padding: spacing.sm,
+                                              alignItems: 'center',
+                                              borderWidth: 1,
+                                              borderStyle: 'dashed',
+                                              borderRadius: 6,
+                                              borderColor:
+                                                theme.colors.accentEnd,
+                                              backgroundColor:
+                                                theme.colors.surface,
+                                            }}>
+                                            <Text
+                                              style={{
+                                                color:
+                                                  theme.colors.textSecondary,
+                                              }}>
+                                              Drag here to insert
+                                            </Text>
+                                          </View>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
                                 </ExerciseGroupCard>
                               </MeasuredGroupItem>
                             ) : (
@@ -1925,107 +1981,143 @@ export default function WorkoutPlanBuilderScreen() {
                                   label={getGroupLabel(item.group)}
                                   borderColor={theme.colors.accentStart}
                                   textColor={theme.colors.textPrimary}>
-                                  {groupExercises.map(exercise => {
-                                    const idx = values.exercises.findIndex(
-                                      e => e.instanceId === exercise.instanceId,
+                                  {(() => {
+                                    const method = getMethodById(
+                                      item.group.trainingMethodId,
                                     );
-                                    const isExpanded =
-                                      expandedExerciseIndex === idx;
-
+                                    const max = method?.maxGroupSize;
+                                    const hasSpace =
+                                      max == null ||
+                                      groupExercises.length < max;
                                     return (
-                                      <View
-                                        key={exercise.instanceId}
-                                        style={{
-                                          marginVertical: spacing.sm,
-                                          padding: spacing.sm,
-                                          backgroundColor: theme.colors.surface,
-                                          borderRadius: 6,
-                                          borderWidth: 1,
-                                          borderColor: theme.colors.accentEnd,
-                                        }}>
-                                        <TouchableOpacity
-                                          onPress={() =>
-                                            setExpandedExerciseIndex(
-                                              isExpanded ? null : idx,
-                                            )
-                                          }>
-                                          <View
-                                            style={{
-                                              flexDirection: 'row',
-                                              justifyContent: 'space-between',
-                                            }}>
-                                            <Text
-                                              style={{
-                                                color: theme.colors.textPrimary,
-                                                fontWeight: 'bold',
-                                              }}>
-                                              #{idx + 1} {exercise.exerciseName}
-                                            </Text>
-                                            <FontAwesome
-                                              name={
-                                                isExpanded
-                                                  ? 'chevron-up'
-                                                  : 'chevron-down'
-                                              }
-                                              style={{
-                                                fontSize: 16,
-                                                color: theme.colors.accentStart,
-                                                paddingRight: 5,
-                                              }}
-                                            />
-                                          </View>
-                                        </TouchableOpacity>
+                                      <>
+                                        {groupExercises.map(exercise => {
+                                          const idx =
+                                            values.exercises.findIndex(
+                                              e =>
+                                                e.instanceId ===
+                                                exercise.instanceId,
+                                            );
+                                          const isExpanded =
+                                            expandedExerciseIndex === idx;
 
-                                        {isExpanded && (
-                                          <>
-                                            {/* Expandable content here (sets, metrics, etc.) */}
-                                            <FormInput
-                                              label="Sets"
-                                              value={String(
-                                                exercise.targetSets,
+                                          return (
+                                            <View
+                                              key={exercise.instanceId}
+                                              style={{
+                                                marginVertical: spacing.sm,
+                                                padding: spacing.sm,
+                                                backgroundColor:
+                                                  theme.colors.surface,
+                                                borderRadius: 6,
+                                                borderWidth: 1,
+                                                borderColor:
+                                                  theme.colors.accentEnd,
+                                              }}>
+                                              <TouchableOpacity
+                                                onPress={() =>
+                                                  setExpandedExerciseIndex(
+                                                    isExpanded ? null : idx,
+                                                  )
+                                                }>
+                                                <View
+                                                  style={{
+                                                    flexDirection: 'row',
+                                                    justifyContent:
+                                                      'space-between',
+                                                  }}>
+                                                  <Text
+                                                    style={{
+                                                      color:
+                                                        theme.colors
+                                                          .textPrimary,
+                                                      fontWeight: 'bold',
+                                                    }}>
+                                                    #{idx + 1}{' '}
+                                                    {exercise.exerciseName}
+                                                  </Text>
+                                                  <FontAwesome
+                                                    name={
+                                                      isExpanded
+                                                        ? 'chevron-up'
+                                                        : 'chevron-down'
+                                                    }
+                                                    style={{
+                                                      fontSize: 16,
+                                                      color:
+                                                        theme.colors
+                                                          .accentStart,
+                                                      paddingRight: 5,
+                                                    }}
+                                                  />
+                                                </View>
+                                              </TouchableOpacity>
+
+                                              {isExpanded && (
+                                                <>
+                                                  {/* Expandable content here (sets, metrics, etc.) */}
+                                                  <FormInput
+                                                    label="Sets"
+                                                    value={String(
+                                                      exercise.targetSets,
+                                                    )}
+                                                    onChangeText={text =>
+                                                      setFieldValue(
+                                                        `exercises[${idx}].targetSets`,
+                                                        parseInt(text, 10) || 0,
+                                                      )
+                                                    }
+                                                    keyboardType="numeric"
+                                                  />
+                                                  <TargetMetricInputGroup
+                                                    exerciseId={
+                                                      exercise.exerciseId
+                                                    }
+                                                    values={
+                                                      exercise.targetMetrics
+                                                    }
+                                                    onChange={(
+                                                      metricId,
+                                                      field,
+                                                      value,
+                                                    ) => {
+                                                      const updated =
+                                                        exercise.targetMetrics.map(
+                                                          m =>
+                                                            m.metricId ===
+                                                            metricId
+                                                              ? {
+                                                                  ...m,
+                                                                  [field]:
+                                                                    value,
+                                                                }
+                                                              : m,
+                                                        );
+                                                      setFieldValue(
+                                                        `exercises[${idx}].targetMetrics`,
+                                                        updated,
+                                                      );
+                                                    }}
+                                                    errors={
+                                                      (
+                                                        errors.exercises?.[
+                                                          idx
+                                                        ] as any
+                                                      )?.targetMetrics
+                                                    }
+                                                    touched={
+                                                      touched.exercises?.[idx]
+                                                        ?.targetMetrics
+                                                    }
+                                                  />
+                                                </>
                                               )}
-                                              onChangeText={text =>
-                                                setFieldValue(
-                                                  `exercises[${idx}].targetSets`,
-                                                  parseInt(text, 10) || 0,
-                                                )
-                                              }
-                                              keyboardType="numeric"
-                                            />
-                                            <TargetMetricInputGroup
-                                              exerciseId={exercise.exerciseId}
-                                              values={exercise.targetMetrics}
-                                              onChange={(
-                                                metricId,
-                                                field,
-                                                value,
-                                              ) => {
-                                                const updated =
-                                                  exercise.targetMetrics.map(
-                                                    m =>
-                                                      m.metricId === metricId
-                                                        ? {...m, [field]: value}
-                                                        : m,
-                                                  );
-                                                setFieldValue(
-                                                  `exercises[${idx}].targetMetrics`,
-                                                  updated,
-                                                );
-                                              }}
-                                              errors={
-                                                (errors.exercises?.[idx] as any)
-                                                  ?.targetMetrics
-                                              }
-                                              touched={
-                                                touched.exercises?.[idx]
-                                                  ?.targetMetrics
-                                              }
-                                            />
-                                          </>
-                                        )}
-                                      </View>
+                                            </View>
+                                          );
+                                        })}
+                                      </>
                                     );
-                                  })}
+                                  })()}
                                 </ExerciseGroupCard>
                               </View>
                             );
