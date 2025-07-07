@@ -513,6 +513,9 @@ export default function WorkoutPlanBuilderScreen() {
   const [stagedGroupId, setStagedGroupId] = useState<number | null>(null);
   const [layoutVersion, setLayoutVersion] = useState(0);
   const [scrollLayoutVersion, setScrollLayoutVersion] = useState(0);
+  // Track which group the user is hovering over during a drag. Using a shared
+  // value avoids React re-renders that can interrupt the gesture.
+  const hoveredGroupId = useSharedValue<number | null>(null);
   const [scrollViewReady, setScrollViewReady] = useState(false);
 
   const groupLayouts = useRef<Record<number, Layout>>({});
@@ -559,6 +562,8 @@ export default function WorkoutPlanBuilderScreen() {
       scrollRef.current?.setNativeProps({scrollEnabled: true});
     }
     resetPreviewOffsets();
+    hoveredGroupId.value = null;
+
     setScrollLayoutVersion(prev => prev + 1);
   };
 
@@ -615,6 +620,7 @@ export default function WorkoutPlanBuilderScreen() {
     onDragMove?: (x: number, y: number, data: DragData) => void;
     layoutVersion: number;
     scrollLayoutVersion: number;
+    hoverVersion?: number;
   };
 
   const MeasuredExerciseItemComponent = React.forwardRef<
@@ -706,6 +712,7 @@ export default function WorkoutPlanBuilderScreen() {
     onDragMove?: (x: number, y: number, data: DragData) => void;
     layoutVersion: number;
     scrollLayoutVersion: number;
+    hoverVersion?: number;
   };
 
   const MeasuredGroupItem = React.forwardRef<
@@ -835,6 +842,37 @@ export default function WorkoutPlanBuilderScreen() {
         {text: 'Continue', onPress: () => resolve(true)},
       ]);
     });
+
+  // Placeholder shown when dragging an exercise over a group. Uses an animated
+  // style so visibility changes do not require React re-renders.
+  const GroupDropPlaceholder: React.FC<{
+    groupId: number;
+    hoveredGroupId: Animated.SharedValue<number | null>;
+  }> = ({groupId, hoveredGroupId}) => {
+    const animatedStyle = useAnimatedStyle(() => {
+      const visible = hoveredGroupId.value === groupId;
+      return {
+        height: visible ? 48 : 0,
+        opacity: visible ? 1 : 0,
+        margin: visible ? spacing.sm : 0,
+      };
+    });
+
+    return (
+      <Animated.View
+        style={[
+          {
+            backgroundColor: '#D7FCB5',
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderRadius: 6,
+          },
+          animatedStyle,
+        ]}>
+        <Text>Drop here to add to group</Text>
+      </Animated.View>
+    );
+  };
 
   const renderedExerciseIds = useRef<Set<string>>(new Set());
 
@@ -1175,6 +1213,26 @@ export default function WorkoutPlanBuilderScreen() {
 
           const updatePreviewOffsets = useCallback(
             (x: number, y: number, draggedItemData: DragData) => {
+              if (draggedItemData.type === 'exercise') {
+                let foundHover = false;
+                for (const groupIdStr in groupLayouts.current) {
+                  const groupLayout = groupLayouts.current[groupIdStr];
+                  if (isPointInLayout(x, y, groupLayout)) {
+                    if (hoveredGroupId.value !== Number(groupIdStr)) {
+                      hoveredGroupId.value = Number(groupIdStr);
+                    }
+                    foundHover = true;
+                    break;
+                  }
+                }
+                if (!foundHover && hoveredGroupId.value !== null) {
+                  hoveredGroupId.value = null;
+                }
+                if (foundHover) {
+                  return;
+                }
+              }
+
               const draggedKey =
                 draggedItemData.type === 'group'
                   ? String(draggedItemData.id)
@@ -1330,6 +1388,62 @@ export default function WorkoutPlanBuilderScreen() {
               );
               if (!draggedItem) return;
 
+              for (const targetId in exerciseLayouts.current) {
+                if (targetId === draggedItemData.id) continue;
+                const layout = exerciseLayouts.current[targetId];
+                if (isPointInLayout(x, y, layout)) {
+                  const target = values.exercises.find(
+                    ex => ex.instanceId === targetId,
+                  );
+                  if (target && target.groupId === draggedItem.groupId) {
+                    reorderExercises(
+                      draggedItemData.id,
+                      targetId,
+                      values.exercises,
+                      setFieldValue,
+                    );
+                    return;
+                  }
+                }
+              }
+
+              for (const groupIdStr in groupLayouts.current) {
+                const layout = groupLayouts.current[groupIdStr];
+                if (isPointInLayout(x, y, layout)) {
+                  const targetGroupId = parseInt(groupIdStr, 10);
+                  if (draggedItem.groupId !== targetGroupId) {
+                    const group = values.groups.find(
+                      g => g.id === targetGroupId,
+                    );
+                    const method = group
+                      ? getMethodById(group.trainingMethodId)
+                      : null;
+                    const max = method?.maxGroupSize;
+                    const currentCount = values.exercises.filter(
+                      e => e.groupId === targetGroupId,
+                    ).length;
+                    if (max != null && currentCount >= max) {
+                      Alert.alert(
+                        'Group Limit Reached',
+                        `You can only add ${max} exercises to this group.`,
+                      );
+                      if (hoveredGroupId.value !== null) {
+                        hoveredGroupId.value = null;
+                      }
+                      return;
+                    }
+                    updateExerciseGroup(
+                      draggedItemData.id,
+                      targetGroupId,
+                      values.exercises,
+                      values.groups,
+                      setFieldValue,
+                    );
+                  }
+                  return;
+                }
+              }
+
               if (draggedItem.groupId == null) {
                 const allTopLevelItems: {
                   id: string;
@@ -1371,42 +1485,6 @@ export default function WorkoutPlanBuilderScreen() {
                 }
               }
 
-              for (const targetId in exerciseLayouts.current) {
-                if (targetId === draggedItemData.id) continue;
-                const layout = exerciseLayouts.current[targetId];
-                if (isPointInLayout(x, y, layout)) {
-                  const target = values.exercises.find(
-                    ex => ex.instanceId === targetId,
-                  );
-                  if (target && target.groupId === draggedItem.groupId) {
-                    reorderExercises(
-                      draggedItemData.id,
-                      targetId,
-                      values.exercises,
-                      setFieldValue,
-                    );
-                    return;
-                  }
-                }
-              }
-
-              for (const groupIdStr in groupLayouts.current) {
-                const layout = groupLayouts.current[groupIdStr];
-                if (isPointInLayout(x, y, layout)) {
-                  const targetGroupId = parseInt(groupIdStr, 10);
-                  if (draggedItem.groupId !== targetGroupId) {
-                    updateExerciseGroup(
-                      draggedItemData.id,
-                      targetGroupId,
-                      values.exercises,
-                      values.groups,
-                      setFieldValue,
-                    );
-                  }
-                  return;
-                }
-              }
-
               if (draggedItem.groupId !== null) {
                 updateExerciseGroup(
                   draggedItemData.id,
@@ -1415,6 +1493,9 @@ export default function WorkoutPlanBuilderScreen() {
                   values.groups,
                   setFieldValue,
                 );
+              }
+              if (hoveredGroupId.value !== null) {
+                hoveredGroupId.value = null;
               }
             },
             [setFieldValue, handleDragEnd],
@@ -1806,6 +1887,10 @@ export default function WorkoutPlanBuilderScreen() {
                                       </View>
                                     </MeasuredExerciseItem>
                                   ))}
+                                  <GroupDropPlaceholder
+                                    groupId={pi.data.id}
+                                    hoveredGroupId={hoveredGroupId}
+                                  />
                                 </ExerciseGroupCard>
                               </MeasuredGroupItem>
                             ) : (
