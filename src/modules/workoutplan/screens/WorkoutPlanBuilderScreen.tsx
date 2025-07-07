@@ -122,6 +122,7 @@ type DraggableItemProps = {
    * the user's finger instead of drifting with the scroll.
    */
   scrollOffset?: Animated.SharedValue<number>;
+  dragOverlayText?: Animated.SharedValue<string | null>;
 };
 
 type FormValues = {
@@ -205,6 +206,7 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
   simultaneousHandlers,
   scrollOffset,
   resetPreviewOffsets,
+  dragOverlayText,
 }) => {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -284,6 +286,18 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
     };
   });
 
+  const overlayTextStyle = useAnimatedStyle(() => ({
+    display: isDragging.value && dragOverlayText?.value ? 'flex' : 'none',
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  }));
+
   return (
     <View
       style={{
@@ -304,6 +318,11 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
           onTouchEnd={handleTouchEnd}
           style={[animatedStyle, {width: '100%'}]}>
           {children}
+          <Animated.View style={overlayTextStyle} pointerEvents="none">
+            <Animated.Text style={{color: 'white', fontWeight: 'bold'}}>
+              {dragOverlayText?.value}
+            </Animated.Text>
+          </Animated.View>
         </Animated.View>
       </PanGestureHandler>
     </View>
@@ -321,6 +340,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
   pointerPositionY,
   simultaneousHandlers: _simultaneousHandlers,
   scrollOffset,
+  dragOverlayText,
 }) => {
   const [layoutSize, setLayoutSize] = useState<{width: number; height: number}>(
     {
@@ -428,6 +448,24 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
           } as any
         }>
         {children}
+        {isDragging && dragOverlayText?.value && (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: 0,
+              bottom: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(0,0,0,0.3)',
+              color: 'white',
+              fontWeight: 'bold',
+            }}>
+            {dragOverlayText.value}
+          </div>
+        )}
       </View>
     </View>
   );
@@ -513,9 +551,8 @@ export default function WorkoutPlanBuilderScreen() {
   const [stagedGroupId, setStagedGroupId] = useState<number | null>(null);
   const [layoutVersion, setLayoutVersion] = useState(0);
   const [scrollLayoutVersion, setScrollLayoutVersion] = useState(0);
-  // Track which group the user is hovering over during a drag. Using a shared
-  // value avoids React re-renders that can interrupt the gesture.
-  const hoveredGroupId = useSharedValue<number | null>(null);
+  // Text to display on the dragged item when hovering over a valid drop target
+  const dragOverlayText = useSharedValue<string | null>(null);
   const [scrollViewReady, setScrollViewReady] = useState(false);
 
   const groupLayouts = useRef<Record<number, Layout>>({});
@@ -562,7 +599,7 @@ export default function WorkoutPlanBuilderScreen() {
       scrollRef.current?.setNativeProps({scrollEnabled: true});
     }
     resetPreviewOffsets();
-    hoveredGroupId.value = null;
+    dragOverlayText.value = null;
 
     setScrollLayoutVersion(prev => prev + 1);
   };
@@ -621,6 +658,7 @@ export default function WorkoutPlanBuilderScreen() {
     layoutVersion: number;
     scrollLayoutVersion: number;
     hoverVersion?: number;
+    dragOverlayText?: Animated.SharedValue<string | null>;
   };
 
   const MeasuredExerciseItemComponent = React.forwardRef<
@@ -638,6 +676,7 @@ export default function WorkoutPlanBuilderScreen() {
         onDragMove,
         layoutVersion,
         scrollLayoutVersion,
+        dragOverlayText,
       },
       refProp,
     ) => {
@@ -692,7 +731,8 @@ export default function WorkoutPlanBuilderScreen() {
             onDragMove={onDragMove}
             isDraggingShared={isDragging}
             pointerPositionY={pointerPositionY}
-            scrollOffset={scrollOffsetY}>
+            scrollOffset={scrollOffsetY}
+            dragOverlayText={dragOverlayText}>
             {children}
           </DraggableItem>
         </Animated.View>
@@ -713,6 +753,7 @@ export default function WorkoutPlanBuilderScreen() {
     layoutVersion: number;
     scrollLayoutVersion: number;
     hoverVersion?: number;
+    dragOverlayText?: Animated.SharedValue<string | null>;
   };
 
   const MeasuredGroupItem = React.forwardRef<
@@ -730,6 +771,7 @@ export default function WorkoutPlanBuilderScreen() {
         onDragMove,
         layoutVersion,
         scrollLayoutVersion,
+        dragOverlayText,
       },
       refProp,
     ) => {
@@ -783,7 +825,8 @@ export default function WorkoutPlanBuilderScreen() {
             onDragMove={onDragMove}
             isDraggingShared={isDragging}
             pointerPositionY={pointerPositionY}
-            scrollOffset={scrollOffsetY}>
+            scrollOffset={scrollOffsetY}
+            dragOverlayText={dragOverlayText}>
             {children}
           </DraggableItem>
         </Animated.View>
@@ -842,37 +885,6 @@ export default function WorkoutPlanBuilderScreen() {
         {text: 'Continue', onPress: () => resolve(true)},
       ]);
     });
-
-  // Placeholder shown when dragging an exercise over a group. Uses an animated
-  // style so visibility changes do not require React re-renders.
-  const GroupDropPlaceholder: React.FC<{
-    groupId: number;
-    hoveredGroupId: Animated.SharedValue<number | null>;
-  }> = ({groupId, hoveredGroupId}) => {
-    const animatedStyle = useAnimatedStyle(() => {
-      const visible = hoveredGroupId.value === groupId;
-      return {
-        height: visible ? 48 : 0,
-        opacity: visible ? 1 : 0,
-        margin: visible ? spacing.sm : 0,
-      };
-    });
-
-    return (
-      <Animated.View
-        style={[
-          {
-            backgroundColor: '#D7FCB5',
-            justifyContent: 'center',
-            alignItems: 'center',
-            borderRadius: 6,
-          },
-          animatedStyle,
-        ]}>
-        <Text>Drop here to add to group</Text>
-      </Animated.View>
-    );
-  };
 
   const renderedExerciseIds = useRef<Set<string>>(new Set());
 
@@ -1220,27 +1232,24 @@ export default function WorkoutPlanBuilderScreen() {
 
                 let foundHover = false;
                 if (draggedExercise) {
-                  // Check if exercise was found before proceeding
                   for (const groupIdStr in groupLayouts.current) {
                     const groupLayout = groupLayouts.current[groupIdStr];
                     const targetGroupId = Number(groupIdStr);
 
-                    // 👇 THE FIX: Check for hover AND ensure the exercise is NOT already in the target group.
                     if (
                       isPointInLayout(x, y, groupLayout) &&
                       draggedExercise.groupId !== targetGroupId
                     ) {
-                      if (hoveredGroupId.value !== targetGroupId) {
-                        hoveredGroupId.value = targetGroupId;
-                      }
+                      dragOverlayText.value = 'Insert into group';
+
                       foundHover = true;
                       break;
                     }
                   }
                 }
 
-                if (!foundHover && hoveredGroupId.value !== null) {
-                  hoveredGroupId.value = null;
+                if (!foundHover) {
+                  dragOverlayText.value = null;
                 }
 
                 if (foundHover) {
@@ -1344,7 +1353,7 @@ export default function WorkoutPlanBuilderScreen() {
                 }
               }
             },
-            [],
+            [dragOverlayText],
           );
 
           const handleDragMove = useWorkletCallback(
@@ -1442,8 +1451,8 @@ export default function WorkoutPlanBuilderScreen() {
                         'Group Limit Reached',
                         `You can only add ${max} exercises to this group.`,
                       );
-                      if (hoveredGroupId.value !== null) {
-                        hoveredGroupId.value = null;
+                      if (dragOverlayText.value !== null) {
+                        dragOverlayText.value = null;
                       }
                       return;
                     }
@@ -1509,8 +1518,8 @@ export default function WorkoutPlanBuilderScreen() {
                   setFieldValue,
                 );
               }
-              if (hoveredGroupId.value !== null) {
-                hoveredGroupId.value = null;
+              if (dragOverlayText.value !== null) {
+                dragOverlayText.value = null;
               }
             },
             [setFieldValue, handleDragEnd],
@@ -1848,7 +1857,8 @@ export default function WorkoutPlanBuilderScreen() {
                                 onDragEnd={handleDragEnd}
                                 onDragMove={handleDragMove}
                                 layoutVersion={layoutVersion}
-                                scrollLayoutVersion={scrollLayoutVersion}>
+                                scrollLayoutVersion={scrollLayoutVersion}
+                                dragOverlayText={dragOverlayText}>
                                 <ExerciseGroupCard
                                   label={getGroupLabel(pi.data)}
                                   borderColor={theme.colors.accentStart}
@@ -1875,7 +1885,8 @@ export default function WorkoutPlanBuilderScreen() {
                                       onDragEnd={handleDragEnd}
                                       onDragMove={handleDragMove}
                                       layoutVersion={layoutVersion}
-                                      scrollLayoutVersion={scrollLayoutVersion}>
+                                      scrollLayoutVersion={scrollLayoutVersion}
+                                      dragOverlayText={dragOverlayText}>
                                       <View
                                         style={{
                                           marginHorizontal: spacing.md,
@@ -1902,10 +1913,6 @@ export default function WorkoutPlanBuilderScreen() {
                                       </View>
                                     </MeasuredExerciseItem>
                                   ))}
-                                  <GroupDropPlaceholder
-                                    groupId={pi.data.id}
-                                    hoveredGroupId={hoveredGroupId}
-                                  />
                                 </ExerciseGroupCard>
                               </MeasuredGroupItem>
                             ) : (
@@ -1930,7 +1937,8 @@ export default function WorkoutPlanBuilderScreen() {
                                 onDragEnd={handleDragEnd}
                                 onDragMove={handleDragMove}
                                 layoutVersion={layoutVersion}
-                                scrollLayoutVersion={scrollLayoutVersion}>
+                                scrollLayoutVersion={scrollLayoutVersion}
+                                dragOverlayText={dragOverlayText}>
                                 <View
                                   style={{
                                     backgroundColor: theme.colors.background,
