@@ -122,7 +122,6 @@ type DraggableItemProps = {
    * the user's finger instead of drifting with the scroll.
    */
   scrollOffset?: Animated.SharedValue<number>;
-  dragOverlayText?: Animated.SharedValue<string | null>;
 };
 
 type FormValues = {
@@ -206,7 +205,6 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
   simultaneousHandlers,
   scrollOffset,
   resetPreviewOffsets,
-  dragOverlayText,
 }) => {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -286,18 +284,6 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
     };
   });
 
-  const overlayTextStyle = useAnimatedStyle(() => ({
-    display: isDragging.value && dragOverlayText?.value ? 'flex' : 'none',
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  }));
-
   return (
     <View
       style={{
@@ -318,11 +304,6 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
           onTouchEnd={handleTouchEnd}
           style={[animatedStyle, {width: '100%'}]}>
           {children}
-          <Animated.View style={overlayTextStyle} pointerEvents="none">
-            <Animated.Text style={{color: 'white', fontWeight: 'bold'}}>
-              {dragOverlayText?.value}
-            </Animated.Text>
-          </Animated.View>
         </Animated.View>
       </PanGestureHandler>
     </View>
@@ -340,7 +321,6 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
   pointerPositionY,
   simultaneousHandlers: _simultaneousHandlers,
   scrollOffset,
-  dragOverlayText,
 }) => {
   const [layoutSize, setLayoutSize] = useState<{width: number; height: number}>(
     {
@@ -448,24 +428,6 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
           } as any
         }>
         {children}
-        {isDragging && dragOverlayText?.value && (
-          <div
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              top: 0,
-              bottom: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: 'rgba(0,0,0,0.3)',
-              color: 'white',
-              fontWeight: 'bold',
-            }}>
-            {dragOverlayText.value}
-          </div>
-        )}
       </View>
     </View>
   );
@@ -551,8 +513,6 @@ export default function WorkoutPlanBuilderScreen() {
   const [stagedGroupId, setStagedGroupId] = useState<number | null>(null);
   const [layoutVersion, setLayoutVersion] = useState(0);
   const [scrollLayoutVersion, setScrollLayoutVersion] = useState(0);
-  // Text to display on the dragged item when hovering over a valid drop target
-  const dragOverlayText = useSharedValue<string | null>(null);
   const [scrollViewReady, setScrollViewReady] = useState(false);
 
   const groupLayouts = useRef<Record<number, Layout>>({});
@@ -599,8 +559,6 @@ export default function WorkoutPlanBuilderScreen() {
       scrollRef.current?.setNativeProps({scrollEnabled: true});
     }
     resetPreviewOffsets();
-    dragOverlayText.value = null;
-
     setScrollLayoutVersion(prev => prev + 1);
   };
 
@@ -657,8 +615,6 @@ export default function WorkoutPlanBuilderScreen() {
     onDragMove?: (x: number, y: number, data: DragData) => void;
     layoutVersion: number;
     scrollLayoutVersion: number;
-    hoverVersion?: number;
-    dragOverlayText?: Animated.SharedValue<string | null>;
   };
 
   const MeasuredExerciseItemComponent = React.forwardRef<
@@ -676,7 +632,6 @@ export default function WorkoutPlanBuilderScreen() {
         onDragMove,
         layoutVersion,
         scrollLayoutVersion,
-        dragOverlayText,
       },
       refProp,
     ) => {
@@ -731,8 +686,7 @@ export default function WorkoutPlanBuilderScreen() {
             onDragMove={onDragMove}
             isDraggingShared={isDragging}
             pointerPositionY={pointerPositionY}
-            scrollOffset={scrollOffsetY}
-            dragOverlayText={dragOverlayText}>
+            scrollOffset={scrollOffsetY}>
             {children}
           </DraggableItem>
         </Animated.View>
@@ -752,8 +706,6 @@ export default function WorkoutPlanBuilderScreen() {
     onDragMove?: (x: number, y: number, data: DragData) => void;
     layoutVersion: number;
     scrollLayoutVersion: number;
-    hoverVersion?: number;
-    dragOverlayText?: Animated.SharedValue<string | null>;
   };
 
   const MeasuredGroupItem = React.forwardRef<
@@ -771,7 +723,6 @@ export default function WorkoutPlanBuilderScreen() {
         onDragMove,
         layoutVersion,
         scrollLayoutVersion,
-        dragOverlayText,
       },
       refProp,
     ) => {
@@ -825,8 +776,7 @@ export default function WorkoutPlanBuilderScreen() {
             onDragMove={onDragMove}
             isDraggingShared={isDragging}
             pointerPositionY={pointerPositionY}
-            scrollOffset={scrollOffsetY}
-            dragOverlayText={dragOverlayText}>
+            scrollOffset={scrollOffsetY}>
             {children}
           </DraggableItem>
         </Animated.View>
@@ -1225,38 +1175,6 @@ export default function WorkoutPlanBuilderScreen() {
 
           const updatePreviewOffsets = useCallback(
             (x: number, y: number, draggedItemData: DragData) => {
-              if (draggedItemData.type === 'exercise') {
-                const draggedExercise = valuesRef.current.exercises.find(
-                  e => e.instanceId === draggedItemData.id,
-                );
-
-                let foundHover = false;
-                if (draggedExercise) {
-                  for (const groupIdStr in groupLayouts.current) {
-                    const groupLayout = groupLayouts.current[groupIdStr];
-                    const targetGroupId = Number(groupIdStr);
-
-                    if (
-                      isPointInLayout(x, y, groupLayout) &&
-                      draggedExercise.groupId !== targetGroupId
-                    ) {
-                      dragOverlayText.value = 'Insert into group';
-
-                      foundHover = true;
-                      break;
-                    }
-                  }
-                }
-
-                if (!foundHover) {
-                  dragOverlayText.value = null;
-                }
-
-                if (foundHover) {
-                  return;
-                }
-              }
-
               const draggedKey =
                 draggedItemData.type === 'group'
                   ? String(draggedItemData.id)
@@ -1353,7 +1271,7 @@ export default function WorkoutPlanBuilderScreen() {
                 }
               }
             },
-            [dragOverlayText],
+            [],
           );
 
           const handleDragMove = useWorkletCallback(
@@ -1412,62 +1330,6 @@ export default function WorkoutPlanBuilderScreen() {
               );
               if (!draggedItem) return;
 
-              for (const targetId in exerciseLayouts.current) {
-                if (targetId === draggedItemData.id) continue;
-                const layout = exerciseLayouts.current[targetId];
-                if (isPointInLayout(x, y, layout)) {
-                  const target = values.exercises.find(
-                    ex => ex.instanceId === targetId,
-                  );
-                  if (target && target.groupId === draggedItem.groupId) {
-                    reorderExercises(
-                      draggedItemData.id,
-                      targetId,
-                      values.exercises,
-                      setFieldValue,
-                    );
-                    return;
-                  }
-                }
-              }
-
-              for (const groupIdStr in groupLayouts.current) {
-                const layout = groupLayouts.current[groupIdStr];
-                if (isPointInLayout(x, y, layout)) {
-                  const targetGroupId = parseInt(groupIdStr, 10);
-                  if (draggedItem.groupId !== targetGroupId) {
-                    const group = values.groups.find(
-                      g => g.id === targetGroupId,
-                    );
-                    const method = group
-                      ? getMethodById(group.trainingMethodId)
-                      : null;
-                    const max = method?.maxGroupSize;
-                    const currentCount = values.exercises.filter(
-                      e => e.groupId === targetGroupId,
-                    ).length;
-                    if (max != null && currentCount >= max) {
-                      Alert.alert(
-                        'Group Limit Reached',
-                        `You can only add ${max} exercises to this group.`,
-                      );
-                      if (dragOverlayText.value !== null) {
-                        dragOverlayText.value = null;
-                      }
-                      return;
-                    }
-                    updateExerciseGroup(
-                      draggedItemData.id,
-                      targetGroupId,
-                      values.exercises,
-                      values.groups,
-                      setFieldValue,
-                    );
-                  }
-                  return;
-                }
-              }
-
               if (draggedItem.groupId == null) {
                 const allTopLevelItems: {
                   id: string;
@@ -1509,6 +1371,42 @@ export default function WorkoutPlanBuilderScreen() {
                 }
               }
 
+              for (const targetId in exerciseLayouts.current) {
+                if (targetId === draggedItemData.id) continue;
+                const layout = exerciseLayouts.current[targetId];
+                if (isPointInLayout(x, y, layout)) {
+                  const target = values.exercises.find(
+                    ex => ex.instanceId === targetId,
+                  );
+                  if (target && target.groupId === draggedItem.groupId) {
+                    reorderExercises(
+                      draggedItemData.id,
+                      targetId,
+                      values.exercises,
+                      setFieldValue,
+                    );
+                    return;
+                  }
+                }
+              }
+
+              for (const groupIdStr in groupLayouts.current) {
+                const layout = groupLayouts.current[groupIdStr];
+                if (isPointInLayout(x, y, layout)) {
+                  const targetGroupId = parseInt(groupIdStr, 10);
+                  if (draggedItem.groupId !== targetGroupId) {
+                    updateExerciseGroup(
+                      draggedItemData.id,
+                      targetGroupId,
+                      values.exercises,
+                      values.groups,
+                      setFieldValue,
+                    );
+                  }
+                  return;
+                }
+              }
+
               if (draggedItem.groupId !== null) {
                 updateExerciseGroup(
                   draggedItemData.id,
@@ -1517,9 +1415,6 @@ export default function WorkoutPlanBuilderScreen() {
                   values.groups,
                   setFieldValue,
                 );
-              }
-              if (dragOverlayText.value !== null) {
-                dragOverlayText.value = null;
               }
             },
             [setFieldValue, handleDragEnd],
@@ -1857,8 +1752,7 @@ export default function WorkoutPlanBuilderScreen() {
                                 onDragEnd={handleDragEnd}
                                 onDragMove={handleDragMove}
                                 layoutVersion={layoutVersion}
-                                scrollLayoutVersion={scrollLayoutVersion}
-                                dragOverlayText={dragOverlayText}>
+                                scrollLayoutVersion={scrollLayoutVersion}>
                                 <ExerciseGroupCard
                                   label={getGroupLabel(pi.data)}
                                   borderColor={theme.colors.accentStart}
@@ -1885,8 +1779,7 @@ export default function WorkoutPlanBuilderScreen() {
                                       onDragEnd={handleDragEnd}
                                       onDragMove={handleDragMove}
                                       layoutVersion={layoutVersion}
-                                      scrollLayoutVersion={scrollLayoutVersion}
-                                      dragOverlayText={dragOverlayText}>
+                                      scrollLayoutVersion={scrollLayoutVersion}>
                                       <View
                                         style={{
                                           marginHorizontal: spacing.md,
@@ -1937,8 +1830,7 @@ export default function WorkoutPlanBuilderScreen() {
                                 onDragEnd={handleDragEnd}
                                 onDragMove={handleDragMove}
                                 layoutVersion={layoutVersion}
-                                scrollLayoutVersion={scrollLayoutVersion}
-                                dragOverlayText={dragOverlayText}>
+                                scrollLayoutVersion={scrollLayoutVersion}>
                                 <View
                                   style={{
                                     backgroundColor: theme.colors.background,
