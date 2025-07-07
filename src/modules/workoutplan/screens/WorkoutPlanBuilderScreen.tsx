@@ -1163,8 +1163,20 @@ export default function WorkoutPlanBuilderScreen() {
           const isPointInLayout = (
             pointX: number,
             pointY: number,
-            layout: Layout,
+            layout: Layout, // The layout object passed to the function
           ) => {
+            // Corrected logs to only use properties available on 'Layout'
+            console.log(
+              `Checking Layout: x=${layout.x}, y=${layout.y}, width=${layout.width}, height=${layout.height}`,
+            );
+            console.log(`Dragged Point: x=${pointX}, y=${pointY}`);
+            console.log(
+              `Calculated bottom boundary for layout: ${layout.y + layout.height}`,
+            );
+            console.log(
+              `Is within layout: ${pointX >= layout.x && pointX <= layout.x + layout.width && pointY >= layout.y && pointY <= layout.y + layout.height}`,
+            );
+
             return (
               pointX >= layout.x &&
               pointX <= layout.x + layout.width &&
@@ -1173,278 +1185,6 @@ export default function WorkoutPlanBuilderScreen() {
             );
           };
 
-          const updatePreviewOffsets = useCallback(
-            (x: number, y: number, draggedItemData: DragData) => {
-              const draggedKey =
-                draggedItemData.type === 'group'
-                  ? String(draggedItemData.id)
-                  : draggedItemData.id;
-
-              const containerItems: {id: string; layout: Layout}[] = [];
-
-              // Identify relevant items
-              if (
-                draggedItemData.type === 'group' ||
-                (draggedItemData.type === 'exercise' &&
-                  valuesRef.current.exercises.find(
-                    e => e.instanceId === draggedItemData.id,
-                  )?.groupId === null)
-              ) {
-                for (const id in exerciseLayouts.current) {
-                  const ex = valuesRef.current.exercises.find(
-                    e => e.instanceId === id,
-                  );
-                  if (ex && ex.groupId == null && exerciseLayouts.current[id]) {
-                    containerItems.push({
-                      id,
-                      layout: exerciseLayouts.current[id],
-                    });
-                  }
-                }
-                for (const id in groupLayouts.current) {
-                  const groupFound = valuesRef.current.groups.find(
-                    g => String(g.id) === id,
-                  );
-                  if (groupFound && groupLayouts.current[id]) {
-                    containerItems.push({
-                      id: String(id),
-                      layout: groupLayouts.current[id],
-                    });
-                  }
-                }
-                containerItems.sort((a, b) => a.layout.y - b.layout.y);
-              } else {
-                const draggedEx = valuesRef.current.exercises.find(
-                  ex => ex.instanceId === draggedItemData.id,
-                );
-                if (!draggedEx) return;
-                const exs = valuesRef.current.exercises
-                  .filter(ex => ex.groupId === draggedEx.groupId)
-                  .sort((a, b) => a.order - b.order);
-                exs.forEach(ex => {
-                  const layout = exerciseLayouts.current[ex.instanceId];
-                  if (layout) containerItems.push({id: ex.instanceId, layout});
-                });
-              }
-
-              const fromIdx = containerItems.findIndex(
-                it => it.id === draggedKey,
-              );
-              if (fromIdx === -1) return;
-
-              let toIdx = fromIdx;
-
-              for (let i = 0; i < containerItems.length; i++) {
-                if (containerItems[i].id === draggedKey) continue;
-                const layout = containerItems[i].layout;
-                if (y < layout.y + layout.height / 2) {
-                  toIdx = i;
-                  break;
-                }
-                if (i === containerItems.length - 1)
-                  toIdx = containerItems.length - 1;
-              }
-
-              // --- FIX STARTS HERE ---
-              // This addresses the issue where dragging an item causes the one
-              // immediately below it to shift up prematurely. We introduce a
-              // "dead zone" by checking if the pointer is still within the
-              // original vertical area of the item being dragged.
-              if (toIdx === fromIdx + 1) {
-                const draggedItemLayout = containerItems[fromIdx].layout;
-                // If the pointer hasn't moved below the dragged item's original position,
-                // cancel the reorder by resetting the target index.
-                if (y < draggedItemLayout.y + draggedItemLayout.height) {
-                  toIdx = fromIdx;
-                }
-              }
-              // --- FIX ENDS HERE ---
-
-              // Reset offsets immediately (no animation)
-              containerItems.forEach(item => {
-                if (dragOffsets.current[item.id]) {
-                  dragOffsets.current[item.id].value = 0;
-                }
-              });
-
-              const draggedItemHeight = containerItems[fromIdx].layout.height;
-
-              // Immediate position shifting without spring animation
-              if (toIdx > fromIdx) {
-                for (let i = fromIdx + 1; i <= toIdx; i++) {
-                  const key = containerItems[i].id;
-                  if (dragOffsets.current[key]) {
-                    dragOffsets.current[key].value = -draggedItemHeight;
-                  }
-                }
-              } else if (toIdx < fromIdx) {
-                for (let i = toIdx; i < fromIdx; i++) {
-                  const key = containerItems[i].id;
-                  if (dragOffsets.current[key]) {
-                    dragOffsets.current[key].value = draggedItemHeight;
-                  }
-                }
-              }
-            },
-            [],
-          );
-
-          const handleDragMove = useWorkletCallback(
-            (x: number, y: number, data: DragData) => {
-              runOnJS(updatePreviewOffsets)(x, y, data);
-            },
-            [],
-          );
-
-          const handleDrop = useCallback(
-            (x: number, y: number, draggedItemData: DragData) => {
-              if (draggedItemData.type === 'group') {
-                const allTopLevelItems: {
-                  id: string;
-                  type: 'exercise' | 'group';
-                  layout: Layout;
-                }[] = [];
-
-                for (const id in exerciseLayouts.current) {
-                  const ex = values.exercises.find(e => e.instanceId === id);
-                  if (ex && ex.groupId == null) {
-                    allTopLevelItems.push({
-                      id,
-                      type: 'exercise',
-                      layout: exerciseLayouts.current[id],
-                    });
-                  }
-                }
-                for (const id in groupLayouts.current) {
-                  allTopLevelItems.push({
-                    id: String(id),
-                    type: 'group',
-                    layout: groupLayouts.current[id],
-                  });
-                }
-
-                allTopLevelItems.sort((a, b) => a.layout.y - b.layout.y);
-
-                for (const target of allTopLevelItems) {
-                  if (target.id === draggedItemData.id) continue;
-                  if (isPointInLayout(x, y, target.layout)) {
-                    reorderPlanItems(
-                      draggedItemData,
-                      {type: target.type, id: target.id},
-                      values,
-                      setFieldValue,
-                    );
-                    return;
-                  }
-                }
-                return;
-              }
-
-              const draggedItem = values.exercises.find(
-                ex => ex.instanceId === draggedItemData.id,
-              );
-              if (!draggedItem) return;
-
-              if (draggedItem.groupId == null) {
-                const allTopLevelItems: {
-                  id: string;
-                  type: 'exercise' | 'group';
-                  layout: Layout;
-                }[] = [];
-
-                for (const id in exerciseLayouts.current) {
-                  const ex = values.exercises.find(e => e.instanceId === id);
-                  if (ex && ex.groupId == null) {
-                    allTopLevelItems.push({
-                      id,
-                      type: 'exercise',
-                      layout: exerciseLayouts.current[id],
-                    });
-                  }
-                }
-                for (const id in groupLayouts.current) {
-                  allTopLevelItems.push({
-                    id: String(id),
-                    type: 'group',
-                    layout: groupLayouts.current[id],
-                  });
-                }
-
-                allTopLevelItems.sort((a, b) => a.layout.y - b.layout.y);
-
-                for (const target of allTopLevelItems) {
-                  if (target.id === draggedItemData.id) continue;
-                  if (isPointInLayout(x, y, target.layout)) {
-                    if (target.type === 'group') {
-                      const targetGroupId = parseInt(target.id, 10);
-                      updateExerciseGroup(
-                        draggedItemData.id,
-                        targetGroupId,
-                        values.exercises,
-                        values.groups,
-                        setFieldValue,
-                      );
-                    } else {
-                      reorderPlanItems(
-                        draggedItemData,
-                        {type: target.type, id: target.id},
-                        values,
-                        setFieldValue,
-                      );
-                    }
-                    return;
-                  }
-                }
-              }
-
-              for (const targetId in exerciseLayouts.current) {
-                if (targetId === draggedItemData.id) continue;
-                const layout = exerciseLayouts.current[targetId];
-                if (isPointInLayout(x, y, layout)) {
-                  const target = values.exercises.find(
-                    ex => ex.instanceId === targetId,
-                  );
-                  if (target && target.groupId === draggedItem.groupId) {
-                    reorderExercises(
-                      draggedItemData.id,
-                      targetId,
-                      values.exercises,
-                      setFieldValue,
-                    );
-                    return;
-                  }
-                }
-              }
-
-              for (const groupIdStr in groupLayouts.current) {
-                const layout = groupLayouts.current[groupIdStr];
-                if (isPointInLayout(x, y, layout)) {
-                  const targetGroupId = parseInt(groupIdStr, 10);
-                  if (draggedItem.groupId !== targetGroupId) {
-                    updateExerciseGroup(
-                      draggedItemData.id,
-                      targetGroupId,
-                      values.exercises,
-                      values.groups,
-                      setFieldValue,
-                    );
-                  }
-                  return;
-                }
-              }
-
-              if (draggedItem.groupId !== null) {
-                updateExerciseGroup(
-                  draggedItemData.id,
-                  null,
-                  values.exercises,
-                  values.groups,
-                  setFieldValue,
-                );
-              }
-            },
-            [setFieldValue, handleDragEnd],
-          );
           const updateExerciseGroup = (
             instanceId: string,
             groupId: number | null,
@@ -1457,80 +1197,64 @@ export default function WorkoutPlanBuilderScreen() {
             );
             if (exerciseIndex === -1) return;
 
-            if (groupId !== null) {
-              const group = currentGroups.find(g => g.id === groupId);
-              const method = group
-                ? getMethodById(group.trainingMethodId)
-                : null;
-              const max = method?.maxGroupSize;
-              if (max != null) {
-                const currentCount = currentExercises.filter(
-                  e => e.groupId === groupId,
-                ).length;
-                if (currentCount >= max) {
-                  Alert.alert(
-                    'Group Limit Reached',
-                    `You can only add ${max} exercises to this group.`,
-                  );
-                  return;
-                }
-              }
-            }
-            const newTrainingMethodId =
-              groupId !== null
-                ? (currentGroups.find(g => g.id === groupId)
-                    ?.trainingMethodId ?? null)
-                : null;
-            const updatedGroups = [...currentGroups];
-            if (
-              groupId !== null &&
-              !updatedGroups.find(g => g.id === groupId)
-            ) {
-              const methodId =
-                currentExercises[exerciseIndex]?.trainingMethodId ??
-                newTrainingMethodId;
-              const nextGroupOrder = getNextGlobalOrder(
-                currentExercises,
-                updatedGroups,
-              );
-              updatedGroups.push({
-                id: groupId,
-                trainingMethodId: methodId ?? 0,
-                order: nextGroupOrder,
-              });
-            }
             const updatedExercises = [...currentExercises];
-            if (exerciseIndex === -1) return;
+            const updatedGroups = [...currentGroups];
 
-            let provisionalOrder: number;
+            // --- FIX STARTS HERE ---
             if (groupId !== null) {
-              const related = updatedExercises.filter(
-                e => e.groupId === groupId && e.instanceId !== instanceId,
-              );
-              const base = [
-                ...(updatedGroups.find(g => g.id === groupId)
-                  ? [updatedGroups.find(g => g.id === groupId)!.order]
-                  : []),
-                ...related.map(e => e.order),
-              ];
-              provisionalOrder = (base.length ? Math.max(...base) : 0) + 0.1;
-            } else {
-              const ungrouped = updatedExercises.filter(
-                e => e.groupId == null && e.instanceId !== instanceId,
-              );
-              const base = [
-                ...ungrouped.map(e => e.order),
-                ...updatedGroups.map(g => g.order),
-              ];
-              provisionalOrder = (base.length ? Math.max(...base) : 0) + 0.1;
-            }
+              // Logic for ADDING an exercise TO a group
+              const group = updatedGroups.find(g => g.id === groupId);
+              if (!group) return;
 
-            updatedExercises[exerciseIndex] = {
-              ...updatedExercises[exerciseIndex],
-              groupId,
-              trainingMethodId: newTrainingMethodId,
-              order: provisionalOrder,
-            };
+              const method = getMethodById(group.trainingMethodId);
+              const max = method?.maxGroupSize;
+              const exercisesInGroup = updatedExercises.filter(
+                e => e.groupId === groupId,
+              );
+
+              if (max != null && exercisesInGroup.length >= max) {
+                Alert.alert(
+                  'Group Limit Reached',
+                  `You can only add ${max} exercises to this group.`,
+                );
+                return;
+              }
+
+              const newTrainingMethodId = group.trainingMethodId ?? null;
+
+              // Place the new item at the top of the group's order
+              updatedExercises[exerciseIndex] = {
+                ...updatedExercises[exerciseIndex],
+                groupId,
+                trainingMethodId: newTrainingMethodId,
+                order: group.order + 0.1, // Fractional order to place it first
+              };
+
+              // Re-order existing items within the group to follow the new one
+              exercisesInGroup
+                .sort((a, b) => a.order - b.order)
+                .forEach((ex, idx) => {
+                  const originalExIndex = updatedExercises.findIndex(
+                    e => e.instanceId === ex.instanceId,
+                  );
+                  if (originalExIndex !== -1) {
+                    updatedExercises[originalExIndex].order =
+                      group.order + 0.2 + idx * 0.1;
+                  }
+                });
+            } else {
+              // Logic for UNGROUPING an exercise
+              const oldGroupId = updatedExercises[exerciseIndex].groupId;
+              if (oldGroupId === null) return; // Already ungrouped
+
+              updatedExercises[exerciseIndex] = {
+                ...updatedExercises[exerciseIndex],
+                groupId: null,
+                trainingMethodId: null,
+                order: getNextGlobalOrder(updatedExercises, updatedGroups), // Move to end of main list
+              };
+            }
+            // --- FIX ENDS HERE ---
 
             const {exercises: finalExercises, groups: finalGroups} =
               reindexAllOrders(updatedExercises, updatedGroups);
@@ -1594,50 +1318,440 @@ export default function WorkoutPlanBuilderScreen() {
             setLayoutVersion(prev => prev + 1);
           };
 
-          const reorderPlanItems = (
-            dragged: DragData,
-            target: DragData,
-            currentValues: FormValues,
-            setFieldValueFn: (field: string, value: any) => void,
-          ) => {
-            const items = getPlanItemsFromForm(currentValues);
-            const draggedIndex = items.findIndex(i => {
-              if (i.type !== dragged.type) return false;
-              return i.type === 'exercise'
-                ? i.data.instanceId === dragged.id
-                : String(i.data.id) === dragged.id;
-            });
-            const targetIndex = items.findIndex(i => {
-              if (i.type !== target.type) return false;
-              return i.type === 'exercise'
-                ? i.data.instanceId === target.id
-                : String(i.data.id) === target.id;
-            });
-            if (draggedIndex === -1 || targetIndex === -1) return;
+          // Moved reorderPlanItems definition before handleDrop
+          const reorderPlanItems = useCallback(
+            (
+              dragged: DragData,
+              target: DragData,
+              position: 'before' | 'after', // The new, crucial parameter
+              currentValues: FormValues,
+              setFieldValueFn: (field: string, value: any) => void,
+            ) => {
+              const items = getPlanItemsFromForm(currentValues);
+              const draggedIndex = items.findIndex(i => {
+                if (i.type !== dragged.type) return false;
+                return i.type === 'exercise'
+                  ? i.data.instanceId === dragged.id
+                  : String(i.data.id) === dragged.id;
+              });
+              let targetIndex = items.findIndex(i => {
+                if (i.type !== target.type) return false;
+                return i.type === 'exercise'
+                  ? i.data.instanceId === target.id
+                  : String(i.data.id) === target.id;
+              });
 
-            const newItems = [...items];
-            const [moved] = newItems.splice(draggedIndex, 1);
-            newItems.splice(targetIndex, 0, moved);
+              if (draggedIndex === -1 || targetIndex === -1) return;
 
-            const newExercises = [...currentValues.exercises];
-            const newGroups = [...currentValues.groups];
+              const newItems = [...items];
+              const [moved] = newItems.splice(draggedIndex, 1);
 
-            newItems.forEach((it, idx) => {
-              if (it.type === 'exercise') {
-                const exIdx = newExercises.findIndex(
-                  e => e.instanceId === it.data.instanceId,
-                );
-                if (exIdx !== -1) newExercises[exIdx].order = idx;
-              } else {
-                const gIdx = newGroups.findIndex(g => g.id === it.data.id);
-                if (gIdx !== -1) newGroups[gIdx].order = idx;
+              // If the dragged item was before the target, the target's index is now one less.
+              if (draggedIndex < targetIndex) {
+                targetIndex--;
               }
-            });
 
-            setFieldValueFn('exercises', newExercises);
-            setFieldValueFn('groups', newGroups);
-            setLayoutVersion(prev => prev + 1);
-          };
+              // Determine the final insertion index based on the drop position
+              let finalIndex = targetIndex;
+              if (position === 'after') {
+                finalIndex = targetIndex + 1;
+              }
+
+              newItems.splice(finalIndex, 0, moved);
+
+              const newExercises = [...currentValues.exercises];
+              const newGroups = [...currentValues.groups];
+
+              newItems.forEach((it, idx) => {
+                if (it.type === 'exercise') {
+                  const exIdx = newExercises.findIndex(
+                    e => e.instanceId === it.data.instanceId,
+                  );
+                  if (exIdx !== -1) newExercises[exIdx].order = idx;
+                } else {
+                  const gIdx = newGroups.findIndex(g => g.id === it.data.id);
+                  if (gIdx !== -1) newGroups[gIdx].order = idx;
+                }
+              });
+
+              setFieldValueFn('exercises', newExercises);
+              setFieldValueFn('groups', newGroups);
+              setLayoutVersion(prev => prev + 1);
+            },
+            [], // Dependencies: None, as it uses arguments for current state
+          );
+
+          const updatePreviewOffsets = useCallback(
+            (x: number, y: number, draggedItemData: DragData) => {
+              const draggedKey =
+                draggedItemData.type === 'group'
+                  ? String(draggedItemData.id)
+                  : draggedItemData.id;
+
+              const containerItems: {
+                id: string;
+                layout: Layout;
+                type: 'group' | 'exercise';
+              }[] = [];
+
+              const draggedItem = valuesRef.current.exercises.find(
+                e => e.instanceId === draggedItemData.id,
+              );
+              const isTopLevelDrag =
+                draggedItemData.type === 'group' ||
+                (draggedItemData.type === 'exercise' &&
+                  draggedItem?.groupId === null);
+
+              if (isTopLevelDrag) {
+                for (const id in exerciseLayouts.current) {
+                  const ex = valuesRef.current.exercises.find(
+                    e => e.instanceId === id,
+                  );
+                  if (ex && ex.groupId == null && exerciseLayouts.current[id]) {
+                    containerItems.push({
+                      id,
+                      layout: exerciseLayouts.current[id],
+                      type: 'exercise',
+                    });
+                  }
+                }
+                for (const id in groupLayouts.current) {
+                  const groupFound = valuesRef.current.groups.find(
+                    g => String(g.id) === id,
+                  );
+                  if (groupFound && groupLayouts.current[id]) {
+                    containerItems.push({
+                      id: String(id),
+                      layout: groupLayouts.current[id],
+                      type: 'group',
+                    });
+                  }
+                }
+                containerItems.sort((a, b) => a.layout.y - b.layout.y);
+              } else {
+                if (!draggedItem) return;
+                const exs = valuesRef.current.exercises
+                  .filter(ex => ex.groupId === draggedItem.groupId)
+                  .sort((a, b) => a.order - b.order);
+                exs.forEach(ex => {
+                  const layout = exerciseLayouts.current[ex.instanceId];
+                  if (layout)
+                    containerItems.push({
+                      id: ex.instanceId,
+                      layout,
+                      type: 'exercise',
+                    });
+                });
+              }
+
+              const fromIdx = containerItems.findIndex(
+                it => it.id === draggedKey,
+              );
+              if (fromIdx === -1) {
+                return;
+              }
+
+              // Reset all offsets before applying new ones to ensure a clean state
+              containerItems.forEach(item => {
+                if (dragOffsets.current[item.id]) {
+                  dragOffsets.current[item.id].value = 0;
+                }
+              });
+
+              let finalTargetIdx = fromIdx;
+              let finalPreviewPosition: 'before' | 'after' = 'before';
+
+              // Define the shrink amount for groups
+              const GROUP_SHRINK_VERTICAL_OFFSET = 30; // Adjust this value as needed
+
+              // Find the target index and preview position
+              for (let i = 0; i < containerItems.length; i++) {
+                const item = containerItems[i];
+                let currentItemLayout = {...item.layout}; // Create a mutable copy of the layout
+
+                // Apply shrinking for group items only to modify their effective drag detection area
+                if (item.type === 'group') {
+                  currentItemLayout.y += GROUP_SHRINK_VERTICAL_OFFSET;
+                  currentItemLayout.height -= GROUP_SHRINK_VERTICAL_OFFSET * 2.2;
+                  if (currentItemLayout.height < 0)
+                    currentItemLayout.height = 0; // Ensure height doesn't go negative
+                }
+
+                // Skip the dragged item itself
+                if (item.id === draggedKey) continue;
+
+                // Special handling for dropping an exercise onto a group (no shuffling of other items)
+                // Use the ORIGINAL layout for the actual drop target check, not the shrunk one
+                if (
+                  item.type === 'group' &&
+                  draggedItemData.type === 'exercise' &&
+                  y >= currentItemLayout.y && // <-- CHANGE THIS TO currentItemLayout.y
+                  y <= currentItemLayout.y + currentItemLayout.height // <-- CHANGE THIS TO currentItemLayout.y + currentItemLayout.height
+                ) {
+                  return; // Exit early, no placeholder shifting needed for reordering
+                }
+
+                const itemMidpointY =
+                  currentItemLayout.y + currentItemLayout.height / 2;
+
+                // Case 1: Dragging over any item (exercise or group) using the *adjusted* layout
+                if (
+                  y >= currentItemLayout.y &&
+                  y <= currentItemLayout.y + currentItemLayout.height
+                ) {
+                  finalTargetIdx = i;
+                  finalPreviewPosition = y < itemMidpointY ? 'before' : 'after';
+                  break;
+                }
+                // Case 2: Dragging in a gap between current item and the next item
+                else if (i < containerItems.length - 1) {
+                  const nextItem = containerItems[i + 1];
+                  let nextItemLayout = {...nextItem.layout};
+
+                  if (nextItem.type === 'group') {
+                    nextItemLayout.y += GROUP_SHRINK_VERTICAL_OFFSET;
+                    nextItemLayout.height -= GROUP_SHRINK_VERTICAL_OFFSET * 2;
+                    if (nextItemLayout.height < 0) nextItemLayout.height = 0;
+                  }
+
+                  const gapStart =
+                    currentItemLayout.y + currentItemLayout.height;
+                  const gapEnd = nextItemLayout.y;
+
+                  // Define a threshold for the "early" trigger within the gap
+                  const earlyTriggerThreshold = 0.3; // e.g., trigger when 30% into the gap
+                  const triggerPointInGap =
+                    gapStart + (gapEnd - gapStart) * earlyTriggerThreshold;
+
+                  if (y > gapStart && y < gapEnd) {
+                    if (y < triggerPointInGap) {
+                      // If dragging in the early part of the gap, consider it 'after' the current item
+                      finalTargetIdx = i;
+                      finalPreviewPosition = 'after';
+                      break;
+                    } else {
+                      // If dragging past the early trigger point in the gap, consider it 'before' the next item
+                      finalTargetIdx = i + 1;
+                      finalPreviewPosition = 'before';
+                      break;
+                    }
+                  }
+                }
+                // Case 3: Dragging past the last item (if the last item is not the dragged one)
+                else if (
+                  i === containerItems.length - 1 &&
+                  y > currentItemLayout.y + currentItemLayout.height
+                ) {
+                  finalTargetIdx = containerItems.length; // Insert at the very end
+                  finalPreviewPosition = 'after';
+                  break;
+                }
+              }
+
+              // Calculate the effective insertion index for offset application
+              let effectiveInsertionIndex = finalTargetIdx;
+              if (finalPreviewPosition === 'after') {
+                effectiveInsertionIndex = finalTargetIdx + 1;
+              }
+
+              // Clamp effectiveInsertionIndex to valid bounds (0 to containerItems.length)
+              effectiveInsertionIndex = Math.max(
+                0,
+                Math.min(effectiveInsertionIndex, containerItems.length),
+              );
+
+              // Apply offsets for placeholder shuffling
+              const draggedItemHeight = containerItems[fromIdx].layout.height;
+
+              // Apply shifts to other items
+              if (effectiveInsertionIndex < fromIdx) {
+                // Moving up
+                for (let i = 0; i < containerItems.length; i++) {
+                  const item = containerItems[i];
+                  // Items between the new position (inclusive) and the old position (exclusive) shift down
+                  if (i >= effectiveInsertionIndex && i < fromIdx) {
+                    if (dragOffsets.current[item.id]) {
+                      dragOffsets.current[item.id].value = draggedItemHeight;
+                    }
+                  }
+                }
+              } else if (effectiveInsertionIndex > fromIdx) {
+                // Moving down
+                for (let i = 0; i < containerItems.length; i++) {
+                  const item = containerItems[i];
+                  // Items between the old position (exclusive) and the new position (exclusive) shift up
+                  if (i > fromIdx && i < effectiveInsertionIndex) {
+                    if (dragOffsets.current[item.id]) {
+                      dragOffsets.current[item.id].value = -draggedItemHeight;
+                    }
+                  }
+                }
+              }
+            },
+            [], // Dependencies: None, as it uses valuesRef.current
+          );
+
+          const handleDragMove = useWorkletCallback(
+            (x: number, y: number, data: DragData) => {
+              runOnJS(updatePreviewOffsets)(x, y, data);
+            },
+            [],
+          );
+
+          const handleDrop = useCallback(
+            (x: number, y: number, draggedItemData: DragData) => {
+              let droppedHandled = false;
+
+              // --- Step 1: Check for dropping an exercise into an existing group ---
+              // This section is only relevant if the dragged item is an exercise.
+              if (draggedItemData.type === 'exercise') {
+                const draggedItem = values.exercises.find(
+                  ex => ex.instanceId === draggedItemData.id,
+                );
+                if (draggedItem) {
+                  for (const groupIdStr in groupLayouts.current) {
+                    const originalLayout = groupLayouts.current[groupIdStr];
+                    const offset = dragOffsets.current[groupIdStr]?.value ?? 0;
+                    const adjustedLayout = {
+                      ...originalLayout,
+                      y: originalLayout.y + offset,
+                    };
+                    // Check if the drop point is within the bounds of a group
+                    if (isPointInLayout(x, y, adjustedLayout)) {
+                      const targetGroupId = parseInt(groupIdStr, 10);
+                      // Only update if the exercise is not already in this group
+                      if (draggedItem.groupId !== targetGroupId) {
+                        updateExerciseGroup(
+                          draggedItemData.id,
+                          targetGroupId,
+                          values.exercises,
+                          values.groups,
+                          setFieldValue,
+                        );
+                        droppedHandled = true;
+                        break; // Group found and handled, exit loop
+                      }
+                    }
+                  }
+                }
+              }
+
+              // --- Step 2: Reorder top-level items (exercises or groups) ---
+              // This section runs if the item was not dropped into an existing group.
+              if (!droppedHandled) {
+                const allTopLevelItems: {
+                  id: string;
+                  type: 'exercise' | 'group';
+                  layout: Layout;
+                }[] = [];
+
+                // Collect all top-level exercises and groups with their current layouts
+                for (const id in exerciseLayouts.current) {
+                  const ex = values.exercises.find(e => e.instanceId === id);
+                  if (ex && ex.groupId == null) {
+                    // Ensure it's a top-level exercise
+                    allTopLevelItems.push({
+                      id,
+                      type: 'exercise',
+                      layout: exerciseLayouts.current[id],
+                    });
+                  }
+                }
+                for (const id in groupLayouts.current) {
+                  allTopLevelItems.push({
+                    id: String(id),
+                    type: 'group',
+                    layout: groupLayouts.current[id],
+                  });
+                }
+                // Sort items by their vertical position to process them top-to-bottom
+                allTopLevelItems.sort((a, b) => a.layout.y - b.layout.y);
+
+                let targetItem: {
+                  id: string;
+                  type: 'exercise' | 'group';
+                } | null = null;
+                let dropPosition: 'before' | 'after' = 'after'; // Default to 'after' if no clear target found yet
+
+                // Iterate through sorted items to find the most appropriate insertion point
+                for (let i = 0; i < allTopLevelItems.length; i++) {
+                  const currentItem = allTopLevelItems[i];
+                  // Skip if the current item is the one being dragged
+                  if (currentItem.id === draggedItemData.id) continue;
+
+                  const currentOffset =
+                    dragOffsets.current[currentItem.id]?.value ?? 0;
+                  const adjustedLayout = {
+                    ...currentItem.layout,
+                    y: currentItem.layout.y + currentOffset,
+                  };
+
+                  // Calculate the vertical midpoint of the current item
+                  const currentItemMidpointY =
+                    adjustedLayout.y + adjustedLayout.height / 2;
+
+                  // If the drop point's Y is above the midpoint of the current item,
+                  // it means we want to insert 'before' this item.
+                  // This also covers dropping in the "gap" above the item.
+                  if (y < currentItemMidpointY) {
+                    targetItem = {type: currentItem.type, id: currentItem.id};
+                    dropPosition = 'before';
+                    droppedHandled = true;
+                    break; // Found our target and position, exit loop
+                  } else {
+                    // If the drop point's Y is below or at the midpoint of the current item,
+                    // it means we want to insert 'after' this item.
+                    // We continue searching in case there's another item further down that
+                    // the drop point is 'before'. If this is the last item, or no other
+                    // 'before' target is found, it will default to 'after' this item.
+                    targetItem = {type: currentItem.type, id: currentItem.id};
+                    dropPosition = 'after';
+                  }
+                }
+
+                // If a target item was identified for reordering
+                if (targetItem) {
+                  reorderPlanItems(
+                    draggedItemData,
+                    targetItem,
+                    dropPosition,
+                    values,
+                    setFieldValue,
+                  );
+                  droppedHandled = true;
+                }
+              }
+
+              // --- Step 3: Handle dropping a top-level exercise into empty space (out of group) ---
+              // This handles cases where an exercise was in a group and is now dropped
+              // into a top-level empty space, or if no specific reorder target was found.
+              if (!droppedHandled && draggedItemData.type === 'exercise') {
+                const draggedItem = values.exercises.find(
+                  ex => ex.instanceId === draggedItemData.id,
+                );
+                if (draggedItem && draggedItem.groupId !== null) {
+                  updateExerciseGroup(
+                    draggedItemData.id,
+                    null, // Set groupId to null to make it a top-level exercise
+                    values.exercises,
+                    values.groups,
+                    setFieldValue,
+                  );
+                  droppedHandled = true;
+                }
+              }
+
+              // Always call handleDragEnd to reset drag state and clear offsets
+              handleDragEnd();
+            },
+            [
+              setFieldValue,
+              handleDragEnd,
+              reorderPlanItems,
+              values.exercises,
+              values.groups,
+            ],
+          );
           const ListHeader = (
             <>
               <Title
