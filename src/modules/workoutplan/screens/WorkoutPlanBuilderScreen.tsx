@@ -1259,7 +1259,9 @@ export default function WorkoutPlanBuilderScreen() {
           const reorderExercises = (
             draggedId: string,
             targetId: string,
+            position: 'before' | 'after',
             currentExercises: ExerciseFormEntry[],
+            currentGroups: ExerciseGroup[],
             setFieldValueFn: (field: string, value: any) => void,
           ) => {
             const draggedItem = currentExercises.find(
@@ -1281,16 +1283,26 @@ export default function WorkoutPlanBuilderScreen() {
               .filter(ex => ex.groupId === draggedItem.groupId)
               .sort((a, b) => a.order - b.order);
 
-            const fromIdx = containerExercises.findIndex(
+            let fromIdx = containerExercises.findIndex(
               ex => ex.instanceId === draggedId,
             );
-            const toIdx = containerExercises.findIndex(
+            let targetIdx = containerExercises.findIndex(
               ex => ex.instanceId === targetId,
             );
-            if (fromIdx === -1 || toIdx === -1) return;
+            if (fromIdx === -1 || targetIdx === -1) return;
 
             const [moved] = containerExercises.splice(fromIdx, 1);
-            containerExercises.splice(toIdx, 0, moved);
+
+            if (fromIdx < targetIdx) {
+              targetIdx--;
+            }
+
+            let insertIdx = targetIdx;
+            if (position === 'after') {
+              insertIdx = targetIdx + 1;
+            }
+
+            containerExercises.splice(insertIdx, 0, moved);
 
             const updatedExercises = currentExercises.map(ex => {
               const idx = containerExercises.findIndex(
@@ -1303,7 +1315,7 @@ export default function WorkoutPlanBuilderScreen() {
             });
 
             const {exercises: finalExercises, groups: finalGroups} =
-              reindexAllOrders(updatedExercises, values.groups);
+              reindexAllOrders(updatedExercises, currentGroups);
 
             setFieldValueFn('exercises', finalExercises);
             setFieldValueFn('groups', finalGroups);
@@ -1798,13 +1810,48 @@ export default function WorkoutPlanBuilderScreen() {
                   currentVals,
                 );
                 if (dropInfo) {
-                  reorderPlanItems(
-                    draggedItemData,
-                    dropInfo.target,
-                    dropInfo.position,
-                    currentVals,
-                    setFieldValue,
-                  );
+                  if (
+                    draggedItemData.type === 'exercise' &&
+                    dropInfo.target.type === 'exercise'
+                  ) {
+                    const draggedItem = currentVals.exercises.find(
+                      ex => ex.instanceId === draggedItemData.id,
+                    );
+                    const targetItem = currentVals.exercises.find(
+                      ex => ex.instanceId === dropInfo.target.id,
+                    );
+                    if (
+                      draggedItem &&
+                      targetItem &&
+                      draggedItem.groupId === targetItem.groupId &&
+                      draggedItem.groupId !== null
+                    ) {
+                      reorderExercises(
+                        draggedItemData.id,
+                        dropInfo.target.id,
+                        dropInfo.position,
+                        currentVals.exercises,
+                        currentVals.groups,
+                        setFieldValue,
+                      );
+                    } else {
+                      reorderPlanItems(
+                        draggedItemData,
+                        dropInfo.target,
+                        dropInfo.position,
+                        currentVals,
+                        setFieldValue,
+                      );
+                    }
+                  } else {
+                    reorderPlanItems(
+                      draggedItemData,
+                      dropInfo.target,
+                      dropInfo.position,
+                      currentVals,
+                      setFieldValue,
+                    );
+                  }
                   droppedHandled = true;
                 }
               }
