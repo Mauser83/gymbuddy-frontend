@@ -1165,18 +1165,6 @@ export default function WorkoutPlanBuilderScreen() {
             pointY: number,
             layout: Layout, // The layout object passed to the function
           ) => {
-            // Corrected logs to only use properties available on 'Layout'
-            console.log(
-              `Checking Layout: x=${layout.x}, y=${layout.y}, width=${layout.width}, height=${layout.height}`,
-            );
-            console.log(`Dragged Point: x=${pointX}, y=${pointY}`);
-            console.log(
-              `Calculated bottom boundary for layout: ${layout.y + layout.height}`,
-            );
-            console.log(
-              `Is within layout: ${pointX >= layout.x && pointX <= layout.x + layout.width && pointY >= layout.y && pointY <= layout.y + layout.height}`,
-            );
-
             return (
               pointX >= layout.x &&
               pointX <= layout.x + layout.width &&
