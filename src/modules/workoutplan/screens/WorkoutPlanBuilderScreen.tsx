@@ -208,7 +208,6 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
 }) => {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
-  const startItemPageY = useSharedValue(0);
   const startScrollY = useSharedValue(0);
   const isDragging = useSharedValue(false);
   const [layoutSize, setLayoutSize] = useState<{width: number; height: number}>(
@@ -226,16 +225,11 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
     onDragEnd?.();
   };
 
-  const innerRef = useRef<View>(null);
-
   const gestureHandler = useAnimatedGestureHandler<
     PanGestureHandlerGestureEvent,
     {startX: number; startY: number; startScrollY: number}
   >({
     onBegin: () => {
-      innerRef.current?.measure((x, y, width, height, pageX, pageY) => {
-        startItemPageY.value = pageY;
-      });
       isDragging.value = true;
       isDraggingShared.value = true;
       startScrollY.value = scrollOffset?.value ?? 0;
@@ -249,7 +243,7 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
     },
     onActive: (event, ctx) => {
       translateX.value = ctx.startX + event.translationX;
-      translateY.value = event.absoluteY - startItemPageY.value;
+      translateY.value = ctx.startY + event.translationY;
       pointerPositionY.value = event.absoluteY;
 
       if (onDragMove) {
@@ -269,18 +263,24 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
   });
 
   const animatedStyle = useAnimatedStyle(() => {
+    const scrollDiff = isDragging.value
+      ? (scrollOffset?.value ?? 0) - startScrollY.value
+      : 0;
     return {
       position: isDragging.value ? 'absolute' : 'relative',
       zIndex: isDragging.value ? 100 : 0,
       opacity: isDragging.value ? 0.7 : 1,
       transform: [
         {translateX: translateX.value},
-        {translateY: translateY.value},
+        {translateY: translateY.value + scrollDiff},
       ],
       elevation: isDragging.value ? 10 : 0,
       shadowRadius: isDragging.value ? 15 : 1,
       shadowOpacity: isDragging.value ? 0.7 : 0,
       shadowOffset: {width: 0, height: isDragging.value ? 10 : 1},
+      // DEBUG
+      borderWidth: 1,
+      borderColor: 'red',
     };
   });
 
@@ -294,7 +294,6 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
         onGestureEvent={gestureHandler}
         simultaneousHandlers={simultaneousHandlers}>
         <Animated.View
-          ref={innerRef}
           onLayout={e =>
             setLayoutSize({
               width: e.nativeEvent.layout.width,
@@ -1408,14 +1407,11 @@ export default function WorkoutPlanBuilderScreen() {
             );
             const isTopLevelDrag =
               draggedItemData.type === 'group' ||
-              (draggedItemData.type === 'exercise' &&
-                draggedItem?.groupId === null);
+              (draggedItemData.type === 'exercise' && draggedItem?.groupId === null);
 
             if (isTopLevelDrag) {
               for (const id in exerciseLayouts.current) {
-                const ex = currentValues.exercises.find(
-                  e => e.instanceId === id,
-                );
+                const ex = currentValues.exercises.find(e => e.instanceId === id);
                 if (ex && ex.groupId == null && exerciseLayouts.current[id]) {
                   containerItems.push({
                     id,
@@ -1450,9 +1446,7 @@ export default function WorkoutPlanBuilderScreen() {
               });
             }
 
-            const fromIdx = containerItems.findIndex(
-              it => it.id === draggedKey,
-            );
+            const fromIdx = containerItems.findIndex(it => it.id === draggedKey);
             if (fromIdx === -1) return null;
 
             let finalTargetIdx = fromIdx;
@@ -1462,7 +1456,7 @@ export default function WorkoutPlanBuilderScreen() {
 
             for (let i = 0; i < containerItems.length; i++) {
               const item = containerItems[i];
-              let currentItemLayout = {...item.layout};
+              let currentItemLayout = { ...item.layout };
 
               if (item.type === 'group') {
                 currentItemLayout.y += GROUP_SHRINK_VERTICAL_OFFSET;
@@ -1489,12 +1483,13 @@ export default function WorkoutPlanBuilderScreen() {
                 } else if (y > afterThreshold) {
                   finalPreviewPosition = 'after';
                 } else {
-                  finalPreviewPosition = y < itemMidpointY ? 'before' : 'after';
+                  finalPreviewPosition =
+                    y < itemMidpointY ? 'before' : 'after';
                 }
-                break;
+                                break;
               } else if (i < containerItems.length - 1) {
                 const nextItem = containerItems[i + 1];
-                let nextItemLayout = {...nextItem.layout};
+                let nextItemLayout = { ...nextItem.layout };
                 if (nextItem.type === 'group') {
                   nextItemLayout.y += GROUP_SHRINK_VERTICAL_OFFSET;
                   nextItemLayout.height -= GROUP_SHRINK_VERTICAL_OFFSET * 2;
@@ -1532,7 +1527,7 @@ export default function WorkoutPlanBuilderScreen() {
             if (!targetItem || targetItem.id === draggedKey) return null;
 
             return {
-              target: {type: targetItem.type, id: targetItem.id},
+              target: { type: targetItem.type, id: targetItem.id },
               position: finalPreviewPosition,
             };
           };
@@ -1669,7 +1664,7 @@ export default function WorkoutPlanBuilderScreen() {
                     finalPreviewPosition =
                       y < itemMidpointY ? 'before' : 'after';
                   }
-                  break;
+                                    break;
                 }
                 // Case 2: Dragging in a gap between current item and the next item
                 else if (i < containerItems.length - 1) {
