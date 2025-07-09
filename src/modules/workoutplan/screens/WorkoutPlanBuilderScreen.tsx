@@ -1468,14 +1468,25 @@ export default function WorkoutPlanBuilderScreen() {
 
               const itemMidpointY =
                 currentItemLayout.y + currentItemLayout.height / 2;
+              const beforeThreshold =
+                currentItemLayout.y + currentItemLayout.height * 0.2;
+              const afterThreshold =
+                currentItemLayout.y + currentItemLayout.height * 0.8;
 
               if (
                 y >= currentItemLayout.y &&
                 y <= currentItemLayout.y + currentItemLayout.height
               ) {
                 finalTargetIdx = i;
-                finalPreviewPosition = y < itemMidpointY ? 'before' : 'after';
-                break;
+                if (y < beforeThreshold) {
+                  finalPreviewPosition = 'before';
+                } else if (y > afterThreshold) {
+                  finalPreviewPosition = 'after';
+                } else {
+                  finalPreviewPosition =
+                    y < itemMidpointY ? 'before' : 'after';
+                }
+                                break;
               } else if (i < containerItems.length - 1) {
                 const nextItem = containerItems[i + 1];
                 let nextItemLayout = { ...nextItem.layout };
@@ -1634,6 +1645,10 @@ export default function WorkoutPlanBuilderScreen() {
 
                 const itemMidpointY =
                   currentItemLayout.y + currentItemLayout.height / 2;
+                const beforeThreshold =
+                  currentItemLayout.y + currentItemLayout.height * 0.2;
+                const afterThreshold =
+                  currentItemLayout.y + currentItemLayout.height * 0.8;
 
                 // Case 1: Dragging over any item (exercise or group) using the *adjusted* layout
                 if (
@@ -1641,8 +1656,15 @@ export default function WorkoutPlanBuilderScreen() {
                   y <= currentItemLayout.y + currentItemLayout.height
                 ) {
                   finalTargetIdx = i;
-                  finalPreviewPosition = y < itemMidpointY ? 'before' : 'after';
-                  break;
+                  if (y < beforeThreshold) {
+                    finalPreviewPosition = 'before';
+                  } else if (y > afterThreshold) {
+                    finalPreviewPosition = 'after';
+                  } else {
+                    finalPreviewPosition =
+                      y < itemMidpointY ? 'before' : 'after';
+                  }
+                                    break;
                 }
                 // Case 2: Dragging in a gap between current item and the next item
                 else if (i < containerItems.length - 1) {
