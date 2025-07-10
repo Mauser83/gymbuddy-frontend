@@ -113,6 +113,8 @@ type DraggableItemProps = {
   onDragEnd?: () => void;
   onDragMove?: (x: number, y: number, data: DragData) => void;
   isDraggingShared: Animated.SharedValue<boolean>;
+  draggedItemId: Animated.SharedValue<string | null>;
+  draggedItemType: Animated.SharedValue<'exercise' | 'group' | null>;
   pointerPositionY: Animated.SharedValue<number>;
   simultaneousHandlers?: any;
   resetPreviewOffsets?: () => void;
@@ -201,6 +203,8 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
   onDragEnd,
   onDragMove,
   isDraggingShared,
+  draggedItemId,
+  draggedItemType,
   pointerPositionY,
   simultaneousHandlers,
   scrollOffset,
@@ -232,6 +236,8 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
     onBegin: () => {
       isDragging.value = true;
       isDraggingShared.value = true;
+      draggedItemId.value = item.id;
+      draggedItemType.value = item.type;
       startScrollY.value = scrollOffset?.value ?? 0;
     },
     onStart: (_, ctx) => {
@@ -258,29 +264,30 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
 
       isDragging.value = false;
       isDraggingShared.value = false;
+      draggedItemId.value = null;
+      draggedItemType.value = null;
       runOnJS(handleTouchEnd)();
     },
   });
 
   const animatedStyle = useAnimatedStyle(() => {
-    const scrollDiff = isDragging.value
+    const isActive =
+      draggedItemId.value === item.id && draggedItemType.value === item.type;
+    const scrollDiff = isActive
       ? (scrollOffset?.value ?? 0) - startScrollY.value
       : 0;
     return {
-      position: isDragging.value ? 'absolute' : 'relative',
-      zIndex: isDragging.value ? 100 : 0,
-      opacity: isDragging.value ? 0.7 : 1,
+      position: isActive ? 'absolute' : 'relative',
+      zIndex: isActive ? 100 : 0,
+      opacity: isActive ? 0.7 : 1,
       transform: [
         {translateX: translateX.value},
         {translateY: translateY.value + scrollDiff},
       ],
-      elevation: isDragging.value ? 10 : 0,
-      shadowRadius: isDragging.value ? 15 : 1,
-      shadowOpacity: isDragging.value ? 0.7 : 0,
-      shadowOffset: {width: 0, height: isDragging.value ? 10 : 1},
-      // DEBUG
-      borderWidth: 1,
-      borderColor: 'red',
+      elevation: isActive ? 10 : 0,
+      shadowRadius: isActive ? 15 : 1,
+      shadowOpacity: isActive ? 0.7 : 0,
+      shadowOffset: {width: 0, height: isActive ? 10 : 1},
     };
   });
 
@@ -318,6 +325,8 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
   onDragEnd,
   onDragMove,
   isDraggingShared,
+  draggedItemId,
+  draggedItemType,
   pointerPositionY,
   simultaneousHandlers: _simultaneousHandlers,
   scrollOffset,
@@ -329,11 +338,32 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
     },
   );
   const [isDragging, setIsDragging] = useState(false);
+  // Initialize with a default value, then update via useAnimatedReaction
+  const [scrollOffsetVal, setScrollOffsetVal] = useState(0);
+  // Initialize with false, as it's not active on initial render
+  const [isActiveWeb, setIsActiveWeb] = useState(false);
   const translate = useRef({x: 0, y: 0});
   const start = useRef({x: 0, y: 0});
   const startScrollY = useRef(0);
   const hasMoved = useRef(false);
   const dragThreshold = 5;
+
+  useAnimatedReaction(
+    () => scrollOffset?.value ?? 0,
+    val => {
+      runOnJS(setScrollOffsetVal)(val);
+    },
+    [scrollOffset],
+  );
+
+  useAnimatedReaction(
+    () =>
+      draggedItemId.value === item.id && draggedItemType.value === item.type,
+    val => {
+      runOnJS(setIsActiveWeb)(val);
+    },
+    [draggedItemId, draggedItemType],
+  );
 
   const handlePointerDown = (e: PointerEvent) => {
     e.stopPropagation();
@@ -346,11 +376,13 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
     };
     setIsDragging(true);
     isDraggingShared.value = true;
+    draggedItemId.value = item.id;
+    draggedItemType.value = item.type;
     start.current = {
       x: evt.clientX - translate.current.x,
       y: evt.clientY - translate.current.y,
     };
-    startScrollY.current = scrollOffset?.value ?? 0;
+    startScrollY.current = scrollOffsetVal;
     hasMoved.current = false;
     onDragStart?.();
     evt.currentTarget.setPointerCapture(evt.pointerId);
@@ -372,7 +404,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
     }
     if (!hasMoved.current) return;
     translate.current = {x: dx, y: dy};
-    const scrollDiff = (scrollOffset?.value ?? 0) - startScrollY.current;
+    const scrollDiff = scrollOffsetVal - startScrollY.current;
     evt.currentTarget.style.transform = `translate(${dx}px, ${dy + scrollDiff}px)`;
     pointerPositionY.value = evt.clientY;
     onDragMove?.(evt.clientX, evt.clientY, item);
@@ -390,6 +422,8 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
     evt.currentTarget.releasePointerCapture(evt.pointerId);
     setIsDragging(false);
     isDraggingShared.value = false;
+    draggedItemId.value = null;
+    draggedItemType.value = null;
     translate.current = {x: 0, y: 0};
     evt.currentTarget.style.transform = 'translate(0px, 0px)';
     if (hasMoved.current) {
@@ -419,9 +453,9 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
         style={
           {
             width: '100%',
-            position: isDragging ? 'absolute' : 'relative',
-            zIndex: isDragging ? 100 : 0,
-            opacity: isDragging ? 0.3 : 1,
+            position: isActiveWeb ? 'absolute' : 'relative',
+            zIndex: isActiveWeb ? 100 : 0,
+            opacity: isActiveWeb ? 0.3 : 1,
             cursor: 'grab',
             userSelect: 'none',
             touchAction: 'none',
@@ -538,6 +572,8 @@ export default function WorkoutPlanBuilderScreen() {
   const contentHeight = useSharedValue(0);
   const isDragging = useSharedValue(false);
   const pointerPositionY = useSharedValue(0);
+  const draggedItemId = useSharedValue<string | null>(null);
+  const draggedItemType = useSharedValue<'exercise' | 'group' | null>(null);
 
   const reMeasureAllItems = useCallback(() => {
     exerciseRefs.current.forEach(ref => ref?.measure());
@@ -685,6 +721,8 @@ export default function WorkoutPlanBuilderScreen() {
             onDragEnd={onDragEnd}
             onDragMove={onDragMove}
             isDraggingShared={isDragging}
+            draggedItemId={draggedItemId}
+            draggedItemType={draggedItemType}
             pointerPositionY={pointerPositionY}
             scrollOffset={scrollOffsetY}>
             {children}
@@ -775,6 +813,8 @@ export default function WorkoutPlanBuilderScreen() {
             onDragEnd={onDragEnd}
             onDragMove={onDragMove}
             isDraggingShared={isDragging}
+            draggedItemId={draggedItemId}
+            draggedItemType={draggedItemType}
             pointerPositionY={pointerPositionY}
             scrollOffset={scrollOffsetY}>
             {children}
@@ -1407,11 +1447,14 @@ export default function WorkoutPlanBuilderScreen() {
             );
             const isTopLevelDrag =
               draggedItemData.type === 'group' ||
-              (draggedItemData.type === 'exercise' && draggedItem?.groupId === null);
+              (draggedItemData.type === 'exercise' &&
+                draggedItem?.groupId === null);
 
             if (isTopLevelDrag) {
               for (const id in exerciseLayouts.current) {
-                const ex = currentValues.exercises.find(e => e.instanceId === id);
+                const ex = currentValues.exercises.find(
+                  e => e.instanceId === id,
+                );
                 if (ex && ex.groupId == null && exerciseLayouts.current[id]) {
                   containerItems.push({
                     id,
@@ -1446,7 +1489,9 @@ export default function WorkoutPlanBuilderScreen() {
               });
             }
 
-            const fromIdx = containerItems.findIndex(it => it.id === draggedKey);
+            const fromIdx = containerItems.findIndex(
+              it => it.id === draggedKey,
+            );
             if (fromIdx === -1) return null;
 
             let finalTargetIdx = fromIdx;
@@ -1456,7 +1501,7 @@ export default function WorkoutPlanBuilderScreen() {
 
             for (let i = 0; i < containerItems.length; i++) {
               const item = containerItems[i];
-              let currentItemLayout = { ...item.layout };
+              let currentItemLayout = {...item.layout};
 
               if (item.type === 'group') {
                 currentItemLayout.y += GROUP_SHRINK_VERTICAL_OFFSET;
@@ -1483,13 +1528,12 @@ export default function WorkoutPlanBuilderScreen() {
                 } else if (y > afterThreshold) {
                   finalPreviewPosition = 'after';
                 } else {
-                  finalPreviewPosition =
-                    y < itemMidpointY ? 'before' : 'after';
+                  finalPreviewPosition = y < itemMidpointY ? 'before' : 'after';
                 }
-                                break;
+                break;
               } else if (i < containerItems.length - 1) {
                 const nextItem = containerItems[i + 1];
-                let nextItemLayout = { ...nextItem.layout };
+                let nextItemLayout = {...nextItem.layout};
                 if (nextItem.type === 'group') {
                   nextItemLayout.y += GROUP_SHRINK_VERTICAL_OFFSET;
                   nextItemLayout.height -= GROUP_SHRINK_VERTICAL_OFFSET * 2;
@@ -1527,7 +1571,7 @@ export default function WorkoutPlanBuilderScreen() {
             if (!targetItem || targetItem.id === draggedKey) return null;
 
             return {
-              target: { type: targetItem.type, id: targetItem.id },
+              target: {type: targetItem.type, id: targetItem.id},
               position: finalPreviewPosition,
             };
           };
@@ -1664,7 +1708,7 @@ export default function WorkoutPlanBuilderScreen() {
                     finalPreviewPosition =
                       y < itemMidpointY ? 'before' : 'after';
                   }
-                                    break;
+                  break;
                 }
                 // Case 2: Dragging in a gap between current item and the next item
                 else if (i < containerItems.length - 1) {
