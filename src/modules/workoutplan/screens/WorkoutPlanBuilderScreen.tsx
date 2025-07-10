@@ -57,6 +57,7 @@ import Animated, {
   scrollTo,
   useAnimatedScrollHandler,
   useWorkletCallback,
+  useDerivedValue,
   LinearTransition,
 } from 'react-native-reanimated';
 
@@ -248,8 +249,12 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
       startScrollY.value = scrollOffset?.value ?? 0;
     },
     onActive: (event, ctx) => {
+      // Add the actual scroll offset diff live, not just from `startScrollY`
+      const liveScrollOffset = scrollOffset?.value ?? 0;
+      const scrollDelta = liveScrollOffset - startScrollY.value;
+
       translateX.value = ctx.startX + event.translationX;
-      translateY.value = ctx.startY + event.translationY;
+      translateY.value = ctx.startY + event.translationY + scrollDelta;
       pointerPositionY.value = event.absoluteY;
 
       if (onDragMove) {
@@ -270,24 +275,28 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
     },
   });
 
+  const isActive = useDerivedValue(
+    () =>
+      draggedItemId.value === item.id && draggedItemType.value === item.type,
+    [draggedItemId, draggedItemType],
+  );
+
   const animatedStyle = useAnimatedStyle(() => {
-    const isActive =
-      draggedItemId.value === item.id && draggedItemType.value === item.type;
-    const scrollDiff = isActive
+    const scrollDiff = isActive.value
       ? (scrollOffset?.value ?? 0) - startScrollY.value
       : 0;
     return {
-      position: isActive ? 'absolute' : 'relative',
-      zIndex: isActive ? 100 : 0,
-      opacity: isActive ? 0.7 : 1,
+      position: isActive.value ? 'absolute' : 'relative',
+      zIndex: isActive.value ? 100 : 0,
+      opacity: isActive.value ? 0.7 : 1,
       transform: [
         {translateX: translateX.value},
         {translateY: translateY.value + scrollDiff},
       ],
-      elevation: isActive ? 10 : 0,
-      shadowRadius: isActive ? 15 : 1,
-      shadowOpacity: isActive ? 0.7 : 0,
-      shadowOffset: {width: 0, height: isActive ? 10 : 1},
+      elevation: isActive.value ? 10 : 0,
+      shadowRadius: isActive.value ? 15 : 1,
+      shadowOpacity: isActive.value ? 0.7 : 0,
+      shadowOffset: {width: 0, height: isActive.value ? 10 : 1},
     };
   });
 
