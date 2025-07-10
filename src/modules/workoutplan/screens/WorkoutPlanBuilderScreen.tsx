@@ -1601,12 +1601,23 @@ export default function WorkoutPlanBuilderScreen() {
               const draggedItem = valuesRef.current.exercises.find(
                 e => e.instanceId === draggedItemData.id,
               );
-              const isTopLevelDrag =
+
+              const isPointerOverAnyGroup = () => {
+                for (const id in groupLayouts.current) {
+                  const layout = groupLayouts.current[id];
+                  if (y >= layout.y && y <= layout.y + layout.height) {
+                    return true;
+                  }
+                }
+                return false;
+              };
+
+              const treatAsTopLevelDrag =
                 draggedItemData.type === 'group' ||
                 (draggedItemData.type === 'exercise' &&
-                  draggedItem?.groupId === null);
+                  (draggedItem?.groupId === null || !isPointerOverAnyGroup()));
 
-              if (isTopLevelDrag) {
+              if (treatAsTopLevelDrag) {
                 for (const id in exerciseLayouts.current) {
                   const ex = valuesRef.current.exercises.find(
                     e => e.instanceId === id,
@@ -1648,11 +1659,28 @@ export default function WorkoutPlanBuilderScreen() {
                 });
               }
 
-              const fromIdx = containerItems.findIndex(
+              let fromIdx = containerItems.findIndex(
                 it => it.id === draggedKey,
               );
-              if (fromIdx === -1) {
-                return;
+
+              if (
+                fromIdx === -1 &&
+                treatAsTopLevelDrag &&
+                draggedItemData.type === 'exercise'
+              ) {
+                // Add a virtual dragged item to the main list for placeholder logic
+                const draggedLayout =
+                  exerciseLayouts.current[draggedKey] ||
+                  (containerItems[0]?.layout
+                    ? {...containerItems[0].layout, y}
+                    : {x: 0, y, width: 200, height: 82});
+                containerItems.push({
+                  id: draggedKey,
+                  layout: draggedLayout,
+                  type: 'exercise',
+                });
+                containerItems.sort((a, b) => a.layout.y - b.layout.y);
+                fromIdx = containerItems.findIndex(it => it.id === draggedKey);
               }
 
               // Reset all offsets before applying new ones to ensure a clean state
