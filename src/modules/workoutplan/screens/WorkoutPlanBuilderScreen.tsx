@@ -599,13 +599,14 @@ export default function WorkoutPlanBuilderScreen() {
       );
       if (exercise) {
         draggedItemOriginalGroupId.value = exercise.groupId ?? null;
-        const originalList = exercise.groupId != null
-          ? valuesRef.current.exercises
-              .filter(ex => ex.groupId === exercise.groupId)
-              .sort((a, b) => a.order - b.order)
-          : valuesRef.current.exercises
-              .filter(ex => ex.groupId == null)
-              .sort((a, b) => a.order - b.order);
+        const originalList =
+          exercise.groupId != null
+            ? valuesRef.current.exercises
+                .filter(ex => ex.groupId === exercise.groupId)
+                .sort((a, b) => a.order - b.order)
+            : valuesRef.current.exercises
+                .filter(ex => ex.groupId == null)
+                .sort((a, b) => a.order - b.order);
         draggedItemOriginalIndex.value = originalList.findIndex(
           item => item.instanceId === draggedData.id,
         );
@@ -639,7 +640,7 @@ export default function WorkoutPlanBuilderScreen() {
       scrollRef.current?.setNativeProps({scrollEnabled: true});
     }
     resetPreviewOffsets();
-        draggedItemOriginalGroupId.value = null;
+    draggedItemOriginalGroupId.value = null;
     draggedItemOriginalIndex.value = null;
     setScrollLayoutVersion(prev => prev + 1);
   };
@@ -1032,7 +1033,7 @@ export default function WorkoutPlanBuilderScreen() {
 
   const valuesRef = useRef<FormValues>(formInitialValues);
 
-    useEffect(() => {
+  useEffect(() => {
     const maxId = formInitialValues.groups.reduce(
       (acc, g) => (g.id > acc ? g.id : acc),
       0,
@@ -1622,300 +1623,318 @@ export default function WorkoutPlanBuilderScreen() {
           };
 
           const updatePreviewOffsets = useCallback(
-            (x: number, y: number, draggedItemData: DragData) => {
-              // Log initial call
-              console.log(
-                `[DragDebug] updatePreviewOffsets fired for ${draggedItemData.type}: ${draggedItemData.id} at y=${y}`,
-              );
-              const draggedKey =
-                draggedItemData.type === 'group'
-                  ? String(draggedItemData.id)
-                  : draggedItemData.id;
+  (x: number, y: number, draggedItemData: DragData) => {
+    // Log initial call
+    console.log(
+      `[DragDebug] updatePreviewOffsets fired for ${draggedItemData.type}: ${draggedItemData.id} at y=${y}`,
+    );
+    const draggedKey =
+      draggedItemData.type === 'group'
+        ? String(draggedItemData.id)
+        : draggedItemData.id;
 
-              const containerItems: {
-                id: string;
-                layout: Layout;
-                type: 'group' | 'exercise';
-              }[] = [];
+    const containerItems: {
+      id: string;
+      layout: Layout;
+      type: 'group' | 'exercise';
+    }[] = [];
 
-              const draggedItem = valuesRef.current.exercises.find(
-                e => e.instanceId === draggedItemData.id,
-              );
+    const draggedItem = valuesRef.current.exercises.find(
+      e => e.instanceId === draggedItemData.id,
+    );
 
-              const isPointerOverAnyGroup = () => {
-                for (const id in groupLayouts.current) {
-                  const layout = groupLayouts.current[id];
-                  if (y >= layout.y && y <= layout.y + layout.height) {
-                    return true;
-                  }
-                }
-                return false;
-              };
+    const isPointerOverAnyGroup = () => {
+      for (const id in groupLayouts.current) {
+        const layout = groupLayouts.current[id];
+        if (y >= layout.y && y <= layout.y + layout.height) {
+          return true;
+        }
+      }
+      return false;
+    };
 
-              const treatAsTopLevelDrag =
-                draggedItemData.type === 'group' ||
-                (draggedItemData.type === 'exercise' &&
-                  (draggedItem?.groupId === null || !isPointerOverAnyGroup()));
+    const treatAsTopLevelDrag =
+      draggedItemData.type === 'group' ||
+      (draggedItemData.type === 'exercise' &&
+        (draggedItem?.groupId === null || !isPointerOverAnyGroup()));
 
-              if (treatAsTopLevelDrag) {
-                for (const id in exerciseLayouts.current) {
-                  const ex = valuesRef.current.exercises.find(
-                    e => e.instanceId === id,
-                  );
-                  if (ex && ex.groupId == null && exerciseLayouts.current[id]) {
-                    containerItems.push({
-                      id,
-                      layout: exerciseLayouts.current[id],
-                      type: 'exercise',
-                    });
-                  }
-                }
-                for (const id in groupLayouts.current) {
-                  const groupFound = valuesRef.current.groups.find(
-                    g => String(g.id) === id,
-                  );
-                  if (groupFound && groupLayouts.current[id]) {
-                    containerItems.push({
-                      id: String(id),
-                      layout: groupLayouts.current[id],
-                      type: 'group',
-                    });
-                  }
-                }
-              } else {
-                if (!draggedItem) return;
-                const exs = valuesRef.current.exercises
-                  .filter(ex => ex.groupId === draggedItem.groupId)
-                  .sort((a, b) => a.order - b.order);
-                exs.forEach(ex => {
-                  const layout = exerciseLayouts.current[ex.instanceId];
-                  if (layout)
-                    containerItems.push({
-                      id: ex.instanceId,
-                      layout,
-                      type: 'exercise',
-                    });
-                });
-              }
+    if (treatAsTopLevelDrag) {
+      for (const id in exerciseLayouts.current) {
+        const ex = valuesRef.current.exercises.find(
+          e => e.instanceId === id,
+        );
+        if (ex && ex.groupId == null && exerciseLayouts.current[id]) {
+          containerItems.push({
+            id,
+            layout: exerciseLayouts.current[id],
+            type: 'exercise',
+          });
+        }
+      }
+      for (const id in groupLayouts.current) {
+        const groupFound = valuesRef.current.groups.find(
+          g => String(g.id) === id,
+        );
+        if (groupFound && groupLayouts.current[id]) {
+          containerItems.push({
+            id: String(id),
+            layout: groupLayouts.current[id],
+            type: 'group',
+          });
+        }
+      }
+    } else {
+      if (!draggedItem) return;
+      const exs = valuesRef.current.exercises
+        .filter(ex => ex.groupId === draggedItem.groupId)
+        .sort((a, b) => a.order - b.order);
+      exs.forEach(ex => {
+        const layout = exerciseLayouts.current[ex.instanceId];
+        if (layout)
+          containerItems.push({
+            id: ex.instanceId,
+            layout,
+            type: 'exercise',
+          });
+      });
+    }
 
-              let fromIdx = containerItems.findIndex(
-                it => it.id === draggedKey,
-              );
+    let fromIdx = containerItems.findIndex(
+      it => it.id === draggedKey,
+    );
 
-              // Log the state after identifying the items in the current drag context
-              console.log('[DragDebug] Container state:', {
-                draggedKey,
-                fromIdx,
-                containerItemIds: containerItems.map(it => it.id),
-              });
+    // Log the state after identifying the items in the current drag context
+    console.log('[DragDebug] Container state:', {
+      draggedKey,
+      fromIdx,
+      containerItemIds: containerItems.map(it => it.id),
+    });
 
-              // Sort collected items so indexes align with visual order
-              containerItems.sort((a, b) => a.layout.y - b.layout.y);
-              fromIdx = containerItems.findIndex(it => it.id === draggedKey);
-              if (fromIdx === -1) {
-                fromIdx = draggedItemOriginalIndex.value ?? -1;
-              }
+    // Sort collected items so indexes align with visual order
+    containerItems.sort((a, b) => a.layout.y - b.layout.y);
+    fromIdx = containerItems.findIndex(it => it.id === draggedKey); // Recalculate after sort
+    if (fromIdx === -1) {
+      fromIdx = draggedItemOriginalIndex.value ?? -1; // This line seems to re-introduce the dragged item's original index
+                                                    // which might be confusing if it's no longer in the current `containerItems` list.
+                                                    // Let's rely on the `findIndex` result for the current `containerItems`.
+    }
 
-              const isItemBeingMoved = draggedItemId.value !== null;
+    const isItemBeingMoved = draggedItemId.value !== null; // Assumes draggedItemId.value holds the ID of the actively dragged item.
 
-              // Reset all offsets before applying new ones to ensure a clean state
-              containerItems.forEach(item => {
-                if (dragOffsets.current[item.id]) {
-                  dragOffsets.current[item.id].value = 0;
-                }
-              });
+    // Reset all offsets before applying new ones to ensure a clean state
+    containerItems.forEach(item => {
+      if (dragOffsets.current[item.id]) {
+        dragOffsets.current[item.id].value = 0;
+      }
+    });
 
-              let finalTargetIdx = fromIdx;
-              let finalPreviewPosition: 'before' | 'after' = 'before';
+    let finalTargetIdx = fromIdx; // Default to current position if no better target found
+    let finalPreviewPosition: 'before' | 'after' = 'before'; // Default for placeholder
 
-              // Define the shrink amount for groups
-              const GROUP_SHRINK_VERTICAL_OFFSET = 30; // Adjust this value as needed
+    // Define the shrink amount for groups
+    const GROUP_SHRINK_VERTICAL_OFFSET = 30; // Adjust this value as needed
 
-              // Find the target index and preview position
-              for (let i = 0; i < containerItems.length; i++) {
+    // Find the target index and preview position
+    for (let i = 0; i < containerItems.length; i++) {
+      const item = containerItems[i];
+      let currentItemLayout = {...item.layout}; // Create a mutable copy of the layout
+
+      // Apply shrinking for group items only to modify their effective drag detection area
+      if (item.type === 'group') {
+        currentItemLayout.y += GROUP_SHRINK_VERTICAL_OFFSET;
+        currentItemLayout.height -=
+          GROUP_SHRINK_VERTICAL_OFFSET * 2.2; // Adjust multiplier if needed
+        if (currentItemLayout.height < 0)
+          currentItemLayout.height = 0; // Ensure height doesn't go negative
+      }
+
+      // Skip the dragged item itself (if it's in the current containerItems, which it won't be if fromIdx === -1 initially)
+      if (item.id === draggedKey) continue;
+
+      // Special handling for dropping an exercise onto a group (no shuffling of other items)
+      // This logic prevents reordering *within* the top-level list if an exercise is being dropped *into* a group.
+      if (
+        item.type === 'group' &&
+        draggedItemData.type === 'exercise' &&
+        y >= item.layout.y && // Use original layout for target group detection
+        y <= item.layout.y + item.layout.height // Use original layout for target group detection
+      ) {
+        // Here, we are dragging an exercise *into* a group.
+        // The main reordering logic for containerItems should *not* apply.
+        // We only care about the target group, not shifting other top-level items.
+        // Setting an explicit target for a group drop might be needed here,
+        // but for placeholder shuffling, we often return early.
+        // Ensure this return is what you intend for UX, as it stops further placeholder calculations.
+        // If you need a placeholder *within* the group, that would be handled in a different `updatePreviewOffsets` call
+        // (e.g., if the group itself has drag targets).
+        // For *top-level* shuffling, this `return` means no shifts happen.
+        return; // Exit early, no placeholder shifting needed for reordering top-level items
+      }
+
+      const itemMidpointY =
+        currentItemLayout.y + currentItemLayout.height / 2;
+      const beforeThreshold =
+        currentItemLayout.y + currentItemLayout.height * 0.2;
+      const afterThreshold =
+        currentItemLayout.y + currentItemLayout.height * 0.8;
+
+      // Case 1: Dragging over any item (exercise or group) using the *adjusted* layout
+      if (
+        y >= currentItemLayout.y &&
+        y <= currentItemLayout.y + currentItemLayout.height
+      ) {
+        finalTargetIdx = i;
+        if (y < beforeThreshold) {
+          finalPreviewPosition = 'before';
+        } else if (y > afterThreshold) {
+          finalPreviewPosition = 'after';
+        } else {
+          finalPreviewPosition =
+            y < itemMidpointY ? 'before' : 'after';
+        }
+        break;
+      }
+      // Case 2: Dragging in a gap between current item and the next item
+      else if (i < containerItems.length - 1) {
+        const nextItem = containerItems[i + 1];
+        let nextItemLayout = {...nextItem.layout};
+
+        if (nextItem.type === 'group') {
+          nextItemLayout.y += GROUP_SHRINK_VERTICAL_OFFSET;
+          nextItemLayout.height -= GROUP_SHRINK_VERTICAL_OFFSET * 2;
+          if (nextItemLayout.height < 0) nextItemLayout.height = 0;
+        }
+
+        const gapStart =
+          currentItemLayout.y + currentItemLayout.height;
+        const gapEnd = nextItemLayout.y;
+
+        // Define a threshold for the "early" trigger within the gap
+        const earlyTriggerThreshold = 0.3; // e.g., trigger when 30% into the gap
+        const triggerPointInGap =
+          gapStart + (gapEnd - gapStart) * earlyTriggerThreshold;
+
+        if (y > gapStart && y < gapEnd) {
+          if (y < triggerPointInGap) {
+            // If dragging in the early part of the gap, consider it 'after' the current item
+            finalTargetIdx = i;
+            finalPreviewPosition = 'after';
+            break;
+          } else {
+            // If dragging past the early trigger point in the gap, consider it 'before' the next item
+            finalTargetIdx = i + 1;
+            finalPreviewPosition = 'before';
+            break;
+          }
+        }
+      }
+      // Case 3: Dragging past the last item (if the last item is not the dragged one)
+      else if (
+        i === containerItems.length - 1 &&
+        y > currentItemLayout.y + currentItemLayout.height
+      ) {
+        finalTargetIdx = containerItems.length; // Insert at the very end
+        finalPreviewPosition = 'after';
+        break;
+      }
+    }
+
+    // Calculate the effective insertion index for offset application
+    let effectiveInsertionIndex = finalTargetIdx;
+    if (finalPreviewPosition === 'after') {
+      effectiveInsertionIndex = finalTargetIdx + 1;
+    }
+
+    // Clamp effectiveInsertionIndex to valid bounds (0 to containerItems.length)
+    effectiveInsertionIndex = Math.max(
+      0,
+      Math.min(effectiveInsertionIndex, containerItems.length),
+    );
+
+    // Log the calculated drop position
+    console.log('[DragDebug] Insertion state:', {
+      effectiveInsertionIndex,
+    });
+
+        // Apply offsets for placeholder shuffling
+    const baseHeight =
+      exerciseLayouts.current[draggedKey]?.height ?? 82;
+    const draggedItemHeight =
+      fromIdx >= 0
+        ? containerItems[fromIdx].layout.height
+        : baseHeight;
+
+    // Reset all offsets before applying new ones to ensure a clean state
+    containerItems.forEach(item => {
+      if (dragOffsets.current[item.id]) {
+        dragOffsets.current[item.id].value = 0;
+      }
+    });
+
+    // --- VERIFY THIS SECTION'S EXECUTION ---
+    if (fromIdx === -1) {
+      console.log(
+        '[DragDebug] OFFSET BRANCH: Executing "NEW ITEM TO CONTAINER" logic (fromIdx === -1).',
+      );
+      // For items new to this container, we just shift everything *after or at* the insertion point down.
+      for (let i = 0; i < containerItems.length; i++) {
+        const item = containerItems[i];
+        if (item.id === draggedKey) {
+            console.log(`[DragDebug] Correctly skipping dragged item (new container context): ${item.id}`);
+            continue; // Ensure dragged item itself is never offset
+        }
+        if (i >= effectiveInsertionIndex) {
+          if (dragOffsets.current[item.id]) {
+            dragOffsets.current[item.id].value = draggedItemHeight;
+            console.log(`[DragDebug] Shifting item ${item.id} DOWN by ${draggedItemHeight} (new item context).`);
+          }
+        }
+      }
+    } else {
+        console.log(
+            '[DragDebug] OFFSET BRANCH: Executing "ITEM REORDERING WITHIN CONTAINER" logic (fromIdx !== -1).',
+        );
+        // Item is moving *within* the same container
+        if (effectiveInsertionIndex < fromIdx) {
+            console.log('[DragDebug] Applying shift: Item moving UP within container.');
+            // Items between the new position (inclusive) and the old position (exclusive) shift down
+            for (let i = 0; i < containerItems.length; i++) {
                 const item = containerItems[i];
-                let currentItemLayout = {...item.layout}; // Create a mutable copy of the layout
-
-                // Apply shrinking for group items only to modify their effective drag detection area
-                if (item.type === 'group') {
-                  currentItemLayout.y += GROUP_SHRINK_VERTICAL_OFFSET;
-                  currentItemLayout.height -=
-                    GROUP_SHRINK_VERTICAL_OFFSET * 2.2;
-                  if (currentItemLayout.height < 0)
-                    currentItemLayout.height = 0; // Ensure height doesn't go negative
-                }
-
-                // Skip the dragged item itself
-                if (item.id === draggedKey) continue;
-
-                // Special handling for dropping an exercise onto a group (no shuffling of other items)
-                // Use the ORIGINAL layout for the actual drop target check, not the shrunk one
-                if (
-                  item.type === 'group' &&
-                  draggedItemData.type === 'exercise' &&
-                  y >= currentItemLayout.y &&
-                  y <= currentItemLayout.y + currentItemLayout.height
-                ) {
-                  return; // Exit early, no placeholder shifting needed for reordering
-                }
-
-                const itemMidpointY =
-                  currentItemLayout.y + currentItemLayout.height / 2;
-                const beforeThreshold =
-                  currentItemLayout.y + currentItemLayout.height * 0.2;
-                const afterThreshold =
-                  currentItemLayout.y + currentItemLayout.height * 0.8;
-
-                // Case 1: Dragging over any item (exercise or group) using the *adjusted* layout
-                if (
-                  y >= currentItemLayout.y &&
-                  y <= currentItemLayout.y + currentItemLayout.height
-                ) {
-                  finalTargetIdx = i;
-                  if (y < beforeThreshold) {
-                    finalPreviewPosition = 'before';
-                  } else if (y > afterThreshold) {
-                    finalPreviewPosition = 'after';
-                  } else {
-                    finalPreviewPosition =
-                      y < itemMidpointY ? 'before' : 'after';
-                  }
-                  break;
-                }
-                // Case 2: Dragging in a gap between current item and the next item
-                else if (i < containerItems.length - 1) {
-                  const nextItem = containerItems[i + 1];
-                  let nextItemLayout = {...nextItem.layout};
-
-                  if (nextItem.type === 'group') {
-                    nextItemLayout.y += GROUP_SHRINK_VERTICAL_OFFSET;
-                    nextItemLayout.height -= GROUP_SHRINK_VERTICAL_OFFSET * 2;
-                    if (nextItemLayout.height < 0) nextItemLayout.height = 0;
-                  }
-
-                  const gapStart =
-                    currentItemLayout.y + currentItemLayout.height;
-                  const gapEnd = nextItemLayout.y;
-
-                  // Define a threshold for the "early" trigger within the gap
-                  const earlyTriggerThreshold = 0.3; // e.g., trigger when 30% into the gap
-                  const triggerPointInGap =
-                    gapStart + (gapEnd - gapStart) * earlyTriggerThreshold;
-
-                  if (y > gapStart && y < gapEnd) {
-                    if (y < triggerPointInGap) {
-                      // If dragging in the early part of the gap, consider it 'after' the current item
-                      finalTargetIdx = i;
-                      finalPreviewPosition = 'after';
-                      break;
-                    } else {
-                      // If dragging past the early trigger point in the gap, consider it 'before' the next item
-                      finalTargetIdx = i + 1;
-                      finalPreviewPosition = 'before';
-                      break;
-                    }
-                  }
-                }
-                // Case 3: Dragging past the last item (if the last item is not the dragged one)
-                else if (
-                  i === containerItems.length - 1 &&
-                  y > currentItemLayout.y + currentItemLayout.height
-                ) {
-                  finalTargetIdx = containerItems.length; // Insert at the very end
-                  finalPreviewPosition = 'after';
-                  break;
-                }
-              }
-
-              // Calculate the effective insertion index for offset application
-              let effectiveInsertionIndex = finalTargetIdx;
-              if (finalPreviewPosition === 'after') {
-                effectiveInsertionIndex = finalTargetIdx + 1;
-              }
-
-              // Clamp effectiveInsertionIndex to valid bounds (0 to containerItems.length)
-              effectiveInsertionIndex = Math.max(
-                0,
-                Math.min(effectiveInsertionIndex, containerItems.length),
-              );
-
-              // Log the calculated drop position
-              console.log('[DragDebug] Insertion state:', {
-                effectiveInsertionIndex,
-              });
-
-              // Apply offsets for placeholder shuffling
-              const baseHeight =
-                exerciseLayouts.current[draggedKey]?.height ?? 82;
-              const draggedItemHeight =
-                fromIdx >= 0
-                  ? containerItems[fromIdx].layout.height
-                  : baseHeight;
-
-              // Apply shifts to other items
-              if (fromIdx === -1 && !isItemBeingMoved) {
-                console.log(
-                  '[DragDebug] Applying shift: Dragged item is NEW to this container.',
-                );
-                // Dragging an exercise out of a group to the top level
-                for (let i = 0; i < containerItems.length; i++) {
-                  const item = containerItems[i];
-                  if (item.id === draggedKey) {
+                if (item.id === draggedKey) {
+                    console.log(`[DragDebug] Correctly skipping dragged item: ${item.id}`);
                     continue;
-                  }
-                  if (i >= effectiveInsertionIndex) {
-                    if (dragOffsets.current[item.id]) {
-                      dragOffsets.current[item.id].value = draggedItemHeight;
-                    }
-                  }
                 }
-              } else if (effectiveInsertionIndex < fromIdx) {
-                console.log('[DragDebug] Applying shift: Item moving UP.');
-
-                // Moving up within the same container
-                for (let i = 0; i < containerItems.length; i++) {
-                  const item = containerItems[i];
-                  if (item.id === draggedKey) {
-                    console.log(
-                      `[DragDebug] Correctly skipping dragged item: ${item.id}`,
-                    );
+                if (i >= effectiveInsertionIndex && i < fromIdx) {
+                    if (dragOffsets.current[item.id]) {
+                        console.log(`[DragDebug] Shifting item ${item.id} DOWN by ${draggedItemHeight} (moving up).`);
+                        dragOffsets.current[item.id].value = draggedItemHeight;
+                    }
+                }
+            }
+        } else if (effectiveInsertionIndex > fromIdx) {
+            console.log('[DragDebug] Applying shift: Item moving DOWN within container.');
+            // Items between the old position (exclusive) and the new position (exclusive) shift up
+            for (let i = 0; i < containerItems.length; i++) {
+                const item = containerItems[i];
+                if (item.id === draggedKey) {
+                    console.log(`[DragDebug] Correctly skipping dragged item: ${item.id}`);
                     continue;
-                  }
-                  // Items between the new position (inclusive) and the old position (exclusive) shift down
-                  if (i >= effectiveInsertionIndex && i < fromIdx) {
-                    if (dragOffsets.current[item.id]) {
-                      console.log(
-                        `[DragDebug] Shifting item DOWN to make space: ${item.id}`,
-                      );
-                      dragOffsets.current[item.id].value = draggedItemHeight;
-                    }
-                  }
                 }
-              } else if (effectiveInsertionIndex > fromIdx) {
-                console.log('[DragDebug] Applying shift: Item moving DOWN.');
-
-                // Moving down within the same container
-                for (let i = 0; i < containerItems.length; i++) {
-                  const item = containerItems[i];
-                  if (item.id === draggedKey) {
-                    console.log(
-                      `[DragDebug] Correctly skipping dragged item: ${item.id}`,
-                    );
-                    continue;
-                  }
-                  if (i > fromIdx && i < effectiveInsertionIndex) {
+                if (i > fromIdx && i < effectiveInsertionIndex) {
                     if (dragOffsets.current[item.id]) {
-                      console.log(
-                        `[DragDebug] Shifting item UP to make space: ${item.id}`,
-                      );
-                      dragOffsets.current[item.id].value = -draggedItemHeight;
+                        console.log(`[DragDebug] Shifting item ${item.id} UP by ${-draggedItemHeight} (moving down).`);
+                        dragOffsets.current[item.id].value = -draggedItemHeight;
                     }
-                  }
                 }
-              }
-            },
-            [], // Dependencies: None, as it uses valuesRef.current
-          );
+            }
+        } else { // effectiveInsertionIndex === fromIdx
+            console.log('[DragDebug] Applying shift: Item stayed in place (no shift needed).');
+        }
+    }
+    // --- END CRITICAL FIX SECTION ---
+  },
+  [], // Dependencies: None, as it uses valuesRef.current
+);
 
           const handleDragMove = useWorkletCallback(
             (x: number, y: number, data: DragData) => {
