@@ -1585,6 +1585,10 @@ export default function WorkoutPlanBuilderScreen() {
 
           const updatePreviewOffsets = useCallback(
             (x: number, y: number, draggedItemData: DragData) => {
+              // Log initial call
+              console.log(
+                `[DragDebug] updatePreviewOffsets fired for ${draggedItemData.type}: ${draggedItemData.id} at y=${y}`,
+              );
               const draggedKey =
                 draggedItemData.type === 'group'
                   ? String(draggedItemData.id)
@@ -1659,6 +1663,13 @@ export default function WorkoutPlanBuilderScreen() {
               let fromIdx = containerItems.findIndex(
                 it => it.id === draggedKey,
               );
+
+              // Log the state after identifying the items in the current drag context
+              console.log('[DragDebug] Container state:', {
+                draggedKey,
+                fromIdx,
+                containerItemIds: containerItems.map(it => it.id),
+              });
 
               // Sort collected items so indexes align with visual order
               containerItems.sort((a, b) => a.layout.y - b.layout.y);
@@ -1785,8 +1796,13 @@ export default function WorkoutPlanBuilderScreen() {
                 Math.min(effectiveInsertionIndex, containerItems.length),
               );
 
+              // Log the calculated drop position
+              console.log('[DragDebug] Insertion state:', {
+                effectiveInsertionIndex,
+              });
+
               // Apply offsets for placeholder shuffling
-               const baseHeight =
+              const baseHeight =
                 exerciseLayouts.current[draggedKey]?.height ?? 82;
               const draggedItemHeight =
                 fromIdx >= 0
@@ -1795,34 +1811,60 @@ export default function WorkoutPlanBuilderScreen() {
 
               // Apply shifts to other items
               if (fromIdx === -1) {
+                console.log(
+                  '[DragDebug] Applying shift: Dragged item is NEW to this container.',
+                );
                 // Dragging an exercise out of a group to the top level
                 for (let i = 0; i < containerItems.length; i++) {
+                  const item = containerItems[i];
+                  if (item.id === draggedKey) {
+                    continue;
+                  }
                   if (i >= effectiveInsertionIndex) {
-                    const item = containerItems[i];
                     if (dragOffsets.current[item.id]) {
                       dragOffsets.current[item.id].value = draggedItemHeight;
                     }
                   }
                 }
               } else if (effectiveInsertionIndex < fromIdx) {
+                console.log('[DragDebug] Applying shift: Item moving UP.');
+
                 // Moving up within the same container
                 for (let i = 0; i < containerItems.length; i++) {
                   const item = containerItems[i];
-                   if (item.id === draggedKey) continue;
-                 // Items between the new position (inclusive) and the old position (exclusive) shift down
+                  if (item.id === draggedKey) {
+                    console.log(
+                      `[DragDebug] Correctly skipping dragged item: ${item.id}`,
+                    );
+                    continue;
+                  }
+                  // Items between the new position (inclusive) and the old position (exclusive) shift down
                   if (i >= effectiveInsertionIndex && i < fromIdx) {
                     if (dragOffsets.current[item.id]) {
+                      console.log(
+                        `[DragDebug] Shifting item DOWN to make space: ${item.id}`,
+                      );
                       dragOffsets.current[item.id].value = draggedItemHeight;
                     }
                   }
                 }
               } else if (effectiveInsertionIndex > fromIdx) {
+                console.log('[DragDebug] Applying shift: Item moving DOWN.');
+
                 // Moving down within the same container
                 for (let i = 0; i < containerItems.length; i++) {
                   const item = containerItems[i];
-                  if (item.id === draggedKey) continue;
+                  if (item.id === draggedKey) {
+                    console.log(
+                      `[DragDebug] Correctly skipping dragged item: ${item.id}`,
+                    );
+                    continue;
+                  }
                   if (i > fromIdx && i < effectiveInsertionIndex) {
                     if (dragOffsets.current[item.id]) {
+                      console.log(
+                        `[DragDebug] Shifting item UP to make space: ${item.id}`,
+                      );
                       dragOffsets.current[item.id].value = -draggedItemHeight;
                     }
                   }
