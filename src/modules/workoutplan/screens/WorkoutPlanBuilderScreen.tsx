@@ -110,7 +110,7 @@ type DraggableItemProps = {
   item: DragData;
   children: React.ReactNode;
   onDrop: (x: number, y: number, data: DragData) => void;
-  onDragStart?: () => void;
+  onDragStart?: (data: DragData) => void;
   onDragEnd?: () => void;
   onDragMove?: (x: number, y: number, data: DragData) => void;
   isDraggingShared: Animated.SharedValue<boolean>;
@@ -223,7 +223,7 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
   );
 
   const handleTouchStart = () => {
-    onDragStart?.();
+    onDragStart?.(item);
   };
 
   const handleTouchEnd = () => {
@@ -393,7 +393,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
     };
     startScrollY.current = scrollOffsetVal;
     hasMoved.current = false;
-    onDragStart?.();
+    onDragStart?.(item);
     evt.currentTarget.setPointerCapture(evt.pointerId);
   };
 
@@ -583,13 +583,48 @@ export default function WorkoutPlanBuilderScreen() {
   const pointerPositionY = useSharedValue(0);
   const draggedItemId = useSharedValue<string | null>(null);
   const draggedItemType = useSharedValue<'exercise' | 'group' | null>(null);
+  const draggedItemOriginalGroupId = useSharedValue<number | null>(null);
+  const draggedItemOriginalIndex = useSharedValue<number | null>(null);
 
   const reMeasureAllItems = useCallback(() => {
     exerciseRefs.current.forEach(ref => ref?.measure());
     groupRefs.current.forEach(ref => ref?.measure());
   }, []);
 
-  const handleDragStart = () => {
+  const handleDragStart = (draggedData: DragData) => {
+    // Determine original position for the dragged item
+    if (draggedData.type === 'exercise') {
+      const exercise = valuesRef.current.exercises.find(
+        ex => ex.instanceId === draggedData.id,
+      );
+      if (exercise) {
+        draggedItemOriginalGroupId.value = exercise.groupId ?? null;
+        const originalList = exercise.groupId != null
+          ? valuesRef.current.exercises
+              .filter(ex => ex.groupId === exercise.groupId)
+              .sort((a, b) => a.order - b.order)
+          : valuesRef.current.exercises
+              .filter(ex => ex.groupId == null)
+              .sort((a, b) => a.order - b.order);
+        draggedItemOriginalIndex.value = originalList.findIndex(
+          item => item.instanceId === draggedData.id,
+        );
+      }
+    } else if (draggedData.type === 'group') {
+      const group = valuesRef.current.groups.find(
+        g => String(g.id) === draggedData.id,
+      );
+      if (group) {
+        draggedItemOriginalGroupId.value = group.id;
+        const originalList = getPlanItemsFromForm(valuesRef.current)
+          .filter(item => item.type === 'group')
+          .map(item => item.data);
+        draggedItemOriginalIndex.value = originalList.findIndex(
+          item => String(item.id) === draggedData.id,
+        );
+      }
+    }
+
     reMeasureAllItems();
     isDraggingItem.current = true;
     if (Platform.OS !== 'web') {
@@ -604,6 +639,8 @@ export default function WorkoutPlanBuilderScreen() {
       scrollRef.current?.setNativeProps({scrollEnabled: true});
     }
     resetPreviewOffsets();
+        draggedItemOriginalGroupId.value = null;
+    draggedItemOriginalIndex.value = null;
     setScrollLayoutVersion(prev => prev + 1);
   };
 
@@ -655,7 +692,7 @@ export default function WorkoutPlanBuilderScreen() {
     onDrop: (x: number, y: number, data: DragData) => void;
     children: React.ReactNode;
     simultaneousHandlers?: any;
-    onDragStart?: () => void;
+    onDragStart?: (data: DragData) => void;
     onDragEnd?: () => void;
     onDragMove?: (x: number, y: number, data: DragData) => void;
     layoutVersion: number;
@@ -748,7 +785,7 @@ export default function WorkoutPlanBuilderScreen() {
     onDrop: (x: number, y: number, data: DragData) => void;
     children: React.ReactNode;
     simultaneousHandlers?: any;
-    onDragStart?: () => void;
+    onDragStart?: (data: DragData) => void;
     onDragEnd?: () => void;
     onDragMove?: (x: number, y: number, data: DragData) => void;
     layoutVersion: number;
@@ -993,7 +1030,9 @@ export default function WorkoutPlanBuilderScreen() {
     );
   }, [rawPlan, workoutMeta?.getMuscleGroups]);
 
-  useEffect(() => {
+  const valuesRef = useRef<FormValues>(formInitialValues);
+
+    useEffect(() => {
     const maxId = formInitialValues.groups.reduce(
       (acc, g) => (g.id > acc ? g.id : acc),
       0,
@@ -1157,7 +1196,6 @@ export default function WorkoutPlanBuilderScreen() {
           handleSubmit,
           setFieldValue,
         }) => {
-          const valuesRef = useRef<FormValues>(values);
           useEffect(() => {
             valuesRef.current = values;
           });
@@ -1674,6 +1712,11 @@ export default function WorkoutPlanBuilderScreen() {
               // Sort collected items so indexes align with visual order
               containerItems.sort((a, b) => a.layout.y - b.layout.y);
               fromIdx = containerItems.findIndex(it => it.id === draggedKey);
+              if (fromIdx === -1) {
+                fromIdx = draggedItemOriginalIndex.value ?? -1;
+              }
+
+              const isItemBeingMoved = draggedItemId.value !== null;
 
               // Reset all offsets before applying new ones to ensure a clean state
               containerItems.forEach(item => {
@@ -1810,7 +1853,7 @@ export default function WorkoutPlanBuilderScreen() {
                   : baseHeight;
 
               // Apply shifts to other items
-              if (fromIdx === -1) {
+              if (fromIdx === -1 && !isItemBeingMoved) {
                 console.log(
                   '[DragDebug] Applying shift: Dragged item is NEW to this container.',
                 );
