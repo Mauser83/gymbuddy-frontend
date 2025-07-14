@@ -1239,7 +1239,6 @@ export default function WorkoutPlanBuilderScreen() {
             const updatedExercises = [...currentExercises];
             const updatedGroups = [...currentGroups];
 
-            // --- FIX STARTS HERE ---
             if (groupId !== null) {
               // Logic for ADDING an exercise TO a group
               const group = updatedGroups.find(g => g.id === groupId);
@@ -1293,7 +1292,6 @@ export default function WorkoutPlanBuilderScreen() {
                 order: getNextGlobalOrder(updatedExercises, updatedGroups), // Move to end of main list
               };
             }
-            // --- FIX ENDS HERE ---
 
             const {exercises: finalExercises, groups: finalGroups} =
               reindexAllOrders(updatedExercises, updatedGroups);
@@ -1642,7 +1640,6 @@ export default function WorkoutPlanBuilderScreen() {
                     });
                   }
                 }
-                containerItems.sort((a, b) => a.layout.y - b.layout.y);
               } else {
                 if (!draggedItem) return;
                 const exs = valuesRef.current.exercises
@@ -1663,25 +1660,9 @@ export default function WorkoutPlanBuilderScreen() {
                 it => it.id === draggedKey,
               );
 
-              if (
-                fromIdx === -1 &&
-                treatAsTopLevelDrag &&
-                draggedItemData.type === 'exercise'
-              ) {
-                // Add a virtual dragged item to the main list for placeholder logic
-                const draggedLayout =
-                  exerciseLayouts.current[draggedKey] ||
-                  (containerItems[0]?.layout
-                    ? {...containerItems[0].layout, y}
-                    : {x: 0, y, width: 200, height: 82});
-                containerItems.push({
-                  id: draggedKey,
-                  layout: draggedLayout,
-                  type: 'exercise',
-                });
-                containerItems.sort((a, b) => a.layout.y - b.layout.y);
-                fromIdx = containerItems.findIndex(it => it.id === draggedKey);
-              }
+              // Sort collected items so indexes align with visual order
+              containerItems.sort((a, b) => a.layout.y - b.layout.y);
+              fromIdx = containerItems.findIndex(it => it.id === draggedKey);
 
               // Reset all offsets before applying new ones to ensure a clean state
               containerItems.forEach(item => {
@@ -1718,8 +1699,8 @@ export default function WorkoutPlanBuilderScreen() {
                 if (
                   item.type === 'group' &&
                   draggedItemData.type === 'exercise' &&
-                  y >= currentItemLayout.y && // <-- CHANGE THIS TO currentItemLayout.y
-                  y <= currentItemLayout.y + currentItemLayout.height // <-- CHANGE THIS TO currentItemLayout.y + currentItemLayout.height
+                  y >= currentItemLayout.y &&
+                  y <= currentItemLayout.y + currentItemLayout.height
                 ) {
                   return; // Exit early, no placeholder shifting needed for reordering
                 }
@@ -1805,14 +1786,30 @@ export default function WorkoutPlanBuilderScreen() {
               );
 
               // Apply offsets for placeholder shuffling
-              const draggedItemHeight = containerItems[fromIdx].layout.height;
+               const baseHeight =
+                exerciseLayouts.current[draggedKey]?.height ?? 82;
+              const draggedItemHeight =
+                fromIdx >= 0
+                  ? containerItems[fromIdx].layout.height
+                  : baseHeight;
 
               // Apply shifts to other items
-              if (effectiveInsertionIndex < fromIdx) {
-                // Moving up
+              if (fromIdx === -1) {
+                // Dragging an exercise out of a group to the top level
+                for (let i = 0; i < containerItems.length; i++) {
+                  if (i >= effectiveInsertionIndex) {
+                    const item = containerItems[i];
+                    if (dragOffsets.current[item.id]) {
+                      dragOffsets.current[item.id].value = draggedItemHeight;
+                    }
+                  }
+                }
+              } else if (effectiveInsertionIndex < fromIdx) {
+                // Moving up within the same container
                 for (let i = 0; i < containerItems.length; i++) {
                   const item = containerItems[i];
-                  // Items between the new position (inclusive) and the old position (exclusive) shift down
+                   if (item.id === draggedKey) continue;
+                 // Items between the new position (inclusive) and the old position (exclusive) shift down
                   if (i >= effectiveInsertionIndex && i < fromIdx) {
                     if (dragOffsets.current[item.id]) {
                       dragOffsets.current[item.id].value = draggedItemHeight;
@@ -1820,10 +1817,10 @@ export default function WorkoutPlanBuilderScreen() {
                   }
                 }
               } else if (effectiveInsertionIndex > fromIdx) {
-                // Moving down
+                // Moving down within the same container
                 for (let i = 0; i < containerItems.length; i++) {
                   const item = containerItems[i];
-                  // Items between the old position (exclusive) and the new position (exclusive) shift up
+                  if (item.id === draggedKey) continue;
                   if (i > fromIdx && i < effectiveInsertionIndex) {
                     if (dragOffsets.current[item.id]) {
                       dragOffsets.current[item.id].value = -draggedItemHeight;
