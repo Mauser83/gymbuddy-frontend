@@ -1097,6 +1097,18 @@ export default function WorkoutPlanBuilderScreen() {
             const targetItem = containerItems[finalTargetIdx];
             if (!targetItem || targetItem.id === draggedKey) return null;
 
+            console.log('Drop calculation', {
+              containerItems: containerItems.map(it => ({
+                id: it.id,
+                y: it.layout.y,
+                height: it.layout.height,
+                type: it.type,
+              })),
+              fromIdx,
+              finalTargetIdx,
+              finalPreviewPosition,
+            });
+
             return {
               target: {type: targetItem.type, id: targetItem.id},
               position: finalPreviewPosition,
@@ -1244,6 +1256,18 @@ export default function WorkoutPlanBuilderScreen() {
               containerItems.sort((a, b) => a.layout.y - b.layout.y);
               fromIdx = containerItems.findIndex(it => it.id === draggedKey); // Recalculate after sort
 
+              console.log(
+                'Preview container items',
+                containerItems.map(it => ({
+                  id: it.id,
+                  y: it.layout.y,
+                  height: it.layout.height,
+                  type: it.type,
+                })),
+                'fromIdx',
+                fromIdx,
+              );
+
               // Reset all offsets before applying new ones to ensure a clean state
               containerItems.forEach(item => {
                 if (dragOffsets.current[item.id]) {
@@ -1366,6 +1390,14 @@ export default function WorkoutPlanBuilderScreen() {
                 Math.min(effectiveInsertionIndex, containerItems.length),
               );
 
+              console.log('Preview target', {
+                finalTargetIdx,
+                finalPreviewPosition,
+                effectiveInsertionIndex,
+                wasOriginallyOutside,
+                originalDragDirection,
+              });
+
               // Apply offsets for placeholder shuffling
               const baseHeight =
                 exerciseLayouts.current[draggedKey]?.height ?? 82;
@@ -1375,7 +1407,6 @@ export default function WorkoutPlanBuilderScreen() {
                   : baseHeight;
               if (wasOriginallyOutside) {
                 if (originalDragDirection === 'down') {
-                  console.log('dragging from group to down');
                   // For items new to this container, we just shift everything *after or at* the insertion point down.
                   for (let i = 0; i < containerItems.length; i++) {
                     const item = containerItems[i];
@@ -1389,7 +1420,6 @@ export default function WorkoutPlanBuilderScreen() {
                     }
                   }
                 } else if (originalDragDirection === 'up') {
-                  console.log('dragging from group to up');
                   // For items new to this container, we just shift everything *after or at* the insertion point down.
                   for (let i = 0; i < containerItems.length; i++) {
                     const item = containerItems[i];
@@ -1413,9 +1443,6 @@ export default function WorkoutPlanBuilderScreen() {
               } else {
                 // Item is moving *within* the same container
                 if (effectiveInsertionIndex < fromIdx) {
-                  console.log(
-                    'Items between the new position (inclusive) and the old position (exclusive) shift down',
-                  );
                   // Items between the new position (inclusive) and the old position (exclusive) shift down
                   for (let i = 0; i < containerItems.length; i++) {
                     const item = containerItems[i];
@@ -1429,9 +1456,6 @@ export default function WorkoutPlanBuilderScreen() {
                     }
                   }
                 } else if (effectiveInsertionIndex > fromIdx) {
-                  console.log(
-                    'Items between the old position (exclusive) and the new position (exclusive) shift up',
-                  );
                   // Items between the old position (exclusive) and the new position (exclusive) shift up
                   for (let i = 0; i < containerItems.length; i++) {
                     const item = containerItems[i];
