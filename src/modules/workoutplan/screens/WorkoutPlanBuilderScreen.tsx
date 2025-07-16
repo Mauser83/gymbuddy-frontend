@@ -199,6 +199,11 @@ const validationSchema = Yup.object().shape({
 const HEADER_HEIGHT_OFFSET = 61;
 const SCROLL_THRESHOLD = 80; // Pixels from screen edges to start scrolling
 const SCROLL_SPEED = 10; // Pixels per frame scroll speed
+// Threshold for triggering a drop in the gap between items earlier
+// Higher values widen the drop zone between a group and the following exercise
+const GAP_TRIGGER_THRESHOLD = 0.5;
+// Minimum visual gap after a group to make dropping easier
+const MIN_DROP_GAP_PX = 30;
 
 export default function WorkoutPlanBuilderScreen() {
   const {theme} = useTheme();
@@ -973,14 +978,12 @@ export default function WorkoutPlanBuilderScreen() {
             pointerY: number | null,
             includePlaceholder: boolean,
             originalGroupId: number | null,
-          ):
-            | {
-                items: {id: string; layout: Layout; type: 'group' | 'exercise'}[];
-                fromIdx: number;
-                wasOriginallyOutside: boolean;
-                originalDragDirection: 'up' | 'down' | null;
-              }
-            | null => {
+          ): {
+            items: {id: string; layout: Layout; type: 'group' | 'exercise'}[];
+            fromIdx: number;
+            wasOriginallyOutside: boolean;
+            originalDragDirection: 'up' | 'down' | null;
+          } | null => {
             const draggedKey =
               draggedItemData.type === 'group'
                 ? String(draggedItemData.id)
@@ -996,11 +999,12 @@ export default function WorkoutPlanBuilderScreen() {
               e => e.instanceId === draggedItemData.id,
             );
 
-            const isPointerOverAnyGroup = pointerY != null
-              ? Object.values(groupLayouts.current).some(l =>
-                  pointerY >= l.y && pointerY <= l.y + l.height,
-                )
-              : false;
+            const isPointerOverAnyGroup =
+              pointerY != null
+                ? Object.values(groupLayouts.current).some(
+                    l => pointerY >= l.y && pointerY <= l.y + l.height,
+                  )
+                : false;
 
             const treatAsTopLevelDrag =
               draggedItemData.type === 'group' ||
@@ -1011,8 +1015,10 @@ export default function WorkoutPlanBuilderScreen() {
 
             if (treatAsTopLevelDrag) {
               for (const id in exerciseLayouts.current) {
-                const ex = currentValues.exercises.find(e => e.instanceId === id);
-                if (ex && ex.groupId == null && exerciseLayouts.current[id]) {
+                const ex = currentValues.exercises.find(
+                  e => e.instanceId === id,
+                );
+                                if (ex && ex.groupId == null && exerciseLayouts.current[id]) {
                   containerItems.push({
                     id,
                     layout: exerciseLayouts.current[id],
@@ -1065,7 +1071,12 @@ export default function WorkoutPlanBuilderScreen() {
             let wasOriginallyOutside = false;
             let originalDragDirection: 'up' | 'down' | null = null;
 
-            if (includePlaceholder && fromIdx === -1 && pointerY != null && draggedItemData.type === 'exercise') {
+            if (
+              includePlaceholder &&
+              fromIdx === -1 &&
+              pointerY != null &&
+              draggedItemData.type === 'exercise'
+            ) {
               const baseLayout = exerciseLayouts.current[draggedKey];
               if (baseLayout) {
                 wasOriginallyOutside = true;
@@ -1132,11 +1143,30 @@ export default function WorkoutPlanBuilderScreen() {
 
             for (let i = 0; i < containerItems.length; i++) {
               const item = containerItems[i];
+                            const originalItemLayout = {...item.layout};
               let currentItemLayout = {...item.layout};
+
+              
+              // If the previous item is a group, treat the top part of the next
+              // item as a drop zone "after" the group. This must be checked
+              // before normal overlap logic so it takes precedence.
+              if (
+                i < containerItems.length - 1 &&
+                item.type === 'group'
+              ) {
+                const nextItem = containerItems[i + 1];
+                const nextTop = nextItem.layout.y;
+                if (y >= nextTop && y < nextTop + MIN_DROP_GAP_PX) {
+                  finalTargetIdx = i;
+                  finalPreviewPosition = 'after';
+                  break;
+                }
+              }
 
               if (item.type === 'group') {
                 currentItemLayout.y += GROUP_SHRINK_VERTICAL_OFFSET;
-                currentItemLayout.height -= GROUP_SHRINK_VERTICAL_OFFSET * 2;
+                currentItemLayout.height -= GROUP_SHRINK_VERTICAL_OFFSET * 3;
+                console.log(currentItemLayout.height)
                 if (currentItemLayout.height < 0) currentItemLayout.height = 0;
               }
 
@@ -1164,6 +1194,7 @@ export default function WorkoutPlanBuilderScreen() {
                 break;
               } else if (i < containerItems.length - 1) {
                 const nextItem = containerItems[i + 1];
+                                const originalNextItemLayout = {...nextItem.layout};
                 let nextItemLayout = {...nextItem.layout};
                 if (nextItem.type === 'group') {
                   nextItemLayout.y += GROUP_SHRINK_VERTICAL_OFFSET;
@@ -1171,11 +1202,29 @@ export default function WorkoutPlanBuilderScreen() {
                   if (nextItemLayout.height < 0) nextItemLayout.height = 0;
                 }
 
-                const gapStart = currentItemLayout.y + currentItemLayout.height;
-                const gapEnd = nextItemLayout.y;
-                const earlyTriggerThreshold = 0.3;
+                const gapStart =
+                  originalItemLayout.y + originalItemLayout.height;
+                let gapEnd = nextItemLayout.y;
+                if (
+                  item.type === 'group' &&
+                  gapEnd - gapStart < MIN_DROP_GAP_PX
+                ) {
+                  gapEnd = gapStart + MIN_DROP_GAP_PX;
+                }
+                                const earlyTriggerThreshold = GAP_TRIGGER_THRESHOLD;
                 const triggerPointInGap =
                   gapStart + (gapEnd - gapStart) * earlyTriggerThreshold;
+
+                                if (item.type === 'group') {
+                  if (
+                    y >= originalNextItemLayout.y &&
+                    y < originalNextItemLayout.y + MIN_DROP_GAP_PX
+                  ) {
+                    finalTargetIdx = i;
+                    finalPreviewPosition = 'after';
+                    break;
+                  }
+                }
 
                 if (y > gapStart && y < gapEnd) {
                   if (y < triggerPointInGap) {
@@ -1200,18 +1249,6 @@ export default function WorkoutPlanBuilderScreen() {
 
             const targetItem = containerItems[finalTargetIdx];
             if (!targetItem || targetItem.id === draggedKey) return null;
-
-            console.log('Drop calculation', {
-              containerItems: containerItems.map(it => ({
-                id: it.id,
-                y: it.layout.y,
-                height: it.layout.height,
-                type: it.type,
-              })),
-              fromIdx,
-              finalTargetIdx,
-              finalPreviewPosition,
-            });
 
             return {
               target: {type: targetItem.type, id: targetItem.id},
@@ -1240,18 +1277,6 @@ export default function WorkoutPlanBuilderScreen() {
                   ? String(draggedItemData.id)
                   : draggedItemData.id;
 
-              console.log(
-                'Preview container items',
-                containerItems.map(it => ({
-                  id: it.id,
-                  y: it.layout.y,
-                  height: it.layout.height,
-                  type: it.type,
-                })),
-                'fromIdx',
-                fromIdx,
-              );
-
               // Reset all offsets before applying new ones to ensure a clean state
               containerItems.forEach(item => {
                 if (dragOffsets.current[item.id]) {
@@ -1268,7 +1293,26 @@ export default function WorkoutPlanBuilderScreen() {
               // Find the target index and preview position
               for (let i = 0; i < containerItems.length; i++) {
                 const item = containerItems[i];
+                                const originalItemLayout = {...item.layout};
                 let currentItemLayout = {...item.layout}; // Create a mutable copy of the layout
+
+                // If this item is a group, and the pointer is within the top
+                // MIN_DROP_GAP_PX of the next item, treat it as a drop after
+                // this group. This precedes the regular overlap check so that
+                // dragging directly over the next item still counts as dropping
+                // after the group.
+                if (
+                  i < containerItems.length - 1 &&
+                  item.type === 'group'
+                ) {
+                  const nextItem = containerItems[i + 1];
+                  const nextTop = nextItem.layout.y;
+                  if (y >= nextTop && y < nextTop + MIN_DROP_GAP_PX) {
+                    finalTargetIdx = i;
+                    finalPreviewPosition = 'after';
+                    break;
+                  }
+                }
 
                 // Apply shrinking for group items only to modify their effective drag detection area
                 if (item.type === 'group') {
@@ -1320,6 +1364,8 @@ export default function WorkoutPlanBuilderScreen() {
                 // Case 2: Dragging in a gap between current item and the next item
                 else if (i < containerItems.length - 1) {
                   const nextItem = containerItems[i + 1];
+                                    const originalNextItemLayout = {...nextItem.layout};
+
                   let nextItemLayout = {...nextItem.layout};
 
                   if (nextItem.type === 'group') {
@@ -1329,13 +1375,30 @@ export default function WorkoutPlanBuilderScreen() {
                   }
 
                   const gapStart =
-                    currentItemLayout.y + currentItemLayout.height;
-                  const gapEnd = nextItemLayout.y;
+                    originalItemLayout.y + originalItemLayout.height;
+                  let gapEnd = nextItemLayout.y;
+                  if (
+                    item.type === 'group' &&
+                    gapEnd - gapStart < MIN_DROP_GAP_PX
+                  ) {
+                    gapEnd = gapStart + MIN_DROP_GAP_PX;
+                  }
 
                   // Define a threshold for the "early" trigger within the gap
-                  const earlyTriggerThreshold = 0.3; // e.g., trigger when 30% into the gap
+                  const earlyTriggerThreshold = GAP_TRIGGER_THRESHOLD; // e.g., trigger when 50% into the gap
                   const triggerPointInGap =
                     gapStart + (gapEnd - gapStart) * earlyTriggerThreshold;
+
+                                    if (item.type === 'group') {
+                    if (
+                      y >= originalNextItemLayout.y &&
+                      y < originalNextItemLayout.y + MIN_DROP_GAP_PX
+                    ) {
+                      finalTargetIdx = i;
+                      finalPreviewPosition = 'after';
+                      break;
+                    }
+                  }
 
                   if (y > gapStart && y < gapEnd) {
                     if (y < triggerPointInGap) {
@@ -1373,14 +1436,6 @@ export default function WorkoutPlanBuilderScreen() {
                 0,
                 Math.min(effectiveInsertionIndex, containerItems.length),
               );
-
-              console.log('Preview target', {
-                finalTargetIdx,
-                finalPreviewPosition,
-                effectiveInsertionIndex,
-                wasOriginallyOutside,
-                originalDragDirection,
-              });
 
               // Apply offsets for placeholder shuffling
               const baseHeight =
