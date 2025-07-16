@@ -71,8 +71,7 @@ import {useMetricRegistry} from 'shared/context/MetricRegistry';
 import TargetMetricInputGroup from 'shared/components/TargetMetricInputGroup';
 import {useWorkoutPlanSummary} from 'shared/hooks/WorkoutPlanSummary';
 import ExerciseGroupCard from 'shared/components/ExerciseGroupCard';
-import { MeasuredDraggableItem } from 'shared/dragAndDrop/MeasureDraggableItem';
-
+import {MeasuredDraggableItem} from 'shared/dragAndDrop/MeasureDraggableItem';
 
 // TYPE DEFINITIONS
 type ActiveModal =
@@ -1163,50 +1162,87 @@ export default function WorkoutPlanBuilderScreen() {
                 }
               } else {
                 if (!draggedItem) return;
-                const exs = valuesRef.current.exercises
-                  .filter(ex => ex.groupId === draggedItem.groupId)
-                  .sort((a, b) => a.order - b.order);
-                exs.forEach(ex => {
-                  const layout = exerciseLayouts.current[ex.instanceId];
-                  if (layout)
+                const groupId = draggedItem.groupId;
+                if (groupId != null) {
+                  const groupLayout = groupLayouts.current[groupId];
+                  if (groupLayout) {
                     containerItems.push({
-                      id: ex.instanceId,
-                      layout,
-                      type: 'exercise',
+                      id: String(groupId),
+                      layout: groupLayout,
+                      type: 'group',
                     });
-                });
+                  }
+                  const exs = valuesRef.current.exercises
+                    .filter(ex => ex.groupId === groupId)
+                    .sort((a, b) => a.order - b.order);
+                  exs.forEach(ex => {
+                    const layout = exerciseLayouts.current[ex.instanceId];
+                    if (layout)
+                      containerItems.push({
+                        id: ex.instanceId,
+                        layout,
+                        type: 'exercise',
+                      });
+                  });
+                }
               }
 
+              let wasOriginallyOutside = false;
+              let originalDragDirection: 'up' | 'down' | null = null;
+
+              // Sort collected items so indexes align with visual order
               let fromIdx = containerItems.findIndex(
                 it => it.id === draggedKey,
               );
 
-              // Sort collected items so indexes align with visual order
-              containerItems.sort((a, b) => a.layout.y - b.layout.y);
-              fromIdx = containerItems.findIndex(it => it.id === draggedKey); // Recalculate after sort
+              if (fromIdx === -1 && draggedItemData.type === 'exercise') {
+                const baseLayout = exerciseLayouts.current[draggedKey];
+                const originalGroupId = draggedItemOriginalGroupId.value;
 
-              // If the dragged item isn't found in this container's list, determine if
-              // we're dragging up or down out of the group it originated from.
-              if (fromIdx === -1 && draggedItemOriginalGroupId.value != null) {
-                const originalGroupLayout =
-                  groupLayouts.current[draggedItemOriginalGroupId.value];
-                if (originalGroupLayout) {
-                  if (y < originalGroupLayout.y) {
-                    // Dragging UP out of the original group: use the original index
-                    fromIdx = draggedItemOriginalIndex.value ?? -1;
-                  } else if (
-                    y >
-                    originalGroupLayout.y + originalGroupLayout.height
-                  ) {
-                    // Dragging DOWN out of the original group: leave fromIdx === -1 so it
-                    // is treated as a new item insertion.
+                if (baseLayout) {
+                  wasOriginallyOutside = true;
+
+                  // ✅ Determine drag direction relative to original group
+                  if (originalGroupId != null) {
+                    const originalGroupLayout =
+                      groupLayouts.current[originalGroupId];
+                    if (originalGroupLayout) {
+                      if (y < originalGroupLayout.y) {
+                        originalDragDirection = 'up';
+                      } else if (
+                        y >
+                        originalGroupLayout.y + originalGroupLayout.height
+                      ) {
+                        originalDragDirection = 'down';
+                      }
+                    }
                   }
-                  // If the pointer is still within the group bounds, no special handling
-                  // is needed.
+
+                  const newItem = {
+                    id: draggedKey,
+                    layout: {
+                      ...baseLayout,
+                      y, // Use current pointer Y to sort visually
+                    },
+                    type: 'exercise' as const,
+                  };
+
+                  let inserted = false;
+                  for (let i = 0; i < containerItems.length; i++) {
+                    const item = containerItems[i];
+                    if (y < item.layout.y) {
+                      containerItems.splice(i, 0, newItem);
+                      inserted = true;
+                      break;
+                    }
+                  }
+
+                  if (!inserted) containerItems.push(newItem);
                 }
               }
 
-              const isItemBeingMoved = draggedItemId.value !== null; // Assumes draggedItemId.value holds the ID of the actively dragged item.
+              containerItems.sort((a, b) => a.layout.y - b.layout.y);
+              fromIdx = containerItems.findIndex(it => it.id === draggedKey); // Recalculate after sort
 
               // Reset all offsets before applying new ones to ensure a clean state
               containerItems.forEach(item => {
@@ -1236,26 +1272,18 @@ export default function WorkoutPlanBuilderScreen() {
                 }
 
                 // Skip the dragged item itself (if it's in the current containerItems, which it won't be if fromIdx === -1 initially)
-                if (item.id === draggedKey) continue;
+                // if (item.id === draggedKey) continue;
 
                 // Special handling for dropping an exercise onto a group (no shuffling of other items)
                 // This logic prevents reordering *within* the top-level list if an exercise is being dropped *into* a group.
-                if (
-                  item.type === 'group' &&
-                  draggedItemData.type === 'exercise' &&
-                  y >= item.layout.y && // Use original layout for target group detection
-                  y <= item.layout.y + item.layout.height // Use original layout for target group detection
-                ) {
-                  // Here, we are dragging an exercise *into* a group.
-                  // The main reordering logic for containerItems should *not* apply.
-                  // We only care about the target group, not shifting other top-level items.
-                  // Setting an explicit target for a group drop might be needed here,
-                  // but for placeholder shuffling, we often return early.
-                  // Ensure this return is what you intend for UX, as it stops further placeholder calculations.
-                  // If you need a placeholder *within* the group, that would be handled in a different `updatePreviewOffsets` call
-                  // (e.g., if the group itself has drag targets).
-                  // For *top-level* shuffling, this `return` means no shifts happen.
-                  return; // Exit early, no placeholder shifting needed for reordering top-level items
+                if (item.type === 'group') {
+                  if (
+                    draggedItemData.type === 'exercise' &&
+                    y >= item.layout.y &&
+                    y <= item.layout.y + item.layout.height
+                  ) {
+                    return;
+                  }
                 }
 
                 const itemMidpointY =
@@ -1345,31 +1373,49 @@ export default function WorkoutPlanBuilderScreen() {
                 fromIdx >= 0
                   ? containerItems[fromIdx].layout.height
                   : baseHeight;
-
-              // Reset all offsets before applying new ones to ensure a clean state
-              containerItems.forEach(item => {
-                if (dragOffsets.current[item.id]) {
-                  dragOffsets.current[item.id].value = 0;
-                }
-              });
-
-              // --- VERIFY THIS SECTION'S EXECUTION ---
-              if (fromIdx === -1) {
-                // For items new to this container, we just shift everything *after or at* the insertion point down.
-                for (let i = 0; i < containerItems.length; i++) {
-                  const item = containerItems[i];
-                  if (item.id === draggedKey) {
-                    continue; // Ensure dragged item itself is never offset
+              if (wasOriginallyOutside) {
+                if (originalDragDirection === 'down') {
+                  console.log('dragging from group to down');
+                  // For items new to this container, we just shift everything *after or at* the insertion point down.
+                  for (let i = 0; i < containerItems.length; i++) {
+                    const item = containerItems[i];
+                    if (item.id === draggedKey) {
+                      continue; // Ensure dragged item itself is never offset
+                    }
+                    if (i >= effectiveInsertionIndex) {
+                      if (dragOffsets.current[item.id]) {
+                        dragOffsets.current[item.id].value = draggedItemHeight;
+                      }
+                    }
                   }
-                  if (i >= effectiveInsertionIndex) {
-                    if (dragOffsets.current[item.id]) {
-                      dragOffsets.current[item.id].value = draggedItemHeight;
+                } else if (originalDragDirection === 'up') {
+                  console.log('dragging from group to up');
+                  // For items new to this container, we just shift everything *after or at* the insertion point down.
+                  for (let i = 0; i < containerItems.length; i++) {
+                    const item = containerItems[i];
+
+                    if (String(item.id) === String(draggedKey)) {
+                      dragOffsets.current[draggedKey].value =
+                        -draggedItemHeight;
+                      continue; // Skip offset for dragged item
+                    }
+
+                    if (i >= effectiveInsertionIndex) {
+                      if (
+                        item.id !== draggedKey &&
+                        dragOffsets.current[item.id]
+                      ) {
+                        dragOffsets.current[item.id].value = draggedItemHeight;
+                      }
                     }
                   }
                 }
               } else {
                 // Item is moving *within* the same container
                 if (effectiveInsertionIndex < fromIdx) {
+                  console.log(
+                    'Items between the new position (inclusive) and the old position (exclusive) shift down',
+                  );
                   // Items between the new position (inclusive) and the old position (exclusive) shift down
                   for (let i = 0; i < containerItems.length; i++) {
                     const item = containerItems[i];
@@ -1383,6 +1429,9 @@ export default function WorkoutPlanBuilderScreen() {
                     }
                   }
                 } else if (effectiveInsertionIndex > fromIdx) {
+                  console.log(
+                    'Items between the old position (exclusive) and the new position (exclusive) shift up',
+                  );
                   // Items between the old position (exclusive) and the new position (exclusive) shift up
                   for (let i = 0; i < containerItems.length; i++) {
                     const item = containerItems[i];
@@ -1396,8 +1445,10 @@ export default function WorkoutPlanBuilderScreen() {
                     }
                   }
                 }
+                if (dragOffsets.current[draggedKey]) {
+                  dragOffsets.current[draggedKey].value = 0;
+                }
               }
-              // --- END CRITICAL FIX SECTION ---
             },
             [], // Dependencies: None, as it uses valuesRef.current
           );
@@ -1702,9 +1753,14 @@ export default function WorkoutPlanBuilderScreen() {
                                 key={`group-${pi.data.id}`}
                                 ref={r => {
                                   if (r) {
-                                    groupRefs.current.set(String(pi.data.id), r);
+                                    groupRefs.current.set(
+                                      String(pi.data.id),
+                                      r,
+                                    );
                                   } else {
-                                    groupRefs.current.delete(String(pi.data.id));
+                                    groupRefs.current.delete(
+                                      String(pi.data.id),
+                                    );
                                   }
                                 }}
                                 id={String(pi.data.id)}
@@ -1745,9 +1801,14 @@ export default function WorkoutPlanBuilderScreen() {
                                             key={ex.instanceId}
                                             ref={r => {
                                               if (r) {
-                                                exerciseRefs.current.set(ex.instanceId, r);
+                                                exerciseRefs.current.set(
+                                                  ex.instanceId,
+                                                  r,
+                                                );
                                               } else {
-                                                exerciseRefs.current.delete(ex.instanceId);
+                                                exerciseRefs.current.delete(
+                                                  ex.instanceId,
+                                                );
                                               }
                                             }}
                                             id={ex.instanceId}
@@ -1765,8 +1826,9 @@ export default function WorkoutPlanBuilderScreen() {
                                             pointerPositionY={pointerPositionY}
                                             scrollOffset={scrollOffsetY}
                                             layoutVersion={layoutVersion}
-                                            scrollLayoutVersion={scrollLayoutVersion}
-                                          >
+                                            scrollLayoutVersion={
+                                              scrollLayoutVersion
+                                            }>
                                             <View
                                               style={{
                                                 marginHorizontal: spacing.md,
@@ -1830,9 +1892,14 @@ export default function WorkoutPlanBuilderScreen() {
                                 key={pi.data.instanceId}
                                 ref={r => {
                                   if (r) {
-                                    exerciseRefs.current.set(pi.data.instanceId, r);
+                                    exerciseRefs.current.set(
+                                      pi.data.instanceId,
+                                      r,
+                                    );
                                   } else {
-                                    exerciseRefs.current.delete(pi.data.instanceId);
+                                    exerciseRefs.current.delete(
+                                      pi.data.instanceId,
+                                    );
                                   }
                                 }}
                                 id={pi.data.instanceId}
