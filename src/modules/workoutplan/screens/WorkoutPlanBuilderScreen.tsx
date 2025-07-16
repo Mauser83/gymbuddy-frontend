@@ -952,12 +952,35 @@ export default function WorkoutPlanBuilderScreen() {
             [], // Dependencies: None, as it uses arguments for current state
           );
 
-          const calculateDropTarget = (
-            x: number,
-            y: number,
+                    /**
+           * Build the array of items representing the current drag container.
+           * This logic is shared between preview offset updates and drop target
+           * calculation so the ordering and contents remain consistent.
+           *
+           * @param draggedItemData Item being dragged
+           * @param currentValues   Current form values
+           * @param pointerY        Current pointer Y position (optional)
+           * @param includePlaceholder If true, inject the dragged item as a
+           *                           placeholder when it isn't already in the
+           *                           container. This is used for the preview.
+           * @param originalGroupId Original group id for the dragged item. Used
+           *                        only when includePlaceholder is true to
+           *                        compute drag direction.
+           */
+          const buildContainerItemsForDrag = (
             draggedItemData: DragData,
             currentValues: FormValues,
-          ): {target: DragData; position: 'before' | 'after'} | null => {
+            pointerY: number | null,
+            includePlaceholder: boolean,
+            originalGroupId: number | null,
+          ):
+            | {
+                items: {id: string; layout: Layout; type: 'group' | 'exercise'}[];
+                fromIdx: number;
+                wasOriginallyOutside: boolean;
+                originalDragDirection: 'up' | 'down' | null;
+              }
+            | null => {
             const draggedKey =
               draggedItemData.type === 'group'
                 ? String(draggedItemData.id)
@@ -972,16 +995,23 @@ export default function WorkoutPlanBuilderScreen() {
             const draggedItem = currentValues.exercises.find(
               e => e.instanceId === draggedItemData.id,
             );
-            const isTopLevelDrag =
+
+            const isPointerOverAnyGroup = pointerY != null
+              ? Object.values(groupLayouts.current).some(l =>
+                  pointerY >= l.y && pointerY <= l.y + l.height,
+                )
+              : false;
+
+            const treatAsTopLevelDrag =
               draggedItemData.type === 'group' ||
               (draggedItemData.type === 'exercise' &&
-                draggedItem?.groupId === null);
+                (pointerY == null
+                  ? draggedItem?.groupId == null
+                  : draggedItem?.groupId == null || !isPointerOverAnyGroup));
 
-            if (isTopLevelDrag) {
+            if (treatAsTopLevelDrag) {
               for (const id in exerciseLayouts.current) {
-                const ex = currentValues.exercises.find(
-                  e => e.instanceId === id,
-                );
+                const ex = currentValues.exercises.find(e => e.instanceId === id);
                 if (ex && ex.groupId == null && exerciseLayouts.current[id]) {
                   containerItems.push({
                     id,
@@ -991,7 +1021,10 @@ export default function WorkoutPlanBuilderScreen() {
                 }
               }
               for (const id in groupLayouts.current) {
-                if (groupLayouts.current[id]) {
+                const groupFound = currentValues.groups.find(
+                  g => String(g.id) === id,
+                );
+                if (groupFound && groupLayouts.current[id]) {
                   containerItems.push({
                     id: String(id),
                     layout: groupLayouts.current[id],
@@ -999,27 +1032,98 @@ export default function WorkoutPlanBuilderScreen() {
                   });
                 }
               }
-              containerItems.sort((a, b) => a.layout.y - b.layout.y);
             } else {
               if (!draggedItem) return null;
-              const exs = currentValues.exercises
-                .filter(ex => ex.groupId === draggedItem.groupId)
-                .sort((a, b) => a.order - b.order);
-              exs.forEach(ex => {
-                const layout = exerciseLayouts.current[ex.instanceId];
-                if (layout)
+              const groupId = draggedItem.groupId;
+              if (groupId != null) {
+                const groupLayout = groupLayouts.current[groupId];
+                if (groupLayout) {
                   containerItems.push({
-                    id: ex.instanceId,
-                    layout,
-                    type: 'exercise',
+                    id: String(groupId),
+                    layout: groupLayout,
+                    type: 'group',
                   });
-              });
+                }
+                const exs = currentValues.exercises
+                  .filter(ex => ex.groupId === groupId)
+                  .sort((a, b) => a.order - b.order);
+                exs.forEach(ex => {
+                  const layout = exerciseLayouts.current[ex.instanceId];
+                  if (layout)
+                    containerItems.push({
+                      id: ex.instanceId,
+                      layout,
+                      type: 'exercise',
+                    });
+                });
+              }
             }
 
-            const fromIdx = containerItems.findIndex(
-              it => it.id === draggedKey,
+            containerItems.sort((a, b) => a.layout.y - b.layout.y);
+
+            let fromIdx = containerItems.findIndex(it => it.id === draggedKey);
+            let wasOriginallyOutside = false;
+            let originalDragDirection: 'up' | 'down' | null = null;
+
+            if (includePlaceholder && fromIdx === -1 && pointerY != null && draggedItemData.type === 'exercise') {
+              const baseLayout = exerciseLayouts.current[draggedKey];
+              if (baseLayout) {
+                wasOriginallyOutside = true;
+
+                if (originalGroupId != null) {
+                  const originalLayout = groupLayouts.current[originalGroupId];
+                  if (originalLayout) {
+                    if (pointerY < originalLayout.y) {
+                      originalDragDirection = 'up';
+                    } else if (pointerY > originalLayout.y + originalLayout.height) {
+                      originalDragDirection = 'down';
+                    }
+                  }
+                }
+
+                const newItem = {
+                  id: draggedKey,
+                  layout: {...baseLayout, y: pointerY},
+                  type: 'exercise' as const,
+                };
+
+                let inserted = false;
+                for (let i = 0; i < containerItems.length; i++) {
+                  if (pointerY < containerItems[i].layout.y) {
+                    containerItems.splice(i, 0, newItem);
+                    inserted = true;
+                    break;
+                  }
+                }
+                if (!inserted) containerItems.push(newItem);
+
+                containerItems.sort((a, b) => a.layout.y - b.layout.y);
+                fromIdx = containerItems.findIndex(it => it.id === draggedKey);
+              }
+            }
+
+            return {items: containerItems, fromIdx, wasOriginallyOutside, originalDragDirection};
+          };
+
+          const calculateDropTarget = (
+            x: number,
+            y: number,
+            draggedItemData: DragData,
+            currentValues: FormValues,
+          ): {target: DragData; position: 'before' | 'after'} | null => {
+            const result = buildContainerItemsForDrag(
+              draggedItemData,
+              currentValues,
+              null,
+              false,
+              null,
             );
-            if (fromIdx === -1) return null;
+            if (!result) return null;
+            const {items: containerItems, fromIdx} = result;
+            const draggedKey =
+              draggedItemData.type === 'group'
+                ? String(draggedItemData.id)
+                : draggedItemData.id;
 
             let finalTargetIdx = fromIdx;
             let finalPreviewPosition: 'before' | 'after' = 'after';
@@ -1117,144 +1221,24 @@ export default function WorkoutPlanBuilderScreen() {
 
           const updatePreviewOffsets = useCallback(
             (x: number, y: number, draggedItemData: DragData) => {
-              const draggedKey =
+              const result = buildContainerItemsForDrag(
+                draggedItemData,
+                valuesRef.current,
+                y,
+                true,
+                draggedItemOriginalGroupId.value,
+              );
+              if (!result) return;
+              const {
+                items: containerItems,
+                fromIdx,
+                wasOriginallyOutside,
+                originalDragDirection,
+              } = result;
+                            const draggedKey =
                 draggedItemData.type === 'group'
                   ? String(draggedItemData.id)
                   : draggedItemData.id;
-
-              const containerItems: {
-                id: string;
-                layout: Layout;
-                type: 'group' | 'exercise';
-              }[] = [];
-
-              const draggedItem = valuesRef.current.exercises.find(
-                e => e.instanceId === draggedItemData.id,
-              );
-
-              const isPointerOverAnyGroup = () => {
-                for (const id in groupLayouts.current) {
-                  const layout = groupLayouts.current[id];
-                  if (y >= layout.y && y <= layout.y + layout.height) {
-                    return true;
-                  }
-                }
-                return false;
-              };
-
-              const treatAsTopLevelDrag =
-                draggedItemData.type === 'group' ||
-                (draggedItemData.type === 'exercise' &&
-                  (draggedItem?.groupId === null || !isPointerOverAnyGroup()));
-
-              if (treatAsTopLevelDrag) {
-                for (const id in exerciseLayouts.current) {
-                  const ex = valuesRef.current.exercises.find(
-                    e => e.instanceId === id,
-                  );
-                  if (ex && ex.groupId == null && exerciseLayouts.current[id]) {
-                    containerItems.push({
-                      id,
-                      layout: exerciseLayouts.current[id],
-                      type: 'exercise',
-                    });
-                  }
-                }
-                for (const id in groupLayouts.current) {
-                  const groupFound = valuesRef.current.groups.find(
-                    g => String(g.id) === id,
-                  );
-                  if (groupFound && groupLayouts.current[id]) {
-                    containerItems.push({
-                      id: String(id),
-                      layout: groupLayouts.current[id],
-                      type: 'group',
-                    });
-                  }
-                }
-              } else {
-                if (!draggedItem) return;
-                const groupId = draggedItem.groupId;
-                if (groupId != null) {
-                  const groupLayout = groupLayouts.current[groupId];
-                  if (groupLayout) {
-                    containerItems.push({
-                      id: String(groupId),
-                      layout: groupLayout,
-                      type: 'group',
-                    });
-                  }
-                  const exs = valuesRef.current.exercises
-                    .filter(ex => ex.groupId === groupId)
-                    .sort((a, b) => a.order - b.order);
-                  exs.forEach(ex => {
-                    const layout = exerciseLayouts.current[ex.instanceId];
-                    if (layout)
-                      containerItems.push({
-                        id: ex.instanceId,
-                        layout,
-                        type: 'exercise',
-                      });
-                  });
-                }
-              }
-
-              let wasOriginallyOutside = false;
-              let originalDragDirection: 'up' | 'down' | null = null;
-
-              // Sort collected items so indexes align with visual order
-              let fromIdx = containerItems.findIndex(
-                it => it.id === draggedKey,
-              );
-
-              if (fromIdx === -1 && draggedItemData.type === 'exercise') {
-                const baseLayout = exerciseLayouts.current[draggedKey];
-                const originalGroupId = draggedItemOriginalGroupId.value;
-
-                if (baseLayout) {
-                  wasOriginallyOutside = true;
-
-                  // ✅ Determine drag direction relative to original group
-                  if (originalGroupId != null) {
-                    const originalGroupLayout =
-                      groupLayouts.current[originalGroupId];
-                    if (originalGroupLayout) {
-                      if (y < originalGroupLayout.y) {
-                        originalDragDirection = 'up';
-                      } else if (
-                        y >
-                        originalGroupLayout.y + originalGroupLayout.height
-                      ) {
-                        originalDragDirection = 'down';
-                      }
-                    }
-                  }
-
-                  const newItem = {
-                    id: draggedKey,
-                    layout: {
-                      ...baseLayout,
-                      y, // Use current pointer Y to sort visually
-                    },
-                    type: 'exercise' as const,
-                  };
-
-                  let inserted = false;
-                  for (let i = 0; i < containerItems.length; i++) {
-                    const item = containerItems[i];
-                    if (y < item.layout.y) {
-                      containerItems.splice(i, 0, newItem);
-                      inserted = true;
-                      break;
-                    }
-                  }
-
-                  if (!inserted) containerItems.push(newItem);
-                }
-              }
-
-              containerItems.sort((a, b) => a.layout.y - b.layout.y);
-              fromIdx = containerItems.findIndex(it => it.id === draggedKey); // Recalculate after sort
 
               console.log(
                 'Preview container items',
