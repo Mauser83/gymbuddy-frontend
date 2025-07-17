@@ -1,3 +1,4 @@
+
 import React, {
   useState,
   useRef,
@@ -1142,17 +1143,8 @@ export default function WorkoutPlanBuilderScreen() {
             const GROUP_SHRINK_VERTICAL_OFFSET = 30;
 
             for (let i = 0; i < containerItems.length; i++) {
-              // Handle drop zone before the first item
-              if (i === 0) {
-                const firstItemLayout = containerItems[0].layout;
-                if (y < firstItemLayout.y + MIN_DROP_GAP_PX) {
-                  finalTargetIdx = 0;
-                  finalPreviewPosition = 'before';
-                  break;
-                }
-              }
               const item = containerItems[i];
-              const originalItemLayout = {...item.layout};
+                            const originalItemLayout = {...item.layout};
               let currentItemLayout = {...item.layout};
 
               
@@ -1301,17 +1293,8 @@ export default function WorkoutPlanBuilderScreen() {
 
               // Find the target index and preview position
               for (let i = 0; i < containerItems.length; i++) {
-                // Handle drop zone before the first item
-                if (i === 0) {
-                  const firstItemLayout = containerItems[0].layout;
-                  if (y < firstItemLayout.y + MIN_DROP_GAP_PX) {
-                    finalTargetIdx = 0;
-                    finalPreviewPosition = 'before';
-                    break;
-                  }
-                }
                 const item = containerItems[i];
-                const originalItemLayout = {...item.layout};
+                                const originalItemLayout = {...item.layout};
                 let currentItemLayout = {...item.layout}; // Create a mutable copy of the layout
 
                 // If this item is a group, and the pointer is within the top
