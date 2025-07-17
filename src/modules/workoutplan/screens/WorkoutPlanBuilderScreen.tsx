@@ -16,7 +16,6 @@ import {
   FlatList,
 } from 'react-native';
 import {Formik, FieldArray} from 'formik';
-import * as Yup from 'yup';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Title from 'shared/components/Title';
 import FormInput from 'shared/components/FormInput';
@@ -25,6 +24,20 @@ import Card from 'shared/components/Card';
 import SelectableField from 'shared/components/SelectableField';
 import ToastContainer from 'shared/components/ToastContainer';
 import ModalWrapper from 'shared/components/ModalWrapper';
+import { confirmAsync } from 'shared/utils/confirmAsync';
+import {generateId} from 'shared/utils/helpers';
+import PlanListHeader from '../components/PlanListHeader';
+import PlanListFooter from '../components/PlanListFooter';
+import {workoutPlanValidationSchema} from '../utils/validation';
+import {convertPlanToInitialValues} from '../utils/planConversion';
+import {
+  getSelectedBodyPartIds,
+  filterExercisesByBodyParts,
+} from '../utils/bodyPartHelpers';
+import {
+  getGroupLabel as getGroupLabelHelper,
+  getGroupLabelById as getGroupLabelByIdHelper,
+} from '../utils/groupLabelHelpers';
 import {GET_WORKOUT_PLAN_META} from '../graphql/workoutMeta.graphql';
 import {useQuery, useMutation} from '@apollo/client';
 import {
@@ -78,7 +91,7 @@ import {
 import type {DragData} from 'shared/dragAndDrop/DraggableItem';
 
 // TYPE DEFINITIONS
-type ActiveModal =
+export type ActiveModal =
   | null
   | 'trainingGoalPicker'
   | 'difficultyPicker'
@@ -117,28 +130,6 @@ type RenderItem =
   | {type: 'group'; group: ExerciseGroup}
   | {type: 'exercise'; exercise: ExerciseFormEntry};
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
-
-const validationSchema = Yup.object().shape({
-  name: Yup.string().required('Plan name is required'),
-  trainingGoalId: Yup.number().required('Training goal is required'),
-  muscleGroupIds: Yup.array().of(Yup.number()),
-  exercises: Yup.array()
-    .of(
-      Yup.object().shape({
-        targetSets: Yup.number().min(1).required('Sets required'),
-        targetMetrics: Yup.array()
-          .of(
-            Yup.object().shape({
-              metricId: Yup.number().required(),
-              min: Yup.mixed().required('Required'),
-              max: Yup.mixed().notRequired(),
-            }),
-          )
-          .min(1, 'At least one target metric required'),
-      }),
-    )
-    .min(1, 'Add at least one exercise'),
-});
 
 const HEADER_HEIGHT_OFFSET = 61;
 const SCROLL_THRESHOLD = 80; // Pixels from screen edges to start scrolling
@@ -296,106 +287,16 @@ export default function WorkoutPlanBuilderScreen() {
     [],
   );
 
-  const generateUniqueId = () => {
-    return Date.now().toString(36) + Math.random().toString(36).substring(2);
-  };
   const groupIdCounterRef = useRef(1);
-
-  const confirmAsync = (title: string, message: string) =>
-    new Promise<boolean>(resolve => {
-      Alert.alert(title, message, [
-        {text: 'Cancel', style: 'cancel', onPress: () => resolve(false)},
-        {text: 'Continue', onPress: () => resolve(true)},
-      ]);
-    });
 
   const renderedExerciseIds = useRef<Set<string>>(new Set());
 
-  function convertPlanToInitialValues(plan: any): FormValues {
-    const isFromSession = plan.isFromSession;
-    function deriveGroupsFromExercises(
-      exercises: ExerciseFormEntry[],
-    ): ExerciseGroup[] {
-      const seen = new Map<string, ExerciseGroup>();
-      for (const ex of exercises) {
-        if (ex.groupId != null && ex.trainingMethodId != null) {
-          const key = `${ex.groupId}-${ex.trainingMethodId}`;
-          if (!seen.has(key)) {
-            seen.set(key, {
-              id: ex.groupId,
-              trainingMethodId: ex.trainingMethodId,
-              order: 0,
-            });
-          }
-        }
-      }
-      return Array.from(seen.values()).map((g, idx) => ({...g, order: idx}));
-    }
-
-    if (isFromSession) {
-      const exercises = plan.exercises.map((ex: any, idx: number) => ({
-        instanceId: ex.instanceId || generateUniqueId(),
-        exerciseId: ex.exerciseId ?? ex.exercise.id,
-        exerciseName: ex.exerciseName ?? ex.exercise.name,
-        targetSets: ex.targetSets,
-        targetMetrics: ex.targetMetrics?.length
-          ? ex.targetMetrics
-          : createPlanningTargetMetrics(ex.exerciseId ?? ex.exercise.id),
-        trainingMethodId: ex.trainingMethodId ?? ex.trainingMethod?.id ?? null,
-        groupId: ex.groupId ?? null,
-        isWarmup: ex.isWarmup ?? false,
-        order: ex.order ?? idx,
-      }));
-
-      return {
-        name: plan.name,
-        trainingGoalId: plan.trainingGoal?.id,
-        intensityPresetId: plan.intensityPreset?.id ?? undefined,
-        experienceLevel: plan.intensityPreset?.experienceLevel ?? undefined,
-        muscleGroupIds: [],
-        exercises,
-        groups:
-          plan.groups?.map((g: any) => ({
-            id: g.id,
-            trainingMethodId: g.trainingMethodId,
-            order: g.order,
-          })) ?? deriveGroupsFromExercises(exercises),
-      };
-    }
-
-    const exercises = plan.exercises.map((ex: any, idx: number) => ({
-      instanceId: ex.instanceId || generateUniqueId(),
-      exerciseId: ex.exerciseId,
-      exerciseName: ex.exerciseName,
-      targetSets: ex.targetSets,
-      targetMetrics:
-        ex.targetMetrics ?? createPlanningTargetMetrics(ex.exerciseId),
-      trainingMethodId: ex.trainingMethodId ?? null,
-      groupId: ex.groupId ?? null,
-      isWarmup: ex.isWarmup ?? false,
-      order: ex.order ?? idx,
-    }));
-
-    return {
-      name: plan.name,
-      trainingGoalId: plan.trainingGoal?.id,
-      intensityPresetId: plan.intensityPreset?.id ?? undefined,
-      experienceLevel: plan.intensityPreset?.experienceLevel ?? undefined,
-      muscleGroupIds: plan.muscleGroups.map((mg: any) => mg.id),
-      exercises,
-      groups:
-        plan.groups?.map((g: any) => ({
-          id: g.id,
-          trainingMethodId: g.trainingMethodId,
-          order: g.order,
-        })) ?? deriveGroupsFromExercises(exercises),
-    };
-  }
   const location = useLocation();
   const rawPlan = location.state?.initialPlan;
   const formInitialValues = useMemo(() => {
-    const plan = rawPlan ? convertPlanToInitialValues(rawPlan) : undefined;
-    if (plan && rawPlan.isFromSession && plan.muscleGroupIds.length === 0) {
+    const plan = rawPlan
+      ? convertPlanToInitialValues(rawPlan, createPlanningTargetMetrics)
+      : undefined;    if (plan && rawPlan.isFromSession && plan.muscleGroupIds.length === 0) {
       const bodyPartIds = rawPlan?.bodyPartIds ?? [];
       const autoDetectedMuscleGroupIds =
         workoutMeta?.getMuscleGroups
@@ -438,39 +339,12 @@ export default function WorkoutPlanBuilderScreen() {
   const isEdit = !!rawPlan && !rawPlan.isFromSession;
   const pushRef = useRef<(item: any) => void>(() => {});
 
-  function getSelectedBodyPartIds(
-    selectedGroupIds: number[],
-    allGroups: any[],
-  ): number[] {
-    const bodyPartSet = new Set<number>();
-    for (const group of allGroups) {
-      if (selectedGroupIds.includes(group.id)) {
-        for (const bp of group.bodyParts || []) {
-          bodyPartSet.add(bp.id);
-        }
-      }
-    }
-    return Array.from(bodyPartSet);
-  }
-
-  function filterExercisesByBodyParts(
-    exercises: any[],
-    selectedBodyPartIds: number[],
-  ) {
-    const idSet = new Set(selectedBodyPartIds);
-    return exercises.filter(ex =>
-      ex.primaryMuscles?.some(
-        (m: any) => m.bodyPart && idSet.has(m.bodyPart.id),
-      ),
-    );
-  }
-
   return (
     <ScreenLayout>
       <Formik<FormValues>
         // enableReinitialize
         initialValues={formInitialValues}
-        validationSchema={validationSchema}
+        validationSchema={workoutPlanValidationSchema}
         onSubmit={async values => {
           const methodById = new Map<number, any>(
             (workoutMeta?.getTrainingMethods ?? []).map((m: any) => [m.id, m]),
@@ -599,20 +473,11 @@ export default function WorkoutPlanBuilderScreen() {
           const getMethodById = (id: number) =>
             workoutMeta?.getTrainingMethods?.find((m: any) => m.id === id);
 
-          const getGroupLabel = (group: ExerciseGroup) => {
-            const method = getMethodById(group.trainingMethodId);
-            if (!method) return 'Unnamed Group';
-            const range =
-              method.minGroupSize === method.maxGroupSize
-                ? `${method.minGroupSize}`
-                : `${method.minGroupSize ?? 1}–${method.maxGroupSize ?? '∞'}`;
-            return `${method.name} (${range})`;
-          };
+          const getGroupLabel = (group: ExerciseGroup) =>
+            getGroupLabelHelper(group, getMethodById);
 
-          const getGroupLabelById = (groupId: number) => {
-            const group = values.groups.find(g => g.id === groupId);
-            return group ? getGroupLabel(group) : 'None';
-          };
+          const getGroupLabelById = (groupId: number) =>
+            getGroupLabelByIdHelper(groupId, values.groups, getMethodById);
 
           const planItems = getPlanItemsFromForm(values);
 
@@ -860,88 +725,6 @@ export default function WorkoutPlanBuilderScreen() {
               values.groups,
             ],
           );
-          const ListHeader = (
-            <>
-              <Title
-                text={isEdit ? 'Edit Workout Plan' : 'Build Workout Plan'}
-                subtitle={
-                  isEdit
-                    ? 'Modify your existing workout session'
-                    : 'Create a reusable workout session'
-                }
-              />
-              <Card title="Plan Details">
-                <FormInput
-                  label="Plan Name"
-                  value={values.name}
-                  onChangeText={handleChange('name')}
-                  onBlur={() => handleBlur('name')}
-                  error={touched.name && errors.name ? errors.name : undefined}
-                />
-                <SelectableField
-                  label="Training Goal"
-                  value={
-                    workoutMeta?.getTrainingGoals?.find(
-                      (goal: any) => goal.id === values.trainingGoalId,
-                    )?.name || 'Select Training Goal'
-                  }
-                  onPress={() => setActiveModal('trainingGoalPicker')}
-                />
-                <SelectableField
-                  label="Planned Difficulty"
-                  value={
-                    values.experienceLevel
-                      ? values.experienceLevel.charAt(0) +
-                        values.experienceLevel.slice(1).toLowerCase()
-                      : 'Select Difficulty'
-                  }
-                  onPress={() => setActiveModal('difficultyPicker')}
-                />
-                <SelectableField
-                  label="Muscle Groups"
-                  value={
-                    values.muscleGroupIds.length > 0
-                      ? `${values.muscleGroupIds.length} selected`
-                      : 'Select Muscle Groups'
-                  }
-                  onPress={() => setActiveModal('muscleGroupPicker')}
-                  disabled={!values.trainingGoalId}
-                />
-              </Card>
-              <View style={{padding: spacing.md}}>
-                <Title text="Exercises" />
-                <View style={{marginVertical: spacing.sm}}>
-                  <Button
-                    text="Create Exercise Group"
-                    onPress={() => {
-                      setStagedGroupId(groupIdCounterRef.current++);
-                      setActiveModal('groupMethodPicker');
-                    }}
-                  />
-                </View>
-                <Button
-                  text={reorderMode ? 'Done Reordering' : 'Edit Order'}
-                  disabled={values.exercises.length < 1}
-                  onPress={() => setReorderMode(prev => !prev)}
-                />
-              </View>
-            </>
-          );
-
-          const ListFooter = (
-            <View style={{padding: spacing.md}}>
-              <View style={{paddingBottom: spacing.md}}>
-                <Button
-                  text="Add Exercise"
-                  onPress={() => setActiveModal('selectExercise')}
-                />
-              </View>
-              <Button
-                text={isEdit ? 'Update Plan' : 'Save Plan'}
-                onPress={handleSubmit as any}
-              />
-            </View>
-          );
 
           renderedExerciseIds.current.clear(); // ✅ clear only once before rendering begins
 
@@ -1010,7 +793,7 @@ export default function WorkoutPlanBuilderScreen() {
                                 layoutVersion={layoutVersion}
                                 scrollLayoutVersion={scrollLayoutVersion}>
                                 <ExerciseGroupCard
-                                  label={getGroupLabel(pi.data)}
+                                  label={getGroupLabelHelper(pi.data, getMethodById)}
                                   borderColor={theme.colors.accentStart}
                                   textColor={theme.colors.textPrimary}>
                                   {(() => {
@@ -1220,8 +1003,31 @@ export default function WorkoutPlanBuilderScreen() {
                             ? `group-${item.group.id}`
                             : `exercise-${item.exercise.instanceId}`
                         }
-                        ListHeaderComponent={ListHeader}
-                        ListFooterComponent={ListFooter}
+                        ListHeaderComponent={
+                          <PlanListHeader
+                            isEdit={isEdit}
+                            formik={{
+                              values,
+                              errors,
+                              touched,
+                              handleChange,
+                              handleBlur,
+                            } as any}
+                            workoutMeta={workoutMeta}
+                            setActiveModal={setActiveModal}
+                            groupIdCounterRef={groupIdCounterRef}
+                            setStagedGroupId={setStagedGroupId}
+                            reorderMode={reorderMode}
+                            setReorderMode={setReorderMode}
+                          />
+                        }
+                        ListFooterComponent={
+                          <PlanListFooter
+                            isEdit={isEdit}
+                            onSubmit={handleSubmit as any}
+                            setActiveModal={setActiveModal}
+                          />
+                        }
                         renderItem={({item}) => {
                           if (item.type === 'group') {
                             const groupExercises = getGroupedExercises(
@@ -1239,7 +1045,7 @@ export default function WorkoutPlanBuilderScreen() {
                                   marginBottom: spacing.lg,
                                 }}>
                                 <ExerciseGroupCard
-                                  label={getGroupLabel(item.group)}
+                                  label={getGroupLabelHelper(item.group, getMethodById)}
                                   borderColor={theme.colors.accentStart}
                                   textColor={theme.colors.textPrimary}>
                                   {(() => {
@@ -1571,7 +1377,7 @@ export default function WorkoutPlanBuilderScreen() {
                                     values.groups,
                                   );
                                 const newExerciseObject = {
-                                  instanceId: generateUniqueId(),
+                                  instanceId: generateId(),
                                   exerciseId: e.id,
                                   exerciseName: e.name,
                                   targetSets: 3,
