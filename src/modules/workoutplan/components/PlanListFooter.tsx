@@ -2,7 +2,7 @@ import React from 'react';
 import {View} from 'react-native';
 import Button from 'shared/components/Button';
 import {spacing} from 'shared/theme/tokens';
-import type {ActiveModal} from '../screens/WorkoutPlanBuilderScreen';
+import type { ActiveModal } from '../types/modal.types';
 
 export type PlanListFooterProps = {
   isEdit: boolean;

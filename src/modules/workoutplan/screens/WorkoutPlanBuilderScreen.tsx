@@ -23,13 +23,11 @@ import Button from 'shared/components/Button';
 import Card from 'shared/components/Card';
 import SelectableField from 'shared/components/SelectableField';
 import ToastContainer from 'shared/components/ToastContainer';
-import ModalWrapper from 'shared/components/ModalWrapper';
 import { confirmAsync } from 'shared/utils/confirmAsync';
 import {generateId} from 'shared/utils/helpers';
 import PlanListHeader from '../components/PlanListHeader';
 import PlanListFooter from '../components/PlanListFooter';
 import {workoutPlanValidationSchema} from '../utils/validation';
-import {convertPlanToInitialValues} from '../utils/planConversion';
 import {
   getSelectedBodyPartIds,
   filterExercisesByBodyParts,
@@ -75,11 +73,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 // MODULAR MODAL IMPORTS
-import SelectExerciseModal from '../components/SelectExerciseModal';
-import TrainingGoalPickerModal from '../components/TrainingGoalPickerModal';
-import DifficultyPickerModal from '../components/DifficultyPickerModal';
-import MuscleGroupPickerModal from '../components/MuscleGroupPickerModal';
-import TrainingMethodPicker from '../components/TrainingMethodPicker';
+import PlanModals from '../components/PlanModals';
+import {useFormInitialValues} from '../hooks/useFormInitialValues';
 import {useMetricRegistry} from 'shared/context/MetricRegistry';
 import TargetMetricInputGroup from 'shared/components/TargetMetricInputGroup';
 import {useWorkoutPlanSummary} from 'shared/hooks/WorkoutPlanSummary';
@@ -91,14 +86,7 @@ import {
 import type {DragData} from 'shared/dragAndDrop/DraggableItem';
 
 // TYPE DEFINITIONS
-export type ActiveModal =
-  | null
-  | 'trainingGoalPicker'
-  | 'difficultyPicker'
-  | 'muscleGroupPicker'
-  | 'selectExercise'
-  | 'trainingMethodPicker'
-  | 'groupMethodPicker';
+import type { ActiveModal } from '../types/modal.types';
 
 import type {
   ExerciseFormEntry,
@@ -117,14 +105,7 @@ import {
   updatePreviewOffsets,
 } from '../utils/dragAndDrop';
 
-type MuscleGroupMeta = {
-  id: number;
-  name: string;
-  bodyParts: {
-    id: number;
-    name: string;
-  }[];
-};
+import type {MuscleGroupMeta} from '../types/meta.types';
 
 type RenderItem =
   | {type: 'group'; group: ExerciseGroup}
@@ -287,48 +268,17 @@ export default function WorkoutPlanBuilderScreen() {
     [],
   );
 
-  const groupIdCounterRef = useRef(1);
-
   const renderedExerciseIds = useRef<Set<string>>(new Set());
 
   const location = useLocation();
   const rawPlan = location.state?.initialPlan;
-  const formInitialValues = useMemo(() => {
-    const plan = rawPlan
-      ? convertPlanToInitialValues(rawPlan, createPlanningTargetMetrics)
-      : undefined;    if (plan && rawPlan.isFromSession && plan.muscleGroupIds.length === 0) {
-      const bodyPartIds = rawPlan?.bodyPartIds ?? [];
-      const autoDetectedMuscleGroupIds =
-        workoutMeta?.getMuscleGroups
-          ?.filter((group: MuscleGroupMeta) =>
-            group.bodyParts.some((bp: any) => bodyPartIds.includes(bp.id)),
-          )
-          .map((group: MuscleGroupMeta) => group.id) ?? [];
-      plan.muscleGroupIds = autoDetectedMuscleGroupIds;
-    }
-    return (
-      plan ?? {
-        name: '',
-        trainingGoalId: 0,
-        intensityPresetId: 0,
-        muscleGroupIds: [],
-        exercises: [],
-        groups: [],
-      }
-    );
-  }, [rawPlan, workoutMeta?.getMuscleGroups]);
+  const {formInitialValues, groupIdCounterRef} = useFormInitialValues(
+    rawPlan,
+    workoutMeta,
+    createPlanningTargetMetrics,
+  );
 
   const valuesRef = useRef<FormValues>(formInitialValues);
-
-  useEffect(() => {
-    const maxId = formInitialValues.groups.reduce(
-      (acc, g) => (g.id > acc ? g.id : acc),
-      0,
-    );
-    if (maxId >= groupIdCounterRef.current) {
-      groupIdCounterRef.current = maxId + 1;
-    }
-  }, [formInitialValues]);
 
   useEffect(() => {
     if (formInitialValues && scrollViewReady) {
@@ -1292,153 +1242,21 @@ export default function WorkoutPlanBuilderScreen() {
                         }}
                       />
                     )}
-                    <ModalWrapper
-                      visible={!!activeModal}
-                      onClose={() => setActiveModal(null)}>
-                      {activeModal === 'trainingGoalPicker' && (
-                        <TrainingGoalPickerModal
-                          visible
-                          trainingGoals={workoutMeta?.getTrainingGoals ?? []}
-                          selectedId={values.trainingGoalId}
-                          onSelect={goalId => {
-                            setFieldValue('trainingGoalId', goalId);
-                            setActiveModal(null);
-                          }}
-                          onClose={() => setActiveModal(null)}
-                        />
-                      )}
-                      {activeModal === 'difficultyPicker' && (
-                        <DifficultyPickerModal
-                          visible
-                          selectedLevel={values.experienceLevel ?? 'BEGINNER'}
-                          onSelect={level => {
-                            setFieldValue('experienceLevel', level);
-                            setActiveModal(null);
-                          }}
-                          onClose={() => setActiveModal(null)}
-                        />
-                      )}
-                      {activeModal === 'muscleGroupPicker' && (
-                        <MuscleGroupPickerModal
-                          muscleGroups={workoutMeta?.getMuscleGroups ?? []}
-                          selectedIds={values.muscleGroupIds}
-                          onChange={(ids: number[]) =>
-                            setFieldValue('muscleGroupIds', ids)
-                          }
-                          onClose={() => setActiveModal(null)}
-                          onRefetch={refetch}
-                        />
-                      )}
-                      {activeModal === 'trainingMethodPicker' && (
-                        <TrainingMethodPicker
-                          selectedId={
-                            selectedExerciseIndex !== null
-                              ? (values.exercises[selectedExerciseIndex]
-                                  ?.trainingMethodId ?? null)
-                              : null
-                          }
-                          trainingMethods={
-                            workoutMeta?.getTrainingGoals?.find(
-                              (g: {id: number; trainingMethods: any[]}) =>
-                                g.id === values.trainingGoalId,
-                            )?.trainingMethods ?? []
-                          }
-                          onSelect={id => {
-                            if (selectedExerciseIndex !== null) {
-                              setFieldValue(
-                                `exercises[${selectedExerciseIndex}].trainingMethodId`,
-                                id,
-                              );
-                            }
-                            setActiveModal(null);
-                            setSelectedExerciseIndex(null);
-                          }}
-                          onClose={() => setActiveModal(null)}
-                        />
-                      )}
-                      {activeModal === 'selectExercise' && (
-                        <SelectExerciseModal
-                          onClose={() => setActiveModal(null)}
-                          filteredExercises={filteredExercises}
-                          onSelect={newExercises => {
-                            if (!pushRef.current) {
-                              console.error(
-                                '[DEBUG] FATAL: pushRef.current is not set!',
-                              );
-                              return;
-                            }
-                            try {
-                              newExercises.forEach(e => {
-                                const newTargetMetrics =
-                                  createPlanningTargetMetrics(e.id);
-                                const getNextOrder = (): number =>
-                                  getNextGlobalOrder(
-                                    values.exercises,
-                                    values.groups,
-                                  );
-                                const newExerciseObject = {
-                                  instanceId: generateId(),
-                                  exerciseId: e.id,
-                                  exerciseName: e.name,
-                                  targetSets: 3,
-                                  targetMetrics: newTargetMetrics,
-                                  isWarmup: false,
-                                  trainingMethodId: undefined,
-                                  groupId: null,
-                                  order: getNextOrder(), // global ordering
-                                };
-                                pushRef.current(newExerciseObject);
-                              });
-                              setExpandedExerciseIndex(
-                                values.exercises.length +
-                                  newExercises.length -
-                                  1,
-                              );
-                              setActiveModal(null);
-                            } catch (error) {
-                              console.error(
-                                '[DEBUG] An error occurred while adding an exercise:',
-                                error,
-                              );
-                            }
-                          }}
-                        />
-                      )}
-                      {activeModal === 'groupMethodPicker' && (
-                        <TrainingMethodPicker
-                          selectedId={null}
-                          trainingMethods={
-                            workoutMeta?.getTrainingMethods?.filter(
-                              (m: any) => m.minGroupSize != null,
-                            ) ?? []
-                          }
-                          onSelect={id => {
-                            if (stagedGroupId != null) {
-                              const nextOrder = getNextGlobalOrder(
-                                values.exercises,
-                                values.groups,
-                              );
-                              const newGroup = {
-                                id: stagedGroupId,
-                                trainingMethodId: id,
-                                order: nextOrder,
-                              };
-                              setFieldValue('groups', [
-                                ...values.groups,
-                                newGroup,
-                              ]);
-
-                              setStagedGroupId(null);
-                              setActiveModal(null);
-                            }
-                          }}
-                          onClose={() => {
-                            setActiveModal(null);
-                            setStagedGroupId(null);
-                          }}
-                        />
-                      )}
-                    </ModalWrapper>
+                                        <PlanModals
+                      activeModal={activeModal}
+                      setActiveModal={setActiveModal}
+                      values={values}
+                      setFieldValue={setFieldValue}
+                      workoutMeta={workoutMeta}
+                      refetch={refetch}
+                      selectedExerciseIndex={selectedExerciseIndex}
+                      setSelectedExerciseIndex={setSelectedExerciseIndex}
+                      filteredExercises={filteredExercises}
+                      pushRef={pushRef}
+                      stagedGroupId={stagedGroupId}
+                      setStagedGroupId={setStagedGroupId}
+                      createPlanningTargetMetrics={createPlanningTargetMetrics}
+                    />
                   </>
                 );
               }}

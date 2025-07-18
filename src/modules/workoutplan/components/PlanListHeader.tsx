@@ -9,7 +9,7 @@ import Button from 'shared/components/Button';
 import {spacing} from 'shared/theme/tokens';
 import {FormValues} from '../types/plan.types';
 
-import type {ActiveModal} from '../screens/WorkoutPlanBuilderScreen';
+import type { ActiveModal } from '../types/modal.types';
 
 export type PlanListHeaderProps = {
   isEdit: boolean;
