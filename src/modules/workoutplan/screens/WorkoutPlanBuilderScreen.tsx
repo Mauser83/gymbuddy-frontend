@@ -84,6 +84,7 @@ import {
   Layout,
 } from 'shared/dragAndDrop/MeasureDraggableItem';
 import type {DragData} from 'shared/dragAndDrop/DraggableItem';
+import {usePlanDragAndDrop} from '../hooks/usePlanDragAndDrop';
 
 // TYPE DEFINITIONS
 import type { ActiveModal } from '../types/modal.types';
@@ -97,11 +98,6 @@ import type {
 import {
   getPlanItemsFromForm,
   getNextGlobalOrder,
-  isPointInLayout,
-  updateExerciseGroup,
-  reorderExercises,
-  reorderPlanItems,
-  calculateDropTarget,
   updatePreviewOffsets,
 } from '../utils/dragAndDrop';
 
@@ -138,9 +134,7 @@ export default function WorkoutPlanBuilderScreen() {
   const [scrollLayoutVersion, setScrollLayoutVersion] = useState(0);
   const [scrollViewReady, setScrollViewReady] = useState(false);
 
-  const groupLayouts = useRef<Record<number, Layout>>({});
-  const exerciseLayouts = useRef<Record<string, Layout>>({});
-  const dragOffsets = useRef<Record<string, Animated.SharedValue<number>>>({});
+const dragOffsets = useRef<Record<string, Animated.SharedValue<number>>>({});
   const exerciseRefs = useRef<Map<string, {measure: () => void} | null>>(
     new Map(),
   );
@@ -148,7 +142,17 @@ export default function WorkoutPlanBuilderScreen() {
     new Map(),
   );
 
-  const resetPreviewOffsets = () => {
+  const location = useLocation();
+  const rawPlan = location.state?.initialPlan;
+  const {formInitialValues, groupIdCounterRef} = useFormInitialValues(
+    rawPlan,
+    workoutMeta,
+    createPlanningTargetMetrics,
+  );
+
+  const valuesRef = useRef<FormValues>(formInitialValues);
+
+    const resetPreviewOffsets = () => {
     for (const key in dragOffsets.current) {
       dragOffsets.current[key].value = 0;
     }
@@ -171,48 +175,21 @@ export default function WorkoutPlanBuilderScreen() {
     groupRefs.current.forEach(ref => ref?.measure());
   }, []);
 
-  const handleDragStart = (draggedData: DragData) => {
-    // Determine original position for the dragged item
-    if (draggedData.type === 'exercise') {
-      const exercise = valuesRef.current.exercises.find(
-        ex => ex.instanceId === draggedData.id,
-      );
-      if (exercise) {
-        draggedItemOriginalGroupId.value = exercise.groupId ?? null;
-        const originalList =
-          exercise.groupId != null
-            ? valuesRef.current.exercises
-                .filter(ex => ex.groupId === exercise.groupId)
-                .sort((a, b) => a.order - b.order)
-            : valuesRef.current.exercises
-                .filter(ex => ex.groupId == null)
-                .sort((a, b) => a.order - b.order);
-        draggedItemOriginalIndex.value = originalList.findIndex(
-          item => item.instanceId === draggedData.id,
-        );
-      }
-    } else if (draggedData.type === 'group') {
-      const group = valuesRef.current.groups.find(
-        g => String(g.id) === draggedData.id,
-      );
-      if (group) {
-        draggedItemOriginalGroupId.value = group.id;
-        const originalList = getPlanItemsFromForm(valuesRef.current)
-          .filter(item => item.type === 'group')
-          .map(item => item.data);
-        draggedItemOriginalIndex.value = originalList.findIndex(
-          item => String(item.id) === draggedData.id,
-        );
-      }
-    }
+  const {
+    groupLayouts,
+    exerciseLayouts,
+    handleDragStart,
+    handleDrop: dragAndDropHandleDrop,
+  } = usePlanDragAndDrop({
+    valuesRef,
+    reMeasureAllItems,
+    dragOffsets,
+    scrollRef,
+    isDraggingItem,
+    draggedItemOriginalGroupId,
+    draggedItemOriginalIndex,
+  });
 
-    reMeasureAllItems();
-    isDraggingItem.current = true;
-    if (Platform.OS !== 'web') {
-      scrollRef.current?.setNativeProps({scrollEnabled: false});
-    }
-    resetPreviewOffsets();
-  };
 
   const handleDragEnd = () => {
     isDraggingItem.current = false;
@@ -269,16 +246,6 @@ export default function WorkoutPlanBuilderScreen() {
   );
 
   const renderedExerciseIds = useRef<Set<string>>(new Set());
-
-  const location = useLocation();
-  const rawPlan = location.state?.initialPlan;
-  const {formInitialValues, groupIdCounterRef} = useFormInitialValues(
-    rawPlan,
-    workoutMeta,
-    createPlanningTargetMetrics,
-  );
-
-  const valuesRef = useRef<FormValues>(formInitialValues);
 
   useEffect(() => {
     if (formInitialValues && scrollViewReady) {
@@ -465,215 +432,19 @@ export default function WorkoutPlanBuilderScreen() {
             [],
           );
 
-          const handleDrop = useCallback(
+                   const handleDrop = useCallback(
             (x: number, y: number, draggedItemData: DragData) => {
-              let droppedHandled = false;
-              let currentVals: FormValues = values;
-
-              // --- Step 1: Check for dropping an exercise into an existing group ---
-              // This section is only relevant if the dragged item is an exercise.
-              if (draggedItemData.type === 'exercise') {
-                const draggedItem = values.exercises.find(
-                  ex => ex.instanceId === draggedItemData.id,
-                );
-                if (draggedItem) {
-                  for (const groupIdStr in groupLayouts.current) {
-                    const originalLayout = groupLayouts.current[groupIdStr];
-                    const offset = dragOffsets.current[groupIdStr]?.value ?? 0;
-                    const adjustedLayout = {
-                      ...originalLayout,
-                      y: originalLayout.y + offset,
-                    };
-                    // Check if the drop point is within the bounds of a group
-                    if (isPointInLayout(x, y, adjustedLayout)) {
-                      const targetGroupId = parseInt(groupIdStr, 10);
-                      // Only update if the exercise is not already in this group
-                      if (draggedItem.groupId !== targetGroupId) {
-                        const res = updateExerciseGroup(
-                          draggedItemData.id,
-                          targetGroupId,
-                          currentVals.exercises,
-                          currentVals.groups,
-                          getMethodById,
-                        );
-                        if (res) {
-                          currentVals = {
-                            ...currentVals,
-                            exercises: res.exercises,
-                            groups: res.groups,
-                          };
-                          setFieldValue('exercises', res.exercises);
-                          setFieldValue('groups', res.groups);
-                        }
-                        const dropInfo = calculateDropTarget(
-                          x,
-                          y,
-                          draggedItemData,
-                          currentVals,
-                          groupLayouts.current,
-                          exerciseLayouts.current,
-                        );
-                        if (dropInfo) {
-                          const planResInit = reorderPlanItems(
-                            draggedItemData,
-                            dropInfo.target,
-                            dropInfo.position,
-                            currentVals,
-                          );
-                          setFieldValue('exercises', planResInit.exercises);
-                          setFieldValue('groups', planResInit.groups);
-                          currentVals = {
-                            ...currentVals,
-                            exercises: planResInit.exercises,
-                            groups: planResInit.groups,
-                          };
-                        }
-                        droppedHandled = true;
-                        break; // Group found and handled, exit loop
-                      }
-                    }
-                  }
-                }
-              }
-
-              // --- Step 2: Reorder top-level items (exercises or groups) ---
-              // This section runs if the item was not dropped into an existing group.
-              if (!droppedHandled) {
-                const dropInfo = calculateDropTarget(
-                  x,
-                  y,
-                  draggedItemData,
-                  currentVals,
-                  groupLayouts.current,
-                  exerciseLayouts.current,
-                );
-                if (dropInfo) {
-                  if (
-                    draggedItemData.type === 'exercise' &&
-                    dropInfo.target.type === 'exercise'
-                  ) {
-                    const draggedItem = currentVals.exercises.find(
-                      ex => ex.instanceId === draggedItemData.id,
-                    );
-                    const targetItem = currentVals.exercises.find(
-                      ex => ex.instanceId === dropInfo.target.id,
-                    );
-                    if (
-                      draggedItem &&
-                      targetItem &&
-                      draggedItem.groupId === targetItem.groupId &&
-                      draggedItem.groupId !== null
-                    ) {
-                      const reorderRes = reorderExercises(
-                        draggedItemData.id,
-                        dropInfo.target.id,
-                        dropInfo.position,
-                        currentVals.exercises,
-                        currentVals.groups,
-                      );
-                      setFieldValue('exercises', reorderRes.exercises);
-                      setFieldValue('groups', reorderRes.groups);
-                      currentVals = {
-                        ...currentVals,
-                        exercises: reorderRes.exercises,
-                        groups: reorderRes.groups,
-                      };
-                    } else {
-                      const planRes = reorderPlanItems(
-                        draggedItemData,
-                        dropInfo.target,
-                        dropInfo.position,
-                        currentVals,
-                      );
-                      setFieldValue('exercises', planRes.exercises);
-                      setFieldValue('groups', planRes.groups);
-                      currentVals = {
-                        ...currentVals,
-                        exercises: planRes.exercises,
-                        groups: planRes.groups,
-                      };
-                    }
-                  } else {
-                    const planRes2 = reorderPlanItems(
-                      draggedItemData,
-                      dropInfo.target,
-                      dropInfo.position,
-                      currentVals,
-                    );
-                    setFieldValue('exercises', planRes2.exercises);
-                    setFieldValue('groups', planRes2.groups);
-                    currentVals = {
-                      ...currentVals,
-                      exercises: planRes2.exercises,
-                      groups: planRes2.groups,
-                    };
-                  }
-                  droppedHandled = true;
-                }
-              }
-
-              // --- Step 3: Handle dropping a top-level exercise into empty space (out of group) ---
-              // This handles cases where an exercise was in a group and is now dropped
-              // into a top-level empty space, or if no specific reorder target was found.
-              if (!droppedHandled && draggedItemData.type === 'exercise') {
-                const draggedItem = currentVals.exercises.find(
-                  ex => ex.instanceId === draggedItemData.id,
-                );
-                if (draggedItem && draggedItem.groupId !== null) {
-                  const res = updateExerciseGroup(
-                    draggedItemData.id,
-                    null, // Set groupId to null to make it a top-level exercise
-                    currentVals.exercises,
-                    currentVals.groups,
-                    getMethodById,
-                  );
-                  if (res) {
-                    currentVals = {
-                      ...currentVals,
-                      exercises: res.exercises,
-                      groups: res.groups,
-                    };
-                    setFieldValue('exercises', res.exercises);
-                    setFieldValue('groups', res.groups);
-                  }
-                  const dropInfo = calculateDropTarget(
-                    x,
-                    y,
-                    draggedItemData,
-                    currentVals,
-                    groupLayouts.current,
-                    exerciseLayouts.current,
-                  );
-                  if (dropInfo) {
-                    const planRes3 = reorderPlanItems(
-                      draggedItemData,
-                      dropInfo.target,
-                      dropInfo.position,
-                      currentVals,
-                    );
-                    setFieldValue('exercises', planRes3.exercises);
-                    setFieldValue('groups', planRes3.groups);
-                    currentVals = {
-                      ...currentVals,
-                      exercises: planRes3.exercises,
-                      groups: planRes3.groups,
-                    };
-                  }
-                  droppedHandled = true;
-                }
-              }
-
-              // Always call handleDragEnd to reset drag state and clear offsets
-              handleDragEnd();
+              dragAndDropHandleDrop(
+                x,
+                y,
+                draggedItemData,
+                values,
+                setFieldValue,
+                getMethodById,
+                handleDragEnd,
+              );
             },
-            [
-              setFieldValue,
-              handleDragEnd,
-              reorderPlanItems,
-              calculateDropTarget,
-              values.exercises,
-              values.groups,
-            ],
+            [values, setFieldValue, getMethodById, handleDragEnd, dragAndDropHandleDrop],
           );
 
           renderedExerciseIds.current.clear(); // ✅ clear only once before rendering begins
