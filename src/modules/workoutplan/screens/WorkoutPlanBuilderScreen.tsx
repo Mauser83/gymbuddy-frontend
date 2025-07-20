@@ -378,31 +378,34 @@ export default function WorkoutPlanBuilderScreen() {
     exs: ExerciseFormEntry[],
     grps: ExerciseGroup[],
   ): {exercises: ExerciseFormEntry[]; groups: ExerciseGroup[]} => {
-    const items: PlanItem[] = [
-      ...grps.map(g => ({type: 'group' as const, data: g})),
-      ...exs.map(e => ({type: 'exercise' as const, data: e})),
-    ];
-    items.sort((a, b) => a.data.order - b.data.order);
+        const newExercises = exs.map(e => ({...e}));
+    const newGroups = grps.map(g => ({...g}));
 
-    const newExercises = [...exs];
-    const newGroups = [...grps];
+    const displayItems: {type: 'exercise' | 'group'; ref: any}[] = [];
 
-    items.forEach((it, idx) => {
-      if (it.type === 'exercise') {
-        const exIdx = newExercises.findIndex(
-          e => e.instanceId === it.data.instanceId,
-        );
-        if (exIdx !== -1) newExercises[exIdx].order = idx;
-      } else {
-        const gIdx = newGroups.findIndex(g => g.id === it.data.id);
-        if (gIdx !== -1) newGroups[gIdx].order = idx;
-      }
+    newExercises
+      .filter(e => e.groupId == null)
+      .sort((a, b) => a.order - b.order)
+      .forEach(e => displayItems.push({type: 'exercise', ref: e}));
+
+    newGroups
+      .sort((a, b) => a.order - b.order)
+      .forEach(g => {
+        displayItems.push({type: 'group', ref: g});
+        newExercises
+          .filter(e => e.groupId === g.id)
+          .sort((a, b) => a.order - b.order)
+          .forEach(e => displayItems.push({type: 'exercise', ref: e}));
+      });
+
+    displayItems.forEach((item, idx) => {
+      item.ref.order = idx;
     });
 
-        newExercises.sort((a, b) => a.order - b.order);
-    newGroups.sort((a, b) => a.order - b.order);
-
-    return {exercises: newExercises, groups: newGroups};
+    return {
+      exercises: newExercises.sort((a, b) => a.order - b.order),
+      groups: newGroups.sort((a, b) => a.order - b.order),
+    };
   };
 
   const confirmAsync = (title: string, message: string) =>
@@ -416,6 +419,7 @@ export default function WorkoutPlanBuilderScreen() {
   const renderedExerciseIds = useRef<Set<string>>(new Set());
 
   function convertPlanToInitialValues(plan: any): FormValues {
+    console.log(plan);
     const isFromSession = plan.isFromSession;
     function deriveGroupsFromExercises(
       exercises: ExerciseFormEntry[],
@@ -457,13 +461,14 @@ export default function WorkoutPlanBuilderScreen() {
         intensityPresetId: plan.intensityPreset?.id ?? undefined,
         experienceLevel: plan.intensityPreset?.experienceLevel ?? undefined,
         muscleGroupIds: [],
-        exercises,
-        groups:
+exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) => a.order - b.order),
+        groups: (
           plan.groups?.map((g: any) => ({
             id: g.id,
             trainingMethodId: g.trainingMethodId,
             order: g.order,
-          })) ?? deriveGroupsFromExercises(exercises),
+          })) ?? deriveGroupsFromExercises(exercises)
+).slice().sort((a: ExerciseGroup, b: ExerciseGroup) => a.order - b.order),
       };
     }
 
@@ -486,13 +491,14 @@ export default function WorkoutPlanBuilderScreen() {
       intensityPresetId: plan.intensityPreset?.id ?? undefined,
       experienceLevel: plan.intensityPreset?.experienceLevel ?? undefined,
       muscleGroupIds: plan.muscleGroups.map((mg: any) => mg.id),
-      exercises,
-      groups:
+exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) => a.order - b.order),
+      groups: (
         plan.groups?.map((g: any) => ({
           id: g.id,
           trainingMethodId: g.trainingMethodId,
           order: g.order,
-        })) ?? deriveGroupsFromExercises(exercises),
+        })) ?? deriveGroupsFromExercises(exercises)
+).slice().sort((a: ExerciseGroup, b: ExerciseGroup) => a.order - b.order),
     };
   }
   const location = useLocation();

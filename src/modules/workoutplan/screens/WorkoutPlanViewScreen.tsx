@@ -1,7 +1,7 @@
 import React from 'react';
 import {useParams, useNavigate} from 'react-router-native';
 import {useQuery, useMutation} from '@apollo/client';
-import {View, FlatList, Alert} from 'react-native';
+import {View, Alert} from 'react-native';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Title from 'shared/components/Title';
 import Card from 'shared/components/Card';
@@ -10,6 +10,7 @@ import LoadingState from 'shared/components/LoadingState';
 import ErrorMessage from 'shared/components/ErrorMessage';
 import {GET_WORKOUT_PLAN_BY_ID} from '../graphql/workoutMeta.graphql';
 import DetailField from 'shared/components/DetailField';
+import ExerciseGroupCard from 'shared/components/ExerciseGroupCard';
 import {DELETE_WORKOUT_PLAN} from '../graphql/workoutReferences';
 import ButtonRow from 'shared/components/ButtonRow';
 import {useWorkoutPlanSummary} from 'shared/hooks/WorkoutPlanSummary';
@@ -41,27 +42,30 @@ export default function WorkoutPlanViewScreen() {
     }
   };
 
+
   if (loading) return <LoadingState text="Loading workout plan..." />;
   if (error || !plan) return <ErrorMessage message="Workout plan not found." />;
 
-  const renderExerciseItem = ({
-    item: ex,
-    index,
-  }: {
-    item: any;
-    index: number;
-  }) => (
-    <View style={{marginBottom: spacing.md}}>
-      <DetailField
-        label={`#${index + 1} ${ex.exercise.name}`}
-        value={renderSummary({
-          exerciseId: ex.exercise.id,
-          targetMetrics: ex.targetMetrics ?? [],
-          targetSets: ex.targetSets,
-        })}
-      />
-    </View>
-  );
+  // Build group lookup for fast access
+  const groupMap: Record<number, any> = {};
+  (plan.groups ?? []).forEach((g: any) => {
+    groupMap[g.id] = g;
+  });
+
+  // Separate grouped and ungrouped exercises
+  const ungroupedExercises = (plan.exercises ?? []).filter((e: any) => e.groupId == null);
+  const groupedExercisesByGroup: Record<number, any[]> = {};
+  (plan.exercises ?? []).forEach((e: any) => {
+    if (e.groupId != null) {
+      if (!groupedExercisesByGroup[e.groupId]) groupedExercisesByGroup[e.groupId] = [];
+      groupedExercisesByGroup[e.groupId].push(e);
+    }
+  });
+
+  // Flatten into single display array and sort by order
+  let displayItems: any[] = [...ungroupedExercises, ...(plan.groups ?? [])];
+  displayItems = displayItems.sort((a: any, b: any) => a.order - b.order);
+
 
   const ListHeader = () => (
     <>
@@ -120,13 +124,62 @@ export default function WorkoutPlanViewScreen() {
 
   return (
     <ScreenLayout>
-      <FlatList
-        data={plan.exercises}
-        renderItem={renderExerciseItem}
-        keyExtractor={(item, index) => item.exercise.id.toString() + index}
-        ListHeaderComponent={ListHeader}
-        ListFooterComponent={ListFooter}
-      />
+      <ListHeader />
+
+      <View style={{marginTop: spacing.md}}>
+        {(() => {
+          let exerciseDisplayIndex = 1;
+          return displayItems.map(item => {
+            // Group item
+            if (item.trainingMethodId) {
+              const groupExercises =
+                (groupedExercisesByGroup[item.id] ?? []).sort(
+                  (a, b) => a.order - b.order,
+                );
+              if (groupExercises.length === 0) return null;
+
+              const groupType =
+                plan.trainingGoal?.trainingMethods?.find(
+                  (m: any) => m.id === item.trainingMethodId,
+                )?.name ?? 'Group';
+
+              return (
+                <ExerciseGroupCard label={groupType} key={`group-${item.id}`}>
+                  {groupExercises.map(ex => (
+                    <View key={ex.id} style={{marginBottom: spacing.sm}}>
+                      <DetailField
+                        label={`#${exerciseDisplayIndex++} ${ex.exercise.name}`}
+                        value={renderSummary({
+                          exerciseId: ex.exercise.id,
+                          targetMetrics: ex.targetMetrics ?? [],
+                          targetSets: ex.targetSets,
+                        })}
+                      />
+                    </View>
+                  ))}
+                </ExerciseGroupCard>
+              );
+            }
+
+            // Ungrouped exercise
+            return (
+              <View key={`ex-${item.id}`} style={{marginBottom: spacing.md}}>
+                <DetailField
+                  label={`#${exerciseDisplayIndex++} ${item.exercise.name}`}
+                  value={renderSummary({
+                    exerciseId: item.exercise.id,
+                    targetMetrics: item.targetMetrics ?? [],
+                    targetSets: item.targetSets,
+                  })}
+                />
+              </View>
+            );
+          });
+        })()}
+      </View>
+
+      <ListFooter />
     </ScreenLayout>
   );
 }
+

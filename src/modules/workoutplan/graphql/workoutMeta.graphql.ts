@@ -105,6 +105,7 @@ export const GET_WORKOUT_PLAN_BY_ID = gql`
       }
       exercises {
         id
+        order
         targetSets
         targetMetrics {
           metricId
@@ -124,6 +125,7 @@ export const GET_WORKOUT_PLAN_BY_ID = gql`
       }
       groups {
         id
+        order
         trainingMethodId
         order
       }
