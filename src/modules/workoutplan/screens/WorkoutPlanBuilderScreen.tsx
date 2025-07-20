@@ -2104,7 +2104,13 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
                                                 e.instanceId ===
                                                 exercise.instanceId,
                                             );
-                                          const isExpanded =
+                                          const displayIdx =
+                                            renderedExercises.findIndex(
+                                              e =>
+                                                e.instanceId ===
+                                                exercise.instanceId,
+                                            );
+                                            const isExpanded =
                                             expandedExerciseIndex === idx;
 
                                           return (
@@ -2139,7 +2145,7 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
                                                           .textPrimary,
                                                       fontWeight: 'bold',
                                                     }}>
-                                                    #{idx + 1}{' '}
+                                                    #{displayIdx + 1}{' '}
                                                     {exercise.exerciseName}
                                                   </Text>
                                                   <FontAwesome
@@ -2243,6 +2249,9 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
                           const idx = values.exercises.findIndex(
                             e => e.instanceId === exercise.instanceId,
                           );
+                          const displayIdx = renderedExercises.findIndex(
+                            e => e.instanceId === exercise.instanceId,
+                          );
                           const isExpanded = expandedExerciseIndex === idx;
 
                           return (
@@ -2273,7 +2282,7 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
                                       color: theme.colors.textPrimary,
                                       fontWeight: 'bold',
                                     }}>
-                                    #{idx + 1} {exercise.exerciseName}
+                                    #{displayIdx + 1} {exercise.exerciseName}
                                   </Text>
                                   <FontAwesome
                                     name={

@@ -1,7 +1,7 @@
 import React from 'react';
 import {useParams, useNavigate} from 'react-router-native';
 import {useQuery, useMutation} from '@apollo/client';
-import {View, Alert} from 'react-native';
+import {ScrollView, View, Alert} from 'react-native';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Title from 'shared/components/Title';
 import Card from 'shared/components/Card';
@@ -124,6 +124,7 @@ export default function WorkoutPlanViewScreen() {
 
   return (
     <ScreenLayout>
+      <ScrollView>
       <ListHeader />
 
       <View style={{marginTop: spacing.md}}>
@@ -179,6 +180,7 @@ export default function WorkoutPlanViewScreen() {
       </View>
 
       <ListFooter />
+      </ScrollView>
     </ScreenLayout>
   );
 }
