@@ -399,6 +399,9 @@ export default function WorkoutPlanBuilderScreen() {
       }
     });
 
+        newExercises.sort((a, b) => a.order - b.order);
+    newGroups.sort((a, b) => a.order - b.order);
+
     return {exercises: newExercises, groups: newGroups};
   };
 
@@ -951,7 +954,10 @@ export default function WorkoutPlanBuilderScreen() {
                 }
               });
 
-              setFieldValueFn('exercises', newExercises);
+              newExercises.sort((a, b) => a.order - b.order);
+              newGroups.sort((a, b) => a.order - b.order);
+
+                            setFieldValueFn('exercises', newExercises);
               setFieldValueFn('groups', newGroups);
               setLayoutVersion(prev => prev + 1);
             },
