@@ -110,12 +110,22 @@ export const GET_WORKOUT_SESSION = gql`
             id
             name
           }
+          groupId
+          trainingMethod {
+            id
+            name
+          }
           targetSets
           targetMetrics {
             metricId
             min
             max
           }
+        }
+        groups {
+          id
+          order
+          trainingMethodId
         }
       }
       exerciseLogs {

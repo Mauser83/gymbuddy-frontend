@@ -10,6 +10,8 @@ import {borderRadius, borderWidth, spacing} from 'shared/theme/tokens';
 import {Portal} from 'react-native-portalize';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import {useMetricRegistry} from 'shared/context/MetricRegistry';
+import ExerciseGroupCard from '../../../../shared/components/ExerciseGroupCard';
+import {ExerciseLog} from '../types/userWorkouts.types';
 
 export interface PlanExercise {
   exerciseId: number;
@@ -20,20 +22,28 @@ export interface PlanExercise {
     min: number | string;
     max?: number | string | null;
   }[];
+  groupId?: number | null;
+  trainingMethod?: {
+    id: number;
+    name: string;
+  } | null;
 }
 
-interface ExerciseLog {
-  exerciseId: number;
-  setNumber: number;
+export interface PlanGroup {
+  id: number;
+  order?: number | null;
+  trainingMethodId?: number | null;
 }
 
 interface PlanTargetChecklistProps {
   planExercises: PlanExercise[];
-  exerciseLogs: ExerciseLog[];
+  groups?: PlanGroup[];
+  exerciseLogs?: ExerciseLog[];
 }
 
 export default function PlanTargetChecklist({
   planExercises,
+  groups = [],
   exerciseLogs,
 }: PlanTargetChecklistProps) {
   const [expanded, setExpanded] = useState(false);
@@ -55,18 +65,61 @@ export default function PlanTargetChecklist({
       .join(', ');
   };
 
-    // Group logs by consecutive exerciseId and set number sequence so
-  // repeated exercises form separate instances when numbering resets.
+const groupMap: Record<
+    number,
+    {id: number; name: string; exercises: PlanExercise[]; order?: number | null}
+  > = {};
+  groups.forEach(g => {
+    groupMap[g.id] = {...g, name: '', exercises: []};
+  });
+
+
+  const encounteredGroups = new Set<number>();
+  const displayList: (
+    | {type: 'exercise'; exercise: PlanExercise}
+    | {type: 'group'; group: {id: number; name: string; exercises: PlanExercise[]}}
+  )[] = [];
+
+    planExercises.forEach(ex => {
+    if (ex.groupId && groupMap[ex.groupId]) {
+      if (!groupMap[ex.groupId].name && ex.trainingMethod) {
+        groupMap[ex.groupId].name = ex.trainingMethod.name;
+      }
+      groupMap[ex.groupId].exercises.push(ex);
+            if (!encounteredGroups.has(ex.groupId)) {
+        displayList.push({type: 'group', group: groupMap[ex.groupId]});
+        encounteredGroups.add(ex.groupId);
+      }
+    } else {
+      displayList.push({type: 'exercise', exercise: ex});
+    }
+  });
+
+  type PlanInstance = {planEx: PlanExercise; globalIdx: number};
+  const planInstances: PlanInstance[] = [];
+  let globalIdxCounter = 0;
+  for (const item of displayList) {
+    if (item.type === 'exercise') {
+      planInstances.push({planEx: item.exercise, globalIdx: globalIdxCounter});
+      globalIdxCounter++;
+    } else {
+      for (const ex of item.group.exercises) {
+        planInstances.push({planEx: ex, globalIdx: globalIdxCounter});
+        globalIdxCounter++;
+      }
+    }
+  }
+
+    // Group logs by consecutive set numbers so each instance claims the correct logs
   const groupedLogs = useMemo(() => {
     const groups: {exerciseId: number; logs: ExerciseLog[]}[] = [];
     let current: {exerciseId: number; logs: ExerciseLog[]} | null = null;
 
-    for (const log of exerciseLogs) {
-      const lastGroup = groups.at(-1);
+    (exerciseLogs ?? []).forEach(log => {
       const shouldStartNew =
-        !lastGroup ||
-        lastGroup.exerciseId !== log.exerciseId ||
-        log.setNumber !== (lastGroup.logs.at(-1)?.setNumber ?? 0) + 1;
+        !current ||
+        current.exerciseId !== log.exerciseId ||
+        log.setNumber !== (current.logs.at(-1)?.setNumber ?? 0) + 1;
 
       if (shouldStartNew) {
         if (current) groups.push(current);
@@ -74,13 +127,11 @@ export default function PlanTargetChecklist({
       } else {
         current!.logs.push(log);
       }
-    }
+    });
 
     if (current) groups.push(current);
 
-    // Merge groups when set numbering continues from a previous group for the
-    // same exercise. This ensures sets inserted later remain with their
-    // original instance after reloading.
+      // Merge with any previous group if numbering continues
     const merged: typeof groups = [];
     for (const group of groups) {
       let mergedInto = false;
@@ -88,8 +139,7 @@ export default function PlanTargetChecklist({
         const prev = merged[i];
         if (
           prev.exerciseId === group.exerciseId &&
-          group.logs[0]?.setNumber ===
-            (prev.logs.at(-1)?.setNumber ?? 0) + 1
+          group.logs[0]?.setNumber === (prev.logs.at(-1)?.setNumber ?? 0) + 1
         ) {
           prev.logs.push(...group.logs);
           mergedInto = true;
@@ -102,10 +152,10 @@ export default function PlanTargetChecklist({
     return merged;
   }, [exerciseLogs]);
 
-  // Copy groups so we can consume them in order
+  // Mutable copy for sequential consumption during render
   const remainingGroups = [...groupedLogs];
 
-  return (
+    return (
     <Portal>
       {!expanded && (
         <View
@@ -132,65 +182,92 @@ export default function PlanTargetChecklist({
       )}
 
       {expanded && (
-        <View
-          style={[
-            styles.expandedWrapper,
-            {
-              top: '50%',
-              transform: [{translateY: -expandedHeight / 2}],
-              borderColor: theme.colors.accentStart,
-            },
-          ]}
-          onLayout={e => setExpandedHeight(e.nativeEvent.layout.height)}>
-          <TouchableOpacity
-            style={styles.expandedBox}
-            activeOpacity={1}
-            onPress={() => setExpanded(false)}>
-            <View style={styles.headerRow}>
-              <Text style={styles.headerText}>Plan</Text>
-            </View>
+      <View style={[
+        styles.expandedWrapper,
+        {
+          top: '50%',
+          transform: [{translateY: -expandedHeight / 2}],
+          borderColor: theme.colors.accentStart,
+        },
+      ]}
+      onLayout={e => setExpandedHeight(e.nativeEvent.layout.height)}>
+        <TouchableOpacity
+          style={styles.expandedBox}
+          activeOpacity={1}
+          onPress={() => setExpanded(false)}
+        >
+          <View style={styles.headerRow}>
+            <Text style={styles.headerText}>Plan</Text>
+          </View>
 
-            {planExercises.flatMap((ex, planIdx) => {
-              // Consume the next group for this exercise, if any
-              let matchedLogs: ExerciseLog[] = [];
-              const idx = remainingGroups.findIndex(
-                g => g.exerciseId === ex.exerciseId
-              );
-              if (idx !== -1) {
-                const group = remainingGroups.splice(0, idx + 1).pop();
-                if (group) matchedLogs = group.logs.slice(0, ex.targetSets);
-              }
-
-              return Array.from({length: ex.targetSets}).map((_, setIdx) => {
-                const isLogged = setIdx < matchedLogs.length;
-
-                const overallIdx =
-                  planExercises
-                    .slice(0, planIdx)
-                    .reduce((sum, p) => sum + p.targetSets, 0) + setIdx;
-
-                return (
-                  <View
-                    key={`plan${planIdx}_set${setIdx}`}
-                    style={styles.exerciseItem}>
-                    <Text style={styles.name}>
-                      {`${overallIdx + 1}. ${ex.name}`}
-                    </Text>
-                    {isLogged ? (
-                      <Text style={{color: 'green'}}>✅ Completed</Text>
-                    ) : (
+          {(() => {
+              return displayList.map(item => {
+                if (item.type === 'exercise') {
+                  const planEx = item.exercise;
+                  let matchedLogs: ExerciseLog[] = [];
+                  const idx = remainingGroups.findIndex(
+                    g => g.exerciseId === planEx.exerciseId,
+                  );
+                  if (idx !== -1) {
+                    const group = remainingGroups.splice(0, idx + 1).pop();
+                    if (group) matchedLogs = group.logs.slice(0, planEx.targetSets);
+                  }
+                  const completed = matchedLogs.length;
+                  return (
+                    <View key={`ex-${planEx.exerciseId}-${completed}`} style={styles.exerciseItem}>
+                      <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                        <Text style={styles.name}>{planEx.name}</Text>
+                        {completed >= planEx.targetSets ? (
+                          <Text style={{marginLeft: 4, color: 'green'}}>✔️</Text>
+                        ) : null}
+                      </View>
                       <Text style={styles.details}>
-                        {formatMetrics(ex.targetMetrics)}
+                        {formatMetrics(planEx.targetMetrics)} ({completed}/
+                        {planEx.targetSets} sets)
                       </Text>
-                    )}
-                  </View>
+                    </View>
+                  );
+                }
+                return (
+                  <ExerciseGroupCard
+                    key={`group-${item.group.id}`}
+                    label={item.group.name || 'Group'}
+                    borderColor={theme.colors.accentStart}
+                    textColor={theme.colors.accentStart}
+                      backgroundColor="white">
+                    {item.group.exercises.map(ex => {
+                      let matchedLogs: ExerciseLog[] = [];
+                      const idx = remainingGroups.findIndex(
+                        g => g.exerciseId === ex.exerciseId,
+                      );
+                      if (idx !== -1) {
+                        const group = remainingGroups.splice(0, idx + 1).pop();
+                        if (group) matchedLogs = group.logs.slice(0, ex.targetSets);
+                      }
+                      const completed = matchedLogs.length;
+                      return (
+                        <View key={ex.exerciseId} style={styles.exerciseItem}>
+                          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                            <Text style={styles.name}>{ex.name}</Text>
+                            {completed >= ex.targetSets ? (
+                              <Text style={{marginLeft: 4, color: 'green'}}>✔️</Text>
+                            ) : null}
+                          </View>
+                          <Text style={styles.details}>
+                            {formatMetrics(ex.targetMetrics)} ({completed}/
+                            {ex.targetSets} sets)
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </ExerciseGroupCard>
                 );
               });
-            })}
-          </TouchableOpacity>
-        </View>
-      )}
-    </Portal>
+            })()}
+        </TouchableOpacity>
+      </View>
+    )}
+  </Portal>
   );
 }
 

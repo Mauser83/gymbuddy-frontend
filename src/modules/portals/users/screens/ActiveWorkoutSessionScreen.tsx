@@ -261,9 +261,14 @@ export default function ActiveWorkoutSessionScreen() {
               name: ex.exercise.name,
               targetSets: ex.targetSets,
               targetMetrics: ex.targetMetrics ?? [],
-            }))}
+                            groupId: ex.groupId,
+              trainingMethod: ex.trainingMethod
+                ? {id: ex.trainingMethod.id, name: ex.trainingMethod.name}
+                : undefined,
+                          }))}
+            groups={session?.workoutPlan?.groups ?? []}
             exerciseLogs={logs}
-          />
+                      />
         )}
         <Formik
           initialValues={initialValues}

@@ -419,7 +419,6 @@ export default function WorkoutPlanBuilderScreen() {
   const renderedExerciseIds = useRef<Set<string>>(new Set());
 
   function convertPlanToInitialValues(plan: any): FormValues {
-    console.log(plan);
     const isFromSession = plan.isFromSession;
     function deriveGroupsFromExercises(
       exercises: ExerciseFormEntry[],

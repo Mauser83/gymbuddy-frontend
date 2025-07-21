@@ -38,12 +38,22 @@ export interface WorkoutSessionData {
           id: number;
           name: string;
         };
+        groupId: number | null;
+        trainingMethod: {
+          id: number;
+          name: string;
+        } | null;
         targetSets: number;
         targetMetrics: {
           metricId: number;
           min: number | string;
           max?: number | string | null;
         }[];
+      }[];
+      groups: {
+        id: number;
+        order?: number | null;
+        trainingMethodId?: number | null;
       }[];
     } | null;
     exerciseLogs: ExerciseLog[];
