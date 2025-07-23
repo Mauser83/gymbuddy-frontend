@@ -1,5 +1,5 @@
 import React, {useMemo, useState, useEffect} from 'react';
-import {View, Text} from 'react-native';
+import {View, Text, TouchableOpacity} from 'react-native';
 import {useParams, useNavigate} from 'react-router-native';
 import {useQuery, useMutation} from '@apollo/client';
 import {Formik} from 'formik';
@@ -35,6 +35,7 @@ import {useMetricRegistry} from 'shared/context/MetricRegistry';
 import {generateMetricSchema} from 'shared/utils/generateMetricSchema';
 import {useExerciseLogSummary} from 'modules/exerciselog/components/ExerciseLogSummary';
 import {formatPlanMetrics} from 'shared/utils/formatPlanMetrics';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 export default function ActiveWorkoutSessionScreen() {
   const {sessionId} = useParams<{sessionId: string}>();
@@ -103,17 +104,23 @@ export default function ActiveWorkoutSessionScreen() {
       {
         key: string;
         exerciseId: number;
+        instanceKey: string;
         logs: ExerciseLog[];
         equipmentIds: Set<number>;
       }
     >();
 
+    const counts: Record<number, number> = {};
+
     for (const log of sorted) {
       const key = log.groupKey ?? `${log.exerciseId}-${log.instanceKey ?? ''}`;
       if (!map.has(key)) {
+        const idx = counts[log.exerciseId] ?? 0;
+        counts[log.exerciseId] = idx + 1;
         map.set(key, {
           key,
           exerciseId: log.exerciseId,
+          instanceKey: `${log.exerciseId}-${idx}`,
           logs: [],
           equipmentIds: new Set<number>(),
         });
@@ -149,33 +156,47 @@ export default function ActiveWorkoutSessionScreen() {
     return values;
   }, [logs]);
 
+  const planInstances = useMemo(() => {
+    const list: {key: string; planEx: any}[] = [];
+    const counts: Record<number, number> = {};
+
+    session?.workoutPlan?.exercises?.forEach(planEx => {
+      const idx = counts[planEx.exercise.id] ?? 0;
+      counts[planEx.exercise.id] = idx + 1;
+      list.push({key: `${planEx.exercise.id}-${idx}`, planEx});
+    });
+
+    return list;
+  }, [session]);
+
   const nextSet = useMemo(() => {
-    const group = groupedLogs[carouselIndex];
-    if (!group || !session?.workoutPlan?.exercises?.length) {
-      setNextSetPlacement(null);
-      return null;
+    for (let i = 0; i < groupedLogs.length; i++) {
+      const group = groupedLogs[i];
+      const planWithIdx = planInstances.find(p => p.key === group.instanceKey);
+      if (!planWithIdx) continue;
+
+      const planEx = planWithIdx.planEx;
+      const loggedSets = group.logs.length;
+
+      if (loggedSets < (planEx.targetSets ?? 1)) {
+        setNextSetPlacement('addSet');
+
+        return {
+          exerciseId: planEx.exercise.id,
+          name: planEx.exercise.name,
+          currentSetIndex: loggedSets,
+          targetMetrics: planEx.targetMetrics ?? [],
+          groupKey: group.key,
+          carouselIndex: i,
+          completed: loggedSets,
+          total: planEx.targetSets ?? 1,
+        };
+      }
     }
-    const planEx = session.workoutPlan.exercises.find(
-      ex => ex.exercise.id === group.exerciseId,
-    );
-    if (!planEx) {
-      setNextSetPlacement(null);
-      return null;
-    }
-    const loggedSets = group.logs.length;
-    if (loggedSets >= planEx.targetSets) {
-      setNextSetPlacement(null);
-      return null;
-    }
-    setNextSetPlacement('addSet');
-    return {
-      exerciseId: planEx.exercise.id,
-      name: planEx.exercise.name,
-      currentSetIndex: loggedSets,
-      targetMetrics: planEx.targetMetrics ?? [],
-      groupKey: group.key,
-    };
-  }, [session, groupedLogs, carouselIndex]);
+
+    setNextSetPlacement(null);
+    return null;
+  }, [planInstances, groupedLogs]);
 
   const availableExercises = useMemo(() => {
     if (!exercisesData || !equipmentData || !session?.gym?.id) return [];
@@ -225,8 +246,8 @@ export default function ActiveWorkoutSessionScreen() {
             onSelect={(key, _exerciseId) => {
               const idx = groupedLogs.findIndex(g => g.key === key);
               if (idx !== -1) setCarouselIndex(idx);
-            }}        
-            />
+            }}
+          />
         )}
         <Formik
           initialValues={initialValues}
@@ -326,31 +347,62 @@ export default function ActiveWorkoutSessionScreen() {
 
             return (
               <>
-              {nextSet && (
+                {nextSet && (
                   <View style={{marginBottom: 8}}>
-                    {nextSetPlacement === 'addExercise' && (
-                      <Text style={{marginBottom: 4}}>
-                        <Text style={{color: theme.colors.textPrimary}}>
-                          Next:{' '}
-                        </Text>
-                        <Text style={{color: theme.colors.accentStart}}>
-                          {nextSet.name}
-                        </Text>
-                      </Text>
-                    )}
-                    <Text>
-                      <Text style={{color: theme.colors.textPrimary}}>
-                        Set {nextSet.currentSetIndex + 1}:{' '}
-                      </Text>
-                      <Text style={{color: theme.colors.accentStart}}>
-                        {formatPlanMetrics(
-                          nextSet.targetMetrics,
-                          metricRegistry,
+                    {carouselIndex !== nextSet.carouselIndex ? (
+                      <TouchableOpacity
+                        onPress={() => setCarouselIndex(nextSet.carouselIndex)}>
+                        <View
+                          style={{flexDirection: 'row', alignItems: 'center'}}>
+                          <Text style={{color: theme.colors.textPrimary}}>
+                            Follow the plan:{' '}
+                            <Text
+                              style={{
+                                fontWeight: 'bold',
+                                color: theme.colors.accentStart,
+                              }}>
+                              {nextSet.name}
+                            </Text>{' '}
+                            <Text style={{color: theme.colors.accentStart}}>
+                              ({nextSet.completed}/{nextSet.total} sets)
+                            </Text>
+                          </Text>
+                          <FontAwesome
+                            name="chevron-right"
+                            size={16}
+                            color={theme.colors.accentStart}
+                            style={{marginLeft: 6}}
+                          />
+                        </View>
+                      </TouchableOpacity>
+                    ) : (
+                      <View>
+                        {nextSetPlacement === 'addExercise' && (
+                          <Text style={{marginBottom: 4}}>
+                            <Text style={{color: theme.colors.textPrimary}}>
+                              Next:{' '}
+                            </Text>
+                            <Text style={{color: theme.colors.accentStart}}>
+                              {nextSet.name}
+                            </Text>
+                          </Text>
                         )}
-                      </Text>
-                    </Text>
+                        <Text>
+                          <Text style={{color: theme.colors.textPrimary}}>
+                            Set {nextSet.currentSetIndex + 1}:{' '}
+                          </Text>
+                          <Text style={{color: theme.colors.accentStart}}>
+                            {formatPlanMetrics(
+                              nextSet.targetMetrics,
+                              metricRegistry,
+                            )}
+                          </Text>
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 )}
+
                 <ExerciseCarousel
                   index={carouselIndex}
                   onIndexChange={setCarouselIndex}>
@@ -644,7 +696,7 @@ export default function ActiveWorkoutSessionScreen() {
               g => g.exerciseId === selectedExercise.id,
             ).length;
             const planKey = `${selectedExercise.id}-${existingCount}`;
-              const baseLog = {
+            const baseLog = {
               workoutSessionId: Number(sessionId),
               exerciseId: selectedExercise.id,
               setNumber: 1,
@@ -656,7 +708,7 @@ export default function ActiveWorkoutSessionScreen() {
               instanceKey: planKey,
               completedAt: null,
               isAutoFilled: false,
-                        };
+            };
 
             const {data} = await createExerciseLog({
               variables: {input: baseLog},

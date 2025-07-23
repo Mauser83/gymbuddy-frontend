@@ -27,7 +27,7 @@ export default function SetInputRow({
               {metric.name}:
             </Text>
             <TextInput
-              style={[styles.input, {borderColor: theme.colors.accentStart}]}
+              style={[styles.input, {borderColor: theme.colors.accentStart, color: theme.colors.textPrimary}]}
               value={String(values[id] ?? '')}
               onChangeText={text =>
                 onChange(
