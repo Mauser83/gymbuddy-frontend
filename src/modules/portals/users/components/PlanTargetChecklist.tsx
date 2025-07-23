@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  ScrollView,
 } from 'react-native';
 import {borderRadius, borderWidth, spacing} from 'shared/theme/tokens';
 import {Portal} from 'react-native-portalize';
@@ -12,6 +13,8 @@ import {useTheme} from 'shared/theme/ThemeProvider';
 import {useMetricRegistry} from 'shared/context/MetricRegistry';
 import ExerciseGroupCard from '../../../../shared/components/ExerciseGroupCard';
 import {ExerciseLog} from '../types/userWorkouts.types';
+
+const HEADER_HEIGHT = 61;
 
 export interface PlanExercise {
   exerciseId: number;
@@ -35,21 +38,29 @@ export interface PlanGroup {
   trainingMethodId?: number | null;
 }
 
+interface LogGroup {
+  exerciseId: number;
+  key: string;
+  logs: ExerciseLog[];
+}
+
 interface PlanTargetChecklistProps {
   planExercises: PlanExercise[];
   groups?: PlanGroup[];
   exerciseLogs?: ExerciseLog[];
+  onSelect?: (groupKey: string, exerciseId: number) => void;
 }
 
 export default function PlanTargetChecklist({
   planExercises,
   groups = [],
   exerciseLogs,
+  onSelect,
 }: PlanTargetChecklistProps) {
   const [expanded, setExpanded] = useState(false);
   const {theme} = useTheme();
-  const [collapsedHeight, setCollapsedHeight] = useState(0);
-  const [expandedHeight, setExpandedHeight] = useState(0);
+  const topOffset = HEADER_HEIGHT + spacing.sm;
+  const maxHeight = Dimensions.get('window').height - topOffset - spacing.sm;
   const {metricRegistry} = useMetricRegistry();
 
   const formatMetrics = (metrics: PlanExercise['targetMetrics']): string => {
@@ -65,7 +76,7 @@ export default function PlanTargetChecklist({
       .join(', ');
   };
 
-const groupMap: Record<
+  const groupMap: Record<
     number,
     {id: number; name: string; exercises: PlanExercise[]; order?: number | null}
   > = {};
@@ -77,16 +88,19 @@ const groupMap: Record<
   const encounteredGroups = new Set<number>();
   const displayList: (
     | {type: 'exercise'; exercise: PlanExercise}
-    | {type: 'group'; group: {id: number; name: string; exercises: PlanExercise[]}}
-  )[] = [];
+    | {
+        type: 'group';
+        group: {id: number; name: string; exercises: PlanExercise[]};
+      }
+    )[] = [];
 
-    planExercises.forEach(ex => {
+  planExercises.forEach(ex => {
     if (ex.groupId && groupMap[ex.groupId]) {
       if (!groupMap[ex.groupId].name && ex.trainingMethod) {
         groupMap[ex.groupId].name = ex.trainingMethod.name;
       }
       groupMap[ex.groupId].exercises.push(ex);
-            if (!encounteredGroups.has(ex.groupId)) {
+      if (!encounteredGroups.has(ex.groupId)) {
         displayList.push({type: 'group', group: groupMap[ex.groupId]});
         encounteredGroups.add(ex.groupId);
       }
@@ -95,50 +109,63 @@ const groupMap: Record<
     }
   });
 
-  type PlanInstance = {planEx: PlanExercise; globalIdx: number};
+  type PlanInstance = {planEx: PlanExercise; globalIdx: number; key: string};
   const planInstances: PlanInstance[] = [];
+  const counts: Record<number, number> = {};
   let globalIdxCounter = 0;
   for (const item of displayList) {
     if (item.type === 'exercise') {
-      planInstances.push({planEx: item.exercise, globalIdx: globalIdxCounter});
+      const idx = counts[item.exercise.exerciseId] ?? 0;
+      counts[item.exercise.exerciseId] = idx + 1;
+        planInstances.push({
+        planEx: item.exercise,
+        globalIdx: globalIdxCounter,
+        key: `${item.exercise.exerciseId}-${idx}`,
+      });
       globalIdxCounter++;
     } else {
       for (const ex of item.group.exercises) {
-        planInstances.push({planEx: ex, globalIdx: globalIdxCounter});
+        const idx = counts[ex.exerciseId] ?? 0;
+        counts[ex.exerciseId] = idx + 1;
+        planInstances.push({
+          planEx: ex,
+          globalIdx: globalIdxCounter,
+          key: `${ex.exerciseId}-${idx}`,
+        });
         globalIdxCounter++;
       }
     }
   }
 
-    // Group logs by consecutive set numbers so each instance claims the correct logs
-  const groupedLogs = useMemo(() => {
-    const groups: {exerciseId: number; logs: ExerciseLog[]}[] = [];
-    let current: {exerciseId: number; logs: ExerciseLog[]} | null = null;
+  const groupedLogs: LogGroup[] = useMemo(() => {
+    const groups: LogGroup[] = [];
+    let current: LogGroup | null = null;
 
     (exerciseLogs ?? []).forEach(log => {
+      const groupKey =
+        log.groupKey ?? `${log.exerciseId}-${log.instanceKey ?? ''}`;
       const shouldStartNew =
         !current ||
-        current.exerciseId !== log.exerciseId ||
+        current.key !== groupKey ||
         log.setNumber !== (current.logs.at(-1)?.setNumber ?? 0) + 1;
 
       if (shouldStartNew) {
-        if (current) groups.push(current);
-        current = {exerciseId: log.exerciseId, logs: [log]};
+        if (current) groups.push(current as LogGroup);
+        current = {exerciseId: log.exerciseId, key: groupKey, logs: [log]};
       } else {
         current!.logs.push(log);
       }
     });
 
-    if (current) groups.push(current);
+    if (current) groups.push(current as LogGroup);
 
-      // Merge with any previous group if numbering continues
     const merged: typeof groups = [];
     for (const group of groups) {
       let mergedInto = false;
       for (let i = merged.length - 1; i >= 0; i--) {
         const prev = merged[i];
         if (
-          prev.exerciseId === group.exerciseId &&
+          prev.key === group.key &&
           group.logs[0]?.setNumber === (prev.logs.at(-1)?.setNumber ?? 0) + 1
         ) {
           prev.logs.push(...group.logs);
@@ -152,22 +179,17 @@ const groupMap: Record<
     return merged;
   }, [exerciseLogs]);
 
-  // Mutable copy for sequential consumption during render
-  const remainingGroups = [...groupedLogs];
-
-    return (
+ return (
     <Portal>
       {!expanded && (
         <View
           style={[
             styles.collapsedWrapper,
             {
-              top: '50%',
-              transform: [{translateY: -collapsedHeight / 2}],
+              top: topOffset,
               borderColor: theme.colors.accentStart,
             },
-          ]}
-          onLayout={e => setCollapsedHeight(e.nativeEvent.layout.height)}>
+          ]}>
           <TouchableOpacity
             style={styles.collapsedTab}
             onPress={() => setExpanded(true)}
@@ -182,92 +204,102 @@ const groupMap: Record<
       )}
 
       {expanded && (
-      <View style={[
-        styles.expandedWrapper,
-        {
-          top: '50%',
-          transform: [{translateY: -expandedHeight / 2}],
-          borderColor: theme.colors.accentStart,
-        },
-      ]}
-      onLayout={e => setExpandedHeight(e.nativeEvent.layout.height)}>
-        <TouchableOpacity
-          style={styles.expandedBox}
-          activeOpacity={1}
-          onPress={() => setExpanded(false)}
-        >
-          <View style={styles.headerRow}>
-            <Text style={styles.headerText}>Plan</Text>
-          </View>
-
-          {(() => {
-              return displayList.map(item => {
-                if (item.type === 'exercise') {
-                  const planEx = item.exercise;
-                  let matchedLogs: ExerciseLog[] = [];
-                  const idx = remainingGroups.findIndex(
-                    g => g.exerciseId === planEx.exerciseId,
-                  );
-                  if (idx !== -1) {
-                    const group = remainingGroups.splice(0, idx + 1).pop();
-                    if (group) matchedLogs = group.logs.slice(0, planEx.targetSets);
-                  }
-                  const completed = matchedLogs.length;
-                  return (
-                    <View key={`ex-${planEx.exerciseId}-${completed}`} style={styles.exerciseItem}>
-                      <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                        <Text style={styles.name}>{planEx.name}</Text>
-                        {completed >= planEx.targetSets ? (
-                          <Text style={{marginLeft: 4, color: 'green'}}>✔️</Text>
-                        ) : null}
-                      </View>
-                      <Text style={styles.details}>
-                        {formatMetrics(planEx.targetMetrics)} ({completed}/
-                        {planEx.targetSets} sets)
-                      </Text>
-                    </View>
-                  );
-                }
-                return (
-                  <ExerciseGroupCard
-                    key={`group-${item.group.id}`}
-                    label={item.group.name || 'Group'}
-                    borderColor={theme.colors.accentStart}
-                    textColor={theme.colors.accentStart}
-                      backgroundColor="white">
-                    {item.group.exercises.map(ex => {
-                      let matchedLogs: ExerciseLog[] = [];
-                      const idx = remainingGroups.findIndex(
-                        g => g.exerciseId === ex.exerciseId,
-                      );
-                      if (idx !== -1) {
-                        const group = remainingGroups.splice(0, idx + 1).pop();
-                        if (group) matchedLogs = group.logs.slice(0, ex.targetSets);
-                      }
-                      const completed = matchedLogs.length;
-                      return (
-                        <View key={ex.exerciseId} style={styles.exerciseItem}>
-                          <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                            <Text style={styles.name}>{ex.name}</Text>
-                            {completed >= ex.targetSets ? (
-                              <Text style={{marginLeft: 4, color: 'green'}}>✔️</Text>
-                            ) : null}
-                          </View>
-                          <Text style={styles.details}>
-                            {formatMetrics(ex.targetMetrics)} ({completed}/
-                            {ex.targetSets} sets)
-                          </Text>
+        <View
+          style={[
+            styles.expandedWrapper,
+            {
+              top: topOffset,
+              borderColor: theme.colors.accentStart,
+              maxHeight,
+            },
+          ]}>
+          <TouchableOpacity
+            style={styles.expandedBox}
+            activeOpacity={1}
+            onPress={() => setExpanded(false)}>
+            <View style={styles.headerRow}>
+              <Text style={styles.headerText}>Plan</Text>
+            </View>
+                        <ScrollView>
+              {(() => {
+                let instanceIdx = 0;
+                return displayList.map(item => {
+                  if (item.type === 'exercise') {
+                    const instance = planInstances[instanceIdx++];
+                    const planEx = instance.planEx;
+                    const matchingGroup = groupedLogs.find(
+                      g => g.key === instance.key,
+                    );
+                    const completed = matchingGroup?.logs.length ?? 0;
+                    const itemKey = instance.key;
+                    return (
+                      <TouchableOpacity
+                        key={`ex-${planEx.exerciseId}-${instance.globalIdx}`}
+                        style={styles.exerciseItem}
+                        onPress={() => onSelect?.(itemKey, planEx.exerciseId)}>
+                        <View
+                          style={{flexDirection: 'row', alignItems: 'center'}}>
+                          <Text style={styles.name}>{planEx.name}</Text>
+                          {completed >= planEx.targetSets ? (
+                            <Text style={{marginLeft: 4, color: 'green'}}>
+                              ✔️
+                            </Text>
+                          ) : null}
                         </View>
-                      );
-                    })}
-                  </ExerciseGroupCard>
-                );
-              });
-            })()}
-        </TouchableOpacity>
-      </View>
-    )}
-  </Portal>
+                        <Text style={styles.details}>
+                          {formatMetrics(planEx.targetMetrics)} ({completed}/
+                          {planEx.targetSets} sets)
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  }
+                  return (
+                    <ExerciseGroupCard
+                      key={`group-${item.group.id}`}
+                      label={item.group.name || 'Group'}
+                      borderColor={theme.colors.accentStart}
+                      textColor={theme.colors.accentStart}
+                      backgroundColor="white">
+                      {item.group.exercises.map(ex => {
+                        const instance = planInstances[instanceIdx++];
+                        const matchingGroup = groupedLogs.find(
+                          g => g.key === instance.key,
+                        );
+                        const completed = matchingGroup?.logs.length ?? 0;
+                        const itemKey = instance.key;
+                        return (
+                          <TouchableOpacity
+                            key={ex.exerciseId}
+                            style={styles.exerciseItem}
+                            onPress={() => onSelect?.(itemKey, ex.exerciseId)}>
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                              }}>
+                              <Text style={styles.name}>{ex.name}</Text>
+                              {completed >= ex.targetSets ? (
+                                <Text style={{marginLeft: 4, color: 'green'}}>
+                                  ✔️
+                                </Text>
+                              ) : null}
+                            </View>
+                            <Text style={styles.details}>
+                              {formatMetrics(ex.targetMetrics)} ({completed}/
+                              {ex.targetSets} sets)
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ExerciseGroupCard>
+                  );
+                });
+              })()}
+            </ScrollView>
+          </TouchableOpacity>
+        </View>
+      )}
+    </Portal>
   );
 }
 

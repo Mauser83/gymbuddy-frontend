@@ -24,7 +24,9 @@ export default function ExerciseCarousel({
   const width = Dimensions.get('window').width - spacing.lg * 2;
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({x: index * width, animated: false});
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({x: index * width, animated: false});
+    }, 0);
   }, [index, width]);
 
   const handleScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -39,8 +41,7 @@ export default function ExerciseCarousel({
       ref={scrollRef}
       showsHorizontalScrollIndicator={false}
       onMomentumScrollEnd={handleScrollEnd}
-      style={styles.scroll}
-    >
+      style={styles.scroll}>
       {React.Children.map(children, (child, i) => (
         <View style={{width}} key={i}>
           {child}
