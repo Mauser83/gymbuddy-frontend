@@ -3,6 +3,11 @@ export interface ExerciseLog {
   id: number;
   exerciseId: number;
   setNumber: number;
+  carouselOrder?: number | null;
+  groupKey?: string | null;
+  instanceKey?: string | null;
+  completedAt?: string | null;
+  isAutoFilled?: boolean | null;
   metrics?: Record<number, number | string>; // ✅ new dynamic metrics field
   notes?: string;
   equipmentIds: number[]; // 🆕

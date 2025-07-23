@@ -132,6 +132,11 @@ export const GET_WORKOUT_SESSION = gql`
         id
         exerciseId
         setNumber
+        carouselOrder
+        groupKey
+        instanceKey
+        completedAt
+        isAutoFilled
         equipmentIds
         metrics
         notes
@@ -146,6 +151,11 @@ export const CREATE_EXERCISE_LOG = gql`
       id
       exerciseId
       setNumber
+      carouselOrder
+      groupKey
+      instanceKey
+      completedAt
+      isAutoFilled
       metrics
       notes
       equipmentIds
@@ -159,6 +169,11 @@ export const UPDATE_EXERCISE_LOG = gql`
       id
       exerciseId
       setNumber
+      carouselOrder
+      groupKey
+      instanceKey
+      completedAt
+      isAutoFilled
       metrics
       notes
       equipmentIds

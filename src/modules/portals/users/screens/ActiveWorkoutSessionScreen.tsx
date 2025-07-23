@@ -27,6 +27,7 @@ import {WorkoutSessionData, ExerciseLog} from '../types/userWorkouts.types';
 import SelectableField from 'shared/components/SelectableField';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import PlanTargetChecklist from '../components/PlanTargetChecklist';
+import ExerciseCarousel from '../components/ExerciseCarousel';
 import MetricInputGroup from 'shared/components/MetricInputGroup';
 import {useMetricRegistry} from 'shared/context/MetricRegistry';
 import {generateMetricSchema} from 'shared/utils/generateMetricSchema';
@@ -51,6 +52,7 @@ export default function ActiveWorkoutSessionScreen() {
   const [logs, setLogs] = useState<ExerciseLog[]>([]);
   const [editingLogId, setEditingLogId] = useState<number | null>(null);
   const [expandedSetId, setExpandedSetId] = useState<number | null>(null);
+  const [carouselIndex, setCarouselIndex] = useState(0);
   const [defaultSelectedEquipmentIds, setDefaultSelectedEquipmentIds] =
     useState<number[]>([]);
   const [nextSetPlacement, setNextSetPlacement] = useState<
@@ -89,64 +91,39 @@ export default function ActiveWorkoutSessionScreen() {
   }, [session]);
 
   const groupedLogs = useMemo(() => {
-    const groups: {
-      key: string;
-      exerciseId: number;
-      logs: ExerciseLog[];
-      equipmentIds: Set<number>;
-      name?: string;
-    }[] = [];
+    const sorted = [...logs].sort((a, b) => {
+      const ao = a.carouselOrder ?? 0;
+      const bo = b.carouselOrder ?? 0;
+      if (ao !== bo) return ao - bo;
+      return a.id - b.id;
+    });
 
-    let currentGroup: (typeof groups)[number] | null = null;
+    const map = new Map<
+      string,
+      {
+        key: string;
+        exerciseId: number;
+        logs: ExerciseLog[];
+        equipmentIds: Set<number>;
+      }
+    >();
 
-    for (const log of logs) {
-      const lastGroup = groups.at(-1);
-      const shouldStartNew =
-        !lastGroup ||
-        lastGroup.exerciseId !== log.exerciseId ||
-        log.setNumber !== (lastGroup.logs.at(-1)?.setNumber ?? 0) + 1;
-
-      if (shouldStartNew) {
-        currentGroup = {
-          key: `${log.exerciseId}-${log.id}`, // unique per occurrence
+    for (const log of sorted) {
+      const key = log.groupKey ?? `${log.exerciseId}-${log.instanceKey ?? ''}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
           exerciseId: log.exerciseId,
           logs: [],
           equipmentIds: new Set<number>(),
-        };
-        groups.push(currentGroup);
+        });
       }
-
-      currentGroup = groups.at(-1)!;
-      log.equipmentIds?.forEach(id => currentGroup!.equipmentIds.add(id));
-      currentGroup.logs.push(log);
+      const group = map.get(key)!;
+      log.equipmentIds?.forEach(id => group.equipmentIds.add(id));
+      group.logs.push(log);
     }
 
-    // Merge groups that belong to the same exercise when set numbering
-    // continues from a previous group. This handles the case where new sets
-    // were inserted later but should belong to an earlier instance.
-    const merged: typeof groups = [];
-    for (const group of groups) {
-      let mergedInto = false;
-      for (let i = merged.length - 1; i >= 0; i--) {
-        const prev = merged[i];
-        if (
-          prev.exerciseId === group.exerciseId &&
-          group.logs[0]?.setNumber === (prev.logs.at(-1)?.setNumber ?? 0) + 1
-        ) {
-          prev.logs.push(...group.logs);
-          group.logs.forEach(log =>
-            log.equipmentIds?.forEach(id => prev.equipmentIds.add(id)),
-          );
-          mergedInto = true;
-          break;
-        }
-      }
-      if (!mergedInto) {
-        merged.push(group);
-      }
-    }
-
-    return merged.map(group => {
+    return Array.from(map.values()).map(group => {
       const exercise = exercisesData?.exercisesAvailableAtGym.find(
         (ex: any) => ex.id === group.exerciseId,
       );
@@ -261,14 +238,14 @@ export default function ActiveWorkoutSessionScreen() {
               name: ex.exercise.name,
               targetSets: ex.targetSets,
               targetMetrics: ex.targetMetrics ?? [],
-                            groupId: ex.groupId,
+              groupId: ex.groupId,
               trainingMethod: ex.trainingMethod
                 ? {id: ex.trainingMethod.id, name: ex.trainingMethod.name}
                 : undefined,
-                          }))}
+            }))}
             groups={session?.workoutPlan?.groups ?? []}
             exerciseLogs={logs}
-                      />
+          />
         )}
         <Formik
           initialValues={initialValues}
@@ -309,7 +286,6 @@ export default function ActiveWorkoutSessionScreen() {
                 const log = logs.find(l => l.id === expandedSetId);
                 if (!log) return false;
 
-
                 const updatedMetrics = values[expandedSetId]?.metrics ?? {};
                 const updatedNotes = values[expandedSetId]?.notes ?? '';
                 const updatedEquipmentIds =
@@ -332,12 +308,16 @@ export default function ActiveWorkoutSessionScreen() {
                   return true;
                 }
 
-
                 const input: any = {
                   setNumber: Number(log.setNumber),
                   metrics: updatedMetrics,
                   notes: updatedNotes,
                   equipmentIds: updatedEquipmentIds,
+                  carouselOrder: log.carouselOrder,
+                  groupKey: log.groupKey,
+                  instanceKey: log.instanceKey,
+                  completedAt: log.completedAt,
+                  isAutoFilled: log.isAutoFilled,
                 };
 
                 const {data} = await updateExerciseLog({
@@ -365,8 +345,9 @@ export default function ActiveWorkoutSessionScreen() {
 
             return (
               <>
+              <ExerciseCarousel index={carouselIndex} onIndexChange={setCarouselIndex}>
                 {groupedLogs.map(group => (
-                  <Card key={group.key} style={{marginBottom: 16}}>
+                  <Card key={group.key} style={{marginVertical: 16}}>
                     <Title text={group.name} />
                     {group.logs.map(log => {
                       const isExpanded = expandedSetId === log.id;
@@ -533,7 +514,13 @@ export default function ActiveWorkoutSessionScreen() {
                           equipmentIds: [
                             ...(group.logs.at(-1)?.equipmentIds ?? []),
                           ],
-                        };
+                          carouselOrder: group.logs[0]?.carouselOrder ??
+                            (carouselIndex + 1),
+                          groupKey: group.logs[0]?.groupKey ?? group.key,
+                          instanceKey: group.logs[0]?.instanceKey ?? group.key,
+                          completedAt: null,
+                          isAutoFilled: false,
+                                                };
 
                         const {data} = await createExerciseLog({
                           variables: {input: baseLog},
@@ -555,7 +542,8 @@ export default function ActiveWorkoutSessionScreen() {
                     />
                   </Card>
                 ))}
-
+              </ExerciseCarousel>
+              
                 <Card>
                   {nextSetPlacement === 'addExercise' && nextSet && (
                     <>
@@ -689,7 +677,12 @@ export default function ActiveWorkoutSessionScreen() {
               metrics, // default empty metrics; user will fill it in
               notes: '',
               equipmentIds,
-            };
+              carouselOrder: groupedLogs.length + 1,
+              groupKey: `ex-${selectedExercise.id}-${Date.now()}`,
+              instanceKey: `ex-${selectedExercise.id}-${Date.now()}`,
+              completedAt: null,
+              isAutoFilled: false,
+                        };
 
             const {data} = await createExerciseLog({
               variables: {input: baseLog},
