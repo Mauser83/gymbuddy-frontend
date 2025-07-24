@@ -126,6 +126,11 @@ export const GET_WORKOUT_SESSION = gql`
           id
           order
           trainingMethodId
+          trainingMethod {
+            id
+            name
+            shouldAlternate
+          }
         }
       }
       exerciseLogs {

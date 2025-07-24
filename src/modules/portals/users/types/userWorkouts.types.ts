@@ -59,6 +59,11 @@ export interface WorkoutSessionData {
         id: number;
         order?: number | null;
         trainingMethodId?: number | null;
+        trainingMethod?: {
+          id: number;
+          name: string;
+          shouldAlternate?: boolean | null;
+        } | null;
       }[];
     } | null;
     exerciseLogs: ExerciseLog[];

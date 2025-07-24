@@ -32,6 +32,7 @@ export interface PlanExercise {
     id: number;
     name: string;
   } | null;
+  isAlternating?: boolean;
 }
 
 export interface PlanGroup {

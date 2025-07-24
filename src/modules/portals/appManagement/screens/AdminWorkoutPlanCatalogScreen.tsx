@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {ScrollView, View, TouchableOpacity} from 'react-native';
+import {ScrollView, View, TouchableOpacity, Switch} from 'react-native';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Title from 'shared/components/Title';
 import Card from 'shared/components/Card';
@@ -49,6 +49,7 @@ interface TrainingMethod {
   trainingGoals?: {id: number; name: string}[]; // ← Add this
   minGroupSize?: number; // ✅ Add this
   maxGroupSize?: number; // ✅ Add this
+  shouldAlternate?: boolean; // ✅ NEW
 }
 
 export interface IntensityPreset {
@@ -307,6 +308,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
             methodEdits[id]?.maxGroupSize === undefined
               ? null
               : methodEdits[id]?.maxGroupSize,
+          shouldAlternate: methodEdits[id]?.shouldAlternate ?? false,
         },
       },
     });
@@ -735,6 +737,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
                           name: method.name,
                           minGroupSize: method.minGroupSize ?? undefined,
                           maxGroupSize: method.maxGroupSize ?? undefined,
+                          shouldAlternate: method.shouldAlternate ?? false,
                         },
                       }));
                     },
@@ -793,7 +796,28 @@ export default function AdminWorkoutPlanCatalogScreen() {
                             />
                           </View>
                         </View>
-                        {/* NEW: Checkboxes for selecting training goals */}
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                          }}>
+                          <Title subtitle="Alternate Exercises in Group" />
+                          <Switch
+                            value={!!methodEdits[method.id]?.shouldAlternate}
+                            trackColor={{true: theme.colors.accentStart, false: 'grey'}}
+                            thumbColor={theme.colors.accentEnd}
+                            onValueChange={value =>
+                              setMethodEdits(prev => ({
+                                ...prev,
+                                [method.id]: {
+                                  ...prev[method.id],
+                                  shouldAlternate: value,
+                                },
+                              }))
+                            }
+                          />
+                        </View>
                         <Title
                           text="Linked Training Goals"
                           subtitle="Tap to toggle"

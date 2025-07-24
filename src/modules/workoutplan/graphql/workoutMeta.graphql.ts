@@ -11,6 +11,7 @@ export const GET_WORKOUT_PLAN_META = gql`
         slug
         minGroupSize
         maxGroupSize
+        shouldAlternate
       }
     }
     getIntensityPresets {
@@ -48,6 +49,7 @@ export const GET_WORKOUT_PLAN_META = gql`
       }
       minGroupSize
       maxGroupSize
+      shouldAlternate
     }
   }
 `;
@@ -84,6 +86,7 @@ export const GET_WORKOUT_PLAN_BY_ID = gql`
           name
           minGroupSize
           maxGroupSize
+          shouldAlternate
         }
       }
       intensityPreset {

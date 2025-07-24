@@ -37,10 +37,9 @@ const OptionItem = ({
               borderBottomColor: theme.colors.divider,
               borderBottomWidth: borderWidth.hairline,
             },
-      ]}>
-      <Text style={[styles.text, selected && {fontWeight: 'bold'}]}>
-        {text}
-      </Text>
+      ]}
+    >
+      <Text style={[styles.text, selected && {fontWeight: 'bold'}]}>{text}</Text>
     </TouchableOpacity>
   );
 };
