@@ -7,6 +7,8 @@ import {
   Dimensions,
   ScrollView,
 } from 'react-native';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import Animated, {SlideInRight, SlideOutRight} from 'react-native-reanimated';
 import {borderRadius, borderWidth, spacing} from 'shared/theme/tokens';
 import {Portal} from 'react-native-portalize';
 import {useTheme} from 'shared/theme/ThemeProvider';
@@ -83,7 +85,6 @@ export default function PlanTargetChecklist({
   groups.forEach(g => {
     groupMap[g.id] = {...g, name: '', exercises: []};
   });
-
 
   const encounteredGroups = new Set<number>();
   const displayList: (
@@ -204,7 +205,9 @@ export default function PlanTargetChecklist({
       )}
 
       {expanded && (
-        <View
+        <Animated.View
+          entering={SlideInRight.duration(150)}
+          exiting={SlideOutRight.duration(150)}
           style={[
             styles.expandedWrapper,
             {
@@ -213,14 +216,16 @@ export default function PlanTargetChecklist({
               maxHeight,
             },
           ]}>
-          <TouchableOpacity
-            style={styles.expandedBox}
-            activeOpacity={1}
-            onPress={() => setExpanded(false)}>
+          <View style={styles.expandedBox}>
             <View style={styles.headerRow}>
               <Text style={styles.headerText}>Plan</Text>
+              <TouchableOpacity
+                onPress={() => setExpanded(false)}
+                style={styles.closeButton}>
+                <FontAwesome name="times" size={20} color="#222" />
+              </TouchableOpacity>
             </View>
-                        <ScrollView>
+            <ScrollView>
               {(() => {
                 let instanceIdx = 0;
                 return displayList.map(item => {
@@ -296,8 +301,8 @@ export default function PlanTargetChecklist({
                 });
               })()}
             </ScrollView>
-          </TouchableOpacity>
-        </View>
+          </View>
+        </Animated.View>
       )}
     </Portal>
   );
@@ -355,7 +360,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
-  headerText: {
+  closeButton: {padding: 4},
+    headerText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#222',
