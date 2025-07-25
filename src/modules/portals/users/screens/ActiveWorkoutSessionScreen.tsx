@@ -142,17 +142,22 @@ export default function ActiveWorkoutSessionScreen() {
       }
     >();
 
-    for (const log of sorted) {
+        for (const log of sorted) {
       const instanceKey = log.instanceKey ?? `${log.exerciseId}`;
       if (!map.has(instanceKey)) {
         const planInfo = planInstances.find(p => p.key === instanceKey);
+        const isAlternating = planInfo?.isAlternating ?? false;
+        const groupingKey =
+          isAlternating && planInfo?.planEx.groupId != null
+            ? `group-${planInfo.planEx.groupId}`
+            : log.groupKey ?? instanceKey;
         map.set(instanceKey, {
           key: instanceKey,
-          groupKey: log.groupKey ?? instanceKey,
+          groupKey: groupingKey,
           exerciseId: log.exerciseId,
           logs: [],
           equipmentIds: new Set<number>(),
-          isAlternating: planInfo?.isAlternating ?? false,
+          isAlternating,
         });
       }
       const group = map.get(instanceKey)!;
@@ -477,6 +482,13 @@ export default function ActiveWorkoutSessionScreen() {
                         onPrev={() => setCarouselIndex(i - 1)}
                         onNext={() => setCarouselIndex(i + 1)}
                       />
+                      {cGroup.exercises.length === 1 &&
+                        cGroup.exercises[0].isAlternating && (
+                          <Text style={{marginTop: 8}}>
+                            Add more exercises to this group to enable
+                            alternation.
+                          </Text>
+                        )}
                       {cGroup.exercises.map(exItem => (
                         <View key={exItem.key} style={{marginTop: 8}}>
                           {cGroup.exercises.length > 1 && (
@@ -807,6 +819,21 @@ export default function ActiveWorkoutSessionScreen() {
               g => g.exerciseId === selectedExercise.id,
             ).length;
             const planKey = `${selectedExercise.id}-${existingCount}`;
+            const currentGroup = carouselGroups[carouselIndex];
+            const joinAlternatingGroup =
+              currentGroup &&
+              currentGroup.exercises.length === 1 &&
+              currentGroup.exercises[0].isAlternating;
+
+            const carouselOrder = joinAlternatingGroup
+              ? currentGroup.exercises[0].logs[0]?.carouselOrder ??
+                carouselIndex + 1
+              : groupedLogs.length + 1;
+
+            const groupKey = joinAlternatingGroup
+              ? currentGroup.groupKey
+              : planKey;
+
             const baseLog = {
               workoutSessionId: Number(sessionId),
               exerciseId: selectedExercise.id,
@@ -814,8 +841,8 @@ export default function ActiveWorkoutSessionScreen() {
               metrics, // default empty metrics; user will fill it in
               notes: '',
               equipmentIds,
-              carouselOrder: groupedLogs.length + 1,
-              groupKey: planKey,
+              carouselOrder,
+              groupKey,
               instanceKey: planKey,
               completedAt: null,
               isAutoFilled: false,
