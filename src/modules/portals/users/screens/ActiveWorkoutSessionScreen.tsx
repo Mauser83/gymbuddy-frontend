@@ -216,69 +216,95 @@ export default function ActiveWorkoutSessionScreen() {
     return values;
   }, [logs]);
 
-  const nextSet = useMemo(() => {
-    for (let i = 0; i < carouselGroups.length; i++) {
-      const group = carouselGroups[i];
-      const isAlternating = group.exercises[0]?.isAlternating;
+    const nextSet = useMemo(() => {
+    const handledAltGroups = new Set<number>();
 
-      if (isAlternating && group.exercises.length > 1) {
-        // Find exercise with the fewest sets logged
-        const exerciseToLogNext = group.exercises.reduce((minEx, currentEx) => {
-          const currentSets = currentEx.logs.length;
-          const minSets = minEx.logs.length;
+    for (let i = 0; i < planInstances.length; i++) {
+      const instance = planInstances[i];
 
-          return currentSets < minSets ? currentEx : minEx;
-        });
+      // Handle alternating groups first
+      if (
+        instance.isAlternating &&
+        instance.planEx.groupId != null &&
+        !handledAltGroups.has(instance.planEx.groupId)
+      ) {
+        handledAltGroups.add(instance.planEx.groupId);
 
-        const planWithIdx = planInstances.find(
-          p => p.key === exerciseToLogNext.key,
+        const groupInstances = planInstances.filter(
+          p => p.planEx.groupId === instance.planEx.groupId,
         );
-        if (!planWithIdx) continue;
 
-        const planEx = planWithIdx.planEx;
-        const loggedSets = exerciseToLogNext.logs.length;
+        let target: typeof instance | null = null;
+        let minLogged = Infinity;
 
-        if (loggedSets < (planEx.targetSets ?? 1)) {
-          setNextSetPlacement('addSet');
+        for (const gi of groupInstances) {
+          const giLogged = logs.filter(l => l.instanceKey === gi.key).length;
+          if (
+            giLogged < (gi.planEx.targetSets ?? 1) &&
+            giLogged < minLogged
+          ) {
+            minLogged = giLogged;
+            target = gi;
+          }
+        }
+
+        if (target) {
+          const cIndex = carouselGroups.findIndex(g =>
+            g.exercises.some(e => e.key === target!.key),
+          );
+
+          if (cIndex !== -1) {
+            setNextSetPlacement('addSet');
+          } else {
+            setNextSetPlacement('addExercise');
+          }
+
           return {
-            exerciseId: planEx.exercise.id,
-            name: planEx.exercise.name,
-            currentSetIndex: loggedSets,
-            targetMetrics: planEx.targetMetrics ?? [],
-            groupKey: exerciseToLogNext.key,
-            carouselIndex: i,
-            completed: loggedSets,
-            total: planEx.targetSets ?? 1,
+            exerciseId: target.planEx.exercise.id,
+            name: target.planEx.exercise.name,
+            currentSetIndex: minLogged,
+            targetMetrics: target.planEx.targetMetrics ?? [],
+            groupKey: target.key,
+            carouselIndex: cIndex,
+            completed: minLogged,
+            total: target.planEx.targetSets ?? 1,
           };
         }
-      } else {
-        // Non-alternating
-        const exercise = group.exercises[0];
-        const planWithIdx = planInstances.find(p => p.key === exercise.key);
-        if (!planWithIdx) continue;
 
-        const planEx = planWithIdx.planEx;
-        const loggedSets = exercise.logs.length;
+        // All exercises in this group are complete, continue
+        continue;
+      }
 
-        if (loggedSets < (planEx.targetSets ?? 1)) {
+      const logsForInstance = logs.filter(l => l.instanceKey === instance.key);
+      const loggedSets = logsForInstance.length;
+
+      if (loggedSets < (instance.planEx.targetSets ?? 1)) {
+        const cIndex = carouselGroups.findIndex(g =>
+          g.exercises.some(e => e.key === instance.key),
+        );
+
+        if (cIndex !== -1) {
           setNextSetPlacement('addSet');
-          return {
-            exerciseId: planEx.exercise.id,
-            name: planEx.exercise.name,
-            currentSetIndex: loggedSets,
-            targetMetrics: planEx.targetMetrics ?? [],
-            groupKey: exercise.key,
-            carouselIndex: i,
-            completed: loggedSets,
-            total: planEx.targetSets ?? 1,
-          };
+        } else {
+          setNextSetPlacement('addExercise');
         }
+
+        return {
+          exerciseId: instance.planEx.exercise.id,
+          name: instance.planEx.exercise.name,
+          currentSetIndex: loggedSets,
+          targetMetrics: instance.planEx.targetMetrics ?? [],
+          groupKey: instance.key,
+          carouselIndex: cIndex,
+          completed: loggedSets,
+          total: instance.planEx.targetSets ?? 1,
+        };
       }
     }
 
     setNextSetPlacement(null);
     return null;
-  }, [planInstances, groupedLogs, carouselGroups]);
+  }, [planInstances, logs, carouselGroups]);
 
   const availableExercises = useMemo(() => {
     if (!exercisesData || !equipmentData || !session?.gym?.id) return [];
@@ -438,7 +464,9 @@ export default function ActiveWorkoutSessionScreen() {
               <>
                 {nextSet && (
                   <View style={{marginBottom: 8}}>
-                    {carouselIndex !== nextSet.carouselIndex ? (
+                    {nextSet.carouselIndex != null &&
+                    nextSet.carouselIndex >= 0 &&
+                    carouselIndex !== nextSet.carouselIndex ? (
                       <TouchableOpacity
                         onPress={() => setCarouselIndex(nextSet.carouselIndex)}>
                         <View
@@ -878,6 +906,11 @@ export default function ActiveWorkoutSessionScreen() {
 
             const savedLog = data.createExerciseLog;
             setLogs(prev => [...prev, savedLog]);
+
+            const newIndex = joinAlternatingGroup
+              ? carouselIndex
+              : carouselGroups.length;
+            setCarouselIndex(newIndex);
             setExpandedSetId(savedLog.id);
           }
 
