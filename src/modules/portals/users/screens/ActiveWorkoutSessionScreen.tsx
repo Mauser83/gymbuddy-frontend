@@ -392,8 +392,10 @@ export default function ActiveWorkoutSessionScreen() {
             groups={session?.workoutPlan?.groups ?? []}
             exerciseLogs={logs}
             onSelect={(key, _exerciseId) => {
-              const idx = groupedLogs.findIndex(g => g.key === key);
-              if (idx !== -1) setCarouselIndex(idx);
+              const cIdx = carouselGroups.findIndex(g =>
+                g.exercises.some(e => e.key === key),
+              );
+              if (cIdx !== -1) setCarouselIndex(cIdx);
             }}
           />
         )}
@@ -581,7 +583,9 @@ export default function ActiveWorkoutSessionScreen() {
                         <ExerciseNavHeader
                           title={
                             cGroup.exercises.length > 1
-                              ? 'Group'
+                              ? (session?.workoutPlan?.groups.find(
+                                  g => `group-${g.id}` === cGroup.groupKey,
+                                )?.trainingMethod?.name ?? 'Group')
                               : cGroup.exercises[0].name
                           }
                           showPrev={i > 0}

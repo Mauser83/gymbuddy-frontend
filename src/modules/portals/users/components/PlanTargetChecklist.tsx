@@ -41,12 +41,6 @@ export interface PlanGroup {
   trainingMethodId?: number | null;
 }
 
-interface LogGroup {
-  exerciseId: number;
-  key: string;
-  logs: ExerciseLog[];
-}
-
 interface PlanTargetChecklistProps {
   planExercises: PlanExercise[];
   groups?: PlanGroup[];
@@ -139,46 +133,16 @@ export default function PlanTargetChecklist({
     }
   }
 
-  const groupedLogs: LogGroup[] = useMemo(() => {
-    const groups: LogGroup[] = [];
-    let current: LogGroup | null = null;
-
-    (exerciseLogs ?? []).forEach(log => {
-      const groupKey =
-        log.groupKey ?? `${log.exerciseId}-${log.instanceKey ?? ''}`;
-      const shouldStartNew =
-        !current ||
-        current.key !== groupKey ||
-        log.setNumber !== (current.logs.at(-1)?.setNumber ?? 0) + 1;
-
-      if (shouldStartNew) {
-        if (current) groups.push(current as LogGroup);
-        current = {exerciseId: log.exerciseId, key: groupKey, logs: [log]};
-      } else {
-        current!.logs.push(log);
+  const groupedLogs = useMemo(() => {
+    const map = new Map<string, ExerciseLog[]>();
+    for (const log of exerciseLogs ?? []) {
+      const key = log.instanceKey ?? `${log.exerciseId}-0`;
+      if (!map.has(key)) {
+        map.set(key, []);
       }
-    });
-
-    if (current) groups.push(current as LogGroup);
-
-    const merged: typeof groups = [];
-    for (const group of groups) {
-      let mergedInto = false;
-      for (let i = merged.length - 1; i >= 0; i--) {
-        const prev = merged[i];
-        if (
-          prev.key === group.key &&
-          group.logs[0]?.setNumber === (prev.logs.at(-1)?.setNumber ?? 0) + 1
-        ) {
-          prev.logs.push(...group.logs);
-          mergedInto = true;
-          break;
-        }
-      }
-      if (!mergedInto) merged.push(group);
+      map.get(key)!.push(log);
     }
-
-    return merged;
+    return map;
   }, [exerciseLogs]);
 
  return (
@@ -233,10 +197,7 @@ export default function PlanTargetChecklist({
                   if (item.type === 'exercise') {
                     const instance = planInstances[instanceIdx++];
                     const planEx = instance.planEx;
-                    const matchingGroup = groupedLogs.find(
-                      g => g.key === instance.key,
-                    );
-                    const completed = matchingGroup?.logs.length ?? 0;
+                    const completed = groupedLogs.get(instance.key)?.length ?? 0;
                     const itemKey = instance.key;
                     return (
                       <TouchableOpacity
@@ -268,10 +229,7 @@ export default function PlanTargetChecklist({
                       backgroundColor="white">
                       {item.group.exercises.map(ex => {
                         const instance = planInstances[instanceIdx++];
-                        const matchingGroup = groupedLogs.find(
-                          g => g.key === instance.key,
-                        );
-                        const completed = matchingGroup?.logs.length ?? 0;
+                        const completed = groupedLogs.get(instance.key)?.length ?? 0;
                         const itemKey = instance.key;
                         return (
                           <TouchableOpacity

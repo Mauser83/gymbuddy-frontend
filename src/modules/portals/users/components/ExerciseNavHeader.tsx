@@ -61,9 +61,9 @@ const styles = StyleSheet.create({
     top: 0,
   },
   left: {
-    left: 0,
+    left: -20,
   },
   right: {
-    right: 0,
+    right: -20,
   },
 });
