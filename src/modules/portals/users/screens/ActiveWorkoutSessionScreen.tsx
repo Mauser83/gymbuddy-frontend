@@ -61,7 +61,9 @@ export default function ActiveWorkoutSessionScreen() {
   const [nextSetPlacement, setNextSetPlacement] = useState<
     'addSet' | 'addExercise' | null
   >(null);
-  const [groupAlternationIndex, setGroupAlternationIndex] = useState<Record<string, number>>({});
+  const [groupAlternationIndex, setGroupAlternationIndex] = useState<
+    Record<string, number>
+  >({});
 
   const {data} = useQuery<WorkoutSessionData>(GET_WORKOUT_SESSION, {
     variables: {id: Number(sessionId)},
@@ -142,7 +144,7 @@ export default function ActiveWorkoutSessionScreen() {
       }
     >();
 
-        for (const log of sorted) {
+    for (const log of sorted) {
       const instanceKey = log.instanceKey ?? `${log.exerciseId}`;
       if (!map.has(instanceKey)) {
         const planInfo = planInstances.find(p => p.key === instanceKey);
@@ -150,7 +152,7 @@ export default function ActiveWorkoutSessionScreen() {
         const groupingKey =
           isAlternating && planInfo?.planEx.groupId != null
             ? `group-${planInfo.planEx.groupId}`
-            : log.groupKey ?? instanceKey;
+            : (log.groupKey ?? instanceKey);
         map.set(instanceKey, {
           key: instanceKey,
           groupKey: groupingKey,
@@ -192,7 +194,7 @@ export default function ActiveWorkoutSessionScreen() {
     return order.map(key => ({groupKey: key, exercises: map.get(key)!}));
   }, [groupedLogs]);
 
-    useEffect(() => {
+  useEffect(() => {
     const currentGroup = carouselGroups[carouselIndex];
     if (currentGroup?.exercises?.[0]?.isAlternating) {
       setGroupAlternationIndex(prev => ({
@@ -202,7 +204,6 @@ export default function ActiveWorkoutSessionScreen() {
     }
   }, [carouselIndex, carouselGroups]);
 
-  
   const initialValues = useMemo(() => {
     const values: Record<number, any> = {};
     logs.forEach(log => {
@@ -216,29 +217,62 @@ export default function ActiveWorkoutSessionScreen() {
   }, [logs]);
 
   const nextSet = useMemo(() => {
-    for (let i = 0; i < groupedLogs.length; i++) {
-      const group = groupedLogs[i];
-      const planWithIdx = planInstances.find(p => p.key === group.key);
-      if (!planWithIdx) continue;
+    for (let i = 0; i < carouselGroups.length; i++) {
+      const group = carouselGroups[i];
+      const isAlternating = group.exercises[0]?.isAlternating;
 
-      const planEx = planWithIdx.planEx;
-      const loggedSets = group.logs.length;
+      if (isAlternating && group.exercises.length > 1) {
+        // Find exercise with the fewest sets logged
+        const exerciseToLogNext = group.exercises.reduce((minEx, currentEx) => {
+          const currentSets = currentEx.logs.length;
+          const minSets = minEx.logs.length;
 
-      if (loggedSets < (planEx.targetSets ?? 1)) {
-        setNextSetPlacement('addSet');
+          return currentSets < minSets ? currentEx : minEx;
+        });
 
-        return {
-          exerciseId: planEx.exercise.id,
-          name: planEx.exercise.name,
-          currentSetIndex: loggedSets,
-          targetMetrics: planEx.targetMetrics ?? [],
-          groupKey: group.key,
-          carouselIndex: carouselGroups.findIndex(
-            cg => cg.groupKey === group.groupKey,
-          ),
-          completed: loggedSets,
-          total: planEx.targetSets ?? 1,
-        };
+        const planWithIdx = planInstances.find(
+          p => p.key === exerciseToLogNext.key,
+        );
+        if (!planWithIdx) continue;
+
+        const planEx = planWithIdx.planEx;
+        const loggedSets = exerciseToLogNext.logs.length;
+
+        if (loggedSets < (planEx.targetSets ?? 1)) {
+          setNextSetPlacement('addSet');
+          return {
+            exerciseId: planEx.exercise.id,
+            name: planEx.exercise.name,
+            currentSetIndex: loggedSets,
+            targetMetrics: planEx.targetMetrics ?? [],
+            groupKey: exerciseToLogNext.key,
+            carouselIndex: i,
+            completed: loggedSets,
+            total: planEx.targetSets ?? 1,
+          };
+        }
+      } else {
+        // Non-alternating
+        const exercise = group.exercises[0];
+        const planWithIdx = planInstances.find(p => p.key === exercise.key);
+        if (!planWithIdx) continue;
+
+        const planEx = planWithIdx.planEx;
+        const loggedSets = exercise.logs.length;
+
+        if (loggedSets < (planEx.targetSets ?? 1)) {
+          setNextSetPlacement('addSet');
+          return {
+            exerciseId: planEx.exercise.id,
+            name: planEx.exercise.name,
+            currentSetIndex: loggedSets,
+            targetMetrics: planEx.targetMetrics ?? [],
+            groupKey: exercise.key,
+            carouselIndex: i,
+            completed: loggedSets,
+            total: planEx.targetSets ?? 1,
+          };
+        }
       }
     }
 
@@ -444,7 +478,18 @@ export default function ActiveWorkoutSessionScreen() {
                         )}
                         <Text>
                           <Text style={{color: theme.colors.textPrimary}}>
-                            Set {nextSet.currentSetIndex + 1}:{' '}
+                            Next:{' '}
+                          </Text>
+                          <Text
+                            style={{
+                              fontWeight: 'bold',
+                              color: theme.colors.accentStart,
+                            }}>
+                            {nextSet.name}
+                          </Text>
+                          <Text style={{color: theme.colors.textPrimary}}>
+                            {' '}
+                            – Set {nextSet.currentSetIndex + 1}:{' '}
                           </Text>
                           <Text style={{color: theme.colors.accentStart}}>
                             {formatPlanMetrics(
@@ -461,9 +506,10 @@ export default function ActiveWorkoutSessionScreen() {
                 <ExerciseCarousel
                   index={carouselIndex}
                   onIndexChange={setCarouselIndex}>
-                                    {carouselGroups.map((cGroup, i) => {
+                  {carouselGroups.map((cGroup, i) => {
                     const activeExerciseKeyForGroup =
-                      cGroup.exercises[0].isAlternating && cGroup.exercises.length > 1
+                      cGroup.exercises[0].isAlternating &&
+                      cGroup.exercises.length > 1
                         ? cGroup.exercises[
                             groupAlternationIndex[cGroup.groupKey] ?? 0
                           ]?.key
@@ -471,250 +517,228 @@ export default function ActiveWorkoutSessionScreen() {
 
                     return (
                       <Card key={cGroup.groupKey} style={{marginVertical: 8}}>
-                      <ExerciseNavHeader
-                        title={
-                          cGroup.exercises.length > 1
-                            ? 'Group'
-                            : cGroup.exercises[0].name
-                        }
-                        showPrev={i > 0}
-                        showNext={i < carouselGroups.length - 1}
-                        onPrev={() => setCarouselIndex(i - 1)}
-                        onNext={() => setCarouselIndex(i + 1)}
-                      />
-                      {cGroup.exercises.length === 1 &&
-                        cGroup.exercises[0].isAlternating && (
-                          <Text style={{marginTop: 8}}>
-                            Add more exercises to this group to enable
-                            alternation.
-                          </Text>
-                        )}
-                      {cGroup.exercises.map(exItem => (
-                        <View key={exItem.key} style={{marginTop: 8}}>
-                          {cGroup.exercises.length > 1 && (
-                            <Text
-                              style={{
-                                fontWeight: 'bold',
-                                color: theme.colors.textPrimary,
-                                backgroundColor:
-                                  exItem.key === activeExerciseKeyForGroup
-                                    ? theme.colors.featureCardBackground
-                                    : 'transparent',
-                                padding: 4,
-                                borderRadius: 4,
-                              }}>
-                              {exItem.name}
+                        <ExerciseNavHeader
+                          title={
+                            cGroup.exercises.length > 1
+                              ? 'Group'
+                              : cGroup.exercises[0].name
+                          }
+                          showPrev={i > 0}
+                          showNext={i < carouselGroups.length - 1}
+                          onPrev={() => setCarouselIndex(i - 1)}
+                          onNext={() => setCarouselIndex(i + 1)}
+                        />
+                        {cGroup.exercises.length === 1 &&
+                          cGroup.exercises[0].isAlternating && (
+                            <Text style={{marginTop: 8, color: theme.colors.accentStart}}>
+                              Add more exercises to this group to enable
+                              alternation.
                             </Text>
                           )}
-                          {exItem.logs.map((log: ExerciseLog) => {
-                            const isExpanded = expandedSetId === log.id;
+                        {cGroup.exercises.map(exItem => (
+                          <View key={exItem.key} style={{marginTop: 8}}>
+                            {cGroup.exercises.length > 1 && (
+                              <Text
+                                style={{
+                                  fontWeight: 'bold',
+                                  color: theme.colors.textPrimary,
+                                  backgroundColor:
+                                    exItem.key === activeExerciseKeyForGroup
+                                      ? theme.colors.featureCardBackground
+                                      : 'transparent',
+                                  padding: 4,
+                                  borderRadius: 4,
+                                }}>
+                                {exItem.name}
+                              </Text>
+                            )}
+                            {exItem.logs.map((log: ExerciseLog) => {
+                              const isExpanded = expandedSetId === log.id;
 
-                            return (
-                              <View key={log.id} style={{marginTop: 8}}>
-                                <View
-                                  style={
-                                    isExpanded
-                                      ? {
-                                          borderWidth: 2,
-                                          borderColor: theme.colors.accentStart,
-                                          borderRadius: 12,
-                                          margin: -8,
-                                          marginBottom: 8,
-                                        }
-                                      : undefined
-                                  }>
+                              return (
+                                <View key={log.id} style={{marginTop: 8}}>
                                   <View
                                     style={
-                                      isExpanded ? {padding: 8} : undefined
+                                      isExpanded
+                                        ? {
+                                            borderWidth: 2,
+                                            borderColor:
+                                              theme.colors.accentStart,
+                                            borderRadius: 12,
+                                            margin: -8,
+                                            marginBottom: 8,
+                                          }
+                                        : undefined
                                     }>
-                                    <SelectableField
-                                      value={
-                                        isExpanded
-                                          ? `Set ${log.setNumber}: Editing...`
-                                          : formatSummary(log)
-                                      }
-                                      expanded={isExpanded}
-                                      onPress={async () => {
-                                        if (expandedSetId) {
-                                          const didSave =
-                                            await saveExpandedSetIfValid();
-                                          if (!didSave) return;
+                                    <View
+                                      style={
+                                        isExpanded ? {padding: 8} : undefined
+                                      }>
+                                      <SelectableField
+                                        value={
+                                          isExpanded
+                                            ? `Set ${log.setNumber}: Editing...`
+                                            : formatSummary(log)
                                         }
-                                        setExpandedSetId(prev =>
-                                          prev === log.id ? null : log.id,
-                                        );
-                                      }}
-                                    />
-                                    {isExpanded && (
-                                      <>
-                                        <View
-                                          style={{
-                                            flexDirection: 'row',
-                                            alignItems: 'flex-end',
-                                            gap: 12,
-                                          }}>
-                                          <View style={{flex: 1}}>
-                                            <DetailField
-                                              label="Equipment"
-                                              value={(log.equipmentIds ?? [])
-                                                .map((id: number) => {
-                                                  const match =
-                                                    equipmentData?.gymEquipmentByGymId.find(
-                                                      (entry: any) =>
-                                                        entry.id === id,
-                                                    );
-                                                  return (
-                                                    match?.equipment?.name ??
-                                                    `#${id}`
-                                                  );
-                                                })
-                                                .join('\n')}
-                                            />
-                                          </View>
+                                        expanded={isExpanded}
+                                        onPress={async () => {
+                                          if (expandedSetId) {
+                                            const didSave =
+                                              await saveExpandedSetIfValid();
+                                            if (!didSave) return;
+                                          }
+                                          setExpandedSetId(prev =>
+                                            prev === log.id ? null : log.id,
+                                          );
+                                        }}
+                                      />
+                                      {isExpanded && (
+                                        <>
                                           <View
-                                            style={
-                                              log.equipmentIds.length > 1
-                                                ? {
-                                                    alignSelf: 'flex-end',
-                                                    marginBottom: 12,
-                                                  }
-                                                : undefined
-                                            }>
-                                            <Button
-                                              text="Edit"
-                                              onPress={() => {
-                                                const exercise =
-                                                  exercisesData?.exercisesAvailableAtGym.find(
-                                                    (ex: any) =>
-                                                      ex.id === log.exerciseId,
+                                            style={{
+                                              flexDirection: 'row',
+                                              alignItems: 'flex-end',
+                                              gap: 12,
+                                            }}>
+                                            <View style={{flex: 1}}>
+                                              <DetailField
+                                                label="Equipment"
+                                                value={(log.equipmentIds ?? [])
+                                                  .map((id: number) => {
+                                                    const match =
+                                                      equipmentData?.gymEquipmentByGymId.find(
+                                                        (entry: any) =>
+                                                          entry.id === id,
+                                                      );
+                                                    return (
+                                                      match?.equipment?.name ??
+                                                      `#${id}`
+                                                    );
+                                                  })
+                                                  .join('\n')}
+                                              />
+                                            </View>
+                                            <View
+                                              style={
+                                                log.equipmentIds.length > 1
+                                                  ? {
+                                                      alignSelf: 'flex-end',
+                                                      marginBottom: 12,
+                                                    }
+                                                  : undefined
+                                              }>
+                                              <Button
+                                                text="Edit"
+                                                onPress={() => {
+                                                  const exercise =
+                                                    exercisesData?.exercisesAvailableAtGym.find(
+                                                      (ex: any) =>
+                                                        ex.id ===
+                                                        log.exerciseId,
+                                                    );
+                                                  if (!exercise) return;
+                                                  setSelectedExercise(exercise);
+                                                  setEditingLogId(log.id);
+                                                  setDefaultSelectedEquipmentIds(
+                                                    log.equipmentIds ?? [],
                                                   );
-                                                if (!exercise) return;
-                                                setSelectedExercise(exercise);
-                                                setEditingLogId(log.id);
-                                                setDefaultSelectedEquipmentIds(
-                                                  log.equipmentIds ?? [],
-                                                );
-                                                setEquipmentPickerVisible(true);
-                                              }}
-                                            />
+                                                  setEquipmentPickerVisible(
+                                                    true,
+                                                  );
+                                                }}
+                                              />
+                                            </View>
                                           </View>
-                                        </View>
-                                        <SetInputRow
-                                          metricIds={getMetricIdsForExercise(
-                                            log.exerciseId,
-                                          )}
-                                          values={values[log.id]?.metrics ?? {}}
-                                          onChange={(metricId, val) =>
-                                            setFieldValue(
-                                              `${log.id}.metrics.${metricId}`,
-                                              val,
-                                            )
-                                          }
-                                        />
-                                        <FormInput
-                                          label="Notes"
-                                          value={values[log.id]?.notes ?? ''}
-                                          onChangeText={handleChange(
-                                            `${log.id}.notes`,
-                                          )}
-                                          onBlur={() =>
-                                            handleBlur(`${log.id}.notes`)
-                                          }
-                                        />
-                                        <Button
-                                          text="Delete Set"
-                                          onPress={async () => {
-                                            await deleteExerciseLog({
-                                              variables: {id: log.id},
-                                            });
-                                            setLogs(prev =>
-                                              prev.filter(l => l.id !== log.id),
-                                            );
-                                            setExpandedSetId(null);
-                                          }}
-                                        />
-                                      </>
-                                    )}
+                                          <SetInputRow
+                                            metricIds={getMetricIdsForExercise(
+                                              log.exerciseId,
+                                            )}
+                                            values={
+                                              values[log.id]?.metrics ?? {}
+                                            }
+                                            onChange={(metricId, val) =>
+                                              setFieldValue(
+                                                `${log.id}.metrics.${metricId}`,
+                                                val,
+                                              )
+                                            }
+                                          />
+                                          <FormInput
+                                            label="Notes"
+                                            value={values[log.id]?.notes ?? ''}
+                                            onChangeText={handleChange(
+                                              `${log.id}.notes`,
+                                            )}
+                                            onBlur={() =>
+                                              handleBlur(`${log.id}.notes`)
+                                            }
+                                          />
+                                          <Button
+                                            text="Delete Set"
+                                            onPress={async () => {
+                                              await deleteExerciseLog({
+                                                variables: {id: log.id},
+                                              });
+                                              setLogs(prev =>
+                                                prev.filter(
+                                                  l => l.id !== log.id,
+                                                ),
+                                              );
+                                              setExpandedSetId(null);
+                                            }}
+                                          />
+                                        </>
+                                      )}
+                                    </View>
                                   </View>
                                 </View>
-                              </View>
-                            );
-                          })}
-                          <Button
-                            text="Add Set"
-                            onPress={async () => {
-                              const didSave = await saveExpandedSetIfValid();
-                              if (!didSave) return;
-                              let target;
-
-                              if (
-                                cGroup.exercises[0].isAlternating &&
-                                cGroup.exercises.length > 1
-                              ) {
-                                const currentIndex =
-                                  groupAlternationIndex[cGroup.groupKey] ?? 0;
-                                target = cGroup.exercises[currentIndex];
-
-                                const nextIndex =
-                                  (currentIndex + 1) % cGroup.exercises.length;
-                                setGroupAlternationIndex(prev => ({
-                                  ...prev,
-                                  [cGroup.groupKey]: nextIndex,
-                                }));
-                              } else {
-                                // fallback to least filled
-                                target = cGroup.exercises.reduce(
-                                  (prev, curr) =>
-                                    curr.logs.length < prev.logs.length
-                                      ? curr
-                                      : prev,
-                                  cGroup.exercises[0],
-                                );
-                              }
-                              const metrics = createDefaultMetricsForExercise(
-                                target.exerciseId,
                               );
-                              const baseLog = {
-                                workoutSessionId: Number(sessionId),
-                                exerciseId: target.exerciseId,
-                                setNumber:
-                                  (target.logs.at(-1)?.setNumber ?? 0) + 1,
-                                metrics, // default empty metrics; user will fill it in
-                                notes: '',
-                                equipmentIds: [
-                                  ...(target.logs.at(-1)?.equipmentIds ?? []),
-                                ],
-                                carouselOrder:
-                                  target.logs[0]?.carouselOrder ??
-                                  carouselIndex + 1,
-                                groupKey: target.groupKey,
-                                instanceKey: target.key,
-                                completedAt: null,
-                                isAutoFilled: false,
-                              };
+                            })}
+                            <Button
+  text="Add Set"
+  onPress={async () => {
+    const didSave = await saveExpandedSetIfValid();
+    if (!didSave) return;
 
-                              const {data} = await createExerciseLog({
-                                variables: {input: baseLog},
-                              });
+    const target = exItem; // 🔄 Use the exercise under which the button appears
 
-                              const savedLog = data.createExerciseLog;
-                              setLogs(prev => {
-                                const insertionIndex = target.logs.length
-                                  ? prev.findIndex(
-                                      l => l.id === target.logs.at(-1)!.id,
-                                    ) + 1
-                                  : prev.length;
-                                const newLogs = [...prev];
-                                newLogs.splice(insertionIndex, 0, savedLog);
-                                return newLogs;
-                              });
-                              setExpandedSetId(savedLog.id);
-                            }}
-                          />
-                        </View>
-                      ))}
-                    </Card>
-                                    );
+    // Optional: Rotate the alternation index *only* when using the shared "Follow Plan" helper (not here)
+
+    const metrics = createDefaultMetricsForExercise(target.exerciseId);
+    const baseLog = {
+      workoutSessionId: Number(sessionId),
+      exerciseId: target.exerciseId,
+      setNumber: (target.logs.at(-1)?.setNumber ?? 0) + 1,
+      metrics,
+      notes: '',
+      equipmentIds: [...(target.logs.at(-1)?.equipmentIds ?? [])],
+      carouselOrder: target.logs[0]?.carouselOrder ?? carouselIndex + 1,
+      groupKey: target.groupKey,
+      instanceKey: target.key,
+      completedAt: null,
+      isAutoFilled: false,
+    };
+
+    const { data } = await createExerciseLog({
+      variables: { input: baseLog },
+    });
+
+    const savedLog = data.createExerciseLog;
+    setLogs(prev => {
+      const insertionIndex = target.logs.length
+        ? prev.findIndex(l => l.id === target.logs.at(-1)!.id) + 1
+        : prev.length;
+      const newLogs = [...prev];
+      newLogs.splice(insertionIndex, 0, savedLog);
+      return newLogs;
+    });
+    setExpandedSetId(savedLog.id);
+  }}
+/>
+                          </View>
+                        ))}
+                      </Card>
+                    );
                   })}
                 </ExerciseCarousel>
 
@@ -826,8 +850,8 @@ export default function ActiveWorkoutSessionScreen() {
               currentGroup.exercises[0].isAlternating;
 
             const carouselOrder = joinAlternatingGroup
-              ? currentGroup.exercises[0].logs[0]?.carouselOrder ??
-                carouselIndex + 1
+              ? (currentGroup.exercises[0].logs[0]?.carouselOrder ??
+                carouselIndex + 1)
               : groupedLogs.length + 1;
 
             const groupKey = joinAlternatingGroup
