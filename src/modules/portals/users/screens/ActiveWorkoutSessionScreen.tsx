@@ -61,6 +61,7 @@ export default function ActiveWorkoutSessionScreen() {
   const [nextSetPlacement, setNextSetPlacement] = useState<
     'addSet' | 'addExercise' | null
   >(null);
+  const [groupAlternationIndex, setGroupAlternationIndex] = useState<Record<string, number>>({});
 
   const {data} = useQuery<WorkoutSessionData>(GET_WORKOUT_SESSION, {
     variables: {id: Number(sessionId)},
@@ -108,10 +109,13 @@ export default function ActiveWorkoutSessionScreen() {
     session?.workoutPlan?.exercises?.forEach(planEx => {
       const idx = counts[planEx.exercise.id] ?? 0;
       counts[planEx.exercise.id] = idx + 1;
+      const isAlternating =
+        planEx.trainingMethod?.shouldAlternate ??
+        alternatingGroups.has(planEx.groupId ?? -1);
       list.push({
         key: `${planEx.exercise.id}-${idx}`,
         planEx,
-        isAlternating: alternatingGroups.has(planEx.groupId ?? -1),
+        isAlternating,
       });
     });
 
@@ -183,6 +187,17 @@ export default function ActiveWorkoutSessionScreen() {
     return order.map(key => ({groupKey: key, exercises: map.get(key)!}));
   }, [groupedLogs]);
 
+    useEffect(() => {
+    const currentGroup = carouselGroups[carouselIndex];
+    if (currentGroup?.exercises?.[0]?.isAlternating) {
+      setGroupAlternationIndex(prev => ({
+        ...prev,
+        [currentGroup.groupKey]: 0,
+      }));
+    }
+  }, [carouselIndex, carouselGroups]);
+
+  
   const initialValues = useMemo(() => {
     const values: Record<number, any> = {};
     logs.forEach(log => {
@@ -266,9 +281,15 @@ export default function ActiveWorkoutSessionScreen() {
               targetMetrics: ex.targetMetrics ?? [],
               groupId: ex.groupId,
               trainingMethod: ex.trainingMethod
-                ? {id: ex.trainingMethod.id, name: ex.trainingMethod.name}
+                ? {
+                    id: ex.trainingMethod.id,
+                    name: ex.trainingMethod.name,
+                    shouldAlternate: ex.trainingMethod.shouldAlternate,
+                  }
                 : undefined,
-              isAlternating: alternatingGroups.has(ex.groupId ?? -1),
+              isAlternating:
+                ex.trainingMethod?.shouldAlternate ??
+                alternatingGroups.has(ex.groupId ?? -1),
             }))}
             groups={session?.workoutPlan?.groups ?? []}
             exerciseLogs={logs}
@@ -435,8 +456,16 @@ export default function ActiveWorkoutSessionScreen() {
                 <ExerciseCarousel
                   index={carouselIndex}
                   onIndexChange={setCarouselIndex}>
-                  {carouselGroups.map((cGroup, i) => (
-                    <Card key={cGroup.groupKey} style={{marginVertical: 8}}>
+                                    {carouselGroups.map((cGroup, i) => {
+                    const activeExerciseKeyForGroup =
+                      cGroup.exercises[0].isAlternating && cGroup.exercises.length > 1
+                        ? cGroup.exercises[
+                            groupAlternationIndex[cGroup.groupKey] ?? 0
+                          ]?.key
+                        : undefined;
+
+                    return (
+                      <Card key={cGroup.groupKey} style={{marginVertical: 8}}>
                       <ExerciseNavHeader
                         title={
                           cGroup.exercises.length > 1
@@ -455,6 +484,12 @@ export default function ActiveWorkoutSessionScreen() {
                               style={{
                                 fontWeight: 'bold',
                                 color: theme.colors.textPrimary,
+                                backgroundColor:
+                                  exItem.key === activeExerciseKeyForGroup
+                                    ? theme.colors.featureCardBackground
+                                    : 'transparent',
+                                padding: 4,
+                                borderRadius: 4,
                               }}>
                               {exItem.name}
                             </Text>
@@ -598,13 +633,32 @@ export default function ActiveWorkoutSessionScreen() {
                             onPress={async () => {
                               const didSave = await saveExpandedSetIfValid();
                               if (!didSave) return;
-                              const target = cGroup.exercises.reduce(
-                                (prev, curr) =>
-                                  curr.logs.length < prev.logs.length
-                                    ? curr
-                                    : prev,
-                                cGroup.exercises[0],
-                              );
+                              let target;
+
+                              if (
+                                cGroup.exercises[0].isAlternating &&
+                                cGroup.exercises.length > 1
+                              ) {
+                                const currentIndex =
+                                  groupAlternationIndex[cGroup.groupKey] ?? 0;
+                                target = cGroup.exercises[currentIndex];
+
+                                const nextIndex =
+                                  (currentIndex + 1) % cGroup.exercises.length;
+                                setGroupAlternationIndex(prev => ({
+                                  ...prev,
+                                  [cGroup.groupKey]: nextIndex,
+                                }));
+                              } else {
+                                // fallback to least filled
+                                target = cGroup.exercises.reduce(
+                                  (prev, curr) =>
+                                    curr.logs.length < prev.logs.length
+                                      ? curr
+                                      : prev,
+                                  cGroup.exercises[0],
+                                );
+                              }
                               const metrics = createDefaultMetricsForExercise(
                                 target.exerciseId,
                               );
@@ -648,7 +702,8 @@ export default function ActiveWorkoutSessionScreen() {
                         </View>
                       ))}
                     </Card>
-                  ))}
+                                    );
+                  })}
                 </ExerciseCarousel>
 
                 <Card>

@@ -114,6 +114,7 @@ export const GET_WORKOUT_SESSION = gql`
           trainingMethod {
             id
             name
+            shouldAlternate
           }
           targetSets
           targetMetrics {

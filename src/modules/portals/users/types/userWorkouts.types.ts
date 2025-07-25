@@ -47,6 +47,7 @@ export interface WorkoutSessionData {
         trainingMethod: {
           id: number;
           name: string;
+          shouldAlternate?: boolean | null;
         } | null;
         targetSets: number;
         targetMetrics: {
