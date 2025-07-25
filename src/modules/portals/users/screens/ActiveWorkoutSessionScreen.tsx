@@ -36,6 +36,7 @@ import {generateMetricSchema} from 'shared/utils/generateMetricSchema';
 import {useExerciseLogSummary} from 'modules/exerciselog/components/ExerciseLogSummary';
 import {formatPlanMetrics} from 'shared/utils/formatPlanMetrics';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import ButtonRow from 'shared/components/ButtonRow';
 
 export default function ActiveWorkoutSessionScreen() {
   const {sessionId} = useParams<{sessionId: string}>();
@@ -64,6 +65,16 @@ export default function ActiveWorkoutSessionScreen() {
   const [groupAlternationIndex, setGroupAlternationIndex] = useState<
     Record<string, number>
   >({});
+  const [draftSet, setDraftSet] = useState<{
+    exerciseId: number;
+    groupKey: string;
+    instanceKey: string;
+    carouselOrder: number;
+    setNumber: number;
+    metrics: Record<string, number>;
+    notes: string;
+    equipmentIds: number[];
+  } | null>(null);
 
   const {data} = useQuery<WorkoutSessionData>(GET_WORKOUT_SESSION, {
     variables: {id: Number(sessionId)},
@@ -125,7 +136,8 @@ export default function ActiveWorkoutSessionScreen() {
   }, [session, alternatingGroups]);
 
   const groupedLogs = useMemo(() => {
-    const sorted = [...logs].sort((a, b) => {
+    const baseLogs = [...logs];
+    const sorted = baseLogs.sort((a, b) => {
       const ao = a.carouselOrder ?? 0;
       const bo = b.carouselOrder ?? 0;
       if (ao !== bo) return ao - bo;
@@ -167,6 +179,23 @@ export default function ActiveWorkoutSessionScreen() {
       group.logs.push(log);
     }
 
+    if (draftSet && !map.has(draftSet.instanceKey)) {
+      const planInfo = planInstances.find(p => p.key === draftSet.instanceKey);
+      const isAlternating = planInfo?.isAlternating ?? false;
+      const groupingKey =
+        isAlternating && planInfo?.planEx.groupId != null
+          ? `group-${planInfo.planEx.groupId}`
+          : draftSet.groupKey;
+      map.set(draftSet.instanceKey, {
+        key: draftSet.instanceKey,
+        groupKey: groupingKey,
+        exerciseId: draftSet.exerciseId,
+        logs: [],
+        equipmentIds: new Set<number>(draftSet.equipmentIds),
+        isAlternating,
+      });
+    }
+
     return Array.from(map.values()).map(group => {
       const exercise = exercisesData?.exercisesAvailableAtGym.find(
         (ex: any) => ex.id === group.exerciseId,
@@ -179,7 +208,7 @@ export default function ActiveWorkoutSessionScreen() {
         multipleEquipments: group.equipmentIds.size > 1,
       };
     });
-  }, [logs, exercisesData, planInstances]);
+  }, [logs, exercisesData, planInstances, draftSet]);
 
   const carouselGroups = useMemo(() => {
     const map = new Map<string, any[]>();
@@ -216,7 +245,12 @@ export default function ActiveWorkoutSessionScreen() {
     return values;
   }, [logs]);
 
-    const nextSet = useMemo(() => {
+  const allLogs = useMemo(
+    () => (draftSet ? [...logs] : logs),
+    [logs, draftSet],
+  );
+
+  const nextSet = useMemo(() => {
     const handledAltGroups = new Set<number>();
 
     for (let i = 0; i < planInstances.length; i++) {
@@ -238,11 +272,8 @@ export default function ActiveWorkoutSessionScreen() {
         let minLogged = Infinity;
 
         for (const gi of groupInstances) {
-          const giLogged = logs.filter(l => l.instanceKey === gi.key).length;
-          if (
-            giLogged < (gi.planEx.targetSets ?? 1) &&
-            giLogged < minLogged
-          ) {
+          const giLogged = allLogs.filter(l => l.instanceKey === gi.key).length;
+          if (giLogged < (gi.planEx.targetSets ?? 1) && giLogged < minLogged) {
             minLogged = giLogged;
             target = gi;
           }
@@ -275,7 +306,9 @@ export default function ActiveWorkoutSessionScreen() {
         continue;
       }
 
-      const logsForInstance = logs.filter(l => l.instanceKey === instance.key);
+      const logsForInstance = allLogs.filter(
+        l => l.instanceKey === instance.key,
+      );
       const loggedSets = logsForInstance.length;
 
       if (loggedSets < (instance.planEx.targetSets ?? 1)) {
@@ -304,7 +337,7 @@ export default function ActiveWorkoutSessionScreen() {
 
     setNextSetPlacement(null);
     return null;
-  }, [planInstances, logs, carouselGroups]);
+  }, [planInstances, allLogs, carouselGroups]);
 
   const availableExercises = useMemo(() => {
     if (!exercisesData || !equipmentData || !session?.gym?.id) return [];
@@ -558,7 +591,11 @@ export default function ActiveWorkoutSessionScreen() {
                         />
                         {cGroup.exercises.length === 1 &&
                           cGroup.exercises[0].isAlternating && (
-                            <Text style={{marginTop: 8, color: theme.colors.accentStart}}>
+                            <Text
+                              style={{
+                                marginTop: 8,
+                                color: theme.colors.accentStart,
+                              }}>
                               Add more exercises to this group to enable
                               alternation.
                             </Text>
@@ -722,47 +759,180 @@ export default function ActiveWorkoutSessionScreen() {
                                 </View>
                               );
                             })}
+                            {draftSet &&
+                              draftSet.instanceKey === exItem.key && (
+                                <View key="draft" style={{marginTop: 8}}>
+                                  <View
+                                    style={
+                                      expandedSetId === -1
+                                        ? {
+                                            borderWidth: 2,
+                                            borderColor:
+                                              theme.colors.accentStart,
+                                            borderRadius: 12,
+                                            margin: -8,
+                                            marginBottom: 8,
+                                          }
+                                        : undefined
+                                    }>
+                                    <View
+                                      style={
+                                        expandedSetId === -1
+                                          ? {padding: 8}
+                                          : undefined
+                                      }>
+                                      <SelectableField
+                                        value={
+                                          expandedSetId === -1
+                                            ? `Set ${draftSet.setNumber}: Editing...`
+                                            : `Set ${draftSet.setNumber}: New (unsaved)`
+                                        }
+                                        expanded={expandedSetId === -1}
+                                        onPress={async () => {
+                                          if (
+                                            expandedSetId &&
+                                            expandedSetId !== -1
+                                          ) {
+                                            const didSave =
+                                              await saveExpandedSetIfValid();
+                                            if (!didSave) return;
+                                          }
+                                          setExpandedSetId(prev =>
+                                            prev === -1 ? null : -1,
+                                          );
+                                        }}
+                                      />
+                                      {expandedSetId === -1 && (
+                                        <>
+                                          <SetInputRow
+                                            metricIds={getMetricIdsForExercise(
+                                              draftSet.exerciseId,
+                                            )}
+                                            values={draftSet.metrics}
+                                            onChange={(metricId, val) =>
+                                              setDraftSet(
+                                                prev =>
+                                                  prev && {
+                                                    ...prev,
+                                                    metrics: {
+                                                      ...prev.metrics,
+                                                      [metricId]: val,
+                                                    },
+                                                  },
+                                              )
+                                            }
+                                          />
+                                          <FormInput
+                                            label="Notes"
+                                            value={draftSet.notes}
+                                            onChangeText={val =>
+                                              setDraftSet(
+                                                prev =>
+                                                  prev && {...prev, notes: val},
+                                              )
+                                            }
+                                          />
+                                          <ButtonRow>
+                                            <Button
+                                              text="Save Set"
+                                              fullWidth
+                                              onPress={async () => {
+                                                if (!draftSet) return;
+                                                const input = {
+                                                  workoutSessionId:
+                                                    Number(sessionId),
+                                                  exerciseId:
+                                                    draftSet.exerciseId,
+                                                  setNumber: draftSet.setNumber,
+                                                  metrics: draftSet.metrics,
+                                                  notes: draftSet.notes,
+                                                  equipmentIds:
+                                                    draftSet.equipmentIds,
+                                                  carouselOrder:
+                                                    draftSet.carouselOrder,
+                                                  groupKey: draftSet.groupKey,
+                                                  instanceKey:
+                                                    draftSet.instanceKey,
+                                                  completedAt: null,
+                                                  isAutoFilled: false,
+                                                } as any;
+                                                const {data} =
+                                                  await createExerciseLog({
+                                                    variables: {input},
+                                                  });
+                                                const savedLog =
+                                                  data.createExerciseLog;
+                                                setLogs(prev => {
+                                                  const logsForInstance =
+                                                    prev.filter(
+                                                      l =>
+                                                        l.instanceKey ===
+                                                        draftSet.instanceKey,
+                                                    );
+                                                  const insertionIndex =
+                                                    logsForInstance.length
+                                                      ? prev.findIndex(
+                                                          l =>
+                                                            l.id ===
+                                                            logsForInstance.at(
+                                                              -1,
+                                                            )!.id,
+                                                        ) + 1
+                                                      : prev.length;
+                                                  const newLogs = [...prev];
+                                                  newLogs.splice(
+                                                    insertionIndex,
+                                                    0,
+                                                    savedLog,
+                                                  );
+                                                  return newLogs;
+                                                });
+                                                setDraftSet(null);
+                                                setExpandedSetId(null);
+                                              }}
+                                            />
+                                            <Button
+                                              text="Discard"
+                                              fullWidth
+                                              onPress={() => setDraftSet(null)}
+                                            />
+                                          </ButtonRow>
+                                        </>
+                                      )}
+                                    </View>
+                                  </View>
+                                </View>
+                              )}
                             <Button
-  text="Add Set"
-  onPress={async () => {
-    const didSave = await saveExpandedSetIfValid();
-    if (!didSave) return;
+                              text="Add Set"
+                              onPress={async () => {
+                                const didSave = await saveExpandedSetIfValid();
+                                if (!didSave) return;
 
-    const target = exItem; // 🔄 Use the exercise under which the button appears
+                                const target = exItem;
 
-    // Optional: Rotate the alternation index *only* when using the shared "Follow Plan" helper (not here)
-
-    const metrics = createDefaultMetricsForExercise(target.exerciseId);
-    const baseLog = {
-      workoutSessionId: Number(sessionId),
-      exerciseId: target.exerciseId,
-      setNumber: (target.logs.at(-1)?.setNumber ?? 0) + 1,
-      metrics,
-      notes: '',
-      equipmentIds: [...(target.logs.at(-1)?.equipmentIds ?? [])],
-      carouselOrder: target.logs[0]?.carouselOrder ?? carouselIndex + 1,
-      groupKey: target.groupKey,
-      instanceKey: target.key,
-      completedAt: null,
-      isAutoFilled: false,
-    };
-
-    const { data } = await createExerciseLog({
-      variables: { input: baseLog },
-    });
-
-    const savedLog = data.createExerciseLog;
-    setLogs(prev => {
-      const insertionIndex = target.logs.length
-        ? prev.findIndex(l => l.id === target.logs.at(-1)!.id) + 1
-        : prev.length;
-      const newLogs = [...prev];
-      newLogs.splice(insertionIndex, 0, savedLog);
-      return newLogs;
-    });
-    setExpandedSetId(savedLog.id);
-  }}
-/>
+                                const metrics = createDefaultMetricsForExercise(
+                                  target.exerciseId,
+                                );
+                                const newDraft = {
+                                  exerciseId: target.exerciseId,
+                                  setNumber:
+                                    (target.logs.at(-1)?.setNumber ?? 0) + 1,
+                                  metrics,
+                                  notes: '',
+                                  equipmentIds: [
+                                    ...(target.logs.at(-1)?.equipmentIds ?? []),
+                                  ],
+                                  carouselOrder:
+                                    target.logs[0]?.carouselOrder ??
+                                    carouselIndex + 1,
+                                  groupKey: target.groupKey,
+                                  instanceKey: target.key,
+                                };
+                                setDraftSet(newDraft);
+                                setExpandedSetId(-1);
+                              }}
+                            />
                           </View>
                         ))}
                       </Card>
@@ -886,32 +1056,23 @@ export default function ActiveWorkoutSessionScreen() {
               ? currentGroup.groupKey
               : planKey;
 
-            const baseLog = {
-              workoutSessionId: Number(sessionId),
+            const newDraft = {
               exerciseId: selectedExercise.id,
               setNumber: 1,
-              metrics, // default empty metrics; user will fill it in
+              metrics,
               notes: '',
               equipmentIds,
               carouselOrder,
               groupKey,
               instanceKey: planKey,
-              completedAt: null,
-              isAutoFilled: false,
             };
-
-            const {data} = await createExerciseLog({
-              variables: {input: baseLog},
-            });
-
-            const savedLog = data.createExerciseLog;
-            setLogs(prev => [...prev, savedLog]);
 
             const newIndex = joinAlternatingGroup
               ? carouselIndex
               : carouselGroups.length;
             setCarouselIndex(newIndex);
-            setExpandedSetId(savedLog.id);
+            setDraftSet(newDraft);
+            setExpandedSetId(-1);
           }
 
           setSelectedExercise(null);
