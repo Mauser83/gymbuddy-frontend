@@ -27,6 +27,7 @@ import {WorkoutSessionData, ExerciseLog} from '../types/userWorkouts.types';
 import SelectableField from 'shared/components/SelectableField';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import PlanTargetChecklist from '../components/PlanTargetChecklist';
+import ProgressChecklist from '../components/ProgressChecklist';
 import ExerciseCarousel from '../components/ExerciseCarousel';
 import MetricInputGroup from 'shared/components/MetricInputGroup';
 import SetInputRow from 'shared/components/SetInputRow';
@@ -103,7 +104,15 @@ export default function ActiveWorkoutSessionScreen() {
     skip: !session?.gym?.id,
   });
 
-  const [createExerciseLog] = useMutation(CREATE_EXERCISE_LOG);
+  const exerciseNameMap = useMemo(() => {
+    const map: Record<number, string> = {};
+    exercisesData?.exercisesAvailableAtGym?.forEach((ex: any) => {
+      map[ex.id] = ex.name;
+    });
+    return map;
+  }, [exercisesData]);
+
+    const [createExerciseLog] = useMutation(CREATE_EXERCISE_LOG);
   const [updateExerciseLog] = useMutation(UPDATE_EXERCISE_LOG);
   const [deleteExerciseLog] = useMutation(DELETE_EXERCISE_LOG);
   const [updateWorkoutSession] = useMutation(UPDATE_WORKOUT_SESSION);
@@ -370,7 +379,7 @@ export default function ActiveWorkoutSessionScreen() {
           />
         )}
 
-        {session?.workoutPlan?.exercises && (
+        {session?.workoutPlan?.exercises?.length ? (
           <PlanTargetChecklist
             planExercises={session?.workoutPlan?.exercises.map(ex => ({
               exerciseId: ex.exercise.id,
@@ -391,6 +400,17 @@ export default function ActiveWorkoutSessionScreen() {
             }))}
             groups={session?.workoutPlan?.groups ?? []}
             exerciseLogs={logs}
+            onSelect={(key, _exerciseId) => {
+              const cIdx = carouselGroups.findIndex(g =>
+                g.exercises.some(e => e.key === key),
+              );
+              if (cIdx !== -1) setCarouselIndex(cIdx);
+            }}
+          />
+        ) : (
+          <ProgressChecklist
+            exerciseLogs={logs}
+            exerciseNames={exerciseNameMap}
             onSelect={(key, _exerciseId) => {
               const cIdx = carouselGroups.findIndex(g =>
                 g.exercises.some(e => e.key === key),
