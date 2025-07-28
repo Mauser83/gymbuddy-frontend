@@ -21,11 +21,22 @@ export const GET_WORKOUT_PLAN_META = gql`
         id
         name
       }
-      experienceLevel
+      experienceLevel {
+        id
+        name
+        key
+        isDefault
+      }
       defaultSets
       defaultReps
       defaultRestSec
       defaultRpe
+    }
+    experienceLevels {
+      id
+      name
+      key
+      isDefault
     }
     getMuscleGroups {
       id
@@ -91,7 +102,12 @@ export const GET_WORKOUT_PLAN_BY_ID = gql`
       }
       intensityPreset {
         id
-        experienceLevel
+        experienceLevel {
+          id
+          name
+          key
+          isDefault
+        }
         defaultSets
         defaultReps
         defaultRestSec
@@ -144,11 +160,27 @@ export const GET_INTENSITY_PRESETS = gql`
         id
         name
       }
-      experienceLevel
+      experienceLevel {
+        id
+        name
+        key
+        isDefault
+      }
       defaultSets
       defaultReps
       defaultRestSec
       defaultRpe
+    }
+  }
+`;
+
+export const GET_EXPERIENCE_LEVELS = gql`
+  query GetExperienceLevels {
+    experienceLevels {
+      id
+      name
+      key
+      isDefault
     }
   }
 `;

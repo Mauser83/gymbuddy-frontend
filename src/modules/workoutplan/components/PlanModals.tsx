@@ -58,9 +58,10 @@ export default function PlanModals({
       {activeModal === 'difficultyPicker' && (
         <DifficultyPickerModal
           visible
-          selectedLevel={values.experienceLevel ?? 'BEGINNER'}
-          onSelect={level => {
-            setFieldValue('experienceLevel', level);
+          selectedId={values.experienceLevelId ?? null}
+          levels={workoutMeta?.experienceLevels ?? []}
+          onSelect={id => {
+            setFieldValue('experienceLevelId', id);
             setActiveModal(null);
           }}
           onClose={() => setActiveModal(null)}

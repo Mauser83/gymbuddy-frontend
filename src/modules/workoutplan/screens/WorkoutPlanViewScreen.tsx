@@ -80,7 +80,7 @@ export default function WorkoutPlanViewScreen() {
         />
         <DetailField
           label="Difficulty"
-          value={plan.intensityPreset?.experienceLevel || 'Not set'}
+          value={plan.intensityPreset?.experienceLevel?.name || 'Not set'}
         />
       </Card>
       <View style={{marginTop: spacing.lg, marginBottom: spacing.sm}}>

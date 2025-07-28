@@ -8,8 +8,9 @@ import {useTheme} from 'shared/theme/ThemeProvider';
 
 interface DifficultyPickerModalProps {
   visible: boolean;
-  selectedLevel: string;
-  onSelect: (level: string) => void;
+  selectedId: number | null;
+  levels: {id: number; name: string; key: string}[];
+  onSelect: (levelId: number) => void;
   onClose: () => void;
 }
 
@@ -17,7 +18,8 @@ const experienceLevels = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
 
 export default function DifficultyPickerModal({
   visible,
-  selectedLevel,
+  selectedId,
+  levels,
   onSelect,
   onClose,
 }: DifficultyPickerModalProps) {
@@ -29,12 +31,12 @@ export default function DifficultyPickerModal({
     <>
       <Title text="Select Planned Difficulty" />
       <ScrollView>
-        {experienceLevels.map(level => (
+        {levels.map(level => (
           <OptionItem
-            key={level}
-            text={level.charAt(0) + level.slice(1).toLowerCase()}
-            selected={selectedLevel === level}
-            onPress={() => onSelect(level)}
+            key={level.id}
+            text={level.name}
+            selected={selectedId === level.id}
+            onPress={() => onSelect(level.id)}
           />
         ))}
       </ScrollView>

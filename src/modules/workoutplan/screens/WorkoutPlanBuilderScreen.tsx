@@ -133,7 +133,7 @@ type FormValues = {
   name: string;
   trainingGoalId: number;
   intensityPresetId: number;
-  experienceLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  experienceLevelId?: number | null;
   muscleGroupIds: number[];
   exercises: ExerciseFormEntry[];
   groups: ExerciseGroup[];
@@ -458,7 +458,8 @@ export default function WorkoutPlanBuilderScreen() {
         name: plan.name,
         trainingGoalId: plan.trainingGoal?.id,
         intensityPresetId: plan.intensityPreset?.id ?? undefined,
-        experienceLevel: plan.intensityPreset?.experienceLevel ?? undefined,
+        experienceLevelId:
+          plan.intensityPreset?.experienceLevel?.id ?? undefined,
         muscleGroupIds: [],
 exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) => a.order - b.order),
         groups: (
@@ -488,7 +489,7 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
       name: plan.name,
       trainingGoalId: plan.trainingGoal?.id,
       intensityPresetId: plan.intensityPreset?.id ?? undefined,
-      experienceLevel: plan.intensityPreset?.experienceLevel ?? undefined,
+      experienceLevelId: plan.intensityPreset?.experienceLevel?.id ?? undefined,
       muscleGroupIds: plan.muscleGroups.map((mg: any) => mg.id),
 exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) => a.order - b.order),
       groups: (
@@ -630,7 +631,7 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
           const matchedPreset = workoutMeta?.getIntensityPresets?.find(
             (p: any) =>
               p.trainingGoalId === values.trainingGoalId &&
-              p.experienceLevel === values.experienceLevel,
+              p.experienceLevelId === values.experienceLevelId,
           );
           const transformedInput = {
             name: values.name,
@@ -1734,10 +1735,9 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
                 <SelectableField
                   label="Planned Difficulty"
                   value={
-                    values.experienceLevel
-                      ? values.experienceLevel.charAt(0) +
-                        values.experienceLevel.slice(1).toLowerCase()
-                      : 'Select Difficulty'
+                    workoutMeta?.experienceLevels?.find(
+                      (l: any) => l.id === values.experienceLevelId,
+                    )?.name || 'Select Difficulty'
                   }
                   onPress={() => setActiveModal('difficultyPicker')}
                 />
@@ -2357,9 +2357,10 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
                       {activeModal === 'difficultyPicker' && (
                         <DifficultyPickerModal
                           visible
-                          selectedLevel={values.experienceLevel ?? 'BEGINNER'}
-                          onSelect={level => {
-                            setFieldValue('experienceLevel', level);
+                          selectedId={values.experienceLevelId ?? null}
+                          levels={workoutMeta?.experienceLevels ?? []}
+                          onSelect={id => {
+                            setFieldValue('experienceLevelId', id);
                             setActiveModal(null);
                           }}
                           onClose={() => setActiveModal(null)}

@@ -29,6 +29,9 @@ import {
   UPDATE_TRAINING_METHOD,
   DELETE_TRAINING_METHOD,
   UPDATE_TRAINING_METHOD_GOALS,
+  CREATE_EXPERIENCE_LEVEL,
+  UPDATE_EXPERIENCE_LEVEL,
+  DELETE_EXPERIENCE_LEVEL,
 } from 'modules/workoutplan/graphql/workoutReferences';
 import {useQuery, useMutation} from '@apollo/client';
 import {GET_WORKOUT_PLAN_META} from 'modules/workoutplan/graphql/workoutMeta.graphql';
@@ -55,17 +58,30 @@ interface TrainingMethod {
 export interface IntensityPreset {
   id: number;
   trainingGoalId: number;
-  experienceLevel: string;
+  experienceLevelId: number;
+  experienceLevel: {id: number; name: string; key: string; isDefault: boolean};
   defaultSets: number;
   defaultReps: number;
   defaultRestSec: number;
   defaultRpe: number;
 }
 
+interface ExperienceLevel {
+  id: number;
+  name: string;
+  key: string;
+  isDefault: boolean;
+}
+
 export default function AdminWorkoutPlanCatalogScreen() {
   const {theme} = useTheme();
   const [mode, setMode] = useState<
-    'trainingGoal' | 'preset' | 'muscleGroup' | 'trainingMethod' | null
+    | 'trainingGoal'
+    | 'experienceLevel'
+    | 'preset'
+    | 'muscleGroup'
+    | 'trainingMethod'
+    | null
   >(null);
 
   const {data, refetch} = useQuery(GET_WORKOUT_PLAN_META);
@@ -75,7 +91,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
   const [edits, setEdits] = useState<Record<number, string>>({});
   const [newPreset, setNewPreset] = useState({
     trainingGoalId: 0,
-    experienceLevel: '',
+    experienceLevelId: 0,
     defaultSets: 3,
     defaultReps: 10,
     defaultRestSec: 60,
@@ -99,6 +115,16 @@ export default function AdminWorkoutPlanCatalogScreen() {
     Record<number, Partial<TrainingMethod>>
   >({});
 
+  const [newLevel, setNewLevel] = useState({
+    name: '',
+    key: '',
+    isDefault: false,
+  });
+  const [levelEdits, setLevelEdits] = useState<
+    Record<number, Partial<ExperienceLevel>>
+  >({});
+  const [expandedLevelId, setExpandedLevelId] = useState<number | null>(null);
+
   const [createTrainingGoal] = useMutation(CREATE_TRAINING_GOAL);
   const [updateTrainingGoal] = useMutation(UPDATE_TRAINING_GOAL);
   const [deleteTrainingGoal] = useMutation(DELETE_TRAINING_GOAL);
@@ -112,11 +138,15 @@ export default function AdminWorkoutPlanCatalogScreen() {
   const [updateMethod] = useMutation(UPDATE_TRAINING_METHOD);
   const [deleteMethod] = useMutation(DELETE_TRAINING_METHOD);
   const [updateMethodGoals] = useMutation(UPDATE_TRAINING_METHOD_GOALS);
+  const [createLevel] = useMutation(CREATE_EXPERIENCE_LEVEL);
+  const [updateLevel] = useMutation(UPDATE_EXPERIENCE_LEVEL);
+  const [deleteLevel] = useMutation(DELETE_EXPERIENCE_LEVEL);
 
   const trainingGoals = data?.getTrainingGoals || [];
   const presets = data?.getIntensityPresets || [];
   const muscleGroups = data?.getMuscleGroups || [];
   const trainingMethods = data?.getTrainingMethods || [];
+  const experienceLevels = data?.experienceLevels || [];
 
   const handleCreate = async () => {
     try {
@@ -169,7 +199,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
       await createPreset({variables: {input: newPreset}});
       setNewPreset({
         trainingGoalId: 0,
-        experienceLevel: '',
+        experienceLevelId: 0,
         defaultSets: 3,
         defaultReps: 10,
         defaultRestSec: 60,
@@ -256,6 +286,40 @@ export default function AdminWorkoutPlanCatalogScreen() {
     }
   };
 
+  const handleCreateLevel = async () => {
+    try {
+      await createLevel({variables: {input: newLevel}});
+      setNewLevel({name: '', key: '', isDefault: false});
+      await refetch();
+    } catch (err) {
+      console.error('Error creating level:', err);
+    }
+  };
+
+  const handleUpdateLevel = async (id: number) => {
+    try {
+      await updateLevel({variables: {id, input: levelEdits[id]}});
+      setExpandedLevelId(null);
+      setLevelEdits(prev => {
+        const updated = {...prev};
+        delete updated[id];
+        return updated;
+      });
+      await refetch();
+    } catch (err) {
+      console.error('Error updating level:', err);
+    }
+  };
+
+  const handleDeleteLevel = async (id: number) => {
+    try {
+      await deleteLevel({variables: {id}});
+      await refetch();
+    } catch (err) {
+      console.error('Error deleting level:', err);
+    }
+  };
+
   const handleSaveBodyParts = async (name: string, bodyPartIds: number[]) => {
     if (!editMuscleGroupTarget) return;
     try {
@@ -332,6 +396,11 @@ export default function AdminWorkoutPlanCatalogScreen() {
         key: 'trainingGoal',
         label: 'Training Goals',
         sublabel: 'Click to manage training goals',
+      },
+      {
+        key: 'experienceLevel',
+        label: 'Experience Levels',
+        sublabel: 'Click to manage experience levels',
       },
       {
         key: 'preset',
@@ -436,6 +505,102 @@ export default function AdminWorkoutPlanCatalogScreen() {
       </View>
 
       <View>
+        {mode === 'experienceLevel' ? (
+          <Card><View>
+        {mode === 'experienceLevel' ? (
+          <Card>
+            <TouchableOpacity onPress={() => setMode(null)}>
+              <Title text="Experience Levels" />
+            </TouchableOpacity>
+            <FormInput
+              label="Name"
+              value={newLevel.name}
+              onChangeText={text => setNewLevel(p => ({...p, name: text}))}
+            />
+            <FormInput
+              label="Key"
+              value={newLevel.key}
+              onChangeText={text => setNewLevel(p => ({...p, key: text}))}
+            />
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <Title subtitle="Default" />
+              <Switch
+                value={newLevel.isDefault}
+                onValueChange={val => setNewLevel(p => ({...p, isDefault: val}))}
+                trackColor={{true: theme.colors.accentStart, false: 'grey'}}
+                thumbColor={theme.colors.accentEnd}
+              />
+            </View>
+            <ButtonRow>
+              <Button text="Create" fullWidth onPress={handleCreateLevel} />
+            </ButtonRow>
+            <ClickableList
+              items={experienceLevels.map((level: ExperienceLevel) => {
+                const isExpanded = expandedLevelId === level.id;
+                const edit = levelEdits[level.id] || level;
+                return {
+                  id: level.id,
+                  label: level.name,
+                  selected: isExpanded,
+                  onPress: () => {
+                    setExpandedLevelId(prev => (prev === level.id ? null : level.id));
+                    setLevelEdits(prev => ({...prev, [level.id]: level}));
+                  },
+                  content: isExpanded ? (
+                    <View style={{gap: spacing.sm}}>
+                      <FormInput
+                        label="Name"
+                        value={edit.name ?? ''}
+                        onChangeText={text =>
+                          setLevelEdits(p => ({...p, [level.id]: {...edit, name: text}}))
+                        }
+                      />
+                      <FormInput
+                        label="Key"
+                        value={edit.key ?? ''}
+                        onChangeText={text =>
+                          setLevelEdits(p => ({...p, [level.id]: {...edit, key: text}}))
+                        }
+                      />
+                      <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                        <Title subtitle="Default" />
+                        <Switch
+                          value={!!edit.isDefault}
+                          trackColor={{true: theme.colors.accentStart, false: 'grey'}}
+                          thumbColor={theme.colors.accentEnd}
+                          onValueChange={val =>
+                            setLevelEdits(p => ({...p, [level.id]: {...edit, isDefault: val}}))
+                          }
+                        />
+                      </View>
+                      <ButtonRow>
+                        <Button text="Update" fullWidth onPress={() => handleUpdateLevel(level.id)} />
+                        <Button text="Delete" fullWidth onPress={() => handleDeleteLevel(level.id)} />
+                      </ButtonRow>
+                    </View>
+                  ) : undefined,
+                };
+              })}
+            />
+          </Card>
+        ) : (
+          <TouchableOpacity onPress={() => setMode('experienceLevel')}>
+            <Card>
+              <Title text="Experience Levels" subtitle="Click to manage experience levels" />
+            </Card>
+          </TouchableOpacity>
+        )}
+      </View></Card>
+        ) : (
+          <TouchableOpacity onPress={() => setMode('experienceLevel')}>
+            <Card>
+              <Title text="Experience Levels" subtitle="Click to manage experience levels" />
+            </Card>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View>
         {mode === 'preset' ? (
           <Card>
             <TouchableOpacity onPress={() => setMode(null)}>
@@ -446,7 +611,8 @@ export default function AdminWorkoutPlanCatalogScreen() {
                 (preset: {
                   id: number;
                   trainingGoalId: number;
-                  experienceLevel: string;
+                  experienceLevelId: number;
+                  experienceLevel: {id: number; name: string; key: string};
                   defaultSets: number;
                   defaultReps: number;
                   defaultRestSec: number;
@@ -460,7 +626,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
 
                   return {
                     id: preset.id,
-                    label: `${goal?.name || 'Goal'} – ${edit.experienceLevel}`,
+                    label: `${goal?.name || 'Goal'} – ${edit.experienceLevel?.name || ''}`,
                     selected: isExpanded,
                     rightElement: isExpanded ? (
                       <FontAwesome
@@ -488,7 +654,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
                         <SelectableField
                           label="Experience Level"
                           value={
-                            edit.experienceLevel || 'Select Experience Level'
+                            edit.experienceLevel?.name || 'Select Experience Level'
                           }
                           onPress={() => {
                             setEditingPresetId(preset.id);
@@ -572,7 +738,11 @@ export default function AdminWorkoutPlanCatalogScreen() {
             />
             <SelectableField
               label="Experience Level"
-              value={newPreset.experienceLevel || 'Select Experience Level'}
+              value={
+                data?.experienceLevels?.find(
+                  (l: ExperienceLevel) => l.id === newPreset.experienceLevelId,
+                )?.name || 'Select Experience Level'
+              }
               onPress={() => {
                 setEditingPresetId(null);
                 setPickerState('experienceLevel');
@@ -805,7 +975,10 @@ export default function AdminWorkoutPlanCatalogScreen() {
                           <Title subtitle="Alternate Exercises in Group" />
                           <Switch
                             value={!!methodEdits[method.id]?.shouldAlternate}
-                            trackColor={{true: theme.colors.accentStart, false: 'grey'}}
+                            trackColor={{
+                              true: theme.colors.accentStart,
+                              false: 'grey',
+                            }}
                             thumbColor={theme.colors.accentEnd}
                             onValueChange={value =>
                               setMethodEdits(prev => ({
@@ -924,22 +1097,26 @@ export default function AdminWorkoutPlanCatalogScreen() {
         {pickerState === 'experienceLevel' && (
           <DifficultyPickerModal
             visible
-            selectedLevel={
+            selectedId={
               editingPresetId === null
-                ? newPreset.experienceLevel
-                : presetEdits[editingPresetId]?.experienceLevel || 'BEGINNER'
+                ? newPreset.experienceLevelId || null
+                : presetEdits[editingPresetId]?.experienceLevelId ?? null
             }
-            onSelect={level => {
+            levels={data?.experienceLevels ?? []}
+            onSelect={levelId => {
               if (editingPresetId !== null) {
                 setPresetEdits(prev => ({
                   ...prev,
                   [editingPresetId]: {
                     ...prev[editingPresetId],
-                    experienceLevel: level,
+                    experienceLevelId: levelId,
+                    experienceLevel:
+                      data?.experienceLevels.find((l: ExperienceLevel) => l.id === levelId) ??
+                      prev[editingPresetId].experienceLevel,
                   },
                 }));
               } else {
-                setNewPreset(prev => ({...prev, experienceLevel: level}));
+                setNewPreset(prev => ({...prev, experienceLevelId: levelId}));
               }
               setPickerState(null);
             }}
