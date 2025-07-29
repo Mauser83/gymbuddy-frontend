@@ -38,6 +38,15 @@ import {GET_WORKOUT_PLAN_META} from 'modules/workoutplan/graphql/workoutMeta.gra
 import ModalWrapper from 'shared/components/ModalWrapper';
 import OptionItem from 'shared/components/OptionItem';
 
+const METRIC_IDS = {
+  REPS: 1,
+  RPE: 2,
+  REST: 3,
+  SETS: 4,
+  TIME: 5,
+  DISTANCE: 6,
+};
+
 interface MuscleGroup {
   id: number;
   name: string;
@@ -55,15 +64,23 @@ interface TrainingMethod {
   shouldAlternate?: boolean; // ✅ NEW
 }
 
+export interface IntensityMetricDefault {
+  metricId: number;
+  defaultMin: number;
+  defaultMax?: number;
+}
 export interface IntensityPreset {
   id: number;
   trainingGoalId: number;
   experienceLevelId: number;
   experienceLevel: {id: number; name: string; key: string; isDefault: boolean};
-  defaultSets: number;
-  defaultReps: number;
-  defaultRestSec: number;
-  defaultRpe: number;
+  metricDefaults: IntensityMetricDefault[];
+}
+
+export interface IntensityPresetInput {
+  trainingGoalId: number;
+  experienceLevelId: number;
+  metricDefaults: IntensityMetricDefault[];
 }
 
 interface ExperienceLevel {
@@ -71,6 +88,13 @@ interface ExperienceLevel {
   name: string;
   key: string;
   isDefault: boolean;
+}
+
+// State used for editing presets can include the associated experience level for
+// display purposes. The GraphQL mutation input does not accept this field so it
+// will be stripped out before submitting.
+export interface IntensityPresetEdit extends IntensityPresetInput {
+  experienceLevel?: ExperienceLevel;
 }
 
 export default function AdminWorkoutPlanCatalogScreen() {
@@ -89,15 +113,17 @@ export default function AdminWorkoutPlanCatalogScreen() {
   const [newValue, setNewValue] = useState('');
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [edits, setEdits] = useState<Record<number, string>>({});
-  const [newPreset, setNewPreset] = useState({
+  const [newPreset, setNewPreset] = useState<IntensityPresetInput>({
     trainingGoalId: 0,
     experienceLevelId: 0,
-    defaultSets: 3,
-    defaultReps: 10,
-    defaultRestSec: 60,
-    defaultRpe: 8,
+    metricDefaults: [
+      {metricId: METRIC_IDS.REPS, defaultMin: 10, defaultMax: undefined},
+      {metricId: METRIC_IDS.RPE, defaultMin: 8, defaultMax: undefined},
+      {metricId: METRIC_IDS.REST, defaultMin: 60, defaultMax: undefined},
+      {metricId: METRIC_IDS.SETS, defaultMin: 3, defaultMax: undefined},
+    ],
   });
-  const [presetEdits, setPresetEdits] = useState<Record<number, any>>({});
+  const [presetEdits, setPresetEdits] = useState<Record<number, IntensityPresetEdit>>({});
   const [expandedPresetId, setExpandedPresetId] = useState<number | null>(null);
   const [pickerState, setPickerState] = useState<
     'trainingGoal' | 'experienceLevel' | 'editMuscleGroup' | null
@@ -200,10 +226,12 @@ export default function AdminWorkoutPlanCatalogScreen() {
       setNewPreset({
         trainingGoalId: 0,
         experienceLevelId: 0,
-        defaultSets: 3,
-        defaultReps: 10,
-        defaultRestSec: 60,
-        defaultRpe: 8,
+        metricDefaults: [
+          {metricId: METRIC_IDS.REPS, defaultMin: 10, defaultMax: undefined},
+          {metricId: METRIC_IDS.RPE, defaultMin: 8, defaultMax: undefined},
+          {metricId: METRIC_IDS.REST, defaultMin: 60, defaultMax: undefined},
+          {metricId: METRIC_IDS.SETS, defaultMin: 3, defaultMax: undefined},
+        ],
       });
       await refetch();
     } catch (err) {
@@ -503,98 +531,143 @@ export default function AdminWorkoutPlanCatalogScreen() {
           </TouchableOpacity>
         )}
       </View>
-
+      
       <View>
         {mode === 'experienceLevel' ? (
-          <Card><View>
-        {mode === 'experienceLevel' ? (
           <Card>
-            <TouchableOpacity onPress={() => setMode(null)}>
-              <Title text="Experience Levels" />
-            </TouchableOpacity>
-            <FormInput
-              label="Name"
-              value={newLevel.name}
-              onChangeText={text => setNewLevel(p => ({...p, name: text}))}
-            />
-            <FormInput
-              label="Key"
-              value={newLevel.key}
-              onChangeText={text => setNewLevel(p => ({...p, key: text}))}
-            />
-            <View style={{flexDirection: 'row', alignItems: 'center'}}>
-              <Title subtitle="Default" />
-              <Switch
-                value={newLevel.isDefault}
-                onValueChange={val => setNewLevel(p => ({...p, isDefault: val}))}
-                trackColor={{true: theme.colors.accentStart, false: 'grey'}}
-                thumbColor={theme.colors.accentEnd}
-              />
+            <View>
+              {mode === 'experienceLevel' ? (
+                <Card>
+                  <TouchableOpacity onPress={() => setMode(null)}>
+                    <Title text="Experience Levels" />
+                  </TouchableOpacity>
+                  <FormInput
+                    label="Name"
+                    value={newLevel.name}
+                    onChangeText={text =>
+                      setNewLevel(p => ({...p, name: text}))
+                    }
+                  />
+                  <FormInput
+                    label="Key"
+                    value={newLevel.key}
+                    onChangeText={text => setNewLevel(p => ({...p, key: text}))}
+                  />
+                  <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                    <Title subtitle="Default" />
+                    <Switch
+                      value={newLevel.isDefault}
+                      onValueChange={val =>
+                        setNewLevel(p => ({...p, isDefault: val}))
+                      }
+                      trackColor={{
+                        true: theme.colors.accentStart,
+                        false: 'grey',
+                      }}
+                      thumbColor={theme.colors.accentEnd}
+                    />
+                  </View>
+                  <ButtonRow>
+                    <Button
+                      text="Create"
+                      fullWidth
+                      onPress={handleCreateLevel}
+                    />
+                  </ButtonRow>
+                  <ClickableList
+                    items={experienceLevels.map((level: ExperienceLevel) => {
+                      const isExpanded = expandedLevelId === level.id;
+                      const edit = levelEdits[level.id] || level;
+                      return {
+                        id: level.id,
+                        label: level.name,
+                        selected: isExpanded,
+                        onPress: () => {
+                          setExpandedLevelId(prev =>
+                            prev === level.id ? null : level.id,
+                          );
+                          setLevelEdits(prev => ({...prev, [level.id]: level}));
+                        },
+                        content: isExpanded ? (
+                          <View style={{gap: spacing.sm}}>
+                            <FormInput
+                              label="Name"
+                              value={edit.name ?? ''}
+                              onChangeText={text =>
+                                setLevelEdits(p => ({
+                                  ...p,
+                                  [level.id]: {...edit, name: text},
+                                }))
+                              }
+                            />
+                            <FormInput
+                              label="Key"
+                              value={edit.key ?? ''}
+                              onChangeText={text =>
+                                setLevelEdits(p => ({
+                                  ...p,
+                                  [level.id]: {...edit, key: text},
+                                }))
+                              }
+                            />
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                              }}>
+                              <Title subtitle="Default" />
+                              <Switch
+                                value={!!edit.isDefault}
+                                trackColor={{
+                                  true: theme.colors.accentStart,
+                                  false: 'grey',
+                                }}
+                                thumbColor={theme.colors.accentEnd}
+                                onValueChange={val =>
+                                  setLevelEdits(p => ({
+                                    ...p,
+                                    [level.id]: {...edit, isDefault: val},
+                                  }))
+                                }
+                              />
+                            </View>
+                            <ButtonRow>
+                              <Button
+                                text="Update"
+                                fullWidth
+                                onPress={() => handleUpdateLevel(level.id)}
+                              />
+                              <Button
+                                text="Delete"
+                                fullWidth
+                                onPress={() => handleDeleteLevel(level.id)}
+                              />
+                            </ButtonRow>
+                          </View>
+                        ) : undefined,
+                      };
+                    })}
+                  />
+                </Card>
+              ) : (
+                <TouchableOpacity onPress={() => setMode('experienceLevel')}>
+                  <Card>
+                    <Title
+                      text="Experience Levels"
+                      subtitle="Click to manage experience levels"
+                    />
+                  </Card>
+                </TouchableOpacity>
+              )}
             </View>
-            <ButtonRow>
-              <Button text="Create" fullWidth onPress={handleCreateLevel} />
-            </ButtonRow>
-            <ClickableList
-              items={experienceLevels.map((level: ExperienceLevel) => {
-                const isExpanded = expandedLevelId === level.id;
-                const edit = levelEdits[level.id] || level;
-                return {
-                  id: level.id,
-                  label: level.name,
-                  selected: isExpanded,
-                  onPress: () => {
-                    setExpandedLevelId(prev => (prev === level.id ? null : level.id));
-                    setLevelEdits(prev => ({...prev, [level.id]: level}));
-                  },
-                  content: isExpanded ? (
-                    <View style={{gap: spacing.sm}}>
-                      <FormInput
-                        label="Name"
-                        value={edit.name ?? ''}
-                        onChangeText={text =>
-                          setLevelEdits(p => ({...p, [level.id]: {...edit, name: text}}))
-                        }
-                      />
-                      <FormInput
-                        label="Key"
-                        value={edit.key ?? ''}
-                        onChangeText={text =>
-                          setLevelEdits(p => ({...p, [level.id]: {...edit, key: text}}))
-                        }
-                      />
-                      <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                        <Title subtitle="Default" />
-                        <Switch
-                          value={!!edit.isDefault}
-                          trackColor={{true: theme.colors.accentStart, false: 'grey'}}
-                          thumbColor={theme.colors.accentEnd}
-                          onValueChange={val =>
-                            setLevelEdits(p => ({...p, [level.id]: {...edit, isDefault: val}}))
-                          }
-                        />
-                      </View>
-                      <ButtonRow>
-                        <Button text="Update" fullWidth onPress={() => handleUpdateLevel(level.id)} />
-                        <Button text="Delete" fullWidth onPress={() => handleDeleteLevel(level.id)} />
-                      </ButtonRow>
-                    </View>
-                  ) : undefined,
-                };
-              })}
-            />
           </Card>
         ) : (
           <TouchableOpacity onPress={() => setMode('experienceLevel')}>
             <Card>
-              <Title text="Experience Levels" subtitle="Click to manage experience levels" />
-            </Card>
-          </TouchableOpacity>
-        )}
-      </View></Card>
-        ) : (
-          <TouchableOpacity onPress={() => setMode('experienceLevel')}>
-            <Card>
-              <Title text="Experience Levels" subtitle="Click to manage experience levels" />
+              <Title
+                text="Experience Levels"
+                subtitle="Click to manage experience levels"
+              />
             </Card>
           </TouchableOpacity>
         )}
@@ -613,10 +686,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
                   trainingGoalId: number;
                   experienceLevelId: number;
                   experienceLevel: {id: number; name: string; key: string};
-                  defaultSets: number;
-                  defaultReps: number;
-                  defaultRestSec: number;
-                  defaultRpe: number;
+                  metricDefaults: IntensityMetricDefault[];
                 }) => {
                   const isExpanded = expandedPresetId === preset.id;
                   const edit = presetEdits[preset.id] || preset;
@@ -654,57 +724,64 @@ export default function AdminWorkoutPlanCatalogScreen() {
                         <SelectableField
                           label="Experience Level"
                           value={
-                            edit.experienceLevel?.name || 'Select Experience Level'
+                            edit.experienceLevel?.name ||
+                            'Select Experience Level'
                           }
                           onPress={() => {
                             setEditingPresetId(preset.id);
                             setPickerState('experienceLevel');
                           }}
                         />
-                        <FormInput
-                          label="Sets"
-                          value={String(edit.defaultSets)}
-                          keyboardType="numeric"
-                          onChangeText={v =>
-                            setPresetEdits(p => ({
-                              ...p,
-                              [preset.id]: {...edit, defaultSets: Number(v)},
-                            }))
-                          }
-                        />
-                        <FormInput
-                          label="Reps"
-                          value={String(edit.defaultReps)}
-                          keyboardType="numeric"
-                          onChangeText={v =>
-                            setPresetEdits(p => ({
-                              ...p,
-                              [preset.id]: {...edit, defaultReps: Number(v)},
-                            }))
-                          }
-                        />
-                        <FormInput
-                          label="Rest (sec)"
-                          value={String(edit.defaultRestSec)}
-                          keyboardType="numeric"
-                          onChangeText={v =>
-                            setPresetEdits(p => ({
-                              ...p,
-                              [preset.id]: {...edit, defaultRestSec: Number(v)},
-                            }))
-                          }
-                        />
-                        <FormInput
-                          label="RPE"
-                          value={String(edit.defaultRpe)}
-                          keyboardType="numeric"
-                          onChangeText={v =>
-                            setPresetEdits(p => ({
-                              ...p,
-                              [preset.id]: {...edit, defaultRpe: Number(v)},
-                            }))
-                          }
-                        />
+                        {edit.metricDefaults.map((m: IntensityMetricDefault, idx: number) => (
+                          <View
+                            key={m.metricId}
+                            style={{flexDirection: 'row', gap: spacing.sm}}>
+                            <FormInput
+                              label={`Metric ID ${m.metricId}`}
+                              value={String(m.defaultMin)}
+                              keyboardType="numeric"
+                              onChangeText={v =>
+                                setPresetEdits(p => ({
+                                  ...p,
+                                  [preset.id]: {
+                                    ...edit,
+                                    metricDefaults: edit.metricDefaults.map(
+                                      (md: IntensityMetricDefault, i: number) =>
+                                        i === idx
+                                          ? {...md, defaultMin: Number(v)}
+                                          : md,
+                                    ),
+                                  },
+                                }))
+                              }
+                            />
+                            <FormInput
+                              label="Max (optional)"
+                              value={String(m.defaultMax ?? '')}
+                              keyboardType="numeric"
+                              onChangeText={v =>
+                                setPresetEdits(p => ({
+                                  ...p,
+                                  [preset.id]: {
+                                    ...edit,
+                                    metricDefaults: edit.metricDefaults.map(
+                                      (md: IntensityMetricDefault, i: number) =>
+                                        i === idx
+                                          ? {
+                                              ...md,
+                                              defaultMax:
+                                                v !== ''
+                                                  ? Number(v)
+                                                  : undefined,
+                                            }
+                                          : md,
+                                    ),
+                                  },
+                                }))
+                              }
+                            />
+                          </View>
+                        ))}
                         <ButtonRow>
                           <Button
                             text="Update"
@@ -748,38 +825,43 @@ export default function AdminWorkoutPlanCatalogScreen() {
                 setPickerState('experienceLevel');
               }}
             />
-            <FormInput
-              label="Default Sets"
-              value={String(newPreset.defaultSets)}
-              keyboardType="numeric"
-              onChangeText={v =>
-                setNewPreset(p => ({...p, defaultSets: Number(v)}))
-              }
-            />
-            <FormInput
-              label="Default Reps"
-              value={String(newPreset.defaultReps)}
-              keyboardType="numeric"
-              onChangeText={v =>
-                setNewPreset(p => ({...p, defaultReps: Number(v)}))
-              }
-            />
-            <FormInput
-              label="Default Rest (sec)"
-              value={String(newPreset.defaultRestSec)}
-              keyboardType="numeric"
-              onChangeText={v =>
-                setNewPreset(p => ({...p, defaultRestSec: Number(v)}))
-              }
-            />
-            <FormInput
-              label="Default RPE"
-              value={String(newPreset.defaultRpe)}
-              keyboardType="numeric"
-              onChangeText={v =>
-                setNewPreset(p => ({...p, defaultRpe: Number(v)}))
-              }
-            />
+            {newPreset.metricDefaults.map((m, idx) => (
+              <View
+                key={m.metricId}
+                style={{flexDirection: 'row', gap: spacing.sm}}>
+                <FormInput
+                  label={`Metric ID ${m.metricId}`}
+                  value={String(m.defaultMin)}
+                  keyboardType="numeric"
+                  onChangeText={v =>
+                    setNewPreset(p => ({
+                      ...p,
+                      metricDefaults: p.metricDefaults.map((md, i) =>
+                        i === idx ? {...md, defaultMin: Number(v)} : md,
+                      ),
+                    }))
+                  }
+                />
+                <FormInput
+                  label="Max (optional)"
+                  value={String(m.defaultMax ?? '')}
+                  keyboardType="numeric"
+                  onChangeText={v =>
+                    setNewPreset(p => ({
+                      ...p,
+                      metricDefaults: p.metricDefaults.map((md: IntensityMetricDefault, i: number) =>
+                        i === idx
+                          ? {
+                              ...md,
+                              defaultMax: v !== '' ? Number(v) : undefined,
+                            }
+                          : md,
+                      ),
+                    }))
+                  }
+                />
+              </View>
+            ))}
             <ButtonRow>
               <Button text="Create" fullWidth onPress={handleCreatePreset} />
             </ButtonRow>
@@ -1100,7 +1182,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
             selectedId={
               editingPresetId === null
                 ? newPreset.experienceLevelId || null
-                : presetEdits[editingPresetId]?.experienceLevelId ?? null
+                : (presetEdits[editingPresetId]?.experienceLevelId ?? null)
             }
             levels={data?.experienceLevels ?? []}
             onSelect={levelId => {
@@ -1111,8 +1193,9 @@ export default function AdminWorkoutPlanCatalogScreen() {
                     ...prev[editingPresetId],
                     experienceLevelId: levelId,
                     experienceLevel:
-                      data?.experienceLevels.find((l: ExperienceLevel) => l.id === levelId) ??
-                      prev[editingPresetId].experienceLevel,
+                      data?.experienceLevels.find(
+                        (l: ExperienceLevel) => l.id === levelId,
+                      ) ?? prev[editingPresetId].experienceLevel,
                   },
                 }));
               } else {

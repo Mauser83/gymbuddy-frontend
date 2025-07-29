@@ -130,16 +130,18 @@ export const CREATE_INTENSITY_PRESET = gql`
     createIntensityPreset(input: $input) {
       id
       trainingGoalId
+      experienceLevelId
       experienceLevel {
         id
         name
         key
         isDefault
       }
-      defaultSets
-      defaultReps
-      defaultRestSec
-      defaultRpe
+      metricDefaults {
+        metricId
+        defaultMin
+        defaultMax
+      }
     }
   }
 `;
@@ -149,16 +151,18 @@ export const UPDATE_INTENSITY_PRESET = gql`
     updateIntensityPreset(id: $id, input: $input) {
       id
       trainingGoalId
+      experienceLevelId
       experienceLevel {
         id
         name
         key
         isDefault
       }
-      defaultSets
-      defaultReps
-      defaultRestSec
-      defaultRpe
+      metricDefaults {
+        metricId
+        defaultMin
+        defaultMax
+      }
     }
   }
 `;
@@ -181,7 +185,10 @@ export const CREATE_EXPERIENCE_LEVEL = gql`
 `;
 
 export const UPDATE_EXPERIENCE_LEVEL = gql`
-  mutation UpdateExperienceLevel($id: Int!, $input: UpdateExperienceLevelInput!) {
+  mutation UpdateExperienceLevel(
+    $id: Int!
+    $input: UpdateExperienceLevelInput!
+  ) {
     updateExperienceLevel(id: $id, input: $input) {
       id
       name

@@ -17,6 +17,7 @@ export const GET_WORKOUT_PLAN_META = gql`
     getIntensityPresets {
       id
       trainingGoalId
+      experienceLevelId
       trainingGoal {
         id
         name
@@ -27,10 +28,11 @@ export const GET_WORKOUT_PLAN_META = gql`
         key
         isDefault
       }
-      defaultSets
-      defaultReps
-      defaultRestSec
-      defaultRpe
+      metricDefaults {
+        metricId
+        defaultMin
+        defaultMax
+      }
     }
     experienceLevels {
       id
@@ -102,16 +104,18 @@ export const GET_WORKOUT_PLAN_BY_ID = gql`
       }
       intensityPreset {
         id
+        experienceLevelId
         experienceLevel {
           id
           name
           key
           isDefault
         }
-        defaultSets
-        defaultReps
-        defaultRestSec
-        defaultRpe
+        metricDefaults {
+          metricId
+          defaultMin
+          defaultMax
+        }
         trainingGoalId
         trainingGoal {
           id
@@ -156,6 +160,7 @@ export const GET_INTENSITY_PRESETS = gql`
     getIntensityPresets(trainingGoalId: $trainingGoalId) {
       id
       trainingGoalId
+      experienceLevelId
       trainingGoal {
         id
         name
@@ -166,10 +171,11 @@ export const GET_INTENSITY_PRESETS = gql`
         key
         isDefault
       }
-      defaultSets
-      defaultReps
-      defaultRestSec
-      defaultRpe
+      metricDefaults {
+        metricId
+        defaultMin
+        defaultMax
+      }
     }
   }
 `;
