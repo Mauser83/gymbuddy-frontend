@@ -681,13 +681,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
             </TouchableOpacity>
             <ClickableList
               items={presets.map(
-                (preset: {
-                  id: number;
-                  trainingGoalId: number;
-                  experienceLevelId: number;
-                  experienceLevel: {id: number; name: string; key: string};
-                  metricDefaults: IntensityMetricDefault[];
-                }) => {
+                  (preset: IntensityPreset) => {
                   const isExpanded = expandedPresetId === preset.id;
                   const edit = presetEdits[preset.id] || preset;
                   const goal = trainingGoals.find(
