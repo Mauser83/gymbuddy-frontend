@@ -37,6 +37,7 @@ import {useQuery, useMutation} from '@apollo/client';
 import {GET_WORKOUT_PLAN_META} from 'modules/workoutplan/graphql/workoutMeta.graphql';
 import ModalWrapper from 'shared/components/ModalWrapper';
 import OptionItem from 'shared/components/OptionItem';
+import {useMetricRegistry} from 'shared/context/MetricRegistry';
 
 const METRIC_IDS = {
   REPS: 1,
@@ -109,6 +110,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
   >(null);
 
   const {data, refetch} = useQuery(GET_WORKOUT_PLAN_META);
+  const {metricRegistry} = useMetricRegistry();
 
   const [newValue, setNewValue] = useState('');
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -123,7 +125,9 @@ export default function AdminWorkoutPlanCatalogScreen() {
       {metricId: METRIC_IDS.SETS, defaultMin: 3, defaultMax: undefined},
     ],
   });
-  const [presetEdits, setPresetEdits] = useState<Record<number, IntensityPresetEdit>>({});
+  const [presetEdits, setPresetEdits] = useState<
+    Record<number, IntensityPresetEdit>
+  >({});
   const [expandedPresetId, setExpandedPresetId] = useState<number | null>(null);
   const [pickerState, setPickerState] = useState<
     'trainingGoal' | 'experienceLevel' | 'editMuscleGroup' | null
@@ -680,119 +684,134 @@ export default function AdminWorkoutPlanCatalogScreen() {
               <Title text="Intensity Presets" />
             </TouchableOpacity>
             <ClickableList
-              items={presets.map(
-                  (preset: IntensityPreset) => {
-                  const isExpanded = expandedPresetId === preset.id;
-                  const edit = presetEdits[preset.id] || preset;
-                  const goal = trainingGoals.find(
-                    (g: {id: number}) => g.id === edit.trainingGoalId,
-                  );
+              items={presets.map((preset: IntensityPreset) => {
+                const isExpanded = expandedPresetId === preset.id;
+                const edit = presetEdits[preset.id] || preset;
+                const goal = trainingGoals.find(
+                  (g: {id: number}) => g.id === edit.trainingGoalId,
+                );
 
-                  return {
-                    id: preset.id,
-                    label: `${goal?.name || 'Goal'} – ${edit.experienceLevel?.name || ''}`,
-                    selected: isExpanded,
-                    rightElement: isExpanded ? (
-                      <FontAwesome
-                        name="chevron-down"
-                        size={16}
-                        color={theme.colors.accentStart}
+                return {
+                  id: preset.id,
+                  label: `${goal?.name || 'Goal'} – ${edit.experienceLevel?.name || ''}`,
+                  selected: isExpanded,
+                  rightElement: isExpanded ? (
+                    <FontAwesome
+                      name="chevron-down"
+                      size={16}
+                      color={theme.colors.accentStart}
+                    />
+                  ) : null,
+                  onPress: () => {
+                    setExpandedPresetId(prev =>
+                      prev === preset.id ? null : preset.id,
+                    );
+                    setPresetEdits(prev => ({...prev, [preset.id]: preset}));
+                  },
+                  content: isExpanded ? (
+                    <View style={{gap: spacing.sm}}>
+                      <SelectableField
+                        label="Training Goal"
+                        value={goal?.name || 'Select Training Goal'}
+                        onPress={() => {
+                          setEditingPresetId(preset.id);
+                          setPickerState('trainingGoal');
+                        }}
                       />
-                    ) : null,
-                    onPress: () => {
-                      setExpandedPresetId(prev =>
-                        prev === preset.id ? null : preset.id,
-                      );
-                      setPresetEdits(prev => ({...prev, [preset.id]: preset}));
-                    },
-                    content: isExpanded ? (
-                      <View style={{gap: spacing.sm}}>
-                        <SelectableField
-                          label="Training Goal"
-                          value={goal?.name || 'Select Training Goal'}
-                          onPress={() => {
-                            setEditingPresetId(preset.id);
-                            setPickerState('trainingGoal');
-                          }}
-                        />
-                        <SelectableField
-                          label="Experience Level"
-                          value={
-                            edit.experienceLevel?.name ||
-                            'Select Experience Level'
-                          }
-                          onPress={() => {
-                            setEditingPresetId(preset.id);
-                            setPickerState('experienceLevel');
-                          }}
-                        />
-                        {edit.metricDefaults.map((m: IntensityMetricDefault, idx: number) => (
+                      <SelectableField
+                        label="Experience Level"
+                        value={
+                          edit.experienceLevel?.name ||
+                          'Select Experience Level'
+                        }
+                        onPress={() => {
+                          setEditingPresetId(preset.id);
+                          setPickerState('experienceLevel');
+                        }}
+                      />
+                      {edit.metricDefaults.map(
+                        (m: IntensityMetricDefault, idx: number) => (
                           <View
                             key={m.metricId}
                             style={{flexDirection: 'row', gap: spacing.sm}}>
-                            <FormInput
-                              label={`Metric ID ${m.metricId}`}
-                              value={String(m.defaultMin)}
-                              keyboardType="numeric"
-                              onChangeText={v =>
-                                setPresetEdits(p => ({
-                                  ...p,
-                                  [preset.id]: {
-                                    ...edit,
-                                    metricDefaults: edit.metricDefaults.map(
-                                      (md: IntensityMetricDefault, i: number) =>
-                                        i === idx
-                                          ? {...md, defaultMin: Number(v)}
-                                          : md,
-                                    ),
-                                  },
-                                }))
-                              }
-                            />
-                            <FormInput
-                              label="Max (optional)"
-                              value={String(m.defaultMax ?? '')}
-                              keyboardType="numeric"
-                              onChangeText={v =>
-                                setPresetEdits(p => ({
-                                  ...p,
-                                  [preset.id]: {
-                                    ...edit,
-                                    metricDefaults: edit.metricDefaults.map(
-                                      (md: IntensityMetricDefault, i: number) =>
-                                        i === idx
-                                          ? {
-                                              ...md,
-                                              defaultMax:
-                                                v !== ''
-                                                  ? Number(v)
-                                                  : undefined,
-                                            }
-                                          : md,
-                                    ),
-                                  },
-                                }))
-                              }
-                            />
+                            <View style={{flex: 1}}>
+                              <FormInput
+                                label={
+                                  metricRegistry[m.metricId]?.unit
+                                    ? `${metricRegistry[m.metricId]?.name} (${metricRegistry[m.metricId]?.unit})`
+                                    : metricRegistry[m.metricId]?.name ||
+                                      `Metric ID ${m.metricId}`
+                                }
+                                value={String(m.defaultMin)}
+                                keyboardType="numeric"
+                                onChangeText={v =>
+                                  setPresetEdits(p => ({
+                                    ...p,
+                                    [preset.id]: {
+                                      ...edit,
+                                      metricDefaults: edit.metricDefaults.map(
+                                        (
+                                          md: IntensityMetricDefault,
+                                          i: number,
+                                        ) =>
+                                          i === idx
+                                            ? {...md, defaultMin: Number(v)}
+                                            : md,
+                                      ),
+                                    },
+                                  }))
+                                }
+                              />
+                            </View>
+                            <View style={{flex: 1}}>
+                              <FormInput
+                                label="Max (optional)"
+                                value={String(m.defaultMax ?? '')}
+                                keyboardType="numeric"
+                                onChangeText={v =>
+                                  setPresetEdits(p => ({
+                                    ...p,
+                                    [preset.id]: {
+                                      ...edit,
+                                      metricDefaults: edit.metricDefaults.map(
+                                        (
+                                          md: IntensityMetricDefault,
+                                          i: number,
+                                        ) =>
+                                          i === idx
+                                            ? {
+                                                ...md,
+                                                defaultMax:
+                                                  v !== ''
+                                                    ? Number(v)
+                                                    : undefined,
+                                              }
+                                            : md,
+                                      ),
+                                    },
+                                  }))
+                                }
+                              />
+                            </View>
                           </View>
-                        ))}
-                        <ButtonRow>
-                          <Button
-                            text="Update"
-                            fullWidth
-                            onPress={() => handleUpdatePreset(preset.id)}
-                          />
-                          <Button
-                            text="Delete"
-                            fullWidth
-                            onPress={() => handleDeletePreset(preset.id)}
-                          />
-                        </ButtonRow>
-                      </View>
-                    ) : undefined,
-                  };
-                },
-              )}
+                        ),
+                      )}
+                      <ButtonRow>
+                        <Button
+                          text="Update"
+                          fullWidth
+                          onPress={() => handleUpdatePreset(preset.id)}
+                        />
+                        <Button
+                          text="Delete"
+                          fullWidth
+                          onPress={() => handleDeletePreset(preset.id)}
+                        />
+                      </ButtonRow>
+                    </View>
+                  ) : undefined,
+                };
+              })}
             />
             <DividerWithLabel label="Create New" />
             <SelectableField
@@ -823,37 +842,47 @@ export default function AdminWorkoutPlanCatalogScreen() {
               <View
                 key={m.metricId}
                 style={{flexDirection: 'row', gap: spacing.sm}}>
-                <FormInput
-                  label={`Metric ID ${m.metricId}`}
-                  value={String(m.defaultMin)}
-                  keyboardType="numeric"
-                  onChangeText={v =>
-                    setNewPreset(p => ({
-                      ...p,
-                      metricDefaults: p.metricDefaults.map((md, i) =>
-                        i === idx ? {...md, defaultMin: Number(v)} : md,
-                      ),
-                    }))
-                  }
-                />
-                <FormInput
-                  label="Max (optional)"
-                  value={String(m.defaultMax ?? '')}
-                  keyboardType="numeric"
-                  onChangeText={v =>
-                    setNewPreset(p => ({
-                      ...p,
-                      metricDefaults: p.metricDefaults.map((md: IntensityMetricDefault, i: number) =>
-                        i === idx
-                          ? {
-                              ...md,
-                              defaultMax: v !== '' ? Number(v) : undefined,
-                            }
-                          : md,
-                      ),
-                    }))
-                  }
-                />
+                <View style={{flex: 1}}>
+                  <FormInput
+                    label={
+                      metricRegistry[m.metricId]?.unit
+                        ? `${metricRegistry[m.metricId]?.name} (${metricRegistry[m.metricId]?.unit})`
+                        : metricRegistry[m.metricId]?.name ||
+                          `Metric ID ${m.metricId}`
+                    }
+                    value={String(m.defaultMin)}
+                    keyboardType="numeric"
+                    onChangeText={v =>
+                      setNewPreset(p => ({
+                        ...p,
+                        metricDefaults: p.metricDefaults.map((md, i) =>
+                          i === idx ? {...md, defaultMin: Number(v)} : md,
+                        ),
+                      }))
+                    }
+                  />
+                </View>
+                <View style={{flex: 1}}>
+                  <FormInput
+                    label="Max (optional)"
+                    value={String(m.defaultMax ?? '')}
+                    keyboardType="numeric"
+                    onChangeText={v =>
+                      setNewPreset(p => ({
+                        ...p,
+                        metricDefaults: p.metricDefaults.map(
+                          (md: IntensityMetricDefault, i: number) =>
+                            i === idx
+                              ? {
+                                  ...md,
+                                  defaultMax: v !== '' ? Number(v) : undefined,
+                                }
+                              : md,
+                        ),
+                      }))
+                    }
+                  />
+                </View>
               </View>
             ))}
             <ButtonRow>
