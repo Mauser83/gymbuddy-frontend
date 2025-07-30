@@ -16,7 +16,6 @@ import React from 'react';
 import {View, Text} from 'react-native';
 import FormInput from 'shared/components/FormInput';
 import {useMetricRegistry} from 'shared/context/MetricRegistry';
-import {metricsWithOnlyMin} from 'shared/context/MetricRegistry';
 import { useTheme } from 'shared/theme/ThemeProvider';
 
 interface TargetMetric {
@@ -95,7 +94,7 @@ const TargetMetricInputGroup: React.FC<TargetMetricInputGroupProps> = ({
                   }
                 />
               </View>
-              {!metricsWithOnlyMin.includes(metric.name) && (
+              {!metric.minOnly && (
                 <View style={{flex: 1}}>
                   <FormInput
                     label="Max (optional)"

@@ -26,6 +26,10 @@ const AdminSystemCatalogScreen = () => {
           <Card title="Exercise Metadata" showChevron />
         </TouchableOpacity>
 
+        <TouchableOpacity onPress={() => navigate('/admin/catalog/metrics')}>
+          <Card title="Metrics" showChevron />
+        </TouchableOpacity>
+
         <TouchableOpacity
           onPress={() => navigate('/admin/catalog/workoutplan')}>
           <Card title="Workout Plan Settings" showChevron />

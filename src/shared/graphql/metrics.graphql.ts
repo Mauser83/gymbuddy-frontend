@@ -6,8 +6,11 @@ export const GET_ALL_METRICS_AND_EXERCISE_TYPES = gql`
     allMetrics {
       id
       name
+      slug
       unit
       inputType
+      useInPlanning
+      minOnly
     }
     allExerciseTypes {
       id

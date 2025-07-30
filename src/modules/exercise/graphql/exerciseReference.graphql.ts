@@ -46,6 +46,8 @@ export const GET_REFERENCE_DATA = gql`
       slug
       unit
       inputType
+      useInPlanning
+      minOnly
     }
   }
 `;
@@ -216,6 +218,8 @@ export const GET_METRICS = gql`
       slug
       unit
       inputType
+      useInPlanning
+      minOnly
     }
   }
 `;
@@ -228,6 +232,8 @@ export const CREATE_METRIC = gql`
       slug
       unit
       inputType
+      useInPlanning
+      minOnly
     }
   }
 `;
@@ -240,6 +246,8 @@ export const UPDATE_METRIC = gql`
       slug
       unit
       inputType
+      useInPlanning
+      minOnly
     }
   }
 `;

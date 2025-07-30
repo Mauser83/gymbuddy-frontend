@@ -48,6 +48,7 @@ import AdminSystemCatalogScreen from 'modules/portals/appManagement/screens/Admi
 import AdminEquipmentCatalogScreen from 'modules/portals/appManagement/screens/AdminEquipmentCatalogScreen';
 import AdminExerciseCatalogScreen from 'modules/portals/appManagement/screens/AdminExerciseCatalogScreen';
 import AdminWorkoutPlanCatalogScreen from 'modules/portals/appManagement/screens/AdminWorkoutPlanCatalogScreen';
+import AdminMetricCatalogScreen from 'modules/portals/appManagement/screens/AdminMetricCatalogScreen';
 
 const AppRoutes = () => {
   const {user, isAuthenticated, sessionLoaded} = useAuth();
@@ -73,106 +74,101 @@ const AppRoutes = () => {
 
   return (
     <MetricRegistryProvider>
-        <Header />
-        <View style={{flex: 1}}>
-          <Routes>
-            {/* Public */}
-            <Route path="/" element={<WelcomeScreen />} />
-            <Route path="/login" element={<LoginScreen />} />
-            <Route path="/register" element={<RegisterScreen />} />
+      <Header />
+      <View style={{flex: 1}}>
+        <Routes>
+          {/* Public */}
+          <Route path="/" element={<WelcomeScreen />} />
+          <Route path="/login" element={<LoginScreen />} />
+          <Route path="/register" element={<RegisterScreen />} />
 
-            {/* User Portal */}
-            <Route path="/user" element={<UserDashboardScreen />} />
-            <Route path="/user/my-plans" element={<MyWorkoutPlansScreen />} />
-            <Route path="/user/log-exercise" element={<StartWorkoutScreen />} />
-            <Route
-              path="/active-session/:sessionId"
-              element={<ActiveWorkoutSessionScreen />}
-            />
-            <Route path="/gyms" element={<GymsScreen />} />
-            <Route path="/gyms/create" element={<GymCreateScreen />} />
-            <Route path="/gyms/:gymId" element={<GymDetailScreen />} />
-            <Route path="/profile" element={<ProfileScreen />} />
-            <Route
-              path="/user/exercise-library"
-              element={<ExerciseLibraryScreen />}
-            />
-            <Route
-              path="/user/exercise/:exerciseId"
-              element={<ExerciseDetailScreen />}
-            />
-            <Route path="/user/progress" element={<ProgressOverviewScreen />} />
-            <Route
-              path="/user/view-plan/:id"
-              element={<WorkoutPlanViewScreen />}
-            />
-            <Route
-              path="/user/edit-plan"
-              element={<WorkoutPlanBuilderScreen />}
-            />
-            <Route
-              path="/workout-session"
-              element={<WorkoutSessionHistoryScreen />}
-            />
-            <Route
-              path="/workout-session/:sessionId"
-              element={<WorkoutSessionDetailScreen />}
-            />
+          {/* User Portal */}
+          <Route path="/user" element={<UserDashboardScreen />} />
+          <Route path="/user/my-plans" element={<MyWorkoutPlansScreen />} />
+          <Route path="/user/log-exercise" element={<StartWorkoutScreen />} />
+          <Route
+            path="/active-session/:sessionId"
+            element={<ActiveWorkoutSessionScreen />}
+          />
+          <Route path="/gyms" element={<GymsScreen />} />
+          <Route path="/gyms/create" element={<GymCreateScreen />} />
+          <Route path="/gyms/:gymId" element={<GymDetailScreen />} />
+          <Route path="/profile" element={<ProfileScreen />} />
+          <Route
+            path="/user/exercise-library"
+            element={<ExerciseLibraryScreen />}
+          />
+          <Route
+            path="/user/exercise/:exerciseId"
+            element={<ExerciseDetailScreen />}
+          />
+          <Route path="/user/progress" element={<ProgressOverviewScreen />} />
+          <Route
+            path="/user/view-plan/:id"
+            element={<WorkoutPlanViewScreen />}
+          />
+          <Route
+            path="/user/edit-plan"
+            element={<WorkoutPlanBuilderScreen />}
+          />
+          <Route
+            path="/workout-session"
+            element={<WorkoutSessionHistoryScreen />}
+          />
+          <Route
+            path="/workout-session/:sessionId"
+            element={<WorkoutSessionDetailScreen />}
+          />
 
-            {/* App Management Portal */}
-            <Route path="/admin" element={<AppDashboardScreen />} />
-            <Route path="/pending-gyms" element={<PendingGymsScreen />} />
-            <Route path="/equipment" element={<GlobalEquipmentListScreen />} />
-            <Route
-              path="/equipment/create"
-              element={<CreateEquipmentScreen />}
-            />
-            <Route
-              path="/equipment/edit/:id"
-              element={<EditEquipmentScreen />}
-            />
-            <Route path="/exercise" element={<ExerciseListScreen />} />
-            <Route path="/exercise/create" element={<CreateExerciseScreen />} />
-            <Route path="/exercise/edit/:id" element={<EditExerciseScreen />} />
-            <Route path="/users" element={<UsersScreen />} />
-            <Route path="/users/:id" element={<UserDetailScreen />} />
-            <Route
-              path="/workoutplan/builder"
-              element={<WorkoutPlanBuilderScreen />}
-            />
-            <Route
-              path="/admin/catalog"
-              element={<AdminSystemCatalogScreen />}
-            />
-            <Route
-              path="/admin/catalog/equipment"
-              element={<AdminEquipmentCatalogScreen />}
-            />
-            <Route
-              path="/admin/catalog/exercise"
-              element={<AdminExerciseCatalogScreen />}
-            />
-            <Route
-              path="/admin/catalog/workoutplan"
-              element={<AdminWorkoutPlanCatalogScreen />}
-            />
+          {/* App Management Portal */}
+          <Route path="/admin" element={<AppDashboardScreen />} />
+          <Route path="/pending-gyms" element={<PendingGymsScreen />} />
+          <Route path="/equipment" element={<GlobalEquipmentListScreen />} />
+          <Route path="/equipment/create" element={<CreateEquipmentScreen />} />
+          <Route path="/equipment/edit/:id" element={<EditEquipmentScreen />} />
+          <Route path="/exercise" element={<ExerciseListScreen />} />
+          <Route path="/exercise/create" element={<CreateExerciseScreen />} />
+          <Route path="/exercise/edit/:id" element={<EditExerciseScreen />} />
+          <Route path="/users" element={<UsersScreen />} />
+          <Route path="/users/:id" element={<UserDetailScreen />} />
+          <Route
+            path="/workoutplan/builder"
+            element={<WorkoutPlanBuilderScreen />}
+          />
+          <Route path="/admin/catalog" element={<AdminSystemCatalogScreen />} />
+          <Route
+            path="/admin/catalog/equipment"
+            element={<AdminEquipmentCatalogScreen />}
+          />
+          <Route
+            path="/admin/catalog/exercise"
+            element={<AdminExerciseCatalogScreen />}
+          />
+          <Route
+            path="/admin/catalog/workoutplan"
+            element={<AdminWorkoutPlanCatalogScreen />}
+          />
+          <Route
+            path="/admin/catalog/metrics"
+            element={<AdminMetricCatalogScreen />}
+          />
 
-            {/* Gym Management Portal */}
-            <Route path="/gym-admin" element={<GymAdminDashboard />} />
-            <Route
-              path="/gym-admin/gyms/:gymId"
-              element={<GymManagementScreen />}
-            />
-            <Route
-              path="/gym-admin/gyms/:gymId/equipment"
-              element={<GymEquipmentListScreen />}
-            />
+          {/* Gym Management Portal */}
+          <Route path="/gym-admin" element={<GymAdminDashboard />} />
+          <Route
+            path="/gym-admin/gyms/:gymId"
+            element={<GymManagementScreen />}
+          />
+          <Route
+            path="/gym-admin/gyms/:gymId/equipment"
+            element={<GymEquipmentListScreen />}
+          />
 
-            {/* Fallback */}
-            <Route path="*" element={<NoResults message="Page not found." />} />
-          </Routes>
-        </View>
-        <Footer />
+          {/* Fallback */}
+          <Route path="*" element={<NoResults message="Page not found." />} />
+        </Routes>
+      </View>
+      <Footer />
     </MetricRegistryProvider>
   );
 };

@@ -104,6 +104,8 @@ export interface Metric {
   slug: string;
   unit: string;
   inputType: 'number' | 'time' | 'text';
+  useInPlanning: boolean;
+  minOnly: boolean;
 }
 
 export interface MetricFormState {
@@ -111,4 +113,6 @@ export interface MetricFormState {
   slug: string;
   unit: string;
   inputType: 'number' | 'time' | 'text';
+  useInPlanning: boolean;
+  minOnly: boolean;
 }

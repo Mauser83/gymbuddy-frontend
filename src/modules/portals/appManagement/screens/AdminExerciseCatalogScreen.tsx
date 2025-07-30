@@ -24,7 +24,7 @@ import NoResults from 'shared/components/NoResults';
 export default function AdminExerciseCatalogScreen() {
   const {theme} = useTheme();
   const [mode, setMode] = useState<
-    'type' | 'difficulty' | 'bodyPart' | 'muscle' | 'metric' | null
+    'type' | 'difficulty' | 'bodyPart' | 'muscle' | null
   >(null);
   const [selectedBodyPartId, setSelectedBodyPartId] = useState<number | null>(
     null,
@@ -32,15 +32,6 @@ export default function AdminExerciseCatalogScreen() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [newValue, setNewValue] = useState('');
   const [edits, setEdits] = useState<Record<number, string>>({});
-  const [newMetric, setNewMetric] = useState({
-    name: '',
-    slug: '',
-    unit: '',
-    inputType: 'number',
-  });
-  const [metricEdits, setMetricEdits] = useState<
-    Record<number, CreateMetricInput>
-  >({});
   const [showNewMetricPicker, setShowNewMetricPicker] = useState(false);
 
   const [newExerciseType, setNewExerciseType] = useState({
@@ -76,18 +67,9 @@ export default function AdminExerciseCatalogScreen() {
     mode === 'muscle' && selectedBodyPartId === null ? 'bodyPart' : mode;
   const {data, refetch, createItem, updateItem, deleteItem} =
     useReferenceManagement(
-      currentMode ?? 'metric',
+      currentMode ?? 'type',
       selectedBodyPartId || undefined,
     );
-
-  function slugify(text: string) {
-    return text
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .trim()
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-');
-  }
 
   const items = (data || [])
     .slice()
@@ -117,17 +99,7 @@ export default function AdminExerciseCatalogScreen() {
           } else {
             setExpandedId(prev => (prev === item.id ? null : item.id));
 
-            if (mode === 'metric') {
-              setMetricEdits(prev => ({
-                ...prev,
-                [item.id]: {
-                  name: item.name,
-                  slug: item.slug,
-                  unit: item.unit,
-                  inputType: item.inputType,
-                },
-              }));
-            } else if (mode === 'type') {
+            if (mode === 'type') {
               setExerciseTypeEdits(prev => ({
                 ...prev,
                 [item.id]: {
@@ -149,50 +121,7 @@ export default function AdminExerciseCatalogScreen() {
         },
         content: expandedId === item.id && (
           <>
-            {mode === 'metric' ? (
-              <>
-                <FormInput
-                  label="Name"
-                  value={metricEdits[item.id]?.name || ''}
-                  onChangeText={val =>
-                    setMetricEdits(prev => ({
-                      ...prev,
-                      [item.id]: {
-                        ...(prev[item.id] || {}),
-                        name: val,
-                        slug: slugify(val),
-                      },
-                    }))
-                  }
-                />
-                <FormInput
-                  label="Unit"
-                  value={metricEdits[item.id]?.unit || ''}
-                  onChangeText={val =>
-                    setMetricEdits(prev => ({
-                      ...prev,
-                      [item.id]: {
-                        ...(prev[item.id] || {}),
-                        unit: val,
-                      },
-                    }))
-                  }
-                />
-                <FormInput
-                  label="Input Type (number | time | text)"
-                  value={metricEdits[item.id]?.inputType || ''}
-                  onChangeText={val =>
-                    setMetricEdits(prev => ({
-                      ...prev,
-                      [item.id]: {
-                        ...(prev[item.id] || {}),
-                        inputType: val,
-                      },
-                    }))
-                  }
-                />
-              </>
-            ) : mode === 'type' ? (
+            {mode === 'type' ? (
               <>
                 <FormInput
                   label="Name"
@@ -430,11 +359,6 @@ export default function AdminExerciseCatalogScreen() {
         metrics: newExerciseType.metrics,
       });
       setNewExerciseType({name: '', metrics: []});
-    } else if (mode === 'metric') {
-      await (createItem as (input: CreateMetricInput) => Promise<any>)(
-        newMetric,
-      );
-      setNewMetric({name: '', slug: '', unit: '', inputType: 'number'});
     } else {
       await (createItem as (input: string) => Promise<any>)(newValue);
       setNewValue('');
@@ -443,16 +367,6 @@ export default function AdminExerciseCatalogScreen() {
   };
 
   const handleUpdate = async (id: number) => {
-    if (mode === 'metric') {
-      const updated = metricEdits[id];
-      if (!updated) return;
-      await (
-        updateItem as (
-          id: number,
-          input: Partial<CreateMetricInput>,
-        ) => Promise<any>
-      )(id, updated);
-    }
     if (mode === 'type') {
       const updated = exerciseTypeEdits[id];
       if (!updated) return;
@@ -475,7 +389,6 @@ export default function AdminExerciseCatalogScreen() {
 
   const catalogSections: {key: typeof mode; label: string; sublabel: string}[] =
     [
-      {key: 'metric', label: 'Metrics', sublabel: 'Click to manage metrics'}, // New
       {
         key: 'type',
         label: 'Exercise Types',
@@ -512,35 +425,7 @@ export default function AdminExerciseCatalogScreen() {
 
                 {mode === section.key && (
                   <>
-                    {mode === 'metric' ? (
-                      <>
-                        <FormInput
-                          label="Name"
-                          value={newMetric.name}
-                          onChangeText={val =>
-                            setNewMetric(prev => ({
-                              ...prev,
-                              name: val,
-                              slug: slugify(val),
-                            }))
-                          }
-                        />
-                        <FormInput
-                          label="Unit"
-                          value={newMetric.unit}
-                          onChangeText={val =>
-                            setNewMetric(prev => ({...prev, unit: val}))
-                          }
-                        />
-                        <FormInput
-                          label="Input Type (e.g. number, time, text)"
-                          value={newMetric.inputType}
-                          onChangeText={val =>
-                            setNewMetric(prev => ({...prev, inputType: val}))
-                          }
-                        />
-                      </>
-                    ) : mode === 'type' ? (
+                    {mode === 'type' ? (
                       <>
                         <FormInput
                           label="Name"

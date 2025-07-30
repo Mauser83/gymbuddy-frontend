@@ -29,6 +29,8 @@ export type CreateMetricInput = {
   slug: string;
   unit: string;
   inputType: string;
+  useInPlanning?: boolean;
+  minOnly?: boolean;
 };
 
 export type CreateExerciseTypeInput = {

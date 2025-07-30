@@ -8,6 +8,8 @@ export type MetricDefinition = {
   name: string;
   unit: string;
   inputType: 'number' | 'time' | 'text';
+  useInPlanning: boolean;
+  minOnly: boolean;
 };
 
 type MetricRegistryContextType = {
@@ -33,26 +35,14 @@ export const useMetricRegistry = () => {
   return ctx;
 };
 
-// 🧠 Central filter config
-const planningRelevantMetricsByType: Record<number, string[]> = {
-  1: ['Reps', 'RPE', 'Rest time', 'Tempo'],  // Strength
-  2: ['Duration', 'Distance'],              // Cardio (example)
-  3: ['Hold time', 'Rest time'],            // Mobility (example)
-};
-
-export const metricsWithOnlyMin: string[] = ['RPE']; // Example
-
-// 🔧 Builder for externalized filter function
 export const buildGetPlanningRelevantMetricIdsForExercise = (
   registry: Record<number, MetricDefinition>,
   exerciseTypeByExerciseId: Record<number, number>,
-  exerciseMetricMap: Record<number, number[]>,
-  planningRelevantMetricsByType: Record<number, string[]>
+  exerciseMetricMap: Record<number, number[]>
 ) => (exerciseId: number): number[] => {
   const typeId = exerciseTypeByExerciseId[exerciseId];
   const allMetricIds = exerciseMetricMap[typeId] ?? [];
-  const names = planningRelevantMetricsByType[typeId] ?? [];
-  return allMetricIds.filter(id => names.includes(registry[id]?.name));
+  return allMetricIds.filter(id => registry[id]?.useInPlanning);
 };
 
 export const MetricRegistryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -76,6 +66,8 @@ export const MetricRegistryProvider: React.FC<{ children: React.ReactNode }> = (
         name: m.name,
         unit: m.unit,
         inputType: m.inputType,
+        useInPlanning: m.useInPlanning,
+        minOnly: m.minOnly,
       };
     });
 
@@ -118,21 +110,20 @@ export const MetricRegistryProvider: React.FC<{ children: React.ReactNode }> = (
     const getRelevant = buildGetPlanningRelevantMetricIdsForExercise(
       registry,
       exerciseTypeByExerciseId,
-      exerciseMetricMap,
-      planningRelevantMetricsByType
+      exerciseMetricMap
     );
-    return getRelevant(exerciseId).map(id => ({
-      metricId: id,
-      min: '',
-      max: '',
-    }));
+    return getRelevant(exerciseId).map(id => {
+      const metric = registry[id];
+      return metric && metric.minOnly
+        ? {metricId: id, min: ''}
+        : {metricId: id, min: '', max: ''};
+    });
   };
 
   const getPlanningRelevantMetricIdsForExercise = buildGetPlanningRelevantMetricIdsForExercise(
     registry,
     exerciseTypeByExerciseId,
-    exerciseMetricMap,
-    planningRelevantMetricsByType
+    exerciseMetricMap
   );
 
   return (
