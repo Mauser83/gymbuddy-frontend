@@ -1,4 +1,3 @@
-
 import React, {
   useState,
   useRef,
@@ -378,7 +377,7 @@ export default function WorkoutPlanBuilderScreen() {
     exs: ExerciseFormEntry[],
     grps: ExerciseGroup[],
   ): {exercises: ExerciseFormEntry[]; groups: ExerciseGroup[]} => {
-        const newExercises = exs.map(e => ({...e}));
+    const newExercises = exs.map(e => ({...e}));
     const newGroups = grps.map(g => ({...g}));
 
     const displayItems: {type: 'exercise' | 'group'; ref: any}[] = [];
@@ -461,14 +460,20 @@ export default function WorkoutPlanBuilderScreen() {
         experienceLevelId:
           plan.intensityPreset?.experienceLevel?.id ?? undefined,
         muscleGroupIds: [],
-exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) => a.order - b.order),
+        exercises: exercises
+          .slice()
+          .sort(
+            (a: ExerciseFormEntry, b: ExerciseFormEntry) => a.order - b.order,
+          ),
         groups: (
           plan.groups?.map((g: any) => ({
             id: g.id,
             trainingMethodId: g.trainingMethodId,
             order: g.order,
           })) ?? deriveGroupsFromExercises(exercises)
-).slice().sort((a: ExerciseGroup, b: ExerciseGroup) => a.order - b.order),
+        )
+          .slice()
+          .sort((a: ExerciseGroup, b: ExerciseGroup) => a.order - b.order),
       };
     }
 
@@ -491,14 +496,20 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
       intensityPresetId: plan.intensityPreset?.id ?? undefined,
       experienceLevelId: plan.intensityPreset?.experienceLevel?.id ?? undefined,
       muscleGroupIds: plan.muscleGroups.map((mg: any) => mg.id),
-exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) => a.order - b.order),
+      exercises: exercises
+        .slice()
+        .sort(
+          (a: ExerciseFormEntry, b: ExerciseFormEntry) => a.order - b.order,
+        ),
       groups: (
         plan.groups?.map((g: any) => ({
           id: g.id,
           trainingMethodId: g.trainingMethodId,
           order: g.order,
         })) ?? deriveGroupsFromExercises(exercises)
-).slice().sort((a: ExerciseGroup, b: ExerciseGroup) => a.order - b.order),
+      )
+        .slice()
+        .sort((a: ExerciseGroup, b: ExerciseGroup) => a.order - b.order),
     };
   }
   const location = useLocation();
@@ -696,6 +707,66 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
           useEffect(() => {
             valuesRef.current = values;
           });
+
+          useEffect(() => {
+            if (!workoutMeta?.getIntensityPresets) return;
+            if (!values.trainingGoalId || !values.experienceLevelId) return;
+            const preset = workoutMeta.getIntensityPresets.find(
+              (p: any) =>
+                p.trainingGoalId === values.trainingGoalId &&
+                p.experienceLevelId === values.experienceLevelId,
+            );
+            if (!preset) {
+              return;
+            }
+
+            if (values.intensityPresetId !== preset.id) {
+              setFieldValue('intensityPresetId', preset.id);
+            }
+
+            const defaultsMap: Record<
+              number,
+              {defaultMin: number; defaultMax?: string | number}
+            > = {};
+            preset.metricDefaults.forEach((d: any) => {
+              defaultsMap[d.metricId] = {
+                defaultMin: d.defaultMin,
+                defaultMax: d.defaultMax ?? '',
+              };
+            });
+
+            const updatedExercises = values.exercises.map(ex => {
+              let metricsChanged = false;
+              const updatedMetrics = ex.targetMetrics.map(m => {
+                const def = defaultsMap[m.metricId];
+                if (!def) return m;
+                const newMin =
+                  m.min === '' || m.min == null ? def.defaultMin : m.min;
+                const newMax =
+                  m.max === '' || m.max == null ? def.defaultMax : m.max;
+                if (newMin !== m.min || newMax !== m.max) {
+                  metricsChanged = true;
+                  return {...m, min: newMin, max: newMax};
+                }
+                return m;
+              });
+              return metricsChanged
+                ? {...ex, targetMetrics: updatedMetrics}
+                : ex;
+            });
+
+            const changed =
+              JSON.stringify(updatedExercises) !==
+              JSON.stringify(values.exercises);
+            if (changed) {
+              setFieldValue('exercises', updatedExercises);
+            }
+          }, [
+            values.trainingGoalId,
+            values.experienceLevelId,
+            values.exercises,
+            workoutMeta?.getIntensityPresets,
+          ]);
 
           const selectedBodyPartIds = getSelectedBodyPartIds(
             values.muscleGroupIds,
@@ -963,14 +1034,14 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
               newExercises.sort((a, b) => a.order - b.order);
               newGroups.sort((a, b) => a.order - b.order);
 
-                            setFieldValueFn('exercises', newExercises);
+              setFieldValueFn('exercises', newExercises);
               setFieldValueFn('groups', newGroups);
               setLayoutVersion(prev => prev + 1);
             },
             [], // Dependencies: None, as it uses arguments for current state
           );
 
-                    /**
+          /**
            * Build the array of items representing the current drag container.
            * This logic is shared between preview offset updates and drop target
            * calculation so the ordering and contents remain consistent.
@@ -1031,7 +1102,7 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
                 const ex = currentValues.exercises.find(
                   e => e.instanceId === id,
                 );
-                                if (ex && ex.groupId == null && exerciseLayouts.current[id]) {
+                if (ex && ex.groupId == null && exerciseLayouts.current[id]) {
                   containerItems.push({
                     id,
                     layout: exerciseLayouts.current[id],
@@ -1099,7 +1170,10 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
                   if (originalLayout) {
                     if (pointerY < originalLayout.y) {
                       originalDragDirection = 'up';
-                    } else if (pointerY > originalLayout.y + originalLayout.height) {
+                    } else if (
+                      pointerY >
+                      originalLayout.y + originalLayout.height
+                    ) {
                       originalDragDirection = 'down';
                     }
                   }
@@ -1126,7 +1200,12 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
               }
             }
 
-            return {items: containerItems, fromIdx, wasOriginallyOutside, originalDragDirection};
+            return {
+              items: containerItems,
+              fromIdx,
+              wasOriginallyOutside,
+              originalDragDirection,
+            };
           };
 
           const calculateDropTarget = (
@@ -1156,17 +1235,13 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
 
             for (let i = 0; i < containerItems.length; i++) {
               const item = containerItems[i];
-                            const originalItemLayout = {...item.layout};
+              const originalItemLayout = {...item.layout};
               let currentItemLayout = {...item.layout};
 
-              
               // If the previous item is a group, treat the top part of the next
               // item as a drop zone "after" the group. This must be checked
               // before normal overlap logic so it takes precedence.
-              if (
-                i < containerItems.length - 1 &&
-                item.type === 'group'
-              ) {
+              if (i < containerItems.length - 1 && item.type === 'group') {
                 const nextItem = containerItems[i + 1];
                 const nextTop = nextItem.layout.y;
                 if (y >= nextTop && y < nextTop + MIN_DROP_GAP_PX) {
@@ -1206,7 +1281,7 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
                 break;
               } else if (i < containerItems.length - 1) {
                 const nextItem = containerItems[i + 1];
-                                const originalNextItemLayout = {...nextItem.layout};
+                const originalNextItemLayout = {...nextItem.layout};
                 let nextItemLayout = {...nextItem.layout};
                 if (nextItem.type === 'group') {
                   nextItemLayout.y += GROUP_SHRINK_VERTICAL_OFFSET;
@@ -1223,11 +1298,11 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
                 ) {
                   gapEnd = gapStart + MIN_DROP_GAP_PX;
                 }
-                                const earlyTriggerThreshold = GAP_TRIGGER_THRESHOLD;
+                const earlyTriggerThreshold = GAP_TRIGGER_THRESHOLD;
                 const triggerPointInGap =
                   gapStart + (gapEnd - gapStart) * earlyTriggerThreshold;
 
-                                if (item.type === 'group') {
+                if (item.type === 'group') {
                   if (
                     y >= originalNextItemLayout.y &&
                     y < originalNextItemLayout.y + MIN_DROP_GAP_PX
@@ -1284,7 +1359,7 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
                 wasOriginallyOutside,
                 originalDragDirection,
               } = result;
-                            const draggedKey =
+              const draggedKey =
                 draggedItemData.type === 'group'
                   ? String(draggedItemData.id)
                   : draggedItemData.id;
@@ -1305,7 +1380,7 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
               // Find the target index and preview position
               for (let i = 0; i < containerItems.length; i++) {
                 const item = containerItems[i];
-                                const originalItemLayout = {...item.layout};
+                const originalItemLayout = {...item.layout};
                 let currentItemLayout = {...item.layout}; // Create a mutable copy of the layout
 
                 // If this item is a group, and the pointer is within the top
@@ -1313,10 +1388,7 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
                 // this group. This precedes the regular overlap check so that
                 // dragging directly over the next item still counts as dropping
                 // after the group.
-                if (
-                  i < containerItems.length - 1 &&
-                  item.type === 'group'
-                ) {
+                if (i < containerItems.length - 1 && item.type === 'group') {
                   const nextItem = containerItems[i + 1];
                   const nextTop = nextItem.layout.y;
                   if (y >= nextTop && y < nextTop + MIN_DROP_GAP_PX) {
@@ -1376,7 +1448,7 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
                 // Case 2: Dragging in a gap between current item and the next item
                 else if (i < containerItems.length - 1) {
                   const nextItem = containerItems[i + 1];
-                                    const originalNextItemLayout = {...nextItem.layout};
+                  const originalNextItemLayout = {...nextItem.layout};
 
                   let nextItemLayout = {...nextItem.layout};
 
@@ -1401,7 +1473,7 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
                   const triggerPointInGap =
                     gapStart + (gapEnd - gapStart) * earlyTriggerThreshold;
 
-                                    if (item.type === 'group') {
+                  if (item.type === 'group') {
                     if (
                       y >= originalNextItemLayout.y &&
                       y < originalNextItemLayout.y + MIN_DROP_GAP_PX
@@ -2109,7 +2181,7 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
                                                 e.instanceId ===
                                                 exercise.instanceId,
                                             );
-                                            const isExpanded =
+                                          const isExpanded =
                                             expandedExerciseIndex === idx;
 
                                           return (
@@ -2417,8 +2489,41 @@ exercises: exercises.slice().sort((a: ExerciseFormEntry, b: ExerciseFormEntry) =
                             }
                             try {
                               newExercises.forEach(e => {
-                                const newTargetMetrics =
+let newTargetMetrics =
                                   createPlanningTargetMetrics(e.id);
+
+                                const preset =
+                                  workoutMeta?.getIntensityPresets?.find(
+                                    (p: any) =>
+                                      p.trainingGoalId ===
+                                        values.trainingGoalId &&
+                                      p.experienceLevelId ===
+                                        values.experienceLevelId,
+                                  );
+                                if (preset) {
+                                  const map: Record<
+                                    number,
+                                    {
+                                      defaultMin: number;
+                                      defaultMax?: string | number;
+                                    }
+                                  > = {};
+                                  preset.metricDefaults.forEach((d: any) => {
+                                    map[d.metricId] = {
+                                      defaultMin: d.defaultMin,
+                                      defaultMax: d.defaultMax ?? '',
+                                    };
+                                  });
+                                  newTargetMetrics = newTargetMetrics.map(m => {
+                                    const d = map[m.metricId];
+                                    if (!d) return m;
+                                    return {
+                                      ...m,
+                                      min: d.defaultMin,
+                                      max: d.defaultMax ?? '',
+                                    };
+                                  });
+                                }
                                 const getNextOrder = (): number =>
                                   getNextGlobalOrder(
                                     values.exercises,
