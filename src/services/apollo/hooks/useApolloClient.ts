@@ -1,6 +1,6 @@
 import {useState, useEffect} from 'react';
 import createApolloClient from '../apolloClient';
-import {useAuth} from '../../../modules/auth/context/AuthContext';
+import {useAuth} from 'features/auth/context/AuthContext';
 import { ApolloClient } from '@apollo/client';
 
 // useApolloClient.ts

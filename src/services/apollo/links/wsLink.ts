@@ -1,9 +1,9 @@
 import {GraphQLWsLink} from '@apollo/client/link/subscriptions';
 import {createClient} from 'graphql-ws';
 import {refreshAccessToken, setWsClient} from '../tokenManager';
-import {getAccessToken} from 'modules/auth/utils/tokenStorage';
-import {isTokenExpired} from 'modules/auth/utils/isTokenExpired';
-import {triggerLogout} from 'modules/auth/utils/logoutTrigger'; // ✅ use this
+import {getAccessToken} from 'features/auth/utils/tokenStorage';
+import {isTokenExpired} from 'features/auth/utils/isTokenExpired';
+import {triggerLogout} from 'features/auth/utils/logoutTrigger'; // ✅ use this
 import Toast from 'react-native-toast-message';
 
 export const createWsLink = (url: string) => {

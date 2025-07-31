@@ -7,7 +7,7 @@ import {
   ThemeProvider as CustomThemeProvider,
   useTheme,
 } from './src/shared/theme/ThemeProvider';
-import {AuthProvider, useAuth} from './src/modules/auth/context/AuthContext';
+import {AuthProvider, useAuth} from './src/features/auth/context/AuthContext';
 import RoleSubscriptionWatcher from 'modules/auth/components/RoleSubscriptionWatcher';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {NativeRouter} from 'react-router-native';

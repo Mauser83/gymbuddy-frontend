@@ -4,10 +4,10 @@ import {
   setAccessToken,
   getRefreshToken,
   setRefreshToken,
-} from '../../modules/auth/utils/tokenStorage';
+} from 'features/auth/utils/tokenStorage';
 import {ApolloClient} from '@apollo/client';
-import {REFRESH_TOKEN_MUTATION} from 'modules/auth/graphql/auth.mutations';
-import {triggerLogout} from 'modules/auth/utils/logoutTrigger'; // ✅ use this
+import {REFRESH_TOKEN_MUTATION} from 'features/auth/graphql/auth.mutations';
+import {triggerLogout} from 'features/auth/utils/logoutTrigger'; // ✅ use this
 import Toast from 'react-native-toast-message';
 import {rawClient} from './rawClient';
 import {createClient, Client} from 'graphql-ws';

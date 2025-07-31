@@ -3,7 +3,7 @@ import {View, Text, TouchableOpacity} from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import {FontAwesome5} from '@expo/vector-icons';
 import SafeAreaHeader from './SafeAreaHeader';
-import {useAuth} from '../../modules/auth/context/AuthContext';
+import {useAuth} from 'features/auth/context/AuthContext';
 import AvatarDropdown from './AvatarDropdown';
 import {useTheme} from 'shared/theme/ThemeProvider';
 

@@ -7,7 +7,7 @@ import {
   Image,
   Platform,
 } from 'react-native';
-import {useAuth} from '../../modules/auth/context/AuthContext';
+import {useAuth} from 'features/auth/context/AuthContext';
 import {Portal} from 'react-native-portalize';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useNavigate} from 'react-router-native';

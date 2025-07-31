@@ -1,4 +1,4 @@
-import { User } from '../modules/user/types/user';
+import { User } from 'features/users/types/user';
 
 // routes/guards.ts
 export const getDefaultRouteForUser = (user: User | null): string => {

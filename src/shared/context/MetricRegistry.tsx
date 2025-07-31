@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useQuery } from '@apollo/client';
 import { GET_ALL_METRICS_AND_EXERCISE_TYPES } from 'shared/graphql/metrics.graphql';
-import { useAuth } from 'modules/auth/context/AuthContext';
+import { useAuth } from 'features/auth/context/AuthContext';
 
 export type MetricDefinition = {
   id: number;

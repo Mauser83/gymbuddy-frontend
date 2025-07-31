@@ -3,10 +3,10 @@ import React from 'react';
 import {TouchableOpacity, View, Text, StyleSheet} from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome5';
 import SafeAreaFooter from './SafeAreaFooter';
-import {useAuth} from '../../modules/auth/context/AuthContext';
+import {useAuth} from 'features/auth/context/AuthContext';
 import {useNavigate, useLocation} from 'react-router-native';
 import {useQuery} from '@apollo/client';
-import {GET_PENDING_GYMS} from '../../modules/gym/graphql/gym.queries';
+import {GET_PENDING_GYMS} from 'features/gyms/graphql/gym.queries';
 import {useTheme} from 'shared/theme/ThemeProvider';
 
 const Footer = () => {
