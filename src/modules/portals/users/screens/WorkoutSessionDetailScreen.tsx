@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, FlatList} from 'react-native';
+import {View, ScrollView} from 'react-native';
 import {useQuery, useMutation} from '@apollo/client';
 import {useParams, useNavigate} from 'react-router-native';
 import {format} from 'date-fns';
@@ -10,7 +10,7 @@ import LoadingSpinner from 'shared/components/LoadingSpinner';
 import ErrorMessage from 'shared/components/ErrorMessage';
 import Button from 'shared/components/Button';
 import Card from 'shared/components/Card';
-import ClickableList from 'shared/components/ClickableList';
+import ExerciseGroupCard from 'shared/components/ExerciseGroupCard';
 import DetailField from 'shared/components/DetailField';
 import {
   DELETE_WORKOUT_SESSION,
@@ -67,28 +67,44 @@ const WorkoutSessionDetailScreen = () => {
     ? format(new Date(Number(session.startedAt)), 'PPP')
     : 'Unknown Date';
 
-  type ConsecutiveGroup = {
+type GroupedExercise = {
     exerciseName: string;
     logs: ExerciseLog[];
   };
 
-  const groupedByConsecutive: ConsecutiveGroup[] = [];
+  type DisplayGroup = {
+    key: string;
+    exercises: GroupedExercise[];
+  };
 
-  let currentGroup: ConsecutiveGroup | null = null;
+  const sortedLogs = [...session.exerciseLogs].sort((a, b) => {
+    const ao = a.carouselOrder ?? 0;
+    const bo = b.carouselOrder ?? 0;
+    if (ao !== bo) return ao - bo;
+    return a.setNumber - b.setNumber;
+  });
 
-  for (const log of session.exerciseLogs) {
-    const name = log.exercise.name;
-    if (!currentGroup || currentGroup.exerciseName !== name) {
-      if (currentGroup) groupedByConsecutive.push(currentGroup);
-      currentGroup = {
-        exerciseName: name,
-        logs: [log],
-      };
-    } else {
-      currentGroup.logs.push(log);
+  const groupMap = new Map<string, Map<number, GroupedExercise>>();
+
+  sortedLogs.forEach(log => {
+    const gKey = log.groupKey || log.instanceKey || `${log.exerciseId}`;
+    if (!groupMap.has(gKey)) {
+      groupMap.set(gKey, new Map());
     }
-  }
-  if (currentGroup) groupedByConsecutive.push(currentGroup);
+    const exMap = groupMap.get(gKey)!;
+    if (!exMap.has(log.exerciseId)) {
+      exMap.set(log.exerciseId, {
+        exerciseName: log.exercise.name,
+        logs: [],
+      });
+    }
+    exMap.get(log.exerciseId)!.logs.push(log);
+  });
+
+  const groupedForDisplay: DisplayGroup[] = [];
+  groupMap.forEach((exMap, key) => {
+    groupedForDisplay.push({key, exercises: Array.from(exMap.values())});
+  });
 
   const ListHeader = () => (
     <>
@@ -205,30 +221,59 @@ const WorkoutSessionDetailScreen = () => {
     </View>
   );
 
-  const renderItemGroup = ({item}: {item: ConsecutiveGroup}) => (
-    <View style={{marginVertical: spacing.md}}>
-      <Title text={item.exerciseName} align="left" />
-      <ClickableList
-        items={item.logs.map((log: ExerciseLog) => ({
-          id: log.id,
-          label: formatSummary(log),
-          subLabel: log.notes || '',
-          onPress: () => {},
-          rightElement: false,
-        }))}
-      />
-    </View>
-  );
+const renderExerciseDetails = () => {
+    let exerciseIndex = 1;
+    return groupedForDisplay.map(group => {
+      if (group.exercises.length > 1) {
+        const groupLabel =
+          session.workoutPlan?.groups.find(
+            (g: any) => `group-${g.id}` === group.key,
+          )?.trainingMethod?.name ?? 'Group';
+        return (
+          <ExerciseGroupCard label={groupLabel} key={group.key}>
+            {group.exercises.map(ex => {
+              const summary = ex.logs.map(l => formatSummary(l)).join('\n');
+              const notes = ex.logs
+                .map(l => l.notes)
+                .filter(Boolean)
+                .join('\n');
+              const value = notes ? `${summary}\n${notes}` : summary;
+              const label = `#${exerciseIndex++} ${ex.exerciseName}`;
+              return (
+                <View key={label} style={{marginBottom: spacing.sm}}>
+                  <DetailField label={label} value={value} />
+                </View>
+              );
+            })}
+          </ExerciseGroupCard>
+        );
+      }
+
+      const ex = group.exercises[0];
+      const summary = ex.logs.map(l => formatSummary(l)).join('\n');
+      const notes = ex.logs
+        .map(l => l.notes)
+        .filter(Boolean)
+        .join('\n');
+      const value = notes ? `${summary}\n${notes}` : summary;
+      return (
+        <View key={`ex-${group.key}`} style={{marginBottom: spacing.md}}>
+          <DetailField
+            label={`#${exerciseIndex++} ${ex.exerciseName}`}
+            value={value}
+          />
+        </View>
+      );
+    });
+  };
 
   return (
     <ScreenLayout>
-      <FlatList
-        data={groupedByConsecutive}
-        keyExtractor={item => item.exerciseName}
-        renderItem={renderItemGroup}
-        ListHeaderComponent={ListHeader}
-        ListFooterComponent={ListFooter}
-      />
+      <ScrollView>
+        <ListHeader />
+        <View style={{marginTop: spacing.md}}>{renderExerciseDetails()}</View>
+        <ListFooter />
+      </ScrollView>
     </ScreenLayout>
   );
 };

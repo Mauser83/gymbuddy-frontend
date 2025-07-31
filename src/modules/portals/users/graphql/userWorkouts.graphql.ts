@@ -270,11 +270,25 @@ export const GET_WORKOUT_SESSION_DETAIL = gql`
       workoutPlan {
         id
         name
+        groups {
+          id
+          trainingMethodId
+          trainingMethod {
+            id
+            name
+          }
+        }
       }
       exerciseLogs {
         id
         exerciseId
         setNumber
+        carouselOrder
+        groupKey
+        instanceKey
+        completedAt
+        isAutoFilled
+        equipmentIds
         metrics
         notes
         exercise {
