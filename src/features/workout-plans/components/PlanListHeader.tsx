@@ -60,9 +60,9 @@ export default function PlanListHeader({
         <SelectableField
           label="Planned Difficulty"
           value={
-            values.experienceLevel
-              ? values.experienceLevel.charAt(0) + values.experienceLevel.slice(1).toLowerCase()
-              : 'Select Difficulty'
+            workoutMeta?.experienceLevels?.find(
+              (l: any) => l.id === values.experienceLevelId,
+            )?.name || 'Select Difficulty'
           }
           onPress={() => setActiveModal('difficultyPicker')}
         />

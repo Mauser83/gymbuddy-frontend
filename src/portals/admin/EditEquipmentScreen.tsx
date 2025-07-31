@@ -13,7 +13,7 @@ export default function EditEquipmentScreen() {
 
   const { getEquipmentById, getCategories, updateEquipment } = useEquipment();
   const { data: equipmentData, loading: loadingEquipment } = getEquipmentById(Number(id));
-  const { data: categoryData, refetch: refetchCategories } = getCategories();
+  const { data: categoryData } = getCategories();
   const categories = categoryData?.equipmentCategories ?? [];
 
   if (loadingEquipment || !equipmentData?.equipment) {
@@ -61,16 +61,15 @@ export default function EditEquipmentScreen() {
   return (
     <ScreenLayout scroll>
       <Title text="Edit Equipment" />
-      <EquipmentForm
-        initialValues={initialValues}
-        onSubmit={handleSubmit}
-        categories={categories}
-        refetchCategories={refetchCategories}
-        submitLabel="Update"
-        submitting={false}
-        cancelLabel="Cancel"
-        onCancel={() => navigate('/equipment')}
-      />
+        <EquipmentForm
+          initialValues={initialValues}
+          onSubmit={handleSubmit}
+          categories={categories}
+          submitLabel="Update"
+          submitting={false}
+          cancelLabel="Cancel"
+          onCancel={() => navigate('/equipment')}
+        />
     </ScreenLayout>
   );
 }

@@ -14,7 +14,7 @@ export default function CreateEquipmentScreen() {
   const navigate = useNavigate();
 
   const { getCategories, createEquipment } = useEquipment();
-  const { data: categoryData, refetch: refetchCategories } = getCategories();
+  const { data: categoryData } = getCategories();
   const categories = categoryData?.equipmentCategories ?? [];
 
   useEffect(() => {
@@ -57,16 +57,15 @@ export default function CreateEquipmentScreen() {
   return (
     <ScreenLayout scroll>
       <Title text="Add New Equipment" />
-      <EquipmentForm
-        initialValues={initialValues}
-        onSubmit={handleSubmit}
-        categories={categories}
-        refetchCategories={refetchCategories}
-        submitLabel="Create"
-        submitting={false}
-        cancelLabel="Cancel"
-        onCancel={() => navigate('/equipment')}
-      />
+        <EquipmentForm
+          initialValues={initialValues}
+          onSubmit={handleSubmit}
+          categories={categories}
+          submitLabel="Create"
+          submitting={false}
+          cancelLabel="Cancel"
+          onCancel={() => navigate('/equipment')}
+        />
     </ScreenLayout>
   );
 }

@@ -8,7 +8,7 @@ import {
   useTheme,
 } from './src/shared/theme/ThemeProvider';
 import {AuthProvider, useAuth} from './src/features/auth/context/AuthContext';
-import RoleSubscriptionWatcher from 'modules/auth/components/RoleSubscriptionWatcher';
+import RoleSubscriptionWatcher from 'features/auth/components/RoleSubscriptionWatcher';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {NativeRouter} from 'react-router-native';
 import {ApolloProvider} from '@apollo/client';
