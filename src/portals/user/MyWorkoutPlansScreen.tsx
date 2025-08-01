@@ -22,12 +22,8 @@ export default function MyWorkoutPlansScreen() {
     GET_SHARED_WORKOUT_PLANS,
   );
 
-  const myPlans = (myData?.workoutPlans ?? []).filter(
-    (plan: any) => !plan.deletedAt,
-  );
-  const sharedPlans = (sharedData?.sharedWorkoutPlans ?? []).filter(
-    (plan: any) => !plan.deletedAt,
-  );
+  const myPlans = myData?.workoutPlans ?? [];
+  const sharedPlans = sharedData?.sharedWorkoutPlans ?? [];
   
   const sections = [
       { title: 'My Plans', data: myPlans },

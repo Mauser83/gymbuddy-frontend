@@ -6,7 +6,6 @@ export const GET_MY_WORKOUT_PLANS = gql`
       id
       name
       description
-      deletedAt
     }
   }
 `;
@@ -17,7 +16,6 @@ export const GET_SHARED_WORKOUT_PLANS = gql`
       id
       name
       description
-      deletedAt
     }
   }
 `;
@@ -28,7 +26,6 @@ export const GET_WORKOUT_PLANS = gql`
       id
       name
       description
-      deletedAt
     }
   }
 `;

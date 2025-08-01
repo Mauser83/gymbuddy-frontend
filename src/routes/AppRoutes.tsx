@@ -124,7 +124,7 @@ const AppRoutes = () => {
           <Route path="/exercise/edit/:id" element={<RequireRole roles={['admin']}><EditExerciseScreen /></RequireRole>} />
           <Route path="/users" element={<RequireRole roles={['admin']}><UsersScreen /></RequireRole>} />
           <Route path="/users/:id" element={<RequireRole roles={['admin']}><UserDetailScreen /></RequireRole>} />
-          <Route path="/workoutplan/builder" element={<RequireRole roles={['admin']}><WorkoutPlanBuilderScreen /></RequireRole>} />
+          <Route path="/workoutplan/builder" element={<RequireRole roles={['user']}><WorkoutPlanBuilderScreen /></RequireRole>} />
           <Route path="/admin/catalog" element={<RequireRole roles={['admin']}><AdminSystemCatalogScreen /></RequireRole>} />
           <Route path="/admin/catalog/equipment" element={<RequireRole roles={['admin']}><AdminEquipmentCatalogScreen /></RequireRole>} />
           <Route path="/admin/catalog/exercise" element={<RequireRole roles={['admin']}><AdminExerciseCatalogScreen /></RequireRole>} />
