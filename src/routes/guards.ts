@@ -1,17 +1,15 @@
-import { User } from 'features/users/types/user';
+import {RoleContextState} from 'features/auth/context/RoleContext';
 
-// routes/guards.ts
-export const getDefaultRouteForUser = (user: User | null): string => {
-    if (!user) return '/';
-  
-    if (user.appRole === 'ADMIN' || user.appRole === 'MODERATOR') return '/admin';
-  
-    const isGymManager = user?.gymManagementRoles?.some(
-      role => role.role === 'GYM_ADMIN' || role.role === 'GYM_MODERATOR'
-    );
-  
-    if (isGymManager) return '/gym-admin';
-  
-    return '/user';
-  };
-  
+export const getDefaultRouteForRole = (ctx: RoleContextState | null): string => {
+  if (!ctx) return '/';
+  switch (ctx.role) {
+    case 'admin':
+      return '/admin';
+    case 'gym-manager':
+      return '/gym-admin';
+    case 'trainer':
+      return '/trainer';
+    default:
+      return '/user';
+  }
+};

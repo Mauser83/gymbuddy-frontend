@@ -4,8 +4,10 @@ import {View} from 'react-native';
 import Header from 'shared/components/Header';
 import Footer from 'shared/components/Footer';
 import {useAuth} from 'features/auth/context/AuthContext';
-import {getDefaultRouteForUser} from './guards';
+import {useRole} from 'features/auth/context/RoleContext';
+import {getDefaultRouteForRole} from './guards';
 import NoResults from 'shared/components/NoResults';
+import RequireRole from './RequireRole';
 import {MetricRegistryProvider} from 'shared/context/MetricRegistry';
 
 // Screens
@@ -54,14 +56,16 @@ import AdminEquipmentCatalogScreen from 'portals/admin/AdminEquipmentCatalogScre
 import AdminExerciseCatalogScreen from 'portals/admin/AdminExerciseCatalogScreen';
 import AdminWorkoutPlanCatalogScreen from 'portals/admin/AdminWorkoutPlanCatalogScreen';
 import AdminMetricCatalogScreen from 'portals/admin/AdminMetricCatalogScreen';
+import RoleSelectScreen from 'portals/user/RoleSelectScreen';
 
 const AppRoutes = () => {
   const {user, isAuthenticated, sessionLoaded} = useAuth();
+  const {activeRole, loaded} = useRole();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    if (!sessionLoaded) return;
+    if (!sessionLoaded || !loaded) return;
 
     const publicRoutes = ['/', '/login', '/register'];
 
@@ -73,9 +77,9 @@ const AppRoutes = () => {
 
     // Authenticated user landing on root ("/")
     if (isAuthenticated && location.pathname === '/') {
-      navigate(getDefaultRouteForUser(user));
+      navigate(getDefaultRouteForRole(activeRole));
     }
-  }, [sessionLoaded, isAuthenticated, user, location.pathname, navigate]);
+  }, [sessionLoaded, loaded, isAuthenticated, activeRole, location.pathname, navigate]);
 
   return (
     <MetricRegistryProvider>
@@ -86,95 +90,54 @@ const AppRoutes = () => {
           <Route path="/" element={<WelcomeScreen />} />
           <Route path="/login" element={<LoginScreen />} />
           <Route path="/register" element={<RegisterScreen />} />
+          <Route path="/select-role" element={<RoleSelectScreen />} />
 
           {/* User Portal */}
-          <Route path="/user" element={<UserDashboardScreen />} />
-          <Route path="/user/my-plans" element={<MyWorkoutPlansScreen />} />
-          <Route path="/user/log-exercise" element={<StartWorkoutScreen />} />
-          <Route
-            path="/active-session/:sessionId"
-            element={<ActiveWorkoutSessionScreen />}
-          />
-          <Route path="/gyms" element={<GymsScreen />} />
-          <Route path="/gyms/create" element={<GymCreateScreen />} />
-          <Route path="/gyms/:gymId" element={<GymDetailScreen />} />
-          <Route path="/profile" element={<ProfileScreen />} />
-          <Route
-            path="/user/exercise-library"
-            element={<ExerciseLibraryScreen />}
-          />
-          <Route
-            path="/user/exercise/:exerciseId"
-            element={<ExerciseDetailScreen />}
-          />
-          <Route path="/user/progress" element={<ProgressOverviewScreen />} />
-          <Route
-            path="/user/view-plan/:id"
-            element={<WorkoutPlanViewScreen />}
-          />
-          <Route
-            path="/user/edit-plan"
-            element={<WorkoutPlanBuilderScreen />}
-          />
-          <Route path="/user/friends" element={<FriendsScreen />} />
-          <Route path="/user/groups" element={<GroupsScreen />} />
-          <Route path="/user/leaderboards" element={<LeaderboardsScreen />} />
-          <Route path="/user/messages" element={<MessagesScreen />} />
-          <Route
-            path="/workout-session"
-            element={<WorkoutSessionHistoryScreen />}
-          />
-          <Route
-            path="/workout-session/:sessionId"
-            element={<WorkoutSessionDetailScreen />}
-          />
+          <Route path="/user" element={<RequireRole roles={['user']}><UserDashboardScreen /></RequireRole>} />
+          <Route path="/user/my-plans" element={<RequireRole roles={['user']}><MyWorkoutPlansScreen /></RequireRole>} />
+          <Route path="/user/log-exercise" element={<RequireRole roles={['user']}><StartWorkoutScreen /></RequireRole>} />
+          <Route path="/active-session/:sessionId" element={<RequireRole roles={['user']}><ActiveWorkoutSessionScreen /></RequireRole>} />
+          <Route path="/gyms" element={<RequireRole roles={['user']}><GymsScreen /></RequireRole>} />
+          <Route path="/gyms/create" element={<RequireRole roles={['user']}><GymCreateScreen /></RequireRole>} />
+          <Route path="/gyms/:gymId" element={<RequireRole roles={['user']}><GymDetailScreen /></RequireRole>} />
+          <Route path="/profile" element={<RequireRole roles={['user','admin','gym-manager','trainer']}><ProfileScreen /></RequireRole>} />
+          <Route path="/user/exercise-library" element={<RequireRole roles={['user']}><ExerciseLibraryScreen /></RequireRole>} />
+          <Route path="/user/exercise/:exerciseId" element={<RequireRole roles={['user']}><ExerciseDetailScreen /></RequireRole>} />
+          <Route path="/user/progress" element={<RequireRole roles={['user']}><ProgressOverviewScreen /></RequireRole>} />
+          <Route path="/user/view-plan/:id" element={<RequireRole roles={['user']}><WorkoutPlanViewScreen /></RequireRole>} />
+          <Route path="/user/edit-plan" element={<RequireRole roles={['user']}><WorkoutPlanBuilderScreen /></RequireRole>} />
+          <Route path="/user/friends" element={<RequireRole roles={['user']}><FriendsScreen /></RequireRole>} />
+          <Route path="/user/groups" element={<RequireRole roles={['user']}><GroupsScreen /></RequireRole>} />
+          <Route path="/user/leaderboards" element={<RequireRole roles={['user']}><LeaderboardsScreen /></RequireRole>} />
+          <Route path="/user/messages" element={<RequireRole roles={['user']}><MessagesScreen /></RequireRole>} />
+          <Route path="/workout-session" element={<RequireRole roles={['user']}><WorkoutSessionHistoryScreen /></RequireRole>} />
+          <Route path="/workout-session/:sessionId" element={<RequireRole roles={['user']}><WorkoutSessionDetailScreen /></RequireRole>} />
 
           {/* App Management Portal */}
-          <Route path="/admin" element={<AppDashboardScreen />} />
-          <Route path="/pending-gyms" element={<PendingGymsScreen />} />
-          <Route path="/equipment" element={<GlobalEquipmentListScreen />} />
-          <Route path="/equipment/create" element={<CreateEquipmentScreen />} />
-          <Route path="/equipment/edit/:id" element={<EditEquipmentScreen />} />
-          <Route path="/exercise" element={<ExerciseListScreen />} />
-          <Route path="/exercise/create" element={<CreateExerciseScreen />} />
-          <Route path="/exercise/edit/:id" element={<EditExerciseScreen />} />
-          <Route path="/users" element={<UsersScreen />} />
-          <Route path="/users/:id" element={<UserDetailScreen />} />
-          <Route
-            path="/workoutplan/builder"
-            element={<WorkoutPlanBuilderScreen />}
-          />
-          <Route path="/admin/catalog" element={<AdminSystemCatalogScreen />} />
-          <Route
-            path="/admin/catalog/equipment"
-            element={<AdminEquipmentCatalogScreen />}
-          />
-          <Route
-            path="/admin/catalog/exercise"
-            element={<AdminExerciseCatalogScreen />}
-          />
-          <Route
-            path="/admin/catalog/workoutplan"
-            element={<AdminWorkoutPlanCatalogScreen />}
-          />
-          <Route
-            path="/admin/catalog/metrics"
-            element={<AdminMetricCatalogScreen />}
-          />
+          <Route path="/admin" element={<RequireRole roles={['admin']}><AppDashboardScreen /></RequireRole>} />
+          <Route path="/pending-gyms" element={<RequireRole roles={['admin']}><PendingGymsScreen /></RequireRole>} />
+          <Route path="/equipment" element={<RequireRole roles={['admin']}><GlobalEquipmentListScreen /></RequireRole>} />
+          <Route path="/equipment/create" element={<RequireRole roles={['admin']}><CreateEquipmentScreen /></RequireRole>} />
+          <Route path="/equipment/edit/:id" element={<RequireRole roles={['admin']}><EditEquipmentScreen /></RequireRole>} />
+          <Route path="/exercise" element={<RequireRole roles={['admin']}><ExerciseListScreen /></RequireRole>} />
+          <Route path="/exercise/create" element={<RequireRole roles={['admin']}><CreateExerciseScreen /></RequireRole>} />
+          <Route path="/exercise/edit/:id" element={<RequireRole roles={['admin']}><EditExerciseScreen /></RequireRole>} />
+          <Route path="/users" element={<RequireRole roles={['admin']}><UsersScreen /></RequireRole>} />
+          <Route path="/users/:id" element={<RequireRole roles={['admin']}><UserDetailScreen /></RequireRole>} />
+          <Route path="/workoutplan/builder" element={<RequireRole roles={['admin']}><WorkoutPlanBuilderScreen /></RequireRole>} />
+          <Route path="/admin/catalog" element={<RequireRole roles={['admin']}><AdminSystemCatalogScreen /></RequireRole>} />
+          <Route path="/admin/catalog/equipment" element={<RequireRole roles={['admin']}><AdminEquipmentCatalogScreen /></RequireRole>} />
+          <Route path="/admin/catalog/exercise" element={<RequireRole roles={['admin']}><AdminExerciseCatalogScreen /></RequireRole>} />
+          <Route path="/admin/catalog/workoutplan" element={<RequireRole roles={['admin']}><AdminWorkoutPlanCatalogScreen /></RequireRole>} />
+          <Route path="/admin/catalog/metrics" element={<RequireRole roles={['admin']}><AdminMetricCatalogScreen /></RequireRole>} />
 
           {/* Gym Management Portal */}
-          <Route path="/gym-admin" element={<GymAdminDashboard />} />
-          <Route
-            path="/gym-admin/gyms/:gymId"
-            element={<GymManagementScreen />}
-          />
-          <Route
-            path="/gym-admin/gyms/:gymId/equipment"
-            element={<GymEquipmentListScreen />}
-          />
+          <Route path="/gym-admin" element={<RequireRole roles={['gym-manager']}><GymAdminDashboard /></RequireRole>} />
+          <Route path="/gym-admin/gyms/:gymId" element={<RequireRole roles={['gym-manager']} checkGymId><GymManagementScreen /></RequireRole>} />
+          <Route path="/gym-admin/gyms/:gymId/equipment" element={<RequireRole roles={['gym-manager']} checkGymId><GymEquipmentListScreen /></RequireRole>} />
 
           {/* Trainer Portal */}
-          <Route path="/trainer" element={<TrainerDashboardScreen />} />
+          <Route path="/trainer" element={<RequireRole roles={['trainer']}><TrainerDashboardScreen /></RequireRole>} />
 
           {/* Fallback */}
           <Route path="*" element={<NoResults message="Page not found." />} />

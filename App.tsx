@@ -8,6 +8,7 @@ import {
   useTheme,
 } from './src/shared/theme/ThemeProvider';
 import {AuthProvider, useAuth} from './src/features/auth/context/AuthContext';
+import {RoleProvider} from './src/features/auth/context/RoleContext';
 import RoleSubscriptionWatcher from 'features/auth/components/RoleSubscriptionWatcher';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {NativeRouter} from 'react-router-native';
@@ -70,11 +71,13 @@ const App = () => {
   return (
     <GestureHandlerRootView style={{flex: 1}}>
       <AuthProvider>
-        <CustomThemeProvider>
-          <NativeRouter>
-            <AppContent />
-          </NativeRouter>
-        </CustomThemeProvider>
+        <RoleProvider>
+          <CustomThemeProvider>
+            <NativeRouter>
+              <AppContent />
+            </NativeRouter>
+          </CustomThemeProvider>
+        </RoleProvider>
       </AuthProvider>
     </GestureHandlerRootView>
   );
