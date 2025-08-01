@@ -92,3 +92,9 @@ export const useRole = () => {
   if (!ctx) throw new Error('useRole must be used within RoleProvider');
   return ctx;
 };
+
+// Convenience hook that returns only the active role context state
+export const useRoleContext = () => {
+  const {activeRole} = useRole();
+  return activeRole;
+};

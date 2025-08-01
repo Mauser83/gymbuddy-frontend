@@ -97,9 +97,9 @@ const AppRoutes = () => {
           <Route path="/user/my-plans" element={<RequireRole roles={['user']}><MyWorkoutPlansScreen /></RequireRole>} />
           <Route path="/user/log-exercise" element={<RequireRole roles={['user']}><StartWorkoutScreen /></RequireRole>} />
           <Route path="/active-session/:sessionId" element={<RequireRole roles={['user']}><ActiveWorkoutSessionScreen /></RequireRole>} />
-          <Route path="/gyms" element={<RequireRole roles={['user']}><GymsScreen /></RequireRole>} />
-          <Route path="/gyms/create" element={<RequireRole roles={['user']}><GymCreateScreen /></RequireRole>} />
-          <Route path="/gyms/:gymId" element={<RequireRole roles={['user']}><GymDetailScreen /></RequireRole>} />
+          <Route path="/gyms" element={<GymsScreen />} />
+          <Route path="/gyms/create" element={<GymCreateScreen />} />
+          <Route path="/gyms/:gymId" element={<GymDetailScreen />} />
           <Route path="/profile" element={<RequireRole roles={['user','admin','gym-manager','trainer']}><ProfileScreen /></RequireRole>} />
           <Route path="/user/exercise-library" element={<RequireRole roles={['user']}><ExerciseLibraryScreen /></RequireRole>} />
           <Route path="/user/exercise/:exerciseId" element={<RequireRole roles={['user']}><ExerciseDetailScreen /></RequireRole>} />
