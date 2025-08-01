@@ -43,8 +43,25 @@ export default function WorkoutPlanViewScreen() {
   };
 
 
-  if (loading) return <LoadingState text="Loading workout plan..." />;
-  if (error || !plan) return <ErrorMessage message="Workout plan not found." />;
+  if (loading) {
+    return (
+      <ScreenLayout variant="centered">
+        <Card variant="glass">
+          <LoadingState text="Loading workout plan..." />
+        </Card>
+      </ScreenLayout>
+    );
+  }
+
+  if (error || !plan) {
+    return (
+      <ScreenLayout variant="centered">
+        <Card variant="glass">
+          <ErrorMessage message="Workout plan not found." />
+        </Card>
+      </ScreenLayout>
+    );
+  }
 
   // Build group lookup for fast access
   const groupMap: Record<number, any> = {};

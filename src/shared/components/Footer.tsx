@@ -6,6 +6,7 @@ import SafeAreaFooter from './SafeAreaFooter';
 import {useAuth} from 'features/auth/context/AuthContext';
 import {useRoleContext} from 'features/auth/context/RoleContext';
 import {useNavigate, useLocation} from 'react-router-native';
+
 import {useQuery} from '@apollo/client';
 import {GET_PENDING_GYMS} from 'features/gyms/graphql/gym.queries';
 import {useTheme} from 'shared/theme/ThemeProvider';
@@ -31,10 +32,12 @@ const Footer = () => {
   const FooterButton = ({
     to,
     icon,
+    label,
     badge,
   }: {
     to: string;
     icon: string;
+    label: string;
     badge?: number;
   }) => (
     <TouchableOpacity onPress={() => navigate(to)} style={styles.iconWrapper}>
@@ -44,6 +47,7 @@ const Footer = () => {
           <Text style={styles.badgeText}>{badge}</Text>
         </View>
       )}
+      <Text style={[styles.iconLabel, {color: iconColor(to)}]}>{label}</Text>
     </TouchableOpacity>
   );
 
@@ -60,26 +64,26 @@ const Footer = () => {
           <>
             {activeRoleContext?.role === 'user' && (
               <>
-                <FooterButton to="/user" icon="tachometer-alt" />
-                <FooterButton to="/user/log-exercise" icon="dumbbell" />
-                <FooterButton to="/user/my-plans" icon="clipboard" />
-                <FooterButton to="/user/progress" icon="chart-line" />
-                <FooterButton to="/user/exercise-library" icon="book" />
-                <FooterButton to="/gyms" icon="building" />
+                <FooterButton to="/user" icon="tachometer-alt" label="Home" />
+                <FooterButton to="/user/log-exercise" icon="dumbbell" label="Log" />
+                <FooterButton to="/user/my-plans" icon="clipboard" label="Plans" />
+                <FooterButton to="/user/progress" icon="chart-line" label="Progress" />
+                <FooterButton to="/user/exercise-library" icon="book" label="Exercises" />
+                <FooterButton to="/gyms" icon="building" label="Gyms" />
               </>
             )}
 
             {activeRoleContext?.role === 'gym-manager' && (
               <>
-                <FooterButton to="/gym-admin" icon="tachometer-alt" />
-                <FooterButton to="/gyms" icon="building" />
+                <FooterButton to="/gym-admin" icon="tachometer-alt" label="Home" />
+                <FooterButton to="/gyms" icon="building" label="Gyms" />
               </>
             )}
 
             {activeRoleContext?.role === 'trainer' && (
               <>
-                <FooterButton to="/trainer" icon="tachometer-alt" />
-                <FooterButton to="/trainer/clients" icon="users" />
+                <FooterButton to="/trainer" icon="tachometer-alt" label="Home" />
+                <FooterButton to="/trainer/clients" icon="users" label="Clients" />
               </>
             )}
 
@@ -88,13 +92,14 @@ const Footer = () => {
                 <FooterButton
                   to="/admin"
                   icon="tachometer-alt"
+                  label="Home"
                   badge={pendingCount > 0 ? pendingCount : undefined}
                 />
-                <FooterButton to="/equipment" icon="tools" />
-                <FooterButton to="/exercise" icon="dumbbell" />
-                <FooterButton to="/workoutplan/builder" icon="clipboard-list" />
-                <FooterButton to="/users" icon="users" />
-                <FooterButton to="/gyms" icon="building" />
+                <FooterButton to="/equipment" icon="tools" label="Equipment" />
+                <FooterButton to="/exercise" icon="dumbbell" label="Exercises" />
+                <FooterButton to="/workoutplan/builder" icon="clipboard-list" label="Plans" />
+                <FooterButton to="/users" icon="users" label="Users" />
+                <FooterButton to="/gyms" icon="building" label="Gyms" />
               </>
             )}
           </>

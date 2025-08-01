@@ -491,6 +491,12 @@ export const getComponentStyles = (theme: Theme) => ({
       fontSize: 12,
       fontWeight: fontWeights.bold,
     },
+    iconLabel: {
+      fontSize: 10,
+      marginTop: 2,
+      textAlign: 'center' as TextStyle['textAlign'],
+      color: theme.colors.textSecondary,
+    },
   },
   gymsScreen: {
     createButtonContainer: {

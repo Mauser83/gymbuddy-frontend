@@ -22,8 +22,12 @@ export default function MyWorkoutPlansScreen() {
     GET_SHARED_WORKOUT_PLANS,
   );
 
-  const myPlans = myData?.workoutPlans ?? [];
-  const sharedPlans = sharedData?.sharedWorkoutPlans ?? [];
+  const myPlans = (myData?.workoutPlans ?? []).filter(
+    (plan: any) => !plan.deletedAt,
+  );
+  const sharedPlans = (sharedData?.sharedWorkoutPlans ?? []).filter(
+    (plan: any) => !plan.deletedAt,
+  );
   
   const sections = [
       { title: 'My Plans', data: myPlans },
@@ -47,7 +51,11 @@ export default function MyWorkoutPlansScreen() {
   );
 
   if (loadingMy || loadingShared) {
-    return <LoadingState text="Loading plans..." />;
+    return (
+      <ScreenLayout>
+        <LoadingState text="Loading plans..." />
+      </ScreenLayout>
+    );
   }
     
   return (
