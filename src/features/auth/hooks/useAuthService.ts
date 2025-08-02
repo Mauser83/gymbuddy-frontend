@@ -48,6 +48,7 @@ export const useAuthService = () => {
     });
 
   const logout = async () => {
+    console.log('useAuthService: logout called');
     triggerLogout();
     if (clearSession) clearSession(); // if you maintain local context too
   };

@@ -8,7 +8,7 @@ const StatusBarManager = () => {
 
   useEffect(() => {
     StatusBar.setBarStyle(
-      themeName === 'dark' ? 'light-content' : 'dark-content',
+      themeName === 'dark-orange' ? 'light-content' : 'dark-content',
     );
     if (Platform.OS === 'android') {
       StatusBar.setBackgroundColor(theme.colors.background);

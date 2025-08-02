@@ -35,6 +35,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
 
   refreshingPromise = (async () => {
     try {
+      console.log('tokenManager: attempting to refresh access token');
       const refreshToken = await getRefreshToken();
       if (!refreshToken || !apolloClient) {
         console.warn('Missing refreshToken or apolloClient');
@@ -79,6 +80,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     } catch (error: any) {
       console.error('Refresh token error:', error?.message || error);
       console.error('Full error object:', error);
+      console.log('tokenManager: triggering logout due to refresh token error');
       triggerLogout();
       Toast.show({
         type: 'error',

@@ -5,5 +5,6 @@ export const registerLogoutCallback = (cb: () => void) => {
 };
 
 export const triggerLogout = () => {
+  console.log('logoutTrigger: triggerLogout called');
   if (logoutCallback) logoutCallback();
 };

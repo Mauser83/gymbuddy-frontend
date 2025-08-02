@@ -5,9 +5,11 @@ import {setWsClient} from '../tokenManager';
 export const createWsLink = (token: string | null, url: string) => {
   const client = createClient({
     url,
-    connectionParams: async () => ({
-      Authorization: token ? `Bearer ${token}` : '',
-    }),
+    connectionParams: async () => {
+      const params = {Authorization: token ? `Bearer ${token}` : ''};
+      console.log('WS connection params:', params);
+      return params;
+    },
   });
 
   setWsClient(client);

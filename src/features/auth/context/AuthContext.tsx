@@ -2,8 +2,8 @@
 import React, {createContext, useContext, useEffect, useState} from 'react';
 import {refreshAccessToken} from '../../../services/apollo/tokenManager';
 import {isTokenExpired} from '../utils/isTokenExpired';
-import type { AuthContextType } from '../types/auth';
-import type { User } from 'features/users/types/user';
+import type {AuthContextType} from '../types/auth';
+import type {User} from 'features/users/types/user';
 import {storage} from '../utils/storage';
 import {useNavigate} from 'react-router-native';
 import {registerLogoutCallback} from 'features/auth/utils/logoutTrigger'; // adjust path if needed
@@ -21,38 +21,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
   const [loginInProgress, setLoginInProgress] = useState(false);
 
   const logout = async () => {
+    console.log('Logging out and clearing stored tokens');
     await storage.multiRemove(['accessToken', 'refreshToken', 'user']);
     setAccessToken(null);
     setRefreshToken(null);
     setUser(null);
     setIsAuthenticated(false);
   };
-
-  useEffect(() => {
-    const loadTokens = async () => {
-      const token = await storage.getItem('accessToken');
-      const refresh = await storage.getItem('refreshToken');
-
-      // No refresh token means user must log in again
-      if (!refresh) {
-        await logout();
-        return;
-      }
-
-      // If access token is missing or expired, try refreshing
-      if (!token || isTokenExpired(token)) {
-        const newToken = await refreshAccessToken();
-        if (!newToken) {
-          await logout();
-          return;
-        }
-      }
-
-      // optionally: re-fetch user profile here if needed
-    };
-
-    loadTokens();
-  }, []);
 
   useEffect(() => {
     registerLogoutCallback(() => {
@@ -67,6 +42,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
     await storage.setItem('accessToken', tokens.accessToken);
     await storage.setItem('refreshToken', tokens.refreshToken);
     await storage.setItem('user', JSON.stringify(userData));
+
+    const storedToken = await storage.getItem('accessToken');
+    console.log('Access token after login:', storedToken);
 
     setAccessToken(tokens.accessToken);
     setRefreshToken(tokens.refreshToken);
@@ -103,6 +81,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
         const userStr = await storage.getItem('user');
 
         if (!storedAccess && !storedRefresh) {
+          console.log('AuthContext: no stored tokens found; logging out');
           await logout();
           return;
         }
@@ -111,6 +90,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
 
         if (!storedAccess || isTokenExpired(storedAccess)) {
           if (!storedRefresh) {
+            console.log('AuthContext: missing refresh token; logging out');
             await logout();
             return;
           }
@@ -120,7 +100,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
             if (validAccessToken) {
               await storage.setItem('accessToken', validAccessToken);
             }
-          } catch {
+          } catch (err) {
+            console.log('AuthContext: refreshAccessToken failed; logging out');
             await logout();
             return;
           }

@@ -47,6 +47,7 @@ const styles = componentStyles.avatarDropdown;
   const toggleDropdown = () => (visible ? closeDropdown() : openDropdown());
 
   const handleLogout = () => {
+    console.log('AvatarDropdown: logout selected');
     logout();
     closeDropdown();
   };

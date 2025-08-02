@@ -70,7 +70,10 @@ const UserDetailScreen = () => {
           text1: 'Roles updated',
           text2: 'You will be logged out due to security change.',
         });
-        setTimeout(() => logout(), 3000);
+        setTimeout(() => {
+          console.log('UserDetailScreen: logging out after role update');
+          logout();
+        }, 3000);
       } else {
         refetch();
       }
