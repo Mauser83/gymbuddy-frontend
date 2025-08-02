@@ -3,9 +3,9 @@ import {HttpLink, split} from '@apollo/client';
 import {getMainDefinition} from '@apollo/client/utilities';
 import {createWsLink} from './wsLink';
 
-export const createSplitLink = (uri: string) => {
+export const createSplitLink = (token: string | null, uri: string) => {
   const httpLink = new HttpLink({uri, credentials: 'include'});
-  const wsLink = createWsLink(uri.replace(/^http/, 'ws'));
+  const wsLink = createWsLink(token, uri.replace(/^https/, 'wss'));
 
   return split(
     ({query}) => {
