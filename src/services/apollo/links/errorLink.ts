@@ -123,7 +123,7 @@ export const errorLink = onError(
 
       if (isConnectionIssue) {
         console.log('errorLink: network connection issue, triggering logout');
-        // triggerLogout();
+        triggerLogout();
         Toast.show({
           type: 'error',
           text1: 'Server unreachable',
