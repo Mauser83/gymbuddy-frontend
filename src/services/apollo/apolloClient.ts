@@ -8,7 +8,7 @@ import Constants from 'expo-constants';
 
 export const createApolloClient = (token: string | null) => {
   const uri = Constants.expoConfig?.extra?.apiUrl as string;
-  const splitLink = createSplitLink(token, uri);
+  const splitLink = createSplitLink(uri);
 
   const client = new ApolloClient({
     link: from([errorLink, createAuthLink(token), splitLink]),
