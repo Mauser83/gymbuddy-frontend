@@ -14,7 +14,9 @@ import {createClient, Client} from 'graphql-ws';
 import Constants from "expo-constants";
 
 // 👇 Make sure this matches your WS server
-const WS_URL = Constants.expoConfig?.extra?.apiUrl;
+const HTTP_URL = Constants.expoConfig?.extra?.apiUrl;
+const WS_URL = HTTP_URL.replace(/^https/, 'wss');
+console.log("WS_URL: ", WS_URL)
 
 let apolloClient: ApolloClient<any> | null = null;
 let refreshingPromise: Promise<string | null> | null = null;
