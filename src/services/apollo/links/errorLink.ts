@@ -122,14 +122,13 @@ export const errorLink = onError(
         !navigator.onLine;
 
       if (isConnectionIssue) {
-        console.log('errorLink: network connection issue, triggering logout');
-        triggerLogout();
+        console.log('errorLink: network connection issue');
         Toast.show({
           type: 'error',
           text1: 'Server unreachable',
           text2: 'Try again in a few minutes.',
         });
-        return;
+        return forward(operation);
       }
 
       if (isAuthFailure && !isRefreshing) {

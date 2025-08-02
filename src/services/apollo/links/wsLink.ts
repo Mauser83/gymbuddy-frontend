@@ -3,10 +3,11 @@ import {createClient} from 'graphql-ws';
 import {setWsClient} from '../tokenManager';
 
 export const createWsLink = (token: string | null, url: string) => {
+  console.log('Attempting WS Link:', url, token);
   const client = createClient({
     url,
     connectionParams: async () => {
-      const params = {Authorization: token ? `Bearer ${token}` : ''};
+      const params = { Authorization: token ? `Bearer ${token}` : '' };
       console.log('WS connection params:', params);
       return params;
     },
