@@ -63,9 +63,9 @@ export const errorLink = onError(
               }),
             ).flatMap(() => {
               if (shouldLogout) {
-                console.log(
-                  'errorLink: refresh token missing or invalid; triggering logout',
-                );
+                // console.log(
+                //   'errorLink: refresh token missing or invalid; triggering logout',
+                // );
                 triggerLogout();
                 Toast.show({
                   type: 'error',
@@ -122,7 +122,7 @@ export const errorLink = onError(
         !navigator.onLine;
 
       if (isConnectionIssue) {
-        console.log('errorLink: network connection issue, triggering logout');
+        // console.log('errorLink: network connection issue, triggering logout');
         triggerLogout();
         Toast.show({
           type: 'error',
@@ -133,7 +133,7 @@ export const errorLink = onError(
       }
 
       if (isAuthFailure && !isRefreshing) {
-        console.log('errorLink: authentication failure, triggering logout');
+        // console.log('errorLink: authentication failure, triggering logout');
         triggerLogout();
         Toast.show({
           type: 'error',

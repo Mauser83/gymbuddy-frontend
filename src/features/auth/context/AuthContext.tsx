@@ -21,7 +21,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
   const [loginInProgress, setLoginInProgress] = useState(false);
 
   const logout = async () => {
-    console.log('Logging out and clearing stored tokens');
+    // console.log('Logging out and clearing stored tokens');
     await storage.multiRemove(['accessToken', 'refreshToken', 'user']);
     setAccessToken(null);
     setRefreshToken(null);
@@ -44,7 +44,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
     await storage.setItem('user', JSON.stringify(userData));
 
     const storedToken = await storage.getItem('accessToken');
-    console.log('Access token after login:', storedToken);
+    // console.log('Access token after login:', storedToken);
 
     setAccessToken(tokens.accessToken);
     setRefreshToken(tokens.refreshToken);
@@ -81,7 +81,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
         const userStr = await storage.getItem('user');
 
         if (!storedAccess && !storedRefresh) {
-          console.log('AuthContext: no stored tokens found; logging out');
+          // console.log('AuthContext: no stored tokens found; logging out');
           await logout();
           return;
         }
@@ -90,7 +90,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
 
         if (!storedAccess || isTokenExpired(storedAccess)) {
           if (!storedRefresh) {
-            console.log('AuthContext: missing refresh token; logging out');
+            // console.log('AuthContext: missing refresh token; logging out');
             await logout();
             return;
           }
@@ -101,7 +101,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
               await storage.setItem('accessToken', validAccessToken);
             }
           } catch (err) {
-            console.log('AuthContext: refreshAccessToken failed; logging out');
+            // console.log('AuthContext: refreshAccessToken failed; logging out');
             await logout();
             return;
           }

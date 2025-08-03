@@ -16,7 +16,7 @@ import Constants from "expo-constants";
 // 👇 Make sure this matches your WS server
 const HTTP_URL = Constants.expoConfig?.extra?.apiUrl;
 const WS_URL = HTTP_URL.replace(/^https/, 'wss');
-console.log("WS_URL: ", WS_URL)
+// console.log("WS_URL: ", WS_URL)
 
 let apolloClient: ApolloClient<any> | null = null;
 let refreshingPromise: Promise<string | null> | null = null;
@@ -37,7 +37,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
 
   refreshingPromise = (async () => {
     try {
-      console.log('tokenManager: attempting to refresh access token');
+      // console.log('tokenManager: attempting to refresh access token');
       const refreshToken = await getRefreshToken();
       if (!refreshToken || !apolloClient) {
         console.warn('Missing refreshToken or apolloClient');
@@ -82,7 +82,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     } catch (error: any) {
       console.error('Refresh token error:', error?.message || error);
       console.error('Full error object:', error);
-      console.log('tokenManager: triggering logout due to refresh token error');
+      // console.log('tokenManager: triggering logout due to refresh token error');
       triggerLogout();
       Toast.show({
         type: 'error',

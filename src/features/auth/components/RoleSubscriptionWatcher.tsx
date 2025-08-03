@@ -6,13 +6,13 @@ import Toast from 'react-native-toast-message';
 
 const RoleSubscriptionWatcher: React.FC = () => {
   const { user, logout } = useAuth();
-  console.log('RoleSubscriptionWatcher: rendering, user', user?.id);
+  // console.log('RoleSubscriptionWatcher: rendering, user', user?.id);
   const { data, error } = useSubscription(USER_ROLE_UPDATED);
-  console.log('RoleSubscriptionWatcher: subscription initialized');
+  // console.log('RoleSubscriptionWatcher: subscription initialized');
 
   useEffect(() => {
     if (data?.userRoleUpdated?.id === user?.id) {
-      console.log('RoleSubscriptionWatcher: role update detected, logging out');
+      // console.log('RoleSubscriptionWatcher: role update detected, logging out');
       Toast.show({
         type: 'info',
         text1: 'Role Changed',
@@ -30,11 +30,11 @@ const RoleSubscriptionWatcher: React.FC = () => {
     console.log('RoleSubscriptionWatcher subscription error:', error);
   }
 
-  useEffect(() => {
-    if (data) {
-      console.log('RoleSubscriptionWatcher data:', data);
-    }
-  }, [data]);
+  // useEffect(() => {
+  //   if (data) {
+  //     console.log('RoleSubscriptionWatcher data:', data);
+  //   }
+  // }, [data]);
 
   return null;
 };

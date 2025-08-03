@@ -97,7 +97,6 @@ const Footer = () => {
                 />
                 <FooterButton to="/equipment" icon="tools" label="Equipment" />
                 <FooterButton to="/exercise" icon="dumbbell" label="Exercises" />
-                <FooterButton to="/workoutplan/builder" icon="clipboard-list" label="Plans" />
                 <FooterButton to="/users" icon="users" label="Users" />
                 <FooterButton to="/gyms" icon="building" label="Gyms" />
               </>
