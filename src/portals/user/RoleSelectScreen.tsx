@@ -1,6 +1,3 @@
-+57
--0
-
 import React from 'react';
 import {useNavigate} from 'react-router-native';
 import {useAuth} from 'features/auth/context/AuthContext';
@@ -30,9 +27,9 @@ const RoleSelectScreen = () => {
     });
   }
 
-  user.gymManagementRoles?.forEach(gr => {
-    options.push({role: 'gym-manager', gymId: String(gr.gym.id)});
-  });
+  if (user.gymManagementRoles && user.gymManagementRoles.length > 0) {
+    options.push({role: 'gym-manager'});
+  }
 
   const handleSelect = (opt: RoleContextState) => {
     setActiveRole(opt);
@@ -45,11 +42,7 @@ const RoleSelectScreen = () => {
       {options.map((opt, idx) => (
         <OptionItem
           key={idx}
-          text={
-            opt.role === 'gym-manager'
-              ? `Gym Manager - ${opt.gymId}`
-              : opt.role
-          }
+          text={opt.role === 'gym-manager' ? 'Gym Manager' : opt.role}
           onPress={() => handleSelect(opt)}
         />
       ))}

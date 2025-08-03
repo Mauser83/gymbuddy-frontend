@@ -13,17 +13,27 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useNavigate} from 'react-router-native';
 import {useTheme} from 'shared/theme/ThemeProvider';
 
-
 const AvatarDropdown = () => {
   const insets = useSafeAreaInsets();
   const navigate = useNavigate();
-  const {logout} = useAuth();
+  const {user, logout} = useAuth();
 
   const {componentStyles} = useTheme();
-const styles = componentStyles.avatarDropdown;
+  const styles = componentStyles.avatarDropdown;
 
   const [visible, setVisible] = useState(false);
   const dropdownAnim = useRef(new Animated.Value(0)).current;
+
+  const hasMultipleRoles = (() => {
+    if (!user) return false;
+    const roles = ['user'];
+    if (user.userRole === 'PERSONAL_TRAINER') roles.push('trainer');
+    if (user.appRole === 'ADMIN' || user.appRole === 'MODERATOR')
+      roles.push('admin');
+    if (user.gymManagementRoles && user.gymManagementRoles.length > 0)
+      roles.push('gym-manager');
+    return roles.length > 1;
+  })();
 
   const openDropdown = () => {
     setVisible(true);
@@ -54,6 +64,11 @@ const styles = componentStyles.avatarDropdown;
 
   const handleProfile = () => {
     navigate('/profile');
+    closeDropdown();
+  };
+
+  const handleSwitchRole = () => {
+    navigate('/select-role');
     closeDropdown();
   };
 
@@ -92,11 +107,15 @@ const styles = componentStyles.avatarDropdown;
                     },
                   ],
                 },
-              ]}
-            >
+              ]}>
               <Pressable style={styles.item} onPress={handleProfile}>
                 <Text style={styles.text}>👤 View Profile</Text>
               </Pressable>
+              {hasMultipleRoles && (
+                <Pressable style={styles.item} onPress={handleSwitchRole}>
+                  <Text style={styles.text}>🔁 Switch Role</Text>
+                </Pressable>
+              )}
               <Pressable style={styles.item} onPress={handleLogout}>
                 <Text style={styles.text}>🚪 Logout</Text>
               </Pressable>
