@@ -15,6 +15,7 @@ import {useTheme} from 'shared/theme/ThemeProvider';
 
 interface ScreenLayoutProps {
   children: React.ReactNode;
+
   variant?: 'default' | 'centered';
   scroll?: boolean;
 }
@@ -40,6 +41,44 @@ const ScreenLayout = ({
         }
       : {};
 
+  const renderContent = () => {
+    if (scroll) {
+      return (
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={[contentStyle, webContainerStyle]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag">
+          {Platform.OS === 'web' ? (
+            <View style={styles.flex}>{children}</View>
+          ) : (
+            <TouchableWithoutFeedback
+              onPress={Keyboard.dismiss}
+              accessible={false}>
+              <View style={styles.flex}>{children}</View>
+            </TouchableWithoutFeedback>
+          )}
+        </ScrollView>
+      );
+    }
+
+    if (Platform.OS === 'web') {
+      return (
+        <View style={[styles.flex, contentStyle, webContainerStyle]}>
+          {children}
+        </View>
+      );
+    }
+
+    return (
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={[styles.flex, contentStyle, webContainerStyle]}>
+          {children}
+        </View>
+      </TouchableWithoutFeedback>
+    );
+  };
+
   return (
     <LinearGradient
       colors={[theme.colors.background, theme.colors.surface]}
@@ -48,27 +87,7 @@ const ScreenLayout = ({
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.flex}>
-          {scroll ? (
-            <ScrollView
-              style={styles.flex}
-              contentContainerStyle={[contentStyle, webContainerStyle]}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag">
-              <TouchableWithoutFeedback
-                onPress={Keyboard.dismiss}
-                accessible={false}>
-                <View style={styles.flex}>{children}</View>
-              </TouchableWithoutFeedback>
-            </ScrollView>
-          ) : (
-            <TouchableWithoutFeedback
-              onPress={Keyboard.dismiss}
-              accessible={false}>
-              <View style={[styles.flex, contentStyle, webContainerStyle]}>
-                {children}
-              </View>
-            </TouchableWithoutFeedback>
-          )}
+          {renderContent()}
         </KeyboardAvoidingView>
       </SafeAreaView>
     </LinearGradient>
