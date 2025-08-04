@@ -1,8 +1,3 @@
-+18
--13
-
-// The final, correct version of src/shared/components/ScreenLayout.tsx
-
 import React from 'react';
 import {
   View,
@@ -53,21 +48,27 @@ const ScreenLayout = ({
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.flex}>
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-            <View style={[styles.flex, webContainerStyle]}>
-              {scroll ? (
-                <ScrollView
-                  style={styles.flex}
-                  contentContainerStyle={contentStyle}
-                  keyboardShouldPersistTaps="handled"
-                  keyboardDismissMode="on-drag">
-                  {children}
-                </ScrollView>
-              ) : (
-                <View style={[styles.flex, contentStyle]}>{children}</View>
-              )}
-            </View>
-          </TouchableWithoutFeedback>
+          {scroll ? (
+            <ScrollView
+              style={styles.flex}
+              contentContainerStyle={[contentStyle, webContainerStyle]}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag">
+              <TouchableWithoutFeedback
+                onPress={Keyboard.dismiss}
+                accessible={false}>
+                <View style={styles.flex}>{children}</View>
+              </TouchableWithoutFeedback>
+            </ScrollView>
+          ) : (
+            <TouchableWithoutFeedback
+              onPress={Keyboard.dismiss}
+              accessible={false}>
+              <View style={[styles.flex, contentStyle, webContainerStyle]}>
+                {children}
+              </View>
+            </TouchableWithoutFeedback>
+          )}
         </KeyboardAvoidingView>
       </SafeAreaView>
     </LinearGradient>
