@@ -12,10 +12,18 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "distribution": "store",
+      "ios": {
+        "simulator": false
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "mauser83@hotmail.com"
+      }
+    }
   }
 }

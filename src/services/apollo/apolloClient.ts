@@ -6,12 +6,12 @@ import {createSplitLink} from './links/splitLink';
 import {setApolloClient} from './tokenManager';
 import Constants from 'expo-constants';
 
-export const createApolloClient = (token: string | null) => {
+export const createApolloClient = () => {
   const uri = Constants.expoConfig?.extra?.apiUrl as string;
   const splitLink = createSplitLink(uri);
 
   const client = new ApolloClient({
-    link: from([errorLink, createAuthLink(token), splitLink]),
+    link: from([errorLink, createAuthLink(), splitLink]),
     cache: new InMemoryCache({
       typePolicies: {
         Gym: {keyFields: ['id']},
