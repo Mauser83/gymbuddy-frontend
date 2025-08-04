@@ -1,17 +1,15 @@
 import {useMemo} from 'react';
 import {ApolloClient} from '@apollo/client';
 import {useAuth} from 'features/auth/context/AuthContext';
-import {getAccessToken} from 'features/auth/utils/tokenStorage';
 import createApolloClient from '../apolloClient';
 
+// Recreate the Apollo client when the access token changes to ensure links
+// like WebSocket connections pick up the new credentials. The auth link itself
+// reads the latest token for each request.
 export const useApolloClient = (): ApolloClient<any> => {
   const {accessToken} = useAuth();
 
   return useMemo(() => {
-    // console.log('Token for Apollo:', accessToken);
-    // getAccessToken().then(storedToken =>
-    //   console.log('Token from storage before client creation:', storedToken),
-    // );
-    return createApolloClient(accessToken);
+    return createApolloClient();
   }, [accessToken]);
 };

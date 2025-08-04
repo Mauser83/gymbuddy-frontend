@@ -1,18 +1,21 @@
-export default {
+import 'dotenv/config';
+
+export default ({ config }) => ({
+  ...config,
   ios: {
-    bundleIdentifier: 'com.mauser83.gymbuddy',
+    bundleIdentifier: process.env.BUNDLE_IDENTIFIER,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
     },
   },
   android: {
-    package: 'com.mauser83.gymbuddy',
+    package: process.env.ANDROID_PACKAGE,
   },
   extra: {
-    googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
     apiUrl: process.env.API_URL,
+    googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
     eas: {
-      projectId: '75740163-0d0d-4d46-9fad-2f76224d960c',
+      projectId: process.env.EAS_PROJECT_ID,
     },
   },
-};
+});
