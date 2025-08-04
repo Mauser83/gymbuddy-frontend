@@ -1,3 +1,6 @@
++18
+-13
+
 // The final, correct version of src/shared/components/ScreenLayout.tsx
 
 import React from 'react';
@@ -9,6 +12,8 @@ import {
   StyleSheet,
   SafeAreaView,
   ViewStyle, // Import ViewStyle
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import {LinearGradient} from 'expo-linear-gradient';
 import {useTheme} from 'shared/theme/ThemeProvider';
@@ -48,18 +53,21 @@ const ScreenLayout = ({
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.flex}>
-          <View style={[styles.flex, webContainerStyle]}>
-            {scroll ? (
-              <ScrollView
-                style={styles.flex}
-                contentContainerStyle={contentStyle}
-                keyboardShouldPersistTaps="handled">
-                {children}
-              </ScrollView>
-            ) : (
-              <View style={[styles.flex, contentStyle]}>{children}</View>
-            )}
-          </View>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <View style={[styles.flex, webContainerStyle]}>
+              {scroll ? (
+                <ScrollView
+                  style={styles.flex}
+                  contentContainerStyle={contentStyle}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="on-drag">
+                  {children}
+                </ScrollView>
+              ) : (
+                <View style={[styles.flex, contentStyle]}>{children}</View>
+              )}
+            </View>
+          </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </LinearGradient>
