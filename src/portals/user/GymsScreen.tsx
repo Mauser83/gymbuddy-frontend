@@ -1,31 +1,30 @@
-import React, {useEffect, useState} from 'react';
-import {TouchableOpacity, View, FlatList} from 'react-native'; // Import FlatList
-import {useQuery, useSubscription} from '@apollo/client';
+import React, {useEffect, useState, useMemo, useCallback} from 'react';
+import {View} from 'react-native';
+import GymsList from 'features/gyms/components/GymsList';
+import {useLazyQuery, useSubscription} from '@apollo/client';
 import {useNavigate} from 'react-router-native';
 
 import {useAuth} from '../../features/auth/context/AuthContext';
-import { GET_GYMS } from 'features/gyms/graphql/gym.queries';
+import {GET_GYMS} from 'features/gyms/graphql/gym.queries';
 import {GYM_APPROVED_SUBSCRIPTION} from '../../features/gyms/graphql/gym.subscriptions';
 import {GYM_FRAGMENT} from '../../features/gyms/graphql/gym.fragments';
 import {Gym} from 'features/gyms/types/gym.types';
 
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Card from 'shared/components/Card';
-import DetailField from 'shared/components/DetailField';
 import Button from 'shared/components/Button';
 import NoResults from 'shared/components/NoResults';
 import LoadingState from 'shared/components/LoadingState';
 import SearchInput from 'shared/components/SearchInput';
-import { spacing } from 'shared/theme/tokens';
+import {spacing} from 'shared/theme/tokens';
+import {debounce} from 'shared/utils/helpers';
 
 const GymsScreen = () => {
   const {user} = useAuth();
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
-  // No need for a separate 'gyms' state, we can use 'data' directly
-  const {loading, data, refetch} = useQuery(GET_GYMS, {
-    variables: { search: searchQuery || undefined },
+  const [fetchGyms, {loading, data}] = useLazyQuery(GET_GYMS, {
     fetchPolicy: 'cache-and-network',
   });
 
@@ -42,63 +41,50 @@ const GymsScreen = () => {
   });
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      refetch({search: searchQuery || undefined});
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery, refetch]);
-
-  useEffect(() => {
     if (!user) navigate('/');
   }, [user, navigate]);
-  
-  const gyms = data?.gyms ?? [];
+  useEffect(() => {
+    fetchGyms();
+  }, [fetchGyms]);
 
-  const renderGymItem = ({item}: {item: Gym}) => (
-    <TouchableOpacity onPress={() => navigate(`/gyms/${item.id}`)}>
-        <Card variant="glass" compact showChevron style={{marginBottom: spacing.md}}>
-            <DetailField label="📍 Name:" value={item.name} />
-            <DetailField
-            label="🌍 Country:"
-            value={item.country || 'Unknown'}
-            />
-            <DetailField label="🏙️ City:" value={item.city || 'Unknown'} />
-        </Card>
-    </TouchableOpacity>
+  const debouncedFetch = useMemo(
+    () =>
+      debounce((q: string) => {
+        fetchGyms({variables: {search: q || undefined}});
+      }, 500),
+    [fetchGyms],
   );
 
-  const ListHeader = (
-      <>
-        <Card variant="glass" compact title="Gyms" />
-        <SearchInput
-            placeholder="Search for gym name or location"
-            value={searchQuery}
-            onChange={setSearchQuery}
-            onClear={() => setSearchQuery('')}
-        />
-        <View style={{ position: 'relative', marginVertical: spacing.md}}>
-            <Button
-                text="➕ Create New Gym"
-                onPress={() => navigate('/gyms/create')}
-            />
-        </View>
-      </>
+  useEffect(() => {
+    debouncedFetch(searchQuery);
+  }, [searchQuery, debouncedFetch]);
+
+  const gyms: Gym[] = data?.gyms ?? [];
+  const handleGymPress = useCallback(
+    (item: Gym) => navigate(`/gyms/${item.id}`),
+    [navigate],
   );
 
   return (
     // ScreenLayout is correct with no scroll prop
     <ScreenLayout>
-        {loading && gyms.length === 0 ? (
-            <LoadingState text="Loading gyms..." />
-        ) : (
-            <FlatList
-                data={gyms}
-                renderItem={renderGymItem}
-                keyExtractor={item => item.id.toString()}
-                ListHeaderComponent={ListHeader}
-                ListEmptyComponent={<NoResults message="No gyms found." />}
-            />
-        )}
+      <Card variant="glass" compact title="Gyms" />
+      <SearchInput
+        placeholder="Search for gym name or location"
+        value={searchQuery}
+        onChange={setSearchQuery}
+        onClear={() => setSearchQuery('')}
+      />
+      <View style={{position: 'relative', marginVertical: spacing.md}}>
+        <Button text="➕ Create New Gym" onPress={() => navigate('/gyms/create')} />
+      </View>
+      {loading && gyms.length === 0 ? (
+        <LoadingState text="Loading gyms..." />
+      ) : gyms.length === 0 ? (
+        <NoResults message="No gyms found." />
+      ) : (
+        <GymsList gyms={gyms} onGymPress={handleGymPress} />
+      )}
     </ScreenLayout>
   );
 };

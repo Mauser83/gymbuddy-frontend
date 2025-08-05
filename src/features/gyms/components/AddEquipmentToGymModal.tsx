@@ -1,20 +1,16 @@
-import React, {useState} from 'react';
-import {useQuery} from '@apollo/client';
+import React, {useState, useEffect, useMemo, useCallback} from 'react';
+import {useLazyQuery, useMutation} from '@apollo/client';
 import {GET_ALL_EQUIPMENTS} from 'features/equipment/graphql/equipment.graphql';
 import {ASSIGN_EQUIPMENT_TO_GYM} from '../graphql/gymEquipment';
 import ModalWrapper from 'shared/components/ModalWrapper';
 import Title from 'shared/components/Title';
 import SearchInput from 'shared/components/SearchInput';
-import ClickableList from 'shared/components/ClickableList';
-import LoadingState from 'shared/components/LoadingState';
-import NoResults from 'shared/components/NoResults';
 import Button from 'shared/components/Button';
-import {useMutation} from '@apollo/client';
 import {Equipment} from 'features/equipment/types/equipment.types';
 import FormInput from 'shared/components/FormInput';
-import {Text} from 'react-native';
 import ButtonRow from 'shared/components/ButtonRow';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
+import EquipmentPickerList from './EquipmentPickerList';
+import {debounce} from 'shared/utils/helpers';
 
 export default function AddEquipmentToGymModal({
   visible,
@@ -29,18 +25,29 @@ export default function AddEquipmentToGymModal({
   assignedEquipmentIds?: number[];
   onAssigned?: () => void; // ✅ new optional callback
 }) {
-  const {data, loading} = useQuery(GET_ALL_EQUIPMENTS, {
-    fetchPolicy: 'cache-and-network',
-  });
-
+  const [fetchEquipments, {data, loading}] = useLazyQuery(GET_ALL_EQUIPMENTS);
   const [assignEquipment] = useMutation(ASSIGN_EQUIPMENT_TO_GYM);
-  const [search, setSearch] = useState('');
 
-  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(
-    null,
-  );
+  const [search, setSearch] = useState('');
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [note, setNote] = useState('');
+
+  useEffect(() => {
+    if (visible) fetchEquipments();
+  }, [visible, fetchEquipments]);
+
+  const debouncedFetch = useMemo(
+    () =>
+      debounce((q: string) => {
+        fetchEquipments({variables: {search: q || undefined}});
+      }, 500),
+    [fetchEquipments],
+  );
+
+  useEffect(() => {
+    debouncedFetch(search);
+  }, [search, debouncedFetch]);
 
   const handleAssign = async (
     equipmentId: number,
@@ -63,47 +70,29 @@ export default function AddEquipmentToGymModal({
     }
   };
 
-  const availableItems: Equipment[] = [];
-  const assignedItems: Equipment[] = [];
+  const {availableItems, assignedItems} = useMemo(() => {
+    const available: Equipment[] = [];
+    const assigned: Equipment[] = [];
 
-  const query = search.toLowerCase();
-
-  (data?.allEquipments ?? [])
-    .filter((item: Equipment) => {
-      return (
-        item.name.toLowerCase().includes(query) ||
-        item.brand?.toLowerCase().includes(query) ||
-        item.category?.name?.toLowerCase().includes(query) ||
-        item.subcategory?.name?.toLowerCase().includes(query)
-      );
-    })
-    .forEach((item: Equipment) => {
+    (data?.allEquipments ?? []).forEach((item: Equipment) => {
       if (assignedEquipmentIds.includes(item.id)) {
-        assignedItems.push(item);
+        assigned.push(item);
       } else {
-        availableItems.push(item);
+        available.push(item);
       }
     });
 
-  availableItems.sort((a, b) => a.name.localeCompare(b.name));
-  assignedItems.sort((a, b) => a.name.localeCompare(b.name));
+    available.sort((a, b) => a.name.localeCompare(b.name));
+    assigned.sort((a, b) => a.name.localeCompare(b.name));
 
-  const toListItem = (item: Equipment, isAssigned: boolean) => ({
-    id: item.id,
-    label: item.name,
-    subLabel: `${item.brand}`,
-    disabled: isAssigned,
-    onPress: isAssigned
-      ? undefined
-      : () => {
-          setSelectedEquipment(item);
-          setQuantity(1);
-          setNote('');
-        },
-    rightElement: isAssigned ? (
-      <Text style={{color: 'gray'}}>✓ Added</Text>
-    ) : undefined,
-  });
+    return {availableItems: available, assignedItems: assigned};
+  }, [data, assignedEquipmentIds]);
+
+  const handleSelect = useCallback((item: Equipment) => {
+    setSelectedEquipment(item);
+    setQuantity(1);
+    setNote('');
+  }, []);
 
   return (
     <ModalWrapper visible={visible} onClose={onClose}>
@@ -150,25 +139,12 @@ export default function AddEquipmentToGymModal({
             onClear={() => setSearch('')}
           />
 
-          {loading ? (
-            <LoadingState text="Loading catalog..." />
-          ) : availableItems.length === 0 && assignedItems.length === 0 ? (
-            <NoResults message="No equipment found in catalog." />
-          ) : (
-            <>
-              <ClickableList
-                items={availableItems.map(item => toListItem(item, false))}
-              />
-              {assignedItems.length > 0 && (
-                <>
-                  <DividerWithLabel label="Already Added" />
-                  <ClickableList
-                    items={assignedItems.map(item => toListItem(item, true))}
-                  />
-                </>
-              )}
-            </>
-          )}
+          <EquipmentPickerList
+            available={availableItems}
+            assigned={assignedItems}
+            loading={loading}
+            onSelect={handleSelect}
+          />
 
           <Button text="Close" onPress={onClose} />
         </>

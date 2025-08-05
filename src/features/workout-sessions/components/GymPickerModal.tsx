@@ -1,16 +1,13 @@
-import React, {useState, useEffect} from 'react';
-import {ScrollView, Dimensions} from 'react-native';
-import {useQuery} from '@apollo/client';
+import React, {useState, useMemo, useEffect, useCallback} from 'react';
+import {useLazyQuery} from '@apollo/client';
 
 import Title from 'shared/components/Title';
 import SearchInput from 'shared/components/SearchInput';
-import NoResults from 'shared/components/NoResults';
-
 import {GET_GYMS} from '../graphql/userWorkouts.graphql';
-import SelectableField from 'shared/components/SelectableField';
-import ClickableListItem from 'shared/components/ClickableListItem';
+import {debounce} from 'shared/utils/helpers';
+import GymList from './GymList';
 
-interface Gym {
+export interface Gym {
   id: number;
   name: string;
   address?: string;
@@ -28,30 +25,34 @@ export default function GymPickerModal({
   onSelect,
 }: GymPickerModalProps) {
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  const [fetchGyms, {data, loading}] = useLazyQuery(GET_GYMS);
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 300);
-    return () => clearTimeout(timeout);
-  }, [search]);
+    fetchGyms();
+  }, [fetchGyms]);
 
-  const {data, loading} = useQuery(GET_GYMS, {
-    variables: {search: debouncedSearch},
-  });
+  const debouncedFetch = useMemo(
+    () =>
+      debounce((q: string) => {
+        fetchGyms({variables: {search: q || undefined}});
+      }, 500),
+    [fetchGyms],
+  );
+
+  useEffect(() => {
+    debouncedFetch(search);
+  }, [search, debouncedFetch]);
 
   const gyms: Gym[] = data?.gyms ?? [];
 
-  const filteredGyms = gyms.filter(gym => {
-    const term = debouncedSearch.toLowerCase().trim();
-    return (
-      gym.name.toLowerCase().includes(term) ||
-      gym.address?.toLowerCase().includes(term) ||
-      gym.city?.toLowerCase().includes(term) ||
-      gym.country?.toLowerCase().includes(term)
-    );
-  });
+  const handleSelect = useCallback(
+    (gym: Gym) => {
+      onSelect(gym);
+      onClose();
+    },
+    [onSelect, onClose],
+  );
 
   return (
     <>
@@ -64,23 +65,7 @@ export default function GymPickerModal({
         onClear={() => setSearch('')}
       />
 
-      <ScrollView style={{height: 500}}>
-        {!loading && filteredGyms.length === 0 ? (
-          <NoResults message="No gyms found." />
-        ) : (
-          filteredGyms.map(gym => (
-            <ClickableListItem
-              key={gym.id}
-              label={gym.name}
-              subLabel={gym.address || gym.city || gym.country || ''}
-              onPress={() => {
-                onSelect(gym);
-                onClose();
-              }}
-            />
-          ))
-        )}
-      </ScrollView>
+      <GymList gyms={gyms} loading={loading} onSelect={handleSelect} />
     </>
   );
 }

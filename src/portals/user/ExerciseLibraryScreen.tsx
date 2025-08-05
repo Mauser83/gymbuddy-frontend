@@ -1,18 +1,17 @@
-import React, {useState, useEffect, useCallback, useMemo} from 'react';
-import {View, FlatList} from 'react-native';
-import {useQuery} from '@apollo/client';
+import React, {useState, useCallback, useMemo, useEffect} from 'react';
+import {View} from 'react-native';
+import {useLazyQuery, useQuery} from '@apollo/client';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Title from 'shared/components/Title';
 import SearchInput from 'shared/components/SearchInput';
-import ClickableList from 'shared/components/ClickableList';
-import NoResults from 'shared/components/NoResults';
-import LoadingState from 'shared/components/LoadingState';
 import {spacing} from 'shared/theme/tokens';
 import {GET_EXERCISES} from 'features/exercises/graphql/exercise.graphql';
-import { Exercise } from 'features/exercises/types/exercise.types';
+import {Exercise} from 'features/exercises/types/exercise.types';
 import FilterPanel, {NamedFilterOptions} from 'shared/components/FilterPanel';
 import { GET_FILTER_OPTIONS } from 'features/workout-sessions/graphql/userWorkouts.graphql';
 import {useNavigate} from 'react-router-native';
+import {debounce} from 'shared/utils/helpers';
+import ExerciseList from 'features/exercises/components/ExerciseList';
 
 // --- Step 1: Define the Props interface for the header ---
 interface MemoizedListHeaderProps {
@@ -55,26 +54,34 @@ const MemoizedListHeader = React.memo(({
 
 export default function ExerciseLibraryScreen() {
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string[]>>({});
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 300);
-    return () => clearTimeout(timeout);
-  }, [search]);
-  
   // --- Step 3: Stabilize all props that will be passed to the header ---
   const handleFilterChange = useCallback((newFilters: Record<string, string[]>) => {
     setFilters(newFilters);
   }, []);
 
-  const {data, loading} = useQuery(GET_EXERCISES, {
-    variables: { search: debouncedSearch, filters },
+  const [fetchExercises, {data, loading}] = useLazyQuery(GET_EXERCISES, {
+    fetchPolicy: 'cache-and-network',
   });
-  const exercises = data?.getExercises ?? [];
+  const exercises: Exercise[] = data?.getExercises ?? [];
+
+  const debouncedFetch = useMemo(
+    () =>
+      debounce((q: string) => {
+        fetchExercises({variables: {search: q || undefined, filters}});
+      }, 500),
+    [fetchExercises, filters],
+  );
+
+  useEffect(() => {
+    debouncedFetch(search);
+  }, [search, debouncedFetch]);
+
+  useEffect(() => {
+    fetchExercises({variables: {search: search || undefined, filters}});
+  }, [filters, fetchExercises, search]);
 
   const {data: filterData} = useQuery(GET_FILTER_OPTIONS);
   
@@ -96,38 +103,26 @@ export default function ExerciseLibraryScreen() {
     };
   }, [filterData]);
 
-  const renderItem = ({item}: {item: Exercise}) => (
-    <ClickableList
-      items={[{
-          id: String(item.id),
-          label: item.name,
-          subLabel: item.description,
-          onPress: () => navigate(`/user/exercise/${item.id}`),
-      }]}
-    />
+  const handleExercisePress = useCallback(
+    (exercise: Exercise) => navigate(`/user/exercise/${exercise.id}`),
+    [navigate],
   );
 
   return (
     <ScreenLayout>
-      <FlatList
-        data={exercises}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id.toString()}
-        // --- Step 4: Render the memoized header with stable props ---
+      <ExerciseList
+        exercises={exercises}
+        loading={loading}
         ListHeaderComponent={
-            <MemoizedListHeader
-                filterData={filterData}
-                filterOptions={filterOptions}
-                onFilterChange={handleFilterChange}
-                search={search}
-                onSearchChange={setSearch}
-            />
+          <MemoizedListHeader
+            filterData={filterData}
+            filterOptions={filterOptions}
+            onFilterChange={handleFilterChange}
+            search={search}
+            onSearchChange={setSearch}
+          />
         }
-        ListEmptyComponent={
-            loading ? <LoadingState text="Loading exercises..." /> : <NoResults message="No exercises found." />
-        }
-        contentContainerStyle={{padding: spacing.md}}
-        keyboardShouldPersistTaps="handled"
+        onExercisePress={handleExercisePress}
       />
     </ScreenLayout>
   );
