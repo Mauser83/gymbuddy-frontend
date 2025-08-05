@@ -40,7 +40,10 @@ const Footer = () => {
     label: string;
     badge?: number;
   }) => (
-    <TouchableOpacity onPress={() => navigate(to)} style={styles.iconWrapper}>
+    <TouchableOpacity
+      onPress={() => navigate(to)}
+      style={[styles.iconWrapper, {alignItems: 'center'}]}
+    >
       <FontAwesome name={icon} size={24} color={iconColor(to)} />
       {badge !== undefined && badge > 0 && (
         <View style={styles.badge}>
