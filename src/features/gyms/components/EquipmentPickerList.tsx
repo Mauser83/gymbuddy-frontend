@@ -1,0 +1,51 @@
+import React from 'react';
+import {ScrollView, Text} from 'react-native';
+import ClickableList from 'shared/components/ClickableList';
+import LoadingState from 'shared/components/LoadingState';
+import NoResults from 'shared/components/NoResults';
+import DividerWithLabel from 'shared/components/DividerWithLabel';
+import {Equipment} from 'features/equipment/types/equipment.types';
+
+interface EquipmentPickerListProps {
+  available: Equipment[];
+  assigned: Equipment[];
+  loading: boolean;
+  onSelect: (equipment: Equipment) => void;
+}
+
+const EquipmentPickerList = React.memo(
+  ({available, assigned, loading, onSelect}: EquipmentPickerListProps) => {
+    const toListItem = (item: Equipment, isAssigned: boolean) => ({
+      id: item.id,
+      label: item.name,
+      subLabel: `${item.brand}`,
+      disabled: isAssigned,
+      onPress: isAssigned ? undefined : () => onSelect(item),
+      rightElement: isAssigned ? (
+        <Text style={{color: 'gray'}}>✓ Added</Text>
+      ) : undefined,
+    });
+
+    return (
+      <ScrollView style={{height: 500}}>
+        {loading && available.length === 0 && assigned.length === 0 ? (
+          <LoadingState text="Loading catalog..." />
+        ) : available.length === 0 && assigned.length === 0 ? (
+          <NoResults message="No equipment found in catalog." />
+        ) : (
+          <>
+            <ClickableList items={available.map(item => toListItem(item, false))} />
+            {assigned.length > 0 && (
+              <>
+                <DividerWithLabel label="Already Added" />
+                <ClickableList items={assigned.map(item => toListItem(item, true))} />
+              </>
+            )}
+          </>
+        )}
+      </ScrollView>
+    );
+  },
+);
+
+export default EquipmentPickerList;

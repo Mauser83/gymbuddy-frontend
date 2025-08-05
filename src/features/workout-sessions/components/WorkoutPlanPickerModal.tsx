@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { ScrollView } from 'react-native';
-import { useQuery } from '@apollo/client';
+import React, {useState, useMemo, useEffect, useCallback} from 'react';
+import {useLazyQuery} from '@apollo/client';
 
 import Title from 'shared/components/Title';
 import SearchInput from 'shared/components/SearchInput';
-import NoResults from 'shared/components/NoResults';
-import ClickableListItem from 'shared/components/ClickableListItem';
+import WorkoutPlanList from './WorkoutPlanList';
 
-import { GET_WORKOUT_PLANS } from '../graphql/userWorkouts.graphql';
+import {GET_WORKOUT_PLANS} from '../graphql/userWorkouts.graphql';
+import {debounce} from 'shared/utils/helpers';
 
 export interface WorkoutPlan {
   id: number;
@@ -25,28 +24,34 @@ export default function WorkoutPlanPickerModal({
   onSelect,
 }: WorkoutPlanPickerModalProps) {
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  const [fetchPlans, {data, loading}] = useLazyQuery(GET_WORKOUT_PLANS);
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 300);
-    return () => clearTimeout(timeout);
-  }, [search]);
+    fetchPlans();
+  }, [fetchPlans]);
 
-  const { data, loading } = useQuery(GET_WORKOUT_PLANS, {
-    variables: { search: debouncedSearch },
-  });
+  const debouncedFetch = useMemo(
+    () =>
+      debounce((q: string) => {
+        fetchPlans({variables: {search: q || undefined}});
+      }, 500),
+    [fetchPlans],
+  );
+
+  useEffect(() => {
+    debouncedFetch(search);
+  }, [search, debouncedFetch]);
 
   const plans: WorkoutPlan[] = data?.workoutPlans ?? [];
 
-  const filteredPlans = plans.filter(plan => {
-    const term = debouncedSearch.toLowerCase().trim();
-    return (
-      plan.name.toLowerCase().includes(term) ||
-      plan.description?.toLowerCase().includes(term)
-    );
-  });
+  const handleSelect = useCallback(
+    (plan: WorkoutPlan) => {
+      onSelect(plan);
+      onClose();
+    },
+    [onSelect, onClose],
+  );
 
   return (
     <>
@@ -59,23 +64,7 @@ export default function WorkoutPlanPickerModal({
         onClear={() => setSearch('')}
       />
 
-      <ScrollView style={{ height: 500 }}>
-        {!loading && filteredPlans.length === 0 ? (
-          <NoResults message="No plans found." />
-        ) : (
-          filteredPlans.map(plan => (
-            <ClickableListItem
-              key={plan.id}
-              label={plan.name}
-              subLabel={plan.description || undefined}
-              onPress={() => {
-                onSelect(plan);
-                onClose();
-              }}
-            />
-          ))
-        )}
-      </ScrollView>
+      <WorkoutPlanList plans={plans} loading={loading} onSelect={handleSelect} />
     </>
   );
 }

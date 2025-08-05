@@ -1,14 +1,15 @@
-import React, {useEffect, useState} from 'react';
-import {FlatList, TouchableOpacity} from 'react-native';
-import {useQuery, useSubscription} from '@apollo/client';
+import React, {useEffect, useState, useMemo, useCallback} from 'react';
+import UsersList from 'features/users/components/UsersList';
+import {useLazyQuery, useSubscription} from '@apollo/client';
 import {useNavigate} from 'react-router-native';
 
 import {useAuth} from '../../features/auth/context/AuthContext';
 
 import {GET_USERS} from '../../features/users/graphql/user.queries';
-import { USER_UPDATED_SUBSCRIPTION } from 'features/users/graphql/user.subscriptions';
+import {USER_UPDATED_SUBSCRIPTION} from 'features/users/graphql/user.subscriptions';
 import {USER_FRAGMENT} from '../../features/users/graphql/user.fragments';
 import {User} from 'features/users/types/user';
+import {debounce} from 'shared/utils/helpers';
 
 import FormError from 'shared/components/FormError';
 import Card from 'shared/components/Card';
@@ -21,11 +22,10 @@ const UsersScreen = () => {
   const {user} = useAuth();
   const navigate = useNavigate();
 
-  const {loading, error, data, refetch} = useQuery(GET_USERS, {
+  const [fetchUsers, {loading, error, data}] = useLazyQuery(GET_USERS, {
     fetchPolicy: 'cache-and-network',
   });
 
-  const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   useSubscription(USER_UPDATED_SUBSCRIPTION, {
@@ -42,34 +42,32 @@ const UsersScreen = () => {
   });
 
   useEffect(() => {
-    const handler = setTimeout(() => {
-      refetch({search: searchQuery.length > 0 ? searchQuery : undefined});
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
-
-  useEffect(() => {
-    if (data?.users) {
-      setUsers(data.users);
-    }
-  }, [data]);
-
-  useEffect(() => {
     if (!user || (user.appRole !== 'ADMIN' && user.appRole !== 'MODERATOR')) {
       navigate('/');
     }
   }, [user]);
 
-  const renderItem = ({item}: {item: User}) => (
-    <TouchableOpacity onPress={() => navigate(`/users/${item.id}`)}>
-      <Card
-        variant="user"
-        title={item.username}
-        text={item.email}
-        compact
-        showChevron
-      />
-    </TouchableOpacity>
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const debouncedFetch = useMemo(
+    () =>
+      debounce((q: string) => {
+        fetchUsers({variables: {search: q || undefined}});
+      }, 500),
+    [fetchUsers],
+  );
+
+  useEffect(() => {
+    debouncedFetch(searchQuery);
+  }, [searchQuery, debouncedFetch]);
+
+  const users: User[] = data?.users ?? [];
+
+  const handleUserPress = useCallback(
+    (item: User) => navigate(`/users/${item.id}`),
+    [navigate],
   );
 
   return (
@@ -83,19 +81,14 @@ const UsersScreen = () => {
         onClear={() => setSearchQuery('')}
       />
 
-      {loading ? (
+      {loading && users.length === 0 ? (
         <LoadingState text="Loading users..." />
       ) : error ? (
         <FormError message="Error fetching users." />
       ) : users.length === 0 ? (
         <NoResults message="No users found" />
       ) : (
-        <FlatList
-          data={users}
-          keyExtractor={item => item.id.toString()}
-          renderItem={renderItem}
-          contentContainerStyle={{paddingTop: 16}}
-        />
+        <UsersList users={users} onUserPress={handleUserPress} />
       )}
     </ScreenLayout>
   );

@@ -1,7 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import {View} from 'react-native';
 import ModalWrapper from 'shared/components/ModalWrapper';
-import SearchInput from 'shared/components/SearchInput';
 import ClickableList from 'shared/components/ClickableList';
 import NoResults from 'shared/components/NoResults';
 import {spacing} from 'shared/theme/tokens';

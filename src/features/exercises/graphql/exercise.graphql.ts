@@ -125,6 +125,10 @@ export const GET_EXERCISES = gql`
           }
         }
       }
+      exerciseType {
+        id
+        name
+      }
     }
   }
 `;
@@ -170,7 +174,6 @@ export const GET_EXERCISE_DETAIL = gql`
     }
   }
 `;
-
 
 export const WORKOUT_SESSION_FIELDS = gql`
   fragment WorkoutSessionFields on WorkoutSession {
