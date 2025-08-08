@@ -12,7 +12,7 @@ import ErrorMessage from 'shared/components/ErrorMessage';
 import {useAuth} from 'features/auth/context/AuthContext';
 import {useTheme} from 'shared/theme/ThemeProvider';
 
-import { GET_WORKOUT_SESSIONS_BY_USER } from 'features/exercises/graphql/exercise.graphql';
+import { GET_WORKOUT_SESSIONS_BY_USER } from 'features/workout-sessions/graphql/userWorkouts.graphql';
 
 type WorkoutSessionPreview = {
   id: number;

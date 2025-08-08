@@ -109,7 +109,7 @@ const WorkoutSessionDetailScreen = () => {
   const ListHeader = () => (
     <>
       <Title
-        text={session.workoutPlan?.name || 'Ad-hoc Session'}
+        text={session.workout?.name || session.workoutPlan?.name || 'Ad-hoc Session'}
         subtitle={startDate}
         align="center"
       />
