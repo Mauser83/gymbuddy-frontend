@@ -7,7 +7,7 @@ export type MetricDefinition = {
   id: number;
   name: string;
   unit: string;
-  inputType: 'number' | 'time' | 'text';
+  inputType: 'number' | 'decimal' | 'time' | 'text';
   useInPlanning: boolean;
   minOnly: boolean;
 };
