@@ -45,7 +45,11 @@ const MetricInputGroup: React.FC<MetricInputGroupProps> = ({
             label={
               metric.unit ? `${metric.name} (${metric.unit})` : `${metric.name}`
             }
-            value={String(values?.[metricId] ?? '')}
+            value={
+              metric.inputType === 'decimal'
+                ? String(values?.[metricId] ?? '').replace('.', ',')
+                : String(values?.[metricId] ?? '')
+            }
             onChangeText={text => {
               if (metric.inputType === 'number') {
                 const normalized = text.replace(',', '.');

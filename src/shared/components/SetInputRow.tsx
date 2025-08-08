@@ -34,7 +34,11 @@ export default function SetInputRow({
                   color: theme.colors.textPrimary,
                 },
               ]}
-              value={String(values[id] ?? '')}
+              value={
+                metric.inputType === 'decimal'
+                  ? String(values[id] ?? '').replace('.', ',')
+                  : String(values[id] ?? '')
+              }
               onChangeText={text => {
                 if (metric.inputType === 'number') {
                   const normalized = text.replace(',', '.');
