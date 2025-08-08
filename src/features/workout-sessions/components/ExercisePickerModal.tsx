@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ScrollView } from 'react-native';
 
 import ModalWrapper from '../../../shared/components/ModalWrapper';
@@ -6,6 +6,7 @@ import Title from 'shared/components/Title';
 import SearchInput from 'shared/components/SearchInput';
 import ClickableListItem from 'shared/components/ClickableListItem';
 import NoResults from 'shared/components/NoResults';
+import DividerWithLabel from 'shared/components/DividerWithLabel';
 
 interface Exercise {
   id: number;
@@ -18,6 +19,7 @@ interface ExercisePickerModalProps {
   exercises: Exercise[];
   onClose: () => void;
   onSelect: (exercise: Exercise) => void;
+  planExerciseIds?: number[];
 }
 
 export default function ExercisePickerModal({
@@ -25,6 +27,7 @@ export default function ExercisePickerModal({
   exercises,
   onClose,
   onSelect,
+  planExerciseIds,
 }: ExercisePickerModalProps) {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -36,9 +39,26 @@ export default function ExercisePickerModal({
     return () => clearTimeout(timeout);
   }, [search]);
 
-  const filteredExercises = exercises.filter(ex =>
-    ex.name.toLowerCase().includes(debouncedSearch.toLowerCase().trim())
-  );
+  const planIds = useMemo(() => new Set(planExerciseIds ?? []), [planExerciseIds]);
+
+  const {planExercises, otherExercises} = useMemo(() => {
+    const lower = debouncedSearch.toLowerCase().trim();
+    const plan: Exercise[] = [];
+    const others: Exercise[] = [];
+
+    exercises.forEach(ex => {
+      if (!ex.name.toLowerCase().includes(lower)) return;
+      if (planIds.has(ex.id)) plan.push(ex);
+      else others.push(ex);
+    });
+
+    plan.sort((a, b) => a.name.localeCompare(b.name));
+    others.sort((a, b) => a.name.localeCompare(b.name));
+
+    return {planExercises: plan, otherExercises: others};
+  }, [exercises, debouncedSearch, planIds]);
+
+  const hasPlan = planIds.size > 0;
 
   return (
     <ModalWrapper visible={visible} onClose={onClose}>
@@ -52,10 +72,43 @@ export default function ExercisePickerModal({
       />
 
       <ScrollView style={{ height: 500 }}>
-        {filteredExercises.length === 0 ? (
+        {planExercises.length === 0 && otherExercises.length === 0 ? (
           <NoResults message="No matching exercises found." />
+        ) : hasPlan ? (
+          <>
+            {planExercises.length > 0 && (
+              <>
+                <DividerWithLabel label="In workout plan" />
+                {planExercises.map(ex => (
+                  <ClickableListItem
+                    key={ex.id}
+                    label={ex.name}
+                    onPress={() => {
+                      onSelect(ex);
+                      onClose();
+                    }}
+                  />
+                ))}
+              </>
+            )}
+            {otherExercises.length > 0 && (
+              <>
+                <DividerWithLabel label="Other exercises" />
+                {otherExercises.map(ex => (
+                  <ClickableListItem
+                    key={ex.id}
+                    label={ex.name}
+                    onPress={() => {
+                      onSelect(ex);
+                      onClose();
+                    }}
+                  />
+                ))}
+              </>
+            )}
+          </>
         ) : (
-          filteredExercises.map(ex => (
+          otherExercises.map(ex => (
             <ClickableListItem
               key={ex.id}
               label={ex.name}
