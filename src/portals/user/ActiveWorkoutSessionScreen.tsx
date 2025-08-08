@@ -23,7 +23,10 @@ import {
   UPDATE_WORKOUT_SESSION,
   DELETE_WORKOUT_SESSION,
 } from 'features/workout-sessions/graphql/userWorkouts.graphql';
-import { WorkoutSessionData, ExerciseLog } from 'features/workout-sessions/types/userWorkouts.types';
+import {
+  WorkoutSessionData,
+  ExerciseLog,
+} from 'features/workout-sessions/types/userWorkouts.types';
 import SelectableField from 'shared/components/SelectableField';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import PlanTargetChecklist from 'features/workout-sessions/components/PlanTargetChecklist';
@@ -34,7 +37,7 @@ import SetInputRow from 'shared/components/SetInputRow';
 import ExerciseNavHeader from 'features/workout-sessions/components/ExerciseNavHeader';
 import {useMetricRegistry} from 'shared/context/MetricRegistry';
 import {generateMetricSchema} from 'shared/utils/generateMetricSchema';
-import { useExerciseLogSummary } from 'shared/hooks/ExerciseLogSummary';
+import {useExerciseLogSummary} from 'shared/hooks/ExerciseLogSummary';
 import {formatPlanMetrics} from 'shared/utils/formatPlanMetrics';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import ButtonRow from 'shared/components/ButtonRow';
@@ -112,7 +115,7 @@ export default function ActiveWorkoutSessionScreen() {
     return map;
   }, [exercisesData]);
 
-    const [createExerciseLog] = useMutation(CREATE_EXERCISE_LOG);
+  const [createExerciseLog] = useMutation(CREATE_EXERCISE_LOG);
   const [updateExerciseLog] = useMutation(UPDATE_EXERCISE_LOG);
   const [deleteExerciseLog] = useMutation(DELETE_EXERCISE_LOG);
   const [updateWorkoutSession] = useMutation(UPDATE_WORKOUT_SESSION);
@@ -143,6 +146,16 @@ export default function ActiveWorkoutSessionScreen() {
 
     return list;
   }, [session, alternatingGroups]);
+
+  const planExerciseIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          session?.workoutPlan?.exercises?.map(pe => pe.exercise.id) ?? [],
+        ),
+      ),
+    [session],
+  );
 
   const groupedLogs = useMemo(() => {
     const baseLogs = [...logs];
@@ -1016,6 +1029,7 @@ export default function ActiveWorkoutSessionScreen() {
       <ExercisePickerModal
         visible={exercisePickerVisible}
         exercises={availableExercises}
+        planExerciseIds={planExerciseIds}
         onClose={() => setExercisePickerVisible(false)}
         onSelect={exercise => {
           setSelectedExercise(exercise);
