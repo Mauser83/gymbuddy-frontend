@@ -27,16 +27,31 @@ export default function SetInputRow({
               {metric.name}:
             </Text>
             <TextInput
-              style={[styles.input, {borderColor: theme.colors.accentStart, color: theme.colors.textPrimary}]}
+              style={[
+                styles.input,
+                {
+                  borderColor: theme.colors.accentStart,
+                  color: theme.colors.textPrimary,
+                },
+              ]}
               value={String(values[id] ?? '')}
-              onChangeText={text =>
-                onChange(
-                  id,
-                  metric.inputType === 'number' ? Number(text) : text,
-                )
-              }
+              onChangeText={text => {
+                if (metric.inputType === 'number') {
+                  const normalized = text.replace(',', '.');
+                  const numeric = normalized === '' ? '' : Number(normalized);
+                  onChange(id, numeric);
+                } else if (metric.inputType === 'decimal') {
+                  onChange(id, text.replace(',', '.'));
+                } else {
+                  onChange(id, text);
+                }
+              }}
               keyboardType={
-                metric.inputType === 'number' ? 'numeric' : 'default'
+                metric.inputType === 'number'
+                  ? 'number-pad'
+                  : metric.inputType === 'decimal'
+                    ? 'decimal-pad'
+                    : 'default'
               }
             />
           </View>

@@ -46,18 +46,25 @@ const MetricInputGroup: React.FC<MetricInputGroupProps> = ({
               metric.unit ? `${metric.name} (${metric.unit})` : `${metric.name}`
             }
             value={String(values?.[metricId] ?? '')}
-            onChangeText={text =>
-              onChange(
-                metricId,
-                metric.inputType === 'number' ? Number(text) : text,
-              )
-            }
+            onChangeText={text => {
+              if (metric.inputType === 'number') {
+                const normalized = text.replace(',', '.');
+                const numeric = normalized === '' ? '' : Number(normalized);
+                onChange(metricId, numeric);
+              } else if (metric.inputType === 'decimal') {
+                onChange(metricId, text.replace(',', '.'));
+              } else {
+                onChange(metricId, text);
+              }
+            }}
             keyboardType={
               metric.inputType === 'number'
-                ? 'numeric'
-                : metric.inputType === 'time'
-                  ? 'default'
-                  : 'default'
+                ? 'number-pad'
+                : metric.inputType === 'decimal'
+                  ? 'decimal-pad'
+                  : metric.inputType === 'time'
+                    ? 'default'
+                    : 'default'
             }
             error={
               touched[metricId] && errors[metricId]

@@ -22,7 +22,7 @@ import {
 import {CreateMetricInput} from 'features/exercises/hooks/useReferenceManagement';
 import ButtonRow from 'shared/components/ButtonRow';
 
-const INPUT_TYPES = ['number', 'time', 'text'];
+const INPUT_TYPES = ['number', 'decimal', 'time', 'text'];
 
 export default function AdminMetricCatalogScreen() {
   const {theme} = useTheme();

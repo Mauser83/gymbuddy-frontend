@@ -23,7 +23,7 @@ type MetricRegistry = Record<
   number,
   {
     name: string;
-    inputType: 'number' | 'time' | 'text';
+    inputType: 'number' | 'decimal' | 'time' | 'text';
   }
 >;
 
@@ -41,6 +41,14 @@ export function generateMetricSchema(
 
     switch (metric.inputType) {
       case 'number':
+        schema = Yup.number()
+          .typeError(`${metric.name} must be a number`)
+          .integer(`${metric.name} must be an integer`)
+          .min(0, `${metric.name} must be at least 0`)
+          .required(`${metric.name} is required`);
+        break;
+
+      case 'decimal':
         schema = Yup.number()
           .typeError(`${metric.name} must be a number`)
           .min(0, `${metric.name} must be at least 0`)

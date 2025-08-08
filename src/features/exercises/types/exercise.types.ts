@@ -103,7 +103,7 @@ export interface Metric {
   name: string;
   slug: string;
   unit: string;
-  inputType: 'number' | 'time' | 'text';
+  inputType: 'number' | 'decimal' | 'time' | 'text';
   useInPlanning: boolean;
   minOnly: boolean;
 }
@@ -112,7 +112,7 @@ export interface MetricFormState {
   name: string;
   slug: string;
   unit: string;
-  inputType: 'number' | 'time' | 'text';
+  inputType: 'number' | 'decimal' | 'time' | 'text';
   useInPlanning: boolean;
   minOnly: boolean;
 }

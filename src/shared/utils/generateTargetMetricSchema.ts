@@ -17,7 +17,7 @@ type MetricRegistry = Record<
   number,
   {
     name: string;
-    inputType: 'number' | 'time' | 'text';
+    inputType: 'number' | 'decimal' | 'time' | 'text';
   }
 >;
 

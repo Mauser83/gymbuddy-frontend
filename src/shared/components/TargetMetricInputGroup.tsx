@@ -16,7 +16,7 @@ import React from 'react';
 import {View, Text} from 'react-native';
 import FormInput from 'shared/components/FormInput';
 import {useMetricRegistry} from 'shared/context/MetricRegistry';
-import { useTheme } from 'shared/theme/ThemeProvider';
+import {useTheme} from 'shared/theme/ThemeProvider';
 
 interface TargetMetric {
   metricId: number;
@@ -47,7 +47,7 @@ const TargetMetricInputGroup: React.FC<TargetMetricInputGroupProps> = ({
     getPlanningRelevantMetricIdsForExercise,
   } = useMetricRegistry();
 
-  const { theme } = useTheme();
+  const {theme} = useTheme();
 
   const resolvedTypeId =
     exerciseTypeId ??
@@ -77,7 +77,12 @@ const TargetMetricInputGroup: React.FC<TargetMetricInputGroupProps> = ({
 
         return (
           <View key={metricId} style={{gap: 8}}>
-            <Text style={{fontWeight: '600', marginBottom: 4, color: theme.colors.textPrimary}}>
+            <Text
+              style={{
+                fontWeight: '600',
+                marginBottom: 4,
+                color: theme.colors.textPrimary,
+              }}>
               {metric.name}
             </Text>
             <View style={{flexDirection: 'row', gap: 12}}>
@@ -85,9 +90,15 @@ const TargetMetricInputGroup: React.FC<TargetMetricInputGroupProps> = ({
                 <FormInput
                   label="Min"
                   value={String(target.min ?? '')}
-                  onChangeText={text => onChange(metricId, 'min', text)}
+                  onChangeText={text =>
+                    onChange(metricId, 'min', text.replace(',', '.'))
+                  }
                   keyboardType={
-                    metric.inputType === 'number' ? 'numeric' : 'default'
+                    metric.inputType === 'number'
+                      ? 'number-pad'
+                      : metric.inputType === 'decimal'
+                        ? 'decimal-pad'
+                        : 'default'
                   }
                   error={
                     touched[metricId]?.min ? errors[metricId]?.min : undefined
@@ -99,9 +110,15 @@ const TargetMetricInputGroup: React.FC<TargetMetricInputGroupProps> = ({
                   <FormInput
                     label="Max (optional)"
                     value={String(target.max ?? '')}
-                    onChangeText={text => onChange(metricId, 'max', text)}
+                    onChangeText={text =>
+                      onChange(metricId, 'max', text.replace(',', '.'))
+                    }
                     keyboardType={
-                      metric.inputType === 'number' ? 'numeric' : 'default'
+                      metric.inputType === 'number'
+                        ? 'number-pad'
+                        : metric.inputType === 'decimal'
+                          ? 'decimal-pad'
+                          : 'default'
                     }
                     error={
                       touched[metricId]?.max ? errors[metricId]?.max : undefined
