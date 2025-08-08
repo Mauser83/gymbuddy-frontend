@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, ScrollView} from 'react-native';
+import {View} from 'react-native';
 import {useQuery, useMutation} from '@apollo/client';
 import {useParams, useNavigate} from 'react-router-native';
 import {format} from 'date-fns';
@@ -67,7 +67,7 @@ const WorkoutSessionDetailScreen = () => {
     ? format(new Date(Number(session.startedAt)), 'PPP')
     : 'Unknown Date';
 
-type GroupedExercise = {
+  type GroupedExercise = {
     exerciseName: string;
     logs: ExerciseLog[];
   };
@@ -221,7 +221,7 @@ type GroupedExercise = {
     </View>
   );
 
-const renderExerciseDetails = () => {
+  const renderExerciseDetails = () => {
     let exerciseIndex = 1;
     return groupedForDisplay.map(group => {
       if (group.exercises.length > 1) {
@@ -268,12 +268,10 @@ const renderExerciseDetails = () => {
   };
 
   return (
-    <ScreenLayout>
-      <ScrollView>
-        <ListHeader />
-        <View style={{marginTop: spacing.md}}>{renderExerciseDetails()}</View>
-        <ListFooter />
-      </ScrollView>
+    <ScreenLayout scroll>
+      <ListHeader />
+      <View style={{marginTop: spacing.md}}>{renderExerciseDetails()}</View>
+      <ListFooter />
     </ScreenLayout>
   );
 };
