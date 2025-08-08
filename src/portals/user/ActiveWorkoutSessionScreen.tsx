@@ -1,4 +1,4 @@
-import React, {useMemo, useState, useEffect} from 'react';
+import React, {useMemo, useState, useEffect, useCallback} from 'react';
 import {View, Text, TouchableOpacity} from 'react-native';
 import {useParams, useNavigate} from 'react-router-native';
 import {useQuery, useMutation} from '@apollo/client';
@@ -41,6 +41,8 @@ import {useExerciseLogSummary} from 'shared/hooks/ExerciseLogSummary';
 import {formatPlanMetrics} from 'shared/utils/formatPlanMetrics';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import ButtonRow from 'shared/components/ButtonRow';
+import {useAuth} from 'features/auth/context/AuthContext';
+import {GET_WORKOUT_SESSIONS_BY_USER} from 'features/exercises/graphql/exercise.graphql';
 
 export default function ActiveWorkoutSessionScreen() {
   const {sessionId} = useParams<{sessionId: string}>();
@@ -54,6 +56,76 @@ export default function ActiveWorkoutSessionScreen() {
 
   const formatSummary = useExerciseLogSummary();
 
+  const {user} = useAuth();
+  const {data: historyData} = useQuery(GET_WORKOUT_SESSIONS_BY_USER, {
+    variables: {userId: user?.id},
+    skip: !user?.id,
+  });
+
+  const weightMetricId = useMemo(
+    () => Object.values(metricRegistry).find(m => m.name === 'Weight')?.id,
+    [metricRegistry],
+  );
+  const repsMetricId = useMemo(
+    () => Object.values(metricRegistry).find(m => m.name === 'Reps')?.id,
+    [metricRegistry],
+  );
+  const rpeMetricId = useMemo(
+    () => Object.values(metricRegistry).find(m => m.name === 'RPE')?.id,
+    [metricRegistry],
+  );
+
+  const lastLogsByExerciseId = useMemo(() => {
+    const map: Record<number, any> = {};
+    historyData?.workoutSessionsByUser?.forEach((s: any) => {
+      s.exerciseLogs?.forEach((log: any) => {
+        const exId = log.exerciseId;
+        if (
+          !map[exId] ||
+          Number(log.createdAt ?? 0) > Number(map[exId].createdAt ?? 0)
+        ) {
+          map[exId] = log;
+        }
+      });
+    });
+    return map;
+  }, [historyData]);
+
+  const suggestWeight = useCallback(
+    (
+      exerciseId: number,
+      planMetrics: {
+        metricId: number;
+        min: number | string;
+        max?: number | string | null;
+      }[],
+    ): number | undefined => {
+      if (weightMetricId == null) return undefined;
+      const last = lastLogsByExerciseId[exerciseId];
+      if (!last) return undefined;
+      const lastWeight = Number(last.metrics?.[weightMetricId]);
+      const lastReps =
+        repsMetricId != null ? Number(last.metrics?.[repsMetricId]) : undefined;
+      const round5 = (val: number | undefined) =>
+        val == null ? undefined : Math.floor(val / 5) * 5;
+      if (!lastWeight || !lastReps) return round5(lastWeight);
+      const oneRm = lastWeight * (1 + lastReps / 30);
+      const targetReps = Number(
+        planMetrics.find(m => m.metricId === repsMetricId)?.min ?? lastReps,
+      );
+      let weight = oneRm / (1 + targetReps / 30);
+      const targetRpe = Number(
+        planMetrics.find(m => m.metricId === rpeMetricId)?.min ?? 10,
+      );
+      const rir = 10 - targetRpe;
+      if (!isNaN(rir)) {
+        weight *= 1 - rir * 0.03;
+      }
+      return round5(weight);
+    },
+    [lastLogsByExerciseId, weightMetricId, repsMetricId, rpeMetricId],
+  );
+  
   const [exercisePickerVisible, setExercisePickerVisible] = useState(false);
   const [equipmentPickerVisible, setEquipmentPickerVisible] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState<any>(null);
@@ -948,9 +1020,31 @@ export default function ActiveWorkoutSessionScreen() {
 
                                 const target = exItem;
 
-                                const metrics = createDefaultMetricsForExercise(
+                                let metrics = createDefaultMetricsForExercise(
                                   target.exerciseId,
                                 );
+                                                                const planInfo = planInstances.find(
+                                  p => p.key === target.key,
+                                );
+                                if (planInfo?.planEx?.targetMetrics) {
+                                  planInfo.planEx.targetMetrics.forEach((tm: any) => {
+                                    const val =
+                                      typeof tm.min === 'string'
+                                        ? Number(tm.min)
+                                        : tm.min ?? 0;
+                                    metrics[tm.metricId] = val;
+                                  });
+                                  const suggested = suggestWeight(
+                                    target.exerciseId,
+                                    planInfo.planEx.targetMetrics,
+                                  );
+                                  if (
+                                    suggested != null &&
+                                    weightMetricId != null
+                                  ) {
+                                    metrics[weightMetricId] = suggested;
+                                  }
+                                }
                                 const newDraft = {
                                   exerciseId: target.exerciseId,
                                   setNumber:
@@ -1072,7 +1166,7 @@ export default function ActiveWorkoutSessionScreen() {
             );
             setEditingLogId(null);
           } else {
-            const metrics = createDefaultMetricsForExercise(
+            let metrics = createDefaultMetricsForExercise(
               selectedExercise.id,
             );
             const existingCount = groupedLogs.filter(
@@ -1093,6 +1187,24 @@ export default function ActiveWorkoutSessionScreen() {
             const groupKey = joinAlternatingGroup
               ? currentGroup.groupKey
               : planKey;
+
+                        const planInfo = planInstances.find(p => p.key === planKey);
+            if (planInfo?.planEx?.targetMetrics) {
+              planInfo.planEx.targetMetrics.forEach((tm: any) => {
+                const val =
+                  typeof tm.min === 'string'
+                    ? Number(tm.min)
+                    : tm.min ?? 0;
+                metrics[tm.metricId] = val;
+              });
+              const suggested = suggestWeight(
+                selectedExercise.id,
+                planInfo.planEx.targetMetrics,
+              );
+              if (suggested != null && weightMetricId != null) {
+                metrics[weightMetricId] = suggested;
+              }
+            }
 
             const newDraft = {
               exerciseId: selectedExercise.id,
