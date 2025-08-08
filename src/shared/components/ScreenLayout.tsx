@@ -6,7 +6,8 @@ import {
   Platform,
   StyleSheet,
   SafeAreaView,
-  ViewStyle, // Import ViewStyle
+  ViewStyle,
+  StyleProp,
   Keyboard,
   TouchableWithoutFeedback,
 } from 'react-native';
@@ -18,12 +19,18 @@ interface ScreenLayoutProps {
 
   variant?: 'default' | 'centered';
   scroll?: boolean;
+  /**
+   * When true (default) tapping outside of inputs will dismiss the keyboard.
+   * This wrapper can interfere with inner scroll views, so allow disabling.
+   */
+  dismissKeyboardOnPress?: boolean;
 }
 
 const ScreenLayout = ({
   children,
   variant = 'default',
   scroll = false,
+  dismissKeyboardOnPress = true,
 }: ScreenLayoutProps) => {
   const {theme, componentStyles} = useTheme();
 
@@ -41,7 +48,22 @@ const ScreenLayout = ({
         }
       : {};
 
-  const renderContent = () => {
+  const wrapWithDismiss = (
+    inner: React.ReactNode,
+    style: StyleProp<ViewStyle>,
+  ) => {
+    const content = <View style={style}>{inner}</View>;
+    if (Platform.OS !== 'web' && dismissKeyboardOnPress) {
+      return (
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          {content}
+        </TouchableWithoutFeedback>
+      );
+    }
+    return content;
+  };
+
+   const renderContent = () => {
     if (scroll) {
       return (
         <ScrollView
@@ -49,15 +71,7 @@ const ScreenLayout = ({
           contentContainerStyle={[contentStyle, webContainerStyle]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag">
-          {Platform.OS === 'web' ? (
-            <View style={styles.flex}>{children}</View>
-          ) : (
-            <TouchableWithoutFeedback
-              onPress={Keyboard.dismiss}
-              accessible={false}>
-              <View style={styles.flex}>{children}</View>
-            </TouchableWithoutFeedback>
-          )}
+          {wrapWithDismiss(children, styles.flex)}
         </ScrollView>
       );
     }
@@ -70,13 +84,7 @@ const ScreenLayout = ({
       );
     }
 
-    return (
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <View style={[styles.flex, contentStyle, webContainerStyle]}>
-          {children}
-        </View>
-      </TouchableWithoutFeedback>
-    );
+    return wrapWithDismiss(children, [styles.flex, contentStyle, webContainerStyle]);
   };
 
   return (

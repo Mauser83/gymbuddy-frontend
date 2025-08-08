@@ -587,8 +587,8 @@ export default function WorkoutPlanBuilderScreen() {
   }
 
   return (
-    <ScreenLayout>
-      <Formik<FormValues>
+    <ScreenLayout dismissKeyboardOnPress={false}>
+            <Formik<FormValues>
         // enableReinitialize
         initialValues={formInitialValues}
         validationSchema={validationSchema}
