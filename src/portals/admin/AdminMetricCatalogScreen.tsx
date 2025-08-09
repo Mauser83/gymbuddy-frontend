@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useMemo} from 'react';
 import {ScrollView, View, Switch} from 'react-native';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Title from 'shared/components/Title';
@@ -36,7 +36,13 @@ export default function AdminMetricCatalogScreen() {
   const [deleteMetric] = useMutation(DELETE_METRIC, {
     onCompleted: () => refetch(),
   });
-  const metrics = data?.allMetrics || [];
+    const metrics = useMemo(
+    () =>
+      [...(data?.allMetrics || [])].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ),
+    [data],
+  );
   const [metricEdits, setMetricEdits] = useState<
     Record<number, Partial<CreateMetricInput>>
   >({});

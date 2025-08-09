@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-native';
 
 import ScreenLayout from 'shared/components/ScreenLayout';
@@ -6,6 +6,7 @@ import Title from 'shared/components/Title';
 
 import { useEquipment } from 'features/equipment/hooks/useEquipment';
 import EquipmentForm from '../../features/equipment/components/EquipmentForm';
+import { EquipmentCategory } from 'features/equipment/types/equipment.types';
 
 export default function EditEquipmentScreen() {
   const { id } = useParams();
@@ -14,7 +15,18 @@ export default function EditEquipmentScreen() {
   const { getEquipmentById, getCategories, updateEquipment } = useEquipment();
   const { data: equipmentData, loading: loadingEquipment } = getEquipmentById(Number(id));
   const { data: categoryData } = getCategories();
-  const categories = categoryData?.equipmentCategories ?? [];
+  const categories = useMemo(
+    () =>
+      (categoryData?.equipmentCategories ?? [])
+        .map((cat: EquipmentCategory) => ({
+          ...cat,
+          subcategories: [...(cat.subcategories ?? [])].sort((a, b) =>
+            a.name.localeCompare(b.name),
+          ),
+        }))
+        .sort((a: EquipmentCategory, b: EquipmentCategory) => a.name.localeCompare(b.name)),
+    [categoryData],
+  );
 
   if (loadingEquipment || !equipmentData?.equipment) {
     return (

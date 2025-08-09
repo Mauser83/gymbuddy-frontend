@@ -60,7 +60,13 @@ const GlobalEquipmentListScreen = () => {
     debouncedFetch(searchQuery);
   }, [searchQuery, debouncedFetch]);
 
-  const equipments: Equipment[] = data?.allEquipments ?? [];
+  const equipments: Equipment[] = useMemo(
+    () =>
+      [...(data?.allEquipments ?? [])].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ),
+    [data],
+  );
 
   const handleEdit = useCallback(
     (id: number) => navigate(`/equipment/edit/${id}`),
@@ -81,7 +87,10 @@ const GlobalEquipmentListScreen = () => {
         onClear={() => setSearchQuery('')}
       />
       <View style={{marginVertical: spacing.md}}>
-        <Button text="➕ Create New Equipment" onPress={() => navigate('/equipment/create')} />
+        <Button
+          text="➕ Create New Equipment"
+          onPress={() => navigate('/equipment/create')}
+        />
       </View>
       {loading && equipments.length === 0 ? (
         <LoadingState text="Loading equipment..." />

@@ -30,15 +30,17 @@ export default function GymEquipmentListScreen() {
 const handleAssignComplete = () => {
   refetch();
 };
-  const equipmentItems = gymEquipment.map((item: GymEquipment) => ({
-    id: item.id,
-    label: `${item.equipment.name} (${item.quantity}x)`,
-    subLabel: item.note || item.equipment.brand,
-    onPress: () => {}, // could open a detail view later
-    rightElement: (
-      <Button text="Remove" onPress={() => handleRemove(item.id)} />
-    ),
-  }));
+  const equipmentItems = [...gymEquipment]
+    .sort((a, b) => a.equipment.name.localeCompare(b.equipment.name))
+    .map((item: GymEquipment) => ({
+      id: item.id,
+      label: `${item.equipment.name} (${item.quantity}x)`,
+      subLabel: item.note || item.equipment.brand,
+      onPress: () => {}, // could open a detail view later
+      rightElement: (
+        <Button text="Remove" onPress={() => handleRemove(item.id)} />
+      ),
+    }));
 
   return (
     <ScreenLayout scroll>

@@ -95,8 +95,14 @@ export default function EquipmentSlotModal({
     {} as Record<string, EquipmentSubcategory[]>,
   );
 
-  const filteredGroupKeys = Object.keys(grouped);
+  Object.keys(grouped).forEach(key =>
+    grouped[key].sort((a, b) => a.name.localeCompare(b.name)),
+  );
 
+  const filteredGroupKeys = Object.keys(grouped).sort((a, b) =>
+    a.localeCompare(b),
+  );
+  
   return (
     <ModalWrapper visible={visible} onClose={onClose}>
       <ScrollView contentContainerStyle={{padding: 16}}>

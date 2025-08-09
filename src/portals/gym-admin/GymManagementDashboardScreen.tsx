@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useMemo} from 'react';
 import {useNavigate} from 'react-router-native';
 import {useAuth} from '../../features/auth/context/AuthContext';
 import {GymRole} from 'features/gyms/types/gym.types';
@@ -29,7 +29,13 @@ const GymAdminDashboard = () => {
     }
   }, [user, navigate]);
 
-  const gyms = user?.gymManagementRoles?.map(r => r.gym) ?? [];
+  const gyms = useMemo(
+    () =>
+      [...(user?.gymManagementRoles?.map(r => r.gym) ?? [])].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ),
+    [user?.gymManagementRoles],
+  );
 
   return (
     // --- FIX APPLIED HERE ---
