@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TextInput,
+  Pressable,
   TouchableOpacity,
   Modal,
   StyleSheet,
@@ -41,9 +42,14 @@ const BottomSheetPicker = ({
         activeOpacity={1}
         onPress={onClose}>
         <TouchableWithoutFeedback>
-          <View style={[styles.modalContent, {backgroundColor: theme.colors.surface}]}>
+          <View
+            style={[
+              styles.modalContent,
+              {backgroundColor: theme.colors.surface},
+            ]}>
             {label ? (
-              <Text style={[styles.modalLabel, {color: theme.colors.textPrimary}]}> 
+              <Text
+                style={[styles.modalLabel, {color: theme.colors.textPrimary}]}>
                 {label}
               </Text>
             ) : null}
@@ -52,11 +58,18 @@ const BottomSheetPicker = ({
               onValueChange={onValueChange}
               style={{color: theme.colors.textPrimary}}>
               {options.map(opt => (
-                <Picker.Item key={opt.value} label={opt.label} value={opt.value} />
+                <Picker.Item
+                  key={opt.value}
+                  label={opt.label}
+                  value={opt.value}
+                />
               ))}
             </Picker>
             <TouchableOpacity
-              style={[styles.doneButton, {backgroundColor: theme.colors.accentStart}]}
+              style={[
+                styles.doneButton,
+                {backgroundColor: theme.colors.accentStart},
+              ]}
               onPress={onClose}>
               <Text style={{color: theme.colors.buttonText}}>Done</Text>
             </TouchableOpacity>
@@ -97,7 +110,7 @@ export default function SetInputRow({
     const metric = metricRegistry[id];
     const name = metric?.name.toLowerCase();
     if (name === 'weight') return Math.max(0, value);
-    if (name === 'reps') return Math.max(1, value);
+    if (name === 'reps') return Math.max(1, Math.round(value));
     return value;
   };
 
@@ -143,9 +156,12 @@ export default function SetInputRow({
           key={metricId}
           style={[
             styles.box,
-            {borderColor: theme.colors.cardBorder, backgroundColor: theme.colors.surface},
+            {
+              borderColor: theme.colors.cardBorder,
+              backgroundColor: theme.colors.surface,
+            },
           ]}>
-          <Text style={[styles.label, {color: theme.colors.textSecondary}]}> 
+          <Text style={[styles.label, {color: theme.colors.textSecondary}]}>
             {metric.name}
           </Text>
           <TextInput
@@ -157,31 +173,62 @@ export default function SetInputRow({
             }
             onEndEditing={() => {
               const raw = textValues[metricId];
-              const num = Number(raw);
-              const clamped = clampValue(metricId, isNaN(num) ? 0 : num);
+              const prevValue = Number(
+                values[metricId] ??
+                  (metric.name.toLowerCase() === 'reps' ? 1 : 0),
+              );
+              if (raw == null || raw.trim() === '') {
+                setTextValues(prev => ({
+                  ...prev,
+                  [metricId]: String(prevValue),
+                }));
+                onChange(metricId, prevValue);
+                return;
+              }
+              const parsed = Number(raw.replace(',', '.'));
+              if (isNaN(parsed)) {
+                setTextValues(prev => ({
+                  ...prev,
+                  [metricId]: String(prevValue),
+                }));
+                onChange(metricId, prevValue);
+                return;
+              }
+              const clamped = clampValue(metricId, parsed);
               setTextValues(prev => ({...prev, [metricId]: String(clamped)}));
               onChange(metricId, clamped);
             }}
           />
           <View style={styles.adjustRow}>
-            <TouchableOpacity
+            <Pressable
+              hitSlop={{top: 6, bottom: 6, left: 6, right: 6}}
               accessibilityLabel={`decrement ${metric.name}`}
               onPressIn={() => startAdjust(metricId, -increment)}
               onPressOut={stopAdjust}
-              style={[styles.adjustButton, {borderRightWidth: 1, borderColor: theme.colors.cardBorder}]}
-            >
-              <Text style={[styles.adjustText, {color: theme.colors.textPrimary}]}>-
+              style={({pressed}) => [
+                styles.adjustButton,
+                {borderRightWidth: 1, borderColor: theme.colors.cardBorder},
+                pressed && {opacity: 0.8, transform: [{scale: 0.98}]},
+              ]}>
+              <Text
+                style={[styles.adjustText, {color: theme.colors.textPrimary}]}>
+                -
               </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </Pressable>
+            <Pressable
+              hitSlop={{top: 6, bottom: 6, left: 6, right: 6}}
               accessibilityLabel={`increment ${metric.name}`}
               onPressIn={() => startAdjust(metricId, increment)}
               onPressOut={stopAdjust}
-              style={styles.adjustButton}
-            >
-              <Text style={[styles.adjustText, {color: theme.colors.textPrimary}]}>+
+              style={({pressed}) => [
+                styles.adjustButton,
+                pressed && {opacity: 0.8, transform: [{scale: 0.98}]},
+              ]}>
+              <Text
+                style={[styles.adjustText, {color: theme.colors.textPrimary}]}>
+                +
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       );
@@ -194,19 +241,29 @@ export default function SetInputRow({
           key={metricId}
           style={[
             styles.box,
-            {borderColor: theme.colors.cardBorder, backgroundColor: theme.colors.surface},
+            {
+              borderColor: theme.colors.cardBorder,
+              backgroundColor: theme.colors.surface,
+            },
           ]}>
-          <Text style={[styles.label, {color: theme.colors.textSecondary}]}>RPE</Text>
-          <TouchableOpacity
-            style={[styles.pill, {backgroundColor: theme.colors.accentStart}]}
+          <Text style={[styles.label, {color: theme.colors.textSecondary}]}>
+            RPE
+          </Text>
+          <Pressable
+            hitSlop={{top: 6, bottom: 6, left: 6, right: 6}}
             onPress={() => {
               activeRpeMetric.current = metricId;
               setRpeModalVisible(true);
-            }}>
-            <Text style={[styles.pillText, {color: theme.colors.buttonText}]}> 
+            }}
+            style={({pressed}) => [
+              styles.pill,
+              {backgroundColor: theme.colors.accentStart},
+              pressed && {opacity: 0.9, transform: [{scale: 0.98}]},
+            ]}>
+            <Text style={[styles.pillText, {color: theme.colors.buttonText}]}>
               {selected}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       );
     }
@@ -218,19 +275,32 @@ export default function SetInputRow({
           key={metricId}
           style={[
             styles.box,
-            {borderColor: theme.colors.cardBorder, backgroundColor: theme.colors.surface},
+            {
+              borderColor: theme.colors.cardBorder,
+              backgroundColor: theme.colors.surface,
+            },
           ]}>
-          <Text style={[styles.label, {color: theme.colors.textSecondary}]}>Rest</Text>
-          <TouchableOpacity
-            style={[styles.pill, {backgroundColor: theme.colors.accentStart}]}
+          <Text style={[styles.label, {color: theme.colors.textSecondary}]}>
+            Rest
+          </Text>
+          <Pressable
+            hitSlop={{top: 6, bottom: 6, left: 6, right: 6}}
             onPress={() => {
               activeRestMetric.current = metricId;
               setRestModalVisible(true);
-            }}>
-            <Text style={[styles.pillText, {color: theme.colors.buttonText}]}> 
+            }}
+            style={({pressed}) => [
+              styles.pill,
+              {backgroundColor: theme.colors.accentStart},
+              pressed && {opacity: 0.9, transform: [{scale: 0.98}]},
+            ]}>
+            <Text
+              style={[styles.pillText, {color: theme.colors.buttonText}]}
+              numberOfLines={1}
+              ellipsizeMode="clip">
               {formatTime(selected)}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       );
     }
@@ -238,13 +308,16 @@ export default function SetInputRow({
     // Fallback generic input
     return (
       <View key={metricId} style={styles.item}>
-        <Text style={[styles.genericLabel, {color: theme.colors.textPrimary}]}> 
+        <Text style={[styles.genericLabel, {color: theme.colors.textPrimary}]}>
           {metric.name}:
         </Text>
         <TextInput
           style={[
             styles.genericInput,
-            {borderColor: theme.colors.accentStart, color: theme.colors.textPrimary},
+            {
+              borderColor: theme.colors.accentStart,
+              color: theme.colors.textPrimary,
+            },
           ]}
           value={String(values[metricId] ?? '')}
           onChangeText={text => onChange(metricId, text)}
@@ -252,7 +325,6 @@ export default function SetInputRow({
       </View>
     );
   };
-
   return (
     <View style={styles.row}>
       {metricIds.map(id => renderMetric(id))}
@@ -261,7 +333,9 @@ export default function SetInputRow({
         visible={rpeModalVisible}
         onClose={() => setRpeModalVisible(false)}
         selectedValue={
-          activeRpeMetric.current ? Number(values[activeRpeMetric.current] ?? 1) : 1
+          activeRpeMetric.current
+            ? Number(values[activeRpeMetric.current] ?? 1)
+            : 1
         }
         onValueChange={val => {
           if (activeRpeMetric.current != null) {
@@ -278,7 +352,9 @@ export default function SetInputRow({
         visible={restModalVisible}
         onClose={() => setRestModalVisible(false)}
         selectedValue={
-          activeRestMetric.current ? Number(values[activeRestMetric.current] ?? 0) : 0
+          activeRestMetric.current
+            ? Number(values[activeRestMetric.current] ?? 0)
+            : 0
         }
         onValueChange={val => {
           if (activeRestMetric.current != null) {
@@ -303,17 +379,18 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderRadius: 12,
-    padding: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
     alignItems: 'center',
     marginHorizontal: 4,
   },
   label: {
     fontSize: 12,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   adjustRow: {
     flexDirection: 'row',
-    marginTop: 4,
+    marginTop: 2,
     width: '100%',
   },
   adjustButton: {
@@ -327,15 +404,16 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   valueInput: {
-    minWidth: 50,
+    minWidth: 52,
     textAlign: 'center',
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: 'bold',
   },
   pill: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+   paddingHorizontal: 8,
+   paddingVertical: 4,
+   borderRadius: 20,
+   minWidth: 60, // ensures "1:30" always fits in one line
   },
   pillText: {
     fontSize: 20,
