@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useMemo} from 'react';
 import {ScrollView, View, TouchableOpacity, Switch} from 'react-native';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Title from 'shared/components/Title';
@@ -174,8 +174,20 @@ export default function AdminWorkoutPlanCatalogScreen() {
 
   const trainingGoals = data?.getTrainingGoals || [];
   const presets = data?.getIntensityPresets || [];
-  const muscleGroups = data?.getMuscleGroups || [];
-  const trainingMethods = data?.getTrainingMethods || [];
+  const muscleGroups = useMemo(
+    () =>
+      [...(data?.getMuscleGroups || [])].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ),
+    [data],
+  );
+  const trainingMethods = useMemo(
+    () =>
+      [...(data?.getTrainingMethods || [])].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ),
+    [data],
+  );
   const experienceLevels = data?.experienceLevels || [];
 
   const handleCreate = async () => {

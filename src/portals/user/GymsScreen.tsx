@@ -59,7 +59,10 @@ const GymsScreen = () => {
     debouncedFetch(searchQuery);
   }, [searchQuery, debouncedFetch]);
 
-  const gyms: Gym[] = data?.gyms ?? [];
+  const gyms: Gym[] = useMemo(
+    () => [...(data?.gyms ?? [])].sort((a, b) => a.name.localeCompare(b.name)),
+    [data],
+  );
   const handleGymPress = useCallback(
     (item: Gym) => navigate(`/gyms/${item.id}`),
     [navigate],

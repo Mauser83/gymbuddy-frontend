@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useMemo} from 'react';
 import {ScrollView, View} from 'react-native';
 import {useQuery, useMutation} from '@apollo/client';
 import ScreenLayout from 'shared/components/ScreenLayout';
@@ -41,6 +41,13 @@ function slugify(text: string) {
 export default function AdminEquipmentCatalogScreen() {
   const {theme} = useTheme();
   const {data, refetch, loading, error} = useQuery(GET_EQUIPMENT_CATEGORIES);
+  const categories = useMemo(
+    () =>
+      [...(data?.equipmentCategories ?? [])].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ),
+    [data],
+  );
 
   const [newCatName, setNewCatName] = useState('');
   const [newSubName, setNewSubName] = useState('');
@@ -61,7 +68,7 @@ export default function AdminEquipmentCatalogScreen() {
   const [updateSubcategory] = useMutation(UPDATE_SUBCATEGORY);
   const [deleteSubcategory] = useMutation(DELETE_SUBCATEGORY);
 
-  const selectedCategory = data?.equipmentCategories.find(
+  const selectedCategory = categories.find(
     (cat: EquipmentCategory) => cat.id === selectedCatId,
   );
 
@@ -88,7 +95,7 @@ export default function AdminEquipmentCatalogScreen() {
     refetch();
   };
 
-  const categoryItems = data?.equipmentCategories.map(
+  const categoryItems = categories.map(
     (cat: EquipmentCategory) => ({
       id: cat.id,
       label: cat.name,
@@ -146,7 +153,10 @@ export default function AdminEquipmentCatalogScreen() {
   );
 
   const subcategoryItems =
-    selectedCategory?.subcategories.map((sub: EquipmentSubcategory) => ({
+    selectedCategory?.subcategories
+      .slice()
+      .sort((a: EquipmentSubcategory, b: EquipmentSubcategory) => a.name.localeCompare(b.name))
+      .map((sub: EquipmentSubcategory) => ({
       id: sub.id,
       label: sub.name,
       subLabel: sub.slug,

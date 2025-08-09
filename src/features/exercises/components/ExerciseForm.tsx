@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useMemo} from 'react';
 import {ScrollView, View, Dimensions} from 'react-native';
 import {useFormikContext} from 'formik';
 import {useReferenceData} from '../hooks/useReferenceData';
@@ -35,6 +35,27 @@ export default function ExerciseForm() {
     bodyParts,
     refetchAll,
   } = useReferenceData();
+    const sortedSubcategories = useMemo(
+    () =>
+      [...equipmentSubcategories].sort((a, b) => a.name.localeCompare(b.name)),
+    [equipmentSubcategories],
+  );
+  const sortedMuscles = useMemo(
+    () => [...muscles].sort((a, b) => a.name.localeCompare(b.name)),
+    [muscles],
+  );
+  const sortedBodyParts = useMemo(
+    () => [...bodyParts].sort((a, b) => a.name.localeCompare(b.name)),
+    [bodyParts],
+  );
+  const sortedExerciseTypes = useMemo(
+    () => [...exerciseTypes].sort((a, b) => a.name.localeCompare(b.name)),
+    [exerciseTypes],
+  );
+  const sortedDifficulties = useMemo(
+    () => [...difficulties].sort((a, b) => a.level.localeCompare(b.level)),
+    [difficulties],
+  );
   const [slotModalVisible, setSlotModalVisible] = useState(false);
   const [slotEditIndex, setSlotEditIndex] = useState<number | null>(null);
   const [activeModal, setActiveModal] = useState<
@@ -46,7 +67,6 @@ export default function ExerciseForm() {
   const [muscleStep, setMuscleStep] = useState<'bodyPart' | 'muscle'>(
     'bodyPart',
   );
-  const allSubcategories = useReferenceData().equipmentSubcategories;
   const [expandedSlotIndex, setExpandedSlotIndex] = useState<number | null>(
     null,
   );
@@ -120,10 +140,10 @@ export default function ExerciseForm() {
     setFieldValue(conflictField, cleanedOther);
   };
 
-  const primaryMuscles = muscles.filter((m: Muscle) =>
+  const primaryMuscles = sortedMuscles.filter((m: Muscle) =>
     values.primaryMuscleIds?.includes(m.id),
   );
-  const secondaryMuscles = muscles.filter((m: Muscle) =>
+  const secondaryMuscles = sortedMuscles.filter((m: Muscle) =>
     values.secondaryMuscleIds?.includes(m.id),
   );
 
@@ -138,7 +158,7 @@ export default function ExerciseForm() {
             (slot.isRequired ? ' (Required)' : ' (Optional)');
 
           const optionLines = slot.options.map((opt: any) => {
-            const match = allSubcategories.find(
+            const match = sortedSubcategories.find(
               s => s.id === opt.subcategoryId,
             );
             return match
@@ -194,7 +214,7 @@ export default function ExerciseForm() {
           <ScrollView>
             <Title text="Select Exercise Type" />
             <ClickableList
-              items={exerciseTypes.map((t: ExerciseType) => ({
+              items={sortedExerciseTypes.map((t: ExerciseType) => ({
                 id: t.id,
                 label: t.name,
                 onPress: () => {
@@ -216,7 +236,7 @@ export default function ExerciseForm() {
           <ScrollView>
             <Title text="Select Difficulty Level" />
             <ClickableList
-              items={difficulties.map((d: ExerciseDifficulty) => ({
+              items={sortedDifficulties.map((d: ExerciseDifficulty) => ({
                 id: d.id,
                 label: d.level,
                 onPress: () => {
@@ -243,7 +263,7 @@ export default function ExerciseForm() {
             <ScrollView>
               <Title text="Select Body Part" />
               <ClickableList
-                items={bodyParts.map(bp => ({
+                items={sortedBodyParts.map(bp => ({
                   id: bp.id,
                   label: bp.name,
                   onPress: () => {
@@ -268,7 +288,7 @@ export default function ExerciseForm() {
                 style={{maxHeight: modalHeight - 200}}
                 contentContainerStyle={{paddingHorizontal: 16}}>
                 <ClickableList
-                  items={muscles
+                  items={sortedMuscles
                     .filter((m: Muscle) => m.bodyPart.id === selectedBodyPartId)
                     .map((m: Muscle) => ({
                       id: m.id,
@@ -316,7 +336,7 @@ export default function ExerciseForm() {
       <SelectableField
         label="Exercise Type"
         value={
-          exerciseTypes.find(
+          sortedExerciseTypes.find(
             (t: ExerciseType) => t.id === values.exerciseTypeId,
           )?.name || 'Select Type'
         }
@@ -326,7 +346,7 @@ export default function ExerciseForm() {
       <SelectableField
         label="Difficulty"
         value={
-          difficulties.find(
+          sortedDifficulties.find(
             (d: ExerciseDifficulty) => d.id === values.difficultyId,
           )?.level || 'Select Level'
         }
@@ -386,7 +406,7 @@ export default function ExerciseForm() {
         onClose={() => setSlotModalVisible(false)}
         onSave={saveSlot}
         initialSlotIndex={slotEditIndex ?? (values.equipmentSlots?.length || 0)}
-        subcategories={equipmentSubcategories.filter(
+        subcategories={sortedSubcategories.filter(
           sc =>
             !values.equipmentSlots?.some(
               (slot: {options: {subcategoryId: number}[]}) =>
@@ -395,7 +415,7 @@ export default function ExerciseForm() {
                 ),
             ),
         )}
-        subcategoriesFull={equipmentSubcategories}
+        subcategoriesFull={sortedSubcategories}
         initialData={
           slotEditIndex !== null
             ? values.equipmentSlots[slotEditIndex]

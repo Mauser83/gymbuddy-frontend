@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-native';
 
 import ScreenLayout from 'shared/components/ScreenLayout';
@@ -8,6 +8,7 @@ import { useEquipment } from 'features/equipment/hooks/useEquipment';
 import { useAuth } from 'features/auth/context/AuthContext';
 
 import EquipmentForm from '../../features/equipment/components/EquipmentForm';
+import { EquipmentCategory } from 'features/equipment/types/equipment.types';
 
 export default function CreateEquipmentScreen() {
   const { user } = useAuth();
@@ -15,7 +16,18 @@ export default function CreateEquipmentScreen() {
 
   const { getCategories, createEquipment } = useEquipment();
   const { data: categoryData } = getCategories();
-  const categories = categoryData?.equipmentCategories ?? [];
+  const categories = useMemo(
+    () =>
+      (categoryData?.equipmentCategories ?? [])
+        .map((cat: EquipmentCategory) => ({
+          ...cat,
+          subcategories: [...(cat.subcategories ?? [])].sort((a, b) =>
+            a.name.localeCompare(b.name),
+          ),
+        }))
+        .sort((a: EquipmentCategory, b: EquipmentCategory) => a.name.localeCompare(b.name)),
+    [categoryData],
+  );
 
   useEffect(() => {
     if (!user) navigate('/');

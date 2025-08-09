@@ -63,7 +63,10 @@ const UsersScreen = () => {
     debouncedFetch(searchQuery);
   }, [searchQuery, debouncedFetch]);
 
-  const users: User[] = data?.users ?? [];
+  const users: User[] = useMemo(
+    () => [...(data?.users ?? [])].sort((a, b) => a.username.localeCompare(b.username)),
+    [data],
+  );
 
   const handleUserPress = useCallback(
     (item: User) => navigate(`/users/${item.id}`),
