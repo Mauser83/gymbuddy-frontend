@@ -1003,8 +1003,10 @@ export default function ActiveWorkoutSessionScreen() {
                                             <Button
                                               text="Discard"
                                               fullWidth
-                                              onPress={() => setDraftSet(null)}
-                                            />
+                                              onPress={() => {
+                                                setDraftSet(null);
+                                                setExpandedSetId(null);
+                                              }}                                            />
                                           </ButtonRow>
                                         </>
                                       )}
