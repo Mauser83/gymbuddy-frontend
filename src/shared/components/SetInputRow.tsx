@@ -9,6 +9,7 @@ import {
   StyleSheet,
   TouchableWithoutFeedback,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import {Picker} from '@react-native-picker/picker';
 import {useMetricRegistry} from 'shared/context/MetricRegistry';
 import {useTheme} from 'shared/theme/ThemeProvider';
@@ -99,6 +100,8 @@ export default function SetInputRow({
   const activeRestMetric = useRef<number | null>(null);
   const longPressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const [textValues, setTextValues] = useState<Record<number, string>>({});
+  const [focusedMetric, setFocusedMetric] = useState<number | null>(null);
+  const inputRefs = useRef<Record<number, TextInput | null>>({});
 
   useEffect(() => {
     return () => {
@@ -128,13 +131,15 @@ export default function SetInputRow({
   };
 
   const adjustMetric = (id: number, delta: number) => {
+    void Haptics.selectionAsync();
+    let nextValue = 0;
     setTextValues(prev => {
       const base = prev[id] ?? values[id] ?? 0;
       const current = Number(base);
-      const next = clampValue(id, current + delta);
-      onChange(id, next);
-      return {...prev, [id]: String(next)};
+      nextValue = clampValue(id, current + delta);
+      return {...prev, [id]: String(nextValue)};
     });
+    onChange(id, nextValue);
   };
 
   const startAdjust = (id: number, delta: number) => {
@@ -151,55 +156,83 @@ export default function SetInputRow({
     if (name === 'weight' || name === 'reps') {
       const increment = name === 'weight' ? 2.5 : 1;
       const value = textValues[metricId] ?? String(values[metricId] ?? '');
+      const minWidth = name === 'weight' ? 72 : 56;
+      const maxWidth = name === 'weight' ? 84 : 64;
+      const isFocused = focusedMetric === metricId;
       return (
         <View
           key={metricId}
           style={[
-            styles.box,
-            {
-              borderColor: theme.colors.cardBorder,
-              backgroundColor: theme.colors.surface,
-            },
+            styles.metricColumn,
+            {backgroundColor: theme.colors.surface, minWidth, maxWidth},
           ]}>
           <Text style={[styles.label, {color: theme.colors.textSecondary}]}>
             {metric.name}
           </Text>
-          <TextInput
-            style={[styles.valueInput, {color: theme.colors.textPrimary}]}
-            keyboardType="numeric"
-            value={value}
-            onChangeText={text =>
-              setTextValues(prev => ({...prev, [metricId]: text}))
-            }
-            onEndEditing={() => {
-              const raw = textValues[metricId];
-              const prevValue = Number(
-                values[metricId] ??
-                  (metric.name.toLowerCase() === 'reps' ? 1 : 0),
-              );
-              if (raw == null || raw.trim() === '') {
-                setTextValues(prev => ({
-                  ...prev,
-                  [metricId]: String(prevValue),
-                }));
-                onChange(metricId, prevValue);
-                return;
+          <View
+            style={[
+              styles.pillInput,
+              {
+                minWidth,
+                maxWidth,
+                backgroundColor: theme.colors.glass.background,
+              },
+              isFocused && {backgroundColor: theme.colors.accentStart},
+            ]}>
+            <TextInput
+              ref={ref => {
+                inputRefs.current[metricId] = ref;
+              }}
+              style={[
+                styles.valueInput,
+                {
+                  color: isFocused
+                    ? theme.colors.buttonText
+                    : theme.colors.textPrimary,
+                },
+              ]}
+              keyboardType={name === 'weight' ? 'decimal-pad' : 'numeric'}
+              value={value}
+              onFocus={() => {
+                setFocusedMetric(metricId);
+                const ref = inputRefs.current[metricId];
+                const len = value.length;
+                ref?.setNativeProps({selection: {start: 0, end: len}});
+              }}
+              onBlur={() => setFocusedMetric(null)}
+              onChangeText={text =>
+                setTextValues(prev => ({...prev, [metricId]: text}))
               }
-              const parsed = Number(raw.replace(',', '.'));
-              if (isNaN(parsed)) {
-                setTextValues(prev => ({
-                  ...prev,
-                  [metricId]: String(prevValue),
-                }));
-                onChange(metricId, prevValue);
-                return;
-              }
-              const clamped = clampValue(metricId, parsed);
-              setTextValues(prev => ({...prev, [metricId]: String(clamped)}));
-              onChange(metricId, clamped);
-            }}
-          />
-          <View style={styles.adjustRow}>
+              onEndEditing={() => {
+                const raw = textValues[metricId];
+                const prevValue = Number(
+                  values[metricId] ?? (name === 'reps' ? 1 : 0),
+                );
+                if (raw == null || raw.trim() === '') {
+                  setTextValues(prev => ({
+                    ...prev,
+                    [metricId]: String(prevValue),
+                  }));
+                  onChange(metricId, prevValue);
+                  return;
+                }
+                const parsed = Number(raw.replace(',', '.'));
+                if (isNaN(parsed)) {
+                  setTextValues(prev => ({
+                    ...prev,
+                    [metricId]: String(prevValue),
+                  }));
+                  onChange(metricId, prevValue);
+                  return;
+                }
+                const clamped = clampValue(metricId, parsed);
+                setTextValues(prev => ({...prev, [metricId]: String(clamped)}));
+                onChange(metricId, clamped);
+              }}
+              numberOfLines={1}
+            />
+          </View>
+          <View style={[styles.adjustRow, {width: '100%'}]}>
             <Pressable
               hitSlop={{top: 6, bottom: 6, left: 6, right: 6}}
               accessibilityLabel={`decrement ${metric.name}`}
@@ -207,11 +240,17 @@ export default function SetInputRow({
               onPressOut={stopAdjust}
               style={({pressed}) => [
                 styles.adjustButton,
-                {borderRightWidth: 1, borderColor: theme.colors.cardBorder},
-                pressed && {opacity: 0.8, transform: [{scale: 0.98}]},
+                {
+                  backgroundColor: theme.colors.glass.background,
+                  borderColor: theme.colors.cardBorder,
+                },
+                pressed && {opacity: 0.8, transform: [{scale: 0.96}]},
               ]}>
               <Text
-                style={[styles.adjustText, {color: theme.colors.textPrimary}]}>
+                style={[
+                  styles.adjustButtonText,
+                  {color: theme.colors.textPrimary},
+                ]}>
                 -
               </Text>
             </Pressable>
@@ -222,10 +261,17 @@ export default function SetInputRow({
               onPressOut={stopAdjust}
               style={({pressed}) => [
                 styles.adjustButton,
-                pressed && {opacity: 0.8, transform: [{scale: 0.98}]},
+                {
+                  backgroundColor: theme.colors.glass.background,
+                  borderColor: theme.colors.cardBorder,
+                },
+                pressed && {opacity: 0.8, transform: [{scale: 0.96}]},
               ]}>
               <Text
-                style={[styles.adjustText, {color: theme.colors.textPrimary}]}>
+                style={[
+                  styles.adjustButtonText,
+                  {color: theme.colors.textPrimary},
+                ]}>
                 +
               </Text>
             </Pressable>
@@ -373,20 +419,27 @@ export default function SetInputRow({
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
   },
   box: {
     flex: 1,
     borderWidth: 1,
     borderRadius: 12,
-    paddingVertical: 6,
+    paddingVertical: 4,
     paddingHorizontal: 8,
     alignItems: 'center',
-    marginHorizontal: 4,
+    marginHorizontal: 2,
+  },
+  metricColumn: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    marginHorizontal: 2,
   },
   label: {
     fontSize: 12,
-    marginBottom: 2,
+    marginBottom: 0,
   },
   adjustRow: {
     flexDirection: 'row',
@@ -395,30 +448,43 @@ const styles = StyleSheet.create({
   },
   adjustButton: {
     flex: 1,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    minHeight: 44,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginHorizontal: 2,
   },
-  adjustText: {
-    fontSize: 24,
+  adjustButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
   },
   valueInput: {
-    minWidth: 52,
     textAlign: 'center',
     fontSize: 19,
     fontWeight: 'bold',
+    width: '100%',
+    fontVariant: ['tabular-nums'],
+  },
+  pillInput: {
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
   },
   pill: {
-   paddingHorizontal: 8,
-   paddingVertical: 4,
-   borderRadius: 20,
-   minWidth: 60, // ensures "1:30" always fits in one line
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 16,
+    minWidth: 60, // ensures "1:30" always fits in one line
   },
   pillText: {
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
+    fontVariant: ['tabular-nums'],
   },
   item: {
     flexDirection: 'row',
