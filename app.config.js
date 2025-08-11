@@ -1,7 +1,7 @@
 // app.config.js
 import 'dotenv/config';
 
-export default ({ config }) => {
+export default ({config}) => {
   const env = (process.env.APP_ENV ?? 'production').toLowerCase();
   const isCvDev = env === 'cvdev';
 
@@ -14,7 +14,7 @@ export default ({ config }) => {
     slug: isCvDev ? 'gymbuddy-dev' : (config.slug ?? 'gymbuddy'),
     scheme: isCvDev ? 'gymbuddydev' : 'gymbuddy',
     // (optional) icons/badges:
-    // icon: isCvDev ? './assets/icon-dev.png' : './assets/icon.png',
+    icon: isCvDev ? './assets/icon-dev.png' : './assets/icon.png',
 
     ios: {
       ...(config.ios ?? {}),
@@ -25,6 +25,7 @@ export default ({ config }) => {
       infoPlist: {
         ...(config.ios?.infoPlist ?? {}),
         ITSAppUsesNonExemptEncryption: false,
+        CFBundleDisplayName: isCvDev ? 'GymBuddy Dev' : 'GymBuddy', // explicit
       },
     },
 
