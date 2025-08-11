@@ -4,7 +4,7 @@ import {createAuthLink} from './links/authLink';
 import {errorLink} from './links/errorLink';
 import {createSplitLink} from './links/splitLink';
 import {setApolloClient} from './tokenManager';
-import {API_BASE_URL, STAGE} from '/config/env';
+import { API_BASE_URL, STAGE} from '../../config/env'
 
 export const createApolloClient = () => {
   const GRAPHQL_URL = `${API_BASE_URL.replace(/\/$/, '')}/graphql`; // always append once
