@@ -14,15 +14,30 @@
     "production": {
       "autoIncrement": true,
       "distribution": "store",
-      "ios": {
-        "simulator": false
-      }
+      "ios": {"simulator": false}
+    },
+    "cvdev": {
+      "autoIncrement": true,
+      "distribution": "store",
+      "channel": "cvdev",
+      "env": {
+        "APP_ENV": "cvdev",
+        "EXPO_PUBLIC_API_BASE_URL": "https://gymbuddy-backend-cv-dev.onrender.com"
+      },
+      "ios": {"simulator": false}
     }
   },
   "submit": {
     "production": {
       "ios": {
-      "appleId": "mauser83@hotmail.com"
+        "appleId": "mauser83@hotmail.com",
+        "ascAppId": "6749501544"
+      }
+    },
+    "cvdev": {
+      "ios": {
+        "appleId": "mauser83@hotmail.com",
+        "ascAppId": "6749850841"
       }
     }
   }

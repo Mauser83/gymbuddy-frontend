@@ -1,9 +1,10 @@
-import { ApolloClient, InMemoryCache, HttpLink } from '@apollo/client';
-import Constants from 'expo-constants';
+import {ApolloClient, InMemoryCache, HttpLink} from '@apollo/client';
+import {API_BASE_URL} from '/config/env'; // add if not present
+const GRAPHQL_URL = `${API_BASE_URL.replace(/\/$/, '')}/graphql`; // <-- append once
 
 export const rawClient = new ApolloClient({
   link: new HttpLink({
-    uri: Constants.expoConfig?.extra?.apiUrl,
+    uri: GRAPHQL_URL,
   }),
   cache: new InMemoryCache(),
 });

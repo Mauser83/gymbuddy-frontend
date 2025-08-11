@@ -11,11 +11,11 @@ import {triggerLogout} from 'features/auth/utils/logoutTrigger'; // ✅ use this
 import Toast from 'react-native-toast-message';
 import {rawClient} from './rawClient';
 import {createClient, Client} from 'graphql-ws';
-import Constants from "expo-constants";
+import { API_BASE_URL } from '/config/env';
 
 // 👇 Make sure this matches your WS server
-const HTTP_URL = Constants.expoConfig?.extra?.apiUrl;
-const WS_URL = HTTP_URL.replace(/^https/, 'wss');
+const GRAPHQL_URL = `${API_BASE_URL.replace(/\/$/, '')}/graphql`;
+const WS_URL = GRAPHQL_URL.replace(/^https/, 'wss');
 // console.log("WS_URL: ", WS_URL)
 
 let apolloClient: ApolloClient<any> | null = null;

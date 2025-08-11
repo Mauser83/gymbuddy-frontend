@@ -9,7 +9,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "buildios": "eas build --platform ios --profile production",
-    "submitios": "eas submit --platform ios --latest"
+    "submitios": "eas submit --platform ios --latest",
+    "buildcvdev": "eas build -p ios --profile cvdev",
+    "submitcvdev": "eas submit -p ios --profile cvdev"
   },
   "dependencies": {
     "@apollo/client": "^3.13.7",
