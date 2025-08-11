@@ -39,7 +39,7 @@ export default ({config}) => {
       ...(config.extra ?? {}),
       stage: env,
       // prefer EXPO_PUBLIC_* from your EAS profile, fall back to local API_URL
-      apiUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.API_URL,
+      apiUrl: process.env.API_DEV_URL ?? process.env.API_URL,
       googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
       eas: {
         projectId: '75740163-0d0d-4d46-9fad-2f76224d960c',

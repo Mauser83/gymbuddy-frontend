@@ -19,10 +19,8 @@
     "cvdev": {
       "autoIncrement": true,
       "distribution": "store",
-      "channel": "cvdev",
       "env": {
-        "APP_ENV": "cvdev",
-        "EXPO_PUBLIC_API_BASE_URL": "https://gymbuddy-backend-cv-dev.onrender.com"
+        "APP_ENV": "cvdev"
       },
       "ios": {"simulator": false}
     }
