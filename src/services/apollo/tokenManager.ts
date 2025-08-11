@@ -11,7 +11,7 @@ import {triggerLogout} from 'features/auth/utils/logoutTrigger'; // ✅ use this
 import Toast from 'react-native-toast-message';
 import {rawClient} from './rawClient';
 import {createClient, Client} from 'graphql-ws';
-import { API_BASE_URL } from '/config/env';
+import { API_BASE_URL } from '../../config/env';
 
 // 👇 Make sure this matches your WS server
 const GRAPHQL_URL = `${API_BASE_URL.replace(/\/$/, '')}/graphql`;
