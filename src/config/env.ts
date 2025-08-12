@@ -1,4 +1,3 @@
-// src/config/env.ts
 import Constants from 'expo-constants';
 
 const extra = (Constants.expoConfig?.extra ?? {}) as {
@@ -6,5 +5,9 @@ const extra = (Constants.expoConfig?.extra ?? {}) as {
   stage?: string;
 };
 
-export const API_BASE_URL = extra.apiUrl ?? process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
-export const STAGE = (extra.stage ?? (process.env.APP_ENV ?? 'production')).toLowerCase();
+export const API_BASE_URL = extra.apiUrl ?? '';
+export const STAGE = (extra.stage ?? 'production').toLowerCase();
+
+if (!API_BASE_URL) {
+  console.warn('API_BASE_URL missing — check app.config.js (extra.apiUrl)');
+}

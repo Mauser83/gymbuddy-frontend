@@ -4,14 +4,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "expo start",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
-    "web": "expo start --web",
-    "buildios": "eas build --platform ios --profile production",
-    "submitios": "eas submit --platform ios --latest",
+    "start": "expo start -c",
+    "startcvdev": "cross-env APP_ENV=cvdev expo start -c",
+    "buildios": "eas build -p ios --profile production",
+    "submitios": "eas submit -p ios --profile production --latest",
     "buildcvdev": "eas build -p ios --profile cvdev",
-    "submitcvdev": "eas submit -p ios --profile cvdev"
+    "submitcvdev": "cross-env APP_ENV=cvdev eas submit -p ios --profile cvdev --latest"
   },
   "dependencies": {
     "@apollo/client": "^3.13.7",
@@ -71,7 +69,8 @@
     "@tsconfig/react-native": "^3.0.6",
     "@types/date-fns": "^2.6.3",
     "@types/jest": "^30.0.0",
-    "@types/react-native-vector-icons": "^6.4.18"
+    "@types/react-native-vector-icons": "^6.4.18",
+    "cross-env": "^10.0.0"
   },
   "private": true
 }
