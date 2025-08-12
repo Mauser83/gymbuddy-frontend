@@ -5,16 +5,18 @@ export default ({config}) => {
   const env = (process.env.APP_ENV ?? 'production').toLowerCase();
   const isCvDev = env === 'cvdev';
 
-  const apiBase = isCvDev ? process.env.API_DEV_URL : process.env.API_URL;
-
+  // Dynamically set the project ID based on the environment
+  const projectId = isCvDev
+    ? 'a40eb355-3df0-4508-85f6-ba2a56bb11ef'
+    : '18503d49-68ad-4833-9d2b-82f28ee287b0'; // The correct projectId for GymBuddy
 
   return {
     // keep anything you already had in app.json/app.config.*:
     ...config,
 
     // Make it obvious which app this is on the device & in TestFlight
-    name: isCvDev ? 'GymBuddy Dev' : (config.name ?? 'GymBuddy'),
-    slug: isCvDev ? 'gymbuddy-dev' : (config.slug ?? 'gymbuddy'),
+    name: isCvDev ? 'GymBuddy Dev' : 'GymBuddy',
+    slug: isCvDev ? 'gymbuddy-dev' : 'gymbuddy',
     scheme: isCvDev ? 'gymbuddydev' : 'gymbuddy',
     // (optional) icons/badges:
     icon: isCvDev ? './assets/icon-dev.png' : './assets/icon.png',
@@ -40,12 +42,12 @@ export default ({config}) => {
 
     extra: {
       ...(config.extra ?? {}),
-      stage: env,
-      apiUrl: apiBase,
-      googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
       eas: {
-        projectId: '75740163-0d0d-4d46-9fad-2f76224d960c',
+        projectId: projectId // The projectId is now set here, correctly
       },
+      stage: env,
+      apiUrl: isCvDev ? process.env.API_DEV_URL : process.env.API_URL,
+      googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
     },
   };
 };
