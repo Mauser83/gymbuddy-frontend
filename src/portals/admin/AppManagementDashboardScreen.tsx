@@ -31,6 +31,7 @@ const AppDashboardScreen = () => {
 
   const [runImageWorker, {loading, data: workerData, error}] = useMutation(
     RUN_IMAGE_WORKER,
+    {errorPolicy: 'all'},
   );
 
   
