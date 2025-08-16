@@ -132,7 +132,7 @@ const AppDashboardScreen = () => {
           disabled={loading}
         />
         {workerData?.runImageWorkerOnce?.status === 'already-running' && (
-          <Text>Worker is already running a batch.</Text>
+          <ErrorMessage message="Worker is already running a batch." />
         )}
         {error && <ErrorMessage message="Failed to trigger worker" />}
       </View>
