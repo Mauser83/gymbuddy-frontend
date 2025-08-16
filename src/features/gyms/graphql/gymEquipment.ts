@@ -9,7 +9,6 @@ export const GET_GYM_EQUIPMENT = gql`
       note
       images {
         id
-        url
       }
       equipment {
         id
@@ -25,7 +24,6 @@ export const GET_GYM_EQUIPMENT = gql`
         }
         images {
           id
-          url
         }
       }
     }
@@ -68,7 +66,6 @@ export const UPLOAD_GYM_EQUIPMENT_IMAGE = gql`
   mutation UploadGymEquipmentImage($input: UploadGymEquipmentImageInput!) {
     uploadGymEquipmentImage(input: $input) {
       id
-      url
     }
   }
 `;

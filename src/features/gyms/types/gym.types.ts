@@ -41,7 +41,6 @@ export interface GymEquipment {
 
 export interface GymEquipmentImage {
   id: number;
-  url: string;
   createdAt: string;
 }
 

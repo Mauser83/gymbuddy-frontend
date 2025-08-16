@@ -32,7 +32,6 @@ export interface ExerciseLite {
 
 export interface EquipmentImage {
   id: number;
-  url: string;
   createdAt: string;
 }
 

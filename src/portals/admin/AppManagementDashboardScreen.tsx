@@ -1,6 +1,6 @@
 import React from 'react';
 import {useNavigate} from 'react-router-native';
-import {useQuery, useSubscription} from '@apollo/client';
+import {useQuery, useSubscription, useMutation, gql} from '@apollo/client';
 import { GET_PENDING_GYMS } from 'features/gyms/graphql/gym.queries';
 import {GYM_FRAGMENT} from 'features/gyms/graphql/gym.fragments';
 import {
@@ -11,13 +11,29 @@ import ScreenLayout from 'shared/components/ScreenLayout';
 import Card from 'shared/components/Card';
 import Title from 'shared/components/Title';
 import Button from 'shared/components/Button';
-import { View } from 'react-native';
+import ErrorMessage from 'shared/components/ErrorMessage';
+import {Text, View} from 'react-native';
+
+const RUN_IMAGE_WORKER = gql`
+  mutation RunImageWorker($max: Int = 100) {
+    runImageWorkerOnce(max: $max) {
+      ok
+      status
+    }
+  }
+`;
 
 const AppDashboardScreen = () => {
   const navigate = useNavigate();
   const {data} = useQuery(GET_PENDING_GYMS, {
     fetchPolicy: 'cache-first',
   });
+
+  const [runImageWorker, {loading, data: workerData, error}] = useMutation(
+    RUN_IMAGE_WORKER,
+  );
+
+  
 
   const pendingCount = data?.pendingGyms?.length || 0;
 
@@ -107,6 +123,17 @@ const AppDashboardScreen = () => {
             text="Manage System Catalogs"
           />
         </Card>
+
+        
+        <Button
+          text={loading ? 'Processing…' : 'Process Image Queue'}
+          onPress={() => runImageWorker({variables: {max: 150}})}
+          disabled={loading}
+        />
+        {workerData?.runImageWorkerOnce?.status === 'already-running' && (
+          <Text>Worker is already running a batch.</Text>
+        )}
+        {error && <ErrorMessage message="Failed to trigger worker" />}
       </View>
     </ScreenLayout>
   );
