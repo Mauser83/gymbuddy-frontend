@@ -1,5 +1,14 @@
-import React, {useState} from 'react';
-import {View, Text, TouchableOpacity, Switch} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Switch,
+  ScrollView,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+} from 'react-native';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Toast from 'react-native-toast-message';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Card from 'shared/components/Card';
@@ -45,7 +54,16 @@ const TaxonomiesScreen = () => {
   const [name, setName] = useState('');
   const [active, setActive] = useState(true);
   const [error, setError] = useState('');
+  const [scrollX, setScrollX] = useState(0);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [contentWidth, setContentWidth] = useState(0);
+  const [showLeft, setShowLeft] = useState(false);
+  const [showRight, setShowRight] = useState(false);
 
+  useEffect(() => {
+    setShowLeft(scrollX > 0);
+    setShowRight(scrollX + containerWidth < contentWidth);
+  }, [scrollX, containerWidth, contentWidth]);
   const {rows, loading, refetch} = useListTaxonomy(activeTab);
   const [createTaxonomy, {loading: creating}] = useCreateTaxonomy(activeTab);
   const [updateTaxonomy, {loading: updating}] = useUpdateTaxonomy(activeTab);
@@ -126,31 +144,78 @@ const TaxonomiesScreen = () => {
           }}>
           Taxonomies
         </Text>
-        <View style={{flexDirection: 'row', marginBottom: spacing.md}}>
-          {TABS.map(t => (
-            <TouchableOpacity
-              key={t.key}
-              onPress={() => setActiveTab(t.key)}
+        <View
+          style={{marginBottom: spacing.md, overflow: 'visible'}}
+          onLayout={e => setContainerWidth(e.nativeEvent.layout.width)}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) =>
+              setScrollX(e.nativeEvent.contentOffset.x)
+            }
+            scrollEventThrottle={16}
+            onContentSizeChange={w => setContentWidth(w)}>
+            <View style={{flexDirection: 'row'}}>
+              {TABS.map(t => (
+                <TouchableOpacity
+                  key={t.key}
+                  onPress={() => setActiveTab(t.key)}
+                  style={{
+                    marginRight: spacing.sm,
+                    paddingVertical: spacing.sm,
+                    paddingHorizontal: spacing.md,
+                    borderBottomWidth:
+                      activeTab === t.key ? borderWidth.thick : 0,
+                    borderColor: theme.colors.accentStart,
+                  }}>
+                  <Text
+                    style={{
+                      color:
+                        activeTab === t.key
+                          ? theme.colors.accentStart
+                          : theme.colors.textSecondary,
+                      fontWeight: fontWeights.semiBold,
+                    }}>
+                    {t.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+          {showLeft && (
+            <View
+              pointerEvents="none"
               style={{
-                marginRight: spacing.sm,
-                paddingVertical: spacing.sm,
-                paddingHorizontal: spacing.md,
-                borderBottomWidth:
-                  activeTab === t.key ? borderWidth.thick : 0,
-                borderColor: theme.colors.accentStart,
+                position: 'absolute',
+                left: -spacing.lg,
+                top: 0,
+                bottom: 0,
+                justifyContent: 'center',
               }}>
-              <Text
-                style={{
-                  color:
-                    activeTab === t.key
-                      ? theme.colors.accentStart
-                      : theme.colors.textSecondary,
-                  fontWeight: fontWeights.semiBold,
-                }}>
-                {t.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+              <FontAwesome
+                name="chevron-left"
+                size={16}
+                color={theme.colors.accentStart}
+              />
+            </View>
+          )}
+          {showRight && (
+            <View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                right: -spacing.lg,
+                top: 0,
+                bottom: 0,
+                justifyContent: 'center',
+              }}>
+              <FontAwesome
+                name="chevron-right"
+                size={16}
+                color={theme.colors.accentStart}
+              />
+            </View>
+          )}
         </View>
         <View
           style={{
