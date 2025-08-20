@@ -13,6 +13,7 @@ import Toast from 'react-native-toast-message';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Card from 'shared/components/Card';
 import Button from 'shared/components/Button';
+import Title from 'shared/components/Title';
 import SearchInput from 'shared/components/SearchInput';
 import FormInput from 'shared/components/FormInput';
 import FormError from 'shared/components/FormError';
@@ -148,15 +149,7 @@ const TaxonomiesScreen = () => {
   return (
     <ScreenLayout scroll>
       <Card>
-        <Text
-          style={{
-            fontSize: fontSizes.xl,
-            fontWeight: fontWeights.bold,
-            color: theme.colors.textPrimary,
-            marginBottom: spacing.md,
-          }}>
-          Taxonomies
-        </Text>
+        <Title text="Taxonomies"/>
         <View
           style={{marginBottom: spacing.md, overflow: 'visible'}}
           onLayout={e => setContainerWidth(e.nativeEvent.layout.width)}>
@@ -268,7 +261,7 @@ const TaxonomiesScreen = () => {
               </Text>
               <Text
                 style={{
-                  flex: 1,
+                  width: 80,
                   color: theme.colors.textSecondary,
                   fontWeight: fontWeights.semiBold,
                 }}>
@@ -276,11 +269,12 @@ const TaxonomiesScreen = () => {
               </Text>
               <Text
                 style={{
-                  flex: 1,
+                  width: 60,
                   color: theme.colors.textSecondary,
                   fontWeight: fontWeights.semiBold,
+                  textAlign: 'right',
                 }}>
-                Actions
+                Action
               </Text>
             </View>
             {filtered.map((row: TaxonomyRow) => (
@@ -296,21 +290,27 @@ const TaxonomiesScreen = () => {
                 <Text style={{flex: 2, color: theme.colors.textPrimary}}>
                   {row.name}
                 </Text>
-                <Text style={{flex: 1, color: theme.colors.textPrimary}}>
-                  {row.active ? 'Active' : 'Disabled'}
-                </Text>
-                <View
-                  style={{
-                    flex: 1,
-                    flexDirection: 'row',
-                    justifyContent: 'flex-end',
-                  }}>
-                  <Button text="Edit" onPress={() => openEdit(row)} small />
-                  <View style={{width: spacing.sm}} />
+
+                <View style={{width: 80, alignItems: 'flex-start'}}>
+                  <Switch
+                    value={row.active}
+                    onValueChange={() => toggleActive(row)}
+                    trackColor={{
+                      false: theme.colors.disabledBorder,
+                      true: theme.colors.accentStart,
+                    }}
+                    accessibilityLabel={
+                      row.active ? 'Set inactive' : 'Set active'
+                    }
+                  />
+                </View>
+
+                <View style={{width: 60, alignItems: 'flex-end'}}>
                   <Button
-                    text={row.active ? 'Disable' : 'Enable'}
-                    onPress={() => toggleActive(row)}
+                    text="Edit"
+                    accessibilityLabel={`Edit ${row.name}`}
                     small
+                    onPress={() => openEdit(row)}
                   />
                 </View>
               </View>
