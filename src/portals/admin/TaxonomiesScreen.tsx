@@ -48,9 +48,10 @@ const TaxonomiesScreen = () => {
   const {theme} = useTheme();
   const [activeTab, setActiveTab] = useState<TaxonomyType>('angle');
   const [search, setSearch] = useState('');
-  const [modal, setModal] = useState<
-    {mode: 'create' | 'edit'; row?: TaxonomyRow} | null
-  >(null);
+  const [modal, setModal] = useState<{
+    mode: 'create' | 'edit';
+    row?: TaxonomyRow;
+  } | null>(null);
   const [name, setName] = useState('');
   const [active, setActive] = useState(true);
   const [error, setError] = useState('');
@@ -91,14 +92,23 @@ const TaxonomiesScreen = () => {
   const handleCreate = async () => {
     const trimmed = name.trim();
     if (!trimmed) return;
+    const nextDisplayOrder =
+      Math.max(0, ...rows.map(r => r.displayOrder || 0)) + 1;
     try {
-      await createTaxonomy({variables: {name: trimmed}});
+      await createTaxonomy({
+        variables: {name: trimmed, displayOrder: nextDisplayOrder},
+      });
       Toast.show({type: 'success', text1: 'Created'});
       closeModal();
       refetch();
     } catch (e: any) {
-      if (typeof e.message === 'string' && /unique|already exists/i.test(e.message)) {
+      if (
+        typeof e.message === 'string' &&
+        /unique|already exists/i.test(e.message)
+      ) {
         setError('That name is already in use');
+      } else {
+        setError('Could not create item. Check required fields.');
       }
       Toast.show({type: 'error', text1: 'Failed to create'});
     }
@@ -115,7 +125,10 @@ const TaxonomiesScreen = () => {
       closeModal();
       refetch();
     } catch (e: any) {
-      if (typeof e.message === 'string' && /unique|already exists/i.test(e.message)) {
+      if (
+        typeof e.message === 'string' &&
+        /unique|already exists/i.test(e.message)
+      ) {
         setError('That name is already in use');
       }
       Toast.show({type: 'error', text1: 'Failed to update'});
@@ -321,7 +334,9 @@ const TaxonomiesScreen = () => {
             label="Name"
             value={name}
             onChangeText={setName}
-            onSubmitEditing={modal?.mode === 'create' ? handleCreate : handleEdit}
+            onSubmitEditing={
+              modal?.mode === 'create' ? handleCreate : handleEdit
+            }
             returnKeyType="done"
           />
           {modal?.mode === 'edit' && (
