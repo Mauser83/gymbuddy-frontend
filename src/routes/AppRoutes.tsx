@@ -57,6 +57,12 @@ import AdminExerciseCatalogScreen from 'portals/admin/AdminExerciseCatalogScreen
 import AdminWorkoutPlanCatalogScreen from 'portals/admin/AdminWorkoutPlanCatalogScreen';
 import AdminMetricCatalogScreen from 'portals/admin/AdminMetricCatalogScreen';
 import TaxonomiesScreen from 'portals/admin/TaxonomiesScreen';
+import EquipmentRecognitionDashboardScreen from 'portals/admin/EquipmentRecognitionDashboardScreen';
+import BatchCaptureScreen from 'portals/admin/BatchCaptureScreen';
+import KnnPlaygroundScreen from 'portals/admin/KnnPlaygroundScreen';
+import WorkerTasksScreen from 'portals/admin/WorkerTasksScreen';
+import ImageManagementScreen from 'portals/admin/ImageManagementScreen';
+import SigningVerifierScreen from 'portals/admin/SigningVerifierScreen';
 import RoleSelectScreen from 'portals/user/RoleSelectScreen';
 
 const AppRoutes = () => {
@@ -132,6 +138,13 @@ const AppRoutes = () => {
           <Route path="/admin/catalog/workoutplan" element={<RequireRole roles={['admin']}><AdminWorkoutPlanCatalogScreen /></RequireRole>} />
           <Route path="/admin/catalog/metrics" element={<RequireRole roles={['admin']}><AdminMetricCatalogScreen /></RequireRole>} />
           <Route path="/admin/taxonomies" element={<RequireRole roles={['admin']}><TaxonomiesScreen /></RequireRole>} />
+          <Route path="/admin/equipment-recognition" element={<RequireRole roles={['admin']}><EquipmentRecognitionDashboardScreen /></RequireRole>} />
+          <Route path="/admin/equipment-recognition/batch-capture" element={<RequireRole roles={['admin']}><BatchCaptureScreen /></RequireRole>} />
+          <Route path="/admin/equipment-recognition/taxonomies" element={<RequireRole roles={['admin']}><TaxonomiesScreen /></RequireRole>} />
+          <Route path="/admin/equipment-recognition/knn" element={<RequireRole roles={['admin']}><KnnPlaygroundScreen /></RequireRole>} />
+          <Route path="/admin/equipment-recognition/worker-tasks" element={<RequireRole roles={['admin']}><WorkerTasksScreen /></RequireRole>} />
+          <Route path="/admin/equipment-recognition/images" element={<RequireRole roles={['admin']}><ImageManagementScreen /></RequireRole>} />
+          <Route path="/admin/equipment-recognition/signing" element={<RequireRole roles={['admin']}><SigningVerifierScreen /></RequireRole>} />
 
           {/* Gym Management Portal */}
           <Route path="/gym-admin" element={<RequireRole roles={['gym-manager']}><GymAdminDashboard /></RequireRole>} />

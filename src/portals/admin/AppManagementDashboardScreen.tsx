@@ -124,10 +124,10 @@ const AppDashboardScreen = () => {
         </Card>
 
         <Card variant="glass">
-          <Title text="🗂️ Taxonomies" subtitle="Manage taxonomy values" />
+          <Title text="📸 Equipment Recognition" subtitle="Computer vision admin tools" />
           <Button
-            onPress={() => navigate('/admin/taxonomies')}
-            text="Manage Taxonomies"
+            onPress={() => navigate('/admin/equipment-recognition')}
+            text="Open Equipment Recognition"
           />
         </Card>
 
