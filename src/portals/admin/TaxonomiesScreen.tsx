@@ -23,7 +23,6 @@ import {
   useUpdateTaxonomy,
   TaxonomyType,
   TaxonomyRow,
-  TAXONOMY_META,
 } from 'features/cv/hooks/useTaxonomies';
 
 const TABS: {key: TaxonomyType; label: string}[] = [
@@ -80,7 +79,7 @@ const TaxonomiesScreen = () => {
       closeModal();
       refetch();
     } catch (e: any) {
-      if (typeof e.message === 'string' && e.message.toLowerCase().includes('unique')) {
+      if (typeof e.message === 'string' && /unique|already exists/i.test(e.message)) {
         setError('That name is already in use');
       }
       Toast.show({type: 'error', text1: 'Failed to create'});
@@ -98,7 +97,7 @@ const TaxonomiesScreen = () => {
       closeModal();
       refetch();
     } catch (e: any) {
-      if (typeof e.message === 'string' && e.message.toLowerCase().includes('unique')) {
+      if (typeof e.message === 'string' && /unique|already exists/i.test(e.message)) {
         setError('That name is already in use');
       }
       Toast.show({type: 'error', text1: 'Failed to update'});
@@ -106,20 +105,11 @@ const TaxonomiesScreen = () => {
   };
 
   const toggleActive = async (row: TaxonomyRow) => {
-    const meta = TAXONOMY_META[activeTab];
     try {
       await updateTaxonomy({
-        variables: {id: row.id, name: row.name, active: !row.active},
-        optimisticResponse: {
-          [meta.updateField]: {
-            __typename: meta.typename,
-            id: row.id,
-            name: row.name,
-            active: !row.active,
-          },
-        },
+        variables: {id: row.id, active: !row.active},
       });
-    } catch (e) {
+    } catch {
       Toast.show({type: 'error', text1: 'Failed to update'});
     }
   };

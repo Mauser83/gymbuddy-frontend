@@ -1,27 +1,10 @@
-import {DocumentNode} from 'graphql';
-import {useQuery, useMutation} from '@apollo/client';
+import { useMemo } from 'react';
+import { useQuery, useMutation } from '@apollo/client';
 import {
-  LIST_ANGLES,
-  CREATE_ANGLE,
-  UPDATE_ANGLE,
-  LIST_HEIGHTS,
-  CREATE_HEIGHT,
-  UPDATE_HEIGHT,
-  LIST_LIGHTING,
-  CREATE_LIGHTING,
-  UPDATE_LIGHTING,
-  LIST_MIRRORS,
-  CREATE_MIRROR,
-  UPDATE_MIRROR,
-  LIST_DISTANCES,
-  CREATE_DISTANCE,
-  UPDATE_DISTANCE,
-  LIST_SOURCES,
-  CREATE_SOURCE,
-  UPDATE_SOURCE,
-  LIST_SPLITS,
-  CREATE_SPLIT,
-  UPDATE_SPLIT,
+  LIST_TAXONOMY,
+  CREATE_TAXONOMY,
+  UPDATE_TAXONOMY,
+  SET_TAXONOMY_ACTIVE,
 } from '../graphql/taxonomies.graphql';
 
 export type TaxonomyType =
@@ -33,93 +16,83 @@ export type TaxonomyType =
   | 'source'
   | 'split';
 
-export interface TaxonomyRow {
-  id: number;
-  name: string;
-  active: boolean;
-}
+export interface TaxonomyRow { id: number; name: string; active: boolean; }
 
-type Meta = {
-  list: DocumentNode;
-  listField: string;
-  create: DocumentNode;
-  update: DocumentNode;
-  updateField: string;
-  typename: string;
+const KIND: Record<TaxonomyType, 'ANGLE'|'HEIGHT'|'LIGHTING'|'MIRROR'|'DISTANCE'|'SOURCE'|'SPLIT'> = {
+  angle: 'ANGLE',
+  height: 'HEIGHT',
+  lighting: 'LIGHTING',
+  mirror: 'MIRROR',
+  distance: 'DISTANCE',
+  source: 'SOURCE',
+  split: 'SPLIT',
 };
 
-export const TAXONOMY_META: Record<TaxonomyType, Meta> = {
-  angle: {
-    list: LIST_ANGLES,
-    listField: 'angles',
-    create: CREATE_ANGLE,
-    update: UPDATE_ANGLE,
-    updateField: 'updateAngle',
-    typename: 'Angle',
-  },
-  height: {
-    list: LIST_HEIGHTS,
-    listField: 'heights',
-    create: CREATE_HEIGHT,
-    update: UPDATE_HEIGHT,
-    updateField: 'updateHeight',
-    typename: 'Height',
-  },
-  lighting: {
-    list: LIST_LIGHTING,
-    listField: 'lighting',
-    create: CREATE_LIGHTING,
-    update: UPDATE_LIGHTING,
-    updateField: 'updateLighting',
-    typename: 'Lighting',
-  },
-  mirror: {
-    list: LIST_MIRRORS,
-    listField: 'mirrors',
-    create: CREATE_MIRROR,
-    update: UPDATE_MIRROR,
-    updateField: 'updateMirror',
-    typename: 'Mirror',
-  },
-  distance: {
-    list: LIST_DISTANCES,
-    listField: 'distances',
-    create: CREATE_DISTANCE,
-    update: UPDATE_DISTANCE,
-    updateField: 'updateDistance',
-    typename: 'Distance',
-  },
-  source: {
-    list: LIST_SOURCES,
-    listField: 'sources',
-    create: CREATE_SOURCE,
-    update: UPDATE_SOURCE,
-    updateField: 'updateSource',
-    typename: 'Source',
-  },
-  split: {
-    list: LIST_SPLITS,
-    listField: 'splits',
-    create: CREATE_SPLIT,
-    update: UPDATE_SPLIT,
-    updateField: 'updateSplit',
-    typename: 'Split',
-  },
-};
+// Quick slug for required "key" in CreateTaxonomyInput
+const slug = (s: string) =>
+  s
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64);
 
 export function useListTaxonomy(type: TaxonomyType) {
-  const meta = TAXONOMY_META[type];
-  const query = useQuery<{[key: string]: TaxonomyRow[]}>(meta.list);
-  const rows = query.data ? (query.data as any)[meta.listField] : [];
-  return {...query, rows};
+  // Fetch both active and inactive so the table shows everything.
+  // (Your schema defaults active=true if omitted.)
+  const q1 = useQuery(LIST_TAXONOMY, { variables: { kind: KIND[type], active: true } });
+  const q0 = useQuery(LIST_TAXONOMY, { variables: { kind: KIND[type], active: false } });
+  const loading = q1.loading || q0.loading;
+
+  const rows: TaxonomyRow[] = useMemo(() => {
+    const all = [...(q1.data?.taxonomyTypes ?? []), ...(q0.data?.taxonomyTypes ?? [])];
+    return all
+      .sort((a: any, b: any) => (a.displayOrder - b.displayOrder) || (a.id - b.id))
+      .map((r: any) => ({ id: r.id, name: r.label, active: r.active }));
+  }, [q1.data, q0.data]);
+
+  const refetch = async () => { await Promise.all([q1.refetch(), q0.refetch()]); };
+
+  return { rows, loading, refetch, error: q1.error ?? q0.error };
 }
 
 export function useCreateTaxonomy(type: TaxonomyType) {
-  const meta = TAXONOMY_META[type];
-  return useMutation(meta.create);
+  const [mutate, state] = useMutation(CREATE_TAXONOMY);
+  return [
+    (opts: { variables: { name: string } }) => {
+      const label = opts.variables.name.trim();
+      return mutate({
+        variables: { kind: KIND[type], input: { key: slug(label), label } },
+      });
+    },
+    state,
+  ] as const;
 }
 
 export function useUpdateTaxonomy(type: TaxonomyType) {
-  const meta = TAXONOMY_META[type];
-  return useMutation(meta.update);
+  // For the Edit modal (rename and/or active change together)
+  const [update, updateState] = useMutation(UPDATE_TAXONOMY);
+  // For inline active toggle (cleaner optimistic updates)
+  const [setActive, setActiveState] = useMutation(SET_TAXONOMY_ACTIVE);
+
+  return [
+    (opts: { variables: { id: number; name?: string; active?: boolean } }) => {
+      const { id, name, active } = opts.variables;
+      if (name !== undefined && active !== undefined) {
+        // Edit modal save: send both in one update
+        return update({
+          variables: { kind: KIND[type], id, input: { label: name, active } },
+        });
+      }
+      if (active !== undefined) {
+        // Inline toggle: dedicated mutation
+        return setActive({ variables: { kind: KIND[type], id, active } });
+      }
+      if (name !== undefined) {
+        return update({ variables: { kind: KIND[type], id, input: { label: name } } });
+      }
+      return Promise.resolve();
+    },
+    { loading: updateState.loading || setActiveState.loading },
+  ] as const;
 }
