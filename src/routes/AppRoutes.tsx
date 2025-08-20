@@ -56,6 +56,7 @@ import AdminEquipmentCatalogScreen from 'portals/admin/AdminEquipmentCatalogScre
 import AdminExerciseCatalogScreen from 'portals/admin/AdminExerciseCatalogScreen';
 import AdminWorkoutPlanCatalogScreen from 'portals/admin/AdminWorkoutPlanCatalogScreen';
 import AdminMetricCatalogScreen from 'portals/admin/AdminMetricCatalogScreen';
+import TaxonomiesScreen from 'portals/admin/TaxonomiesScreen';
 import RoleSelectScreen from 'portals/user/RoleSelectScreen';
 
 const AppRoutes = () => {
@@ -130,6 +131,7 @@ const AppRoutes = () => {
           <Route path="/admin/catalog/exercise" element={<RequireRole roles={['admin']}><AdminExerciseCatalogScreen /></RequireRole>} />
           <Route path="/admin/catalog/workoutplan" element={<RequireRole roles={['admin']}><AdminWorkoutPlanCatalogScreen /></RequireRole>} />
           <Route path="/admin/catalog/metrics" element={<RequireRole roles={['admin']}><AdminMetricCatalogScreen /></RequireRole>} />
+          <Route path="/admin/taxonomies" element={<RequireRole roles={['admin']}><TaxonomiesScreen /></RequireRole>} />
 
           {/* Gym Management Portal */}
           <Route path="/gym-admin" element={<RequireRole roles={['gym-manager']}><GymAdminDashboard /></RequireRole>} />

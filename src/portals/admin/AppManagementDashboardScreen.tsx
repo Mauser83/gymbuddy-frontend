@@ -1,7 +1,7 @@
 import React from 'react';
 import {useNavigate} from 'react-router-native';
 import {useQuery, useSubscription, useMutation, gql} from '@apollo/client';
-import { GET_PENDING_GYMS } from 'features/gyms/graphql/gym.queries';
+import {GET_PENDING_GYMS} from 'features/gyms/graphql/gym.queries';
 import {GYM_FRAGMENT} from 'features/gyms/graphql/gym.fragments';
 import {
   GYM_CREATED_SUBSCRIPTION,
@@ -33,8 +33,6 @@ const AppDashboardScreen = () => {
     RUN_IMAGE_WORKER,
     {errorPolicy: 'all'},
   );
-
-  
 
   const pendingCount = data?.pendingGyms?.length || 0;
 
@@ -125,7 +123,14 @@ const AppDashboardScreen = () => {
           />
         </Card>
 
-        
+        <Card variant="glass">
+          <Title text="🗂️ Taxonomies" subtitle="Manage taxonomy values" />
+          <Button
+            onPress={() => navigate('/admin/taxonomies')}
+            text="Manage Taxonomies"
+          />
+        </Card>
+
         <Button
           text={loading ? 'Processing…' : 'Process Image Queue'}
           onPress={() => runImageWorker({variables: {max: 150}})}
