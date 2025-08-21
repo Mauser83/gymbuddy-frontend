@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {View, Text, Image, StyleSheet, Platform} from 'react-native';
+import Toast from 'react-native-toast-message';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Card from 'shared/components/Card';
 import Title from 'shared/components/Title';
@@ -39,6 +40,7 @@ interface PutItem {
   url: string;
   storageKey: string;
   requiredHeaders?: {key?: string; name?: string; value: string}[];
+  expiresAt?: string;
 }
 
 interface UploadTile extends PutItem {
@@ -49,12 +51,6 @@ interface UploadTile extends PutItem {
   signedUrl?: string;
   expiresAt?: string;
   angleId?: number;
-}
-
-interface FinalizedImage {
-  storageKey: string;
-  imageId?: string;
-  id?: string;
 }
 
 // XHR upload helper with progress reporting
@@ -100,8 +96,9 @@ const initialForm = {
 const BatchCaptureScreen = () => {
   const [form, setForm] = useState(initialForm);
   const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
-  const [selectedEquipment, setSelectedEquipment] =
-    useState<Equipment | null>(null);
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(
+    null,
+  );
   const [gymModalVisible, setGymModalVisible] = useState(false);
   const [equipmentModalVisible, setEquipmentModalVisible] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -118,8 +115,12 @@ const BatchCaptureScreen = () => {
 
   const [createSession, {loading: creating}] = useCreateUploadSession();
   const [finalize, {loading: finalizing}] = useFinalizeGymImages();
-  const {refresh, patchUrls, data: urlData, loading: urlLoading} =
-    useImageUrlMany();
+  const {
+    refresh,
+    patchUrls,
+    data: urlData,
+    loading: urlLoading,
+  } = useImageUrlMany();
   const [applyTaxonomies] = useApplyTaxonomiesToGymImages();
   const {data: angleData} = useQuery(LIST_TAXONOMY, {
     variables: {kind: 'ANGLE', active: true},
@@ -144,7 +145,7 @@ const BatchCaptureScreen = () => {
           input: {
             gymId,
             count,
-            contentTypes: Array.from({ length: count }, () => 'image/*'),
+            contentTypes: Array.from({length: count}, () => 'image/*'),
             equipmentId,
           },
         },
@@ -154,8 +155,12 @@ const BatchCaptureScreen = () => {
       setTiles(
         session.items.map((i: PutItem) => ({
           ...i,
+          file: undefined,
           putProgress: 0,
           state: 'EMPTY' as TileState,
+          imageId: undefined,
+          signedUrl: undefined,
+          expiresAt: undefined,
         })),
       );
       setScreenState('SESSION_READY');
@@ -164,30 +169,30 @@ const BatchCaptureScreen = () => {
     }
   };
 
-const handleFileChange = (index: number, file?: File) => {
-  setTiles(prev => {
-    const copy = [...prev];
-    copy[index] = {...copy[index], file};
-    return copy;
-  });
-  if (file) uploadTile(index, file);
-};
+  const handleFileChange = (index: number, file?: File) => {
+    setTiles(prev => {
+      const copy = [...prev];
+      copy[index] = {...copy[index], file};
+      return copy;
+    });
+    if (file) uploadTile(index, file);
+  };
 
-const pickImageNative = async (index: number) => {
-  const res = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    quality: 1,
-  });
-  if (!res.canceled && res.assets?.[0]) {
-    const asset = res.assets[0];
-    const response = await fetch(asset.uri);
-    const blob = await response.blob();
-    const name = asset.fileName || 'upload.jpg';
-    const type = blob.type || 'image/jpeg';
-    const file = new File([blob], name, {type});
-    handleFileChange(index, file as any);
-  }
-};
+  const pickImageNative = async (index: number) => {
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 1,
+    });
+    if (!res.canceled && res.assets?.[0]) {
+      const asset = res.assets[0];
+      const response = await fetch(asset.uri);
+      const blob = await response.blob();
+      const name = asset.fileName || 'upload.jpg';
+      const type = blob.type || 'image/jpeg';
+      const file = new File([blob], name, {type});
+      handleFileChange(index, file as any);
+    }
+  };
 
   const uploadTile = async (index: number, file: File) => {
     const tile = tiles[index];
@@ -237,25 +242,26 @@ const pickImageNative = async (index: number) => {
           },
         },
       });
-      const images: FinalizedImage[] = res.data.finalizeGymImages.images;
-      const map = new Map<string, FinalizedImage>(
-        images.map(i => [i.storageKey, i]),
-      );
-      setTiles(prev =>
-        prev.map(t => {
-          const found = map.get(t.storageKey);
-          return found
-            ? {
-                ...t,
-                imageId: found.imageId || found.id,
-                state: 'FINALIZED',
-              }
-            : t;
-        }),
-      );
+      const payload = res.data.finalizeGymImages;
+      const keys = tiles.map(t => t.storageKey);
+      setTiles(prev => {
+        const next = [...prev];
+        payload.images.forEach((img: any, i: number) => {
+          if (!next[i]) return;
+          next[i] = {
+            ...next[i],
+            state: 'FINALIZED',
+            imageId: String(img.id),
+          };
+        });
+        return next;
+      });
+      refresh(keys);
       setScreenState('PREVIEW');
-      const currentKeys = images.map(i => i.storageKey);
-      refresh(currentKeys);
+      Toast.show({
+        type: 'success',
+        text1: `Queued ${payload.queuedJobs} jobs`,
+      });
     } catch (err) {
       console.error(err);
       setScreenState('SESSION_READY');
@@ -269,9 +275,7 @@ const pickImageNative = async (index: number) => {
         variables: {input: {imageIds: [tile.imageId], angleId}},
       });
       setTiles(prev =>
-        prev.map(t =>
-          t.storageKey === tile.storageKey ? {...t, angleId} : t,
-        ),
+        prev.map(t => (t.storageKey === tile.storageKey ? {...t, angleId} : t)),
       );
     } catch (err) {
       console.error(err);
@@ -287,13 +291,11 @@ const pickImageNative = async (index: number) => {
       />
       <SelectableField
         label="Equipment"
-        value={
-          selectedEquipment ? selectedEquipment.name : 'Select Equipment'
-        }
+        value={selectedEquipment ? selectedEquipment.name : 'Select Equipment'}
         onPress={() => setEquipmentModalVisible(true)}
         disabled={!selectedGym}
       />
-                  <View>
+      <View>
         <Title subtitle={`Count: ${form.count}`} align="left" />
         {Platform.OS === 'web' ? (
           <input
@@ -311,9 +313,7 @@ const pickImageNative = async (index: number) => {
             maximumValue={10}
             step={1}
             value={Number(form.count)}
-            onValueChange={v =>
-              setForm({...form, count: String(v)})
-            }
+            onValueChange={v => setForm({...form, count: String(v)})}
           />
         )}
       </View>
@@ -348,8 +348,10 @@ const pickImageNative = async (index: number) => {
                 onPress={() => pickImageNative(idx)}
               />
             )}
-            <Title subtitle={"Progress: " + tile.putProgress + "%"}/>
-            {tile.state === 'PUT_ERROR' && <Text style={styles.error}>Error</Text>}
+            <Title subtitle={'Progress: ' + tile.putProgress + '%'} />
+            {tile.state === 'PUT_ERROR' && (
+              <Text style={styles.error}>Error</Text>
+            )}
           </View>
         ))}
         {tiles.length > 0 && (
@@ -371,6 +373,7 @@ const pickImageNative = async (index: number) => {
             <Image
               source={{uri: tile.signedUrl}}
               style={{width: 100, height: 100}}
+              onError={() => refresh([tile.storageKey])}
             />
           ) : (
             <LoadingState size="small" />
@@ -413,7 +416,11 @@ const pickImageNative = async (index: number) => {
             onClose={() => setGymModalVisible(false)}
             onSelect={gym => {
               setSelectedGym(gym);
-              setForm(prev => ({...prev, gymId: String(gym.id), equipmentId: ''}));
+              setForm(prev => ({
+                ...prev,
+                gymId: String(gym.id),
+                equipmentId: '',
+              }));
               setSelectedEquipment(null);
               setGymModalVisible(false);
             }}
