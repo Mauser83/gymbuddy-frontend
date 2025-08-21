@@ -22,6 +22,7 @@ import {
   useCreateUploadSession,
   useFinalizeGymImages,
 } from 'features/cv/hooks/useUploadSession';
+import {useAngles, useApplyTags} from 'features/cv/hooks/useTagging';
 type TileState =
   | 'EMPTY'
   | 'PUTTING'
@@ -121,6 +122,9 @@ const BatchCaptureScreen = () => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [tiles, setTiles] = useState<UploadTile[]>([]);
   const [uploading, setUploading] = useState(false);
+  type Phase = 'SELECT' | 'PREPARED' | 'UPLOADING' | 'FINALIZED' | 'TAGGING';
+  const [phase, setPhase] = useState<Phase>('SELECT');
+  const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const [createSession, {loading: preparing}] = useCreateUploadSession();
   const [finalize, {loading: finalizing}] = useFinalizeGymImages();
@@ -212,6 +216,7 @@ const BatchCaptureScreen = () => {
       }
       return next;
     });
+    setPhase('PREPARED');
   };
 
   // Upload all pending tiles
@@ -274,17 +279,29 @@ const BatchCaptureScreen = () => {
         },
       });
       const payload = res.data.finalizeGymImages;
-      setTiles(prev =>
-        prev.map(t =>
-          t.state === 'REMOVED' ? t : {...t, state: 'FINALIZED'},
-        ),
-      );
+      setTiles(prev => {
+        const next = [...prev];
+        payload.images.forEach((img: any, i: number) => {
+          if (!next[i]) return;
+          if (next[i].state !== 'REMOVED') {
+            next[i] = {
+              ...next[i],
+              state: 'FINALIZED',
+              imageId: String(img.id),
+            };
+          }
+        });
+        return next;
+      });
       Toast.show({
         type: 'success',
         text1: `Queued ${payload.queuedJobs} jobs`,
       });
+      setPhase('FINALIZED');
+      setTimeout(() => setPhase('TAGGING'), 600);
     } catch (err) {
       console.error(err);
+      setPhase('PREPARED');
     }
   };
 
@@ -313,10 +330,14 @@ const BatchCaptureScreen = () => {
   };
 
   const tilesToShow = tiles.filter(t => t.state !== 'REMOVED');
-  const prepareCount = tiles.filter(t => t.state === 'EMPTY' && !t.url).length;
-  const uploadCount = tiles.filter(t => t.state === 'EMPTY' && !!t.url).length;
-  const allUploaded =
-    tilesToShow.length > 0 && tilesToShow.every(t => t.putProgress === 100);
+  const toggleSelect = (idx: number) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
 
   return (
     <ScreenLayout scroll>
@@ -346,53 +367,97 @@ const BatchCaptureScreen = () => {
                   key={t.storageKey ?? t.previewUri ?? `idx-${idx}`}
                   tile={t}
                   onRemove={() => removeTile(idx)}
+                  canRemove={phase === 'SELECT'}
                 />
               ),
             )}
 
-            {Platform.OS === 'web' ? (
-              <label style={addTileStyle(theme) as any}>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  style={{display: 'none'}}
-                  onChange={handleAddWeb}
-                />
-                <Text style={{textAlign: 'center', color: theme.colors.accentStart}}>＋ Add image</Text>
-              </label>
-            ) : (
-              <Pressable onPress={pickImagesNative} style={addTileStyle(theme) as any}>
-                <Text style={{textAlign: 'center', color: theme.colors.accentStart}}>＋ Add images</Text>
-              </Pressable>
+            {phase === 'SELECT' && (
+              Platform.OS === 'web' ? (
+                <label style={addTileStyle(theme) as any}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    style={{display: 'none'}}
+                    onChange={handleAddWeb}
+                  />
+                  <Text style={{textAlign: 'center', color: theme.colors.accentStart}}>＋ Add image</Text>
+                </label>
+              ) : (
+                <Pressable onPress={pickImagesNative} style={addTileStyle(theme) as any}>
+                  <Text style={{textAlign: 'center', color: theme.colors.accentStart}}>＋ Add images</Text>
+                </Pressable>
+              )
             )}
           </View>
         </View>
-
-        {prepareCount > 0 && (
-          <Button
-            text={`Prepare ${prepareCount} files`}
-            onPress={prepareSession}
-            disabled={
-              preparing || !Number(form.gymId) || !Number(form.equipmentId)
+        <Button
+          text={
+            phase === 'SELECT'
+              ? 'Upload & Finalize'
+              : phase === 'PREPARED'
+                ? 'Upload & Finalize'
+                : phase === 'UPLOADING'
+                  ? 'Uploading…'
+                  : phase === 'FINALIZED'
+                    ? 'Tag images'
+                    : 'Continue'
+          }
+          onPress={async () => {
+            try {
+              if (phase === 'SELECT') {
+                await prepareSession();
+              }
+              if (phase === 'SELECT' || phase === 'PREPARED') {
+                setPhase('UPLOADING');
+                await uploadAll();
+              }
+              if (
+                phase === 'SELECT' ||
+                phase === 'PREPARED' ||
+                phase === 'UPLOADING'
+              ) {
+                await finalizeSession();
+              }
+            } catch (e) {
+              console.error(e);
+              Toast.show({
+                type: 'error',
+                text1: 'Something went wrong.',
+              });
             }
-          />
-        )}
-        {uploadCount > 0 && (
-          <Button
-            text={`Upload ${uploadCount} files`}
-            onPress={uploadAll}
-            disabled={uploading}
-          />
-        )}
-        {allUploaded && (
-          <Button
-            text="Finalize"
-            onPress={finalizeSession}
-            disabled={finalizing}
-          />
-        )}
+          }}
+          disabled={
+            preparing ||
+            uploading ||
+            finalizing ||
+            !selectedGym ||
+            !selectedEquipment ||
+            tilesToShow.length === 0
+          }
+        />
         {(preparing || uploading || finalizing) && <LoadingState />}
+
+        {phase === 'TAGGING' && (
+          <Card style={{marginTop: spacing.md}}>
+            <Title text="Tag images" subtitle="Apply Angle to selected" />
+            <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm}}>
+              {tilesToShow.map((t, idx) => (
+                <Pressable key={idx} onPress={() => toggleSelect(idx)}>
+                  <View style={{opacity: selected.has(idx) ? 1 : 0.6}}>
+                    <ThumbnailTile tile={t} onRemove={() => {}} canRemove={false} />
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+            <AngleApplyToolbar
+              selectedImageIds={Array.from(selected)
+                .map(i => tilesToShow[i].imageId)
+                .filter(Boolean) as string[]}
+            />
+          </Card>
+        )}
       </Card>
       <ModalWrapper
         visible={gymModalVisible || equipmentModalVisible}
@@ -434,9 +499,11 @@ const BatchCaptureScreen = () => {
 function ThumbnailTile({
   tile,
   onRemove,
+  canRemove = true,
 }: {
   tile: UploadTile;
   onRemove: () => void;
+  canRemove?: boolean;
 }) {
   const {theme} = useTheme();
   const size = 120;
@@ -503,23 +570,25 @@ function ThumbnailTile({
           </Text>
         </View>
       )}
-      <Pressable
-        onPress={onRemove}
-        accessibilityLabel="Remove image"
-        style={{
-          position: 'absolute',
-          top: 6,
-          right: 6,
-          width: 22,
-          height: 22,
-          borderRadius: 11,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.colors.accentStart,
-        }}
-      >
-        <Text style={{color: 'white', fontWeight: '700', lineHeight: 22}}>×</Text>
-      </Pressable>
+      {canRemove && (
+        <Pressable
+          onPress={onRemove}
+          accessibilityLabel="Remove image"
+          style={{
+            position: 'absolute',
+            top: 6,
+            right: 6,
+            width: 22,
+            height: 22,
+            borderRadius: 11,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.colors.accentStart,
+          }}
+        >
+          <Text style={{color: 'white', fontWeight: '700', lineHeight: 22}}>×</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -543,3 +612,65 @@ const styles = StyleSheet.create({
 });
 
 export default BatchCaptureScreen;
+
+function AngleApplyToolbar({
+  selectedImageIds,
+}: {
+  selectedImageIds: string[];
+}) {
+  const {data, loading} = useAngles();
+  const [apply, {loading: saving}] = useApplyTags();
+  const [angleId, setAngleId] = useState<number | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const angles = data?.taxonomyTypes ?? [];
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        gap: spacing.sm,
+        alignItems: 'center',
+        marginTop: spacing.sm,
+      }}
+    >
+      <SelectableField
+        label="Angle"
+        value={
+          angleId ? angles.find((a: any) => a.id === angleId)?.label : 'Choose angle'
+        }
+        onPress={() => setModalVisible(true)}
+        disabled={loading}
+      />
+      <Button
+        text={`Apply to ${selectedImageIds.length} image(s)`}
+        onPress={async () => {
+          if (!selectedImageIds.length || !angleId) return;
+          await apply({
+            variables: {imageIds: selectedImageIds.map(Number), angleId},
+          });
+          Toast.show({type: 'success', text1: 'Angle applied'});
+        }}
+        disabled={!selectedImageIds.length || !angleId || saving}
+      />
+
+      <ModalWrapper visible={modalVisible} onClose={() => setModalVisible(false)}>
+        <Card>
+          <Title text="Choose Angle" />
+          {angles.map((a: any) => (
+            <Pressable
+              key={a.id}
+              onPress={() => {
+                setAngleId(a.id);
+                setModalVisible(false);
+              }}
+              style={{padding: spacing.sm}}
+            >
+              <Text>{a.label}</Text>
+            </Pressable>
+          ))}
+        </Card>
+      </ModalWrapper>
+    </View>
+  );
+}
