@@ -1,5 +1,6 @@
 import React, {useState, useMemo} from 'react';
 import {useQuery} from '@apollo/client';
+import {ScrollView} from 'react-native';
 
 import Title from 'shared/components/Title';
 import SearchInput from 'shared/components/SearchInput';
@@ -50,17 +51,19 @@ export default function EquipmentPickerModal({
       ) : filtered.length === 0 ? (
         <NoResults message="No equipment found" />
       ) : (
-        <ClickableList
-          items={filtered.map(eq => ({
-            id: eq.id,
-            label: eq.name,
-            subLabel: eq.brand,
-            onPress: () => {
-              onSelect(eq);
-              onClose();
-            },
-          }))}
-        />
+        <ScrollView style={{maxHeight: 500}}>
+          <ClickableList
+            items={filtered.map(eq => ({
+              id: eq.id,
+              label: eq.name,
+              subLabel: eq.brand,
+              onPress: () => {
+                onSelect(eq);
+                onClose();
+              },
+            }))}
+          />
+        </ScrollView>
       )}
     </>
   );

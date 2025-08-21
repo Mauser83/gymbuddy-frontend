@@ -4,11 +4,13 @@ import ScreenLayout from 'shared/components/ScreenLayout';
 import Card from 'shared/components/Card';
 import Title from 'shared/components/Title';
 import Button from 'shared/components/Button';
-import FormInput from 'shared/components/FormInput';
 import LoadingState from 'shared/components/LoadingState';
 import ModalWrapper from 'shared/components/ModalWrapper';
 import SelectableField from 'shared/components/SelectableField';
 import {Picker} from '@react-native-picker/picker';
+import {useQuery} from '@apollo/client';
+
+import {LIST_TAXONOMY} from 'features/cv/graphql/taxonomies.graphql';
 
 import GymPickerModal, {
   Gym,
@@ -34,7 +36,7 @@ type TileState =
 interface PutItem {
   url: string;
   storageKey: string;
-  requiredHeaders?: {key: string; value: string}[];
+  requiredHeaders?: {key?: string; name?: string; value: string}[];
 }
 
 interface UploadTile extends PutItem {
@@ -63,11 +65,11 @@ function putWithProgress(
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', item.url);
     (item.requiredHeaders || []).forEach(h =>
-      xhr.setRequestHeader(h.key, h.value),
+      xhr.setRequestHeader((h.key ?? h.name)!, h.value),
     );
     if (
       !(item.requiredHeaders || []).some(
-        h => h.key.toLowerCase() === 'content-type',
+        h => (h.key ?? h.name)?.toLowerCase() === 'content-type',
       ) &&
       file.type
     ) {
@@ -91,7 +93,6 @@ const initialForm = {
   gymId: '',
   equipmentId: '',
   count: '5',
-  filenamePrefix: '',
 };
 
 const BatchCaptureScreen = () => {
@@ -118,6 +119,10 @@ const BatchCaptureScreen = () => {
   const {refresh, patchUrls, data: urlData, loading: urlLoading} =
     useImageUrlMany();
   const [applyTaxonomies] = useApplyTaxonomiesToGymImages();
+  const {data: angleData} = useQuery(LIST_TAXONOMY, {
+    variables: {kind: 'ANGLE', active: true},
+  });
+  const angleOptions = angleData?.taxonomyTypes ?? [];
 
   // Handle imageUrlMany responses
   useEffect(() => {
@@ -138,7 +143,6 @@ const BatchCaptureScreen = () => {
             gymId,
             count,
             contentTypes: ['image/*'],
-            filenamePrefix: form.filenamePrefix || undefined,
             equipmentId,
           },
         },
@@ -232,7 +236,8 @@ const BatchCaptureScreen = () => {
         }),
       );
       setScreenState('PREVIEW');
-      refresh(tiles.map(t => t.storageKey));
+      const currentKeys = images.map(i => i.storageKey);
+      refresh(currentKeys);
     } catch (err) {
       console.error(err);
       setScreenState('SESSION_READY');
@@ -270,41 +275,55 @@ const BatchCaptureScreen = () => {
         onPress={() => setEquipmentModalVisible(true)}
         disabled={!selectedGym}
       />
-      <FormInput
-        label="Count"
-        value={form.count}
-        keyboardType="numeric"
-        onChangeText={v => setForm({...form, count: v})}
+            <View>
+        <Title subtitle={"Count: " + form.count} align="left"/>
+        <input
+          type="range"
+          min={1}
+          max={10}
+          value={Number(form.count)}
+          onChange={e =>
+            setForm({...form, count: String((e.target as any).value)})
+          }
+        />
+      </View>
+      <Button
+        text="Start Session"
+        onPress={handleStart}
+        disabled={
+          creating || !selectedGym || !selectedEquipment || !Number(form.count)
+        }
       />
-      <FormInput
-        label="Filename Prefix"
-        value={form.filenamePrefix}
-        onChangeText={v => setForm({...form, filenamePrefix: v})}
-      />
-      <Button text="Start Session" onPress={handleStart} disabled={creating} />
     </View>
   );
 
-  const renderUploadGrid = () => (
-    <View style={styles.grid}>
-      {tiles.map((tile, idx) => (
-        <View key={tile.storageKey} style={styles.tile}>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={e =>
-              handleFileChange(idx, (e.target as any)?.files?.[0] as any)
-            }
+  const renderUploadGrid = () => {
+    const allDone = tiles.length > 0 && tiles.every(t => t.putProgress === 100);
+    return (
+      <View style={styles.grid}>
+        {tiles.map((tile, idx) => (
+          <View key={tile.storageKey} style={styles.tile}>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={e =>
+                handleFileChange(idx, (e.target as any)?.files?.[0] as any)
+              }
+            />
+            <Text>Progress: {tile.putProgress}%</Text>
+            {tile.state === 'PUT_ERROR' && <Text style={styles.error}>Error</Text>}
+          </View>
+        ))}
+        {tiles.length > 0 && (
+          <Button
+            text="Finalize"
+            onPress={handleFinalize}
+            disabled={finalizing || !allDone}
           />
-          <Text>Progress: {tile.putProgress}%</Text>
-          {tile.state === 'PUT_ERROR' && <Text style={styles.error}>Error</Text>}
-        </View>
-      ))}
-      {tiles.length > 0 && (
-        <Button text="Finalize" onPress={handleFinalize} disabled={finalizing} />
-      )}
-    </View>
-  );
+        )}
+      </View>
+    );
+  };
 
   const renderPreviewGrid = () => (
     <View style={styles.grid}>
@@ -323,9 +342,9 @@ const BatchCaptureScreen = () => {
             onValueChange={val => handleAngle(tile, Number(val))}
             style={{height: 40, width: 120}}>
             <Picker.Item label="Angle" value={undefined} />
-            <Picker.Item label="Front" value={1} />
-            <Picker.Item label="Side" value={2} />
-            <Picker.Item label="Back" value={3} />
+            {angleOptions.map((opt: any) => (
+              <Picker.Item key={opt.id} label={opt.label} value={opt.id} />
+            ))}
           </Picker>
         </View>
       ))}
