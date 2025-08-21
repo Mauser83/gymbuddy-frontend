@@ -17,6 +17,7 @@
     "@expo/config-plugins": "10.1.2",
     "@expo/metro-runtime": "~5.0.4",
     "@react-native-async-storage/async-storage": "^2.1.2",
+    "@react-native-community/slider": "^5.0.1",
     "@react-native-picker/picker": "2.11.1",
     "@react-navigation/native": "^6.1.7",
     "@shopify/restyle": "^2.4.5",
@@ -62,7 +63,8 @@
     "subscriptions-transport-ws": "^0.11.0",
     "typescript": "^5.8.3",
     "volkeno-react-native-drag-drop": "^1.1.2",
-    "yup": "^1.6.1"
+    "yup": "^1.6.1",
+    "expo-image-picker": "~16.1.4"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
