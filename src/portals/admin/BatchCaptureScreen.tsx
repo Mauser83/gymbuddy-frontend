@@ -95,6 +95,15 @@ function resolveMimeType(file: File) {
   return 'image/jpeg';
 }
 
+function guessMimeFromName(name: string) {
+  const n = name.toLowerCase();
+  if (n.endsWith('.jpg') || n.endsWith('.jpeg')) return 'image/jpeg';
+  if (n.endsWith('.png')) return 'image/png';
+  if (n.endsWith('.heic')) return 'image/heic';
+  if (n.endsWith('.webp')) return 'image/webp';
+  return 'image/jpeg';
+}
+
 const initialForm = {
   gymId: '',
   equipmentId: '',
@@ -131,28 +140,37 @@ const BatchCaptureScreen = () => {
     ]);
   };
 
-  // Add image (native)
-  const pickImageNative = async () => {
+  // Add images (native)
+  const pickImagesNative = async () => {
+    const {status} = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Toast.show({
+        type: 'error',
+        text1: 'Media library permission required.',
+      });
+      return;
+    }
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      allowsEditing: false,
       quality: 1,
-      allowsMultipleSelection: false,
     });
-    if (res.canceled || !res.assets?.[0]) return;
-    const asset = res.assets[0];
-    const blob = await fetch(asset.uri).then(r => r.blob());
-    const name = asset.fileName || 'upload.jpg';
-    const type = blob.type || 'image/jpeg';
-    const file = new File([blob], name, {type});
-    setTiles(prev => [
-      ...prev,
-      {
+    if (res.canceled || !res.assets?.length) return;
+    const newTiles: UploadTile[] = [];
+    for (const asset of res.assets) {
+      const blob = await fetch(asset.uri).then(r => r.blob());
+      const name = asset.fileName || 'upload.jpg';
+      const type = blob.type || guessMimeFromName(name);
+      const file = new File([blob], name, {type});
+      newTiles.push({
         file,
         previewUri: asset.uri,
         putProgress: 0,
         state: 'EMPTY' as const,
-      },
-    ]);
+      });
+    }
+    setTiles(prev => [...prev, ...newTiles]);
   };
 
   // Prepare session once files are added
@@ -333,7 +351,7 @@ const BatchCaptureScreen = () => {
             )}
 
             {Platform.OS === 'web' ? (
-              <label style={addTileStyle as any}>
+              <label style={addTileStyle(theme) as any}>
                 <input
                   type="file"
                   accept="image/*"
@@ -341,11 +359,11 @@ const BatchCaptureScreen = () => {
                   style={{display: 'none'}}
                   onChange={handleAddWeb}
                 />
-                <Text style={{textAlign: 'center'}}>＋ Add image</Text>
+                <Text style={{textAlign: 'center', color: theme.colors.accentStart}}>＋ Add image</Text>
               </label>
             ) : (
-              <Pressable onPress={pickImageNative} style={addTileStyle as any}>
-                <Text style={{textAlign: 'center'}}>＋ Add image</Text>
+              <Pressable onPress={pickImagesNative} style={addTileStyle(theme) as any}>
+                <Text style={{textAlign: 'center', color: theme.colors.accentStart}}>＋ Add images</Text>
               </Pressable>
             )}
           </View>
@@ -431,7 +449,7 @@ function ThumbnailTile({
         overflow: 'hidden',
         position: 'relative',
         borderWidth: 1,
-        borderColor: theme.colors.divider,
+        borderColor: theme.colors.accentStart,
         backgroundColor: theme.colors.surface,
       }}
     >
@@ -506,15 +524,16 @@ function ThumbnailTile({
   );
 }
 
-const addTileStyle = {
+const addTileStyle = (theme: any) => ({
   width: 120,
   height: 120,
   borderRadius: 12,
   borderWidth: 1,
-  borderStyle: 'dashed' as const,
-  alignItems: 'center' as const,
-  justifyContent: 'center' as const,
-};
+  borderStyle: 'dashed',
+  borderColor: theme.colors.accentStart,
+  alignItems: 'center',
+  justifyContent: 'center',
+});
 
 const styles = StyleSheet.create({
   formContainer: {
