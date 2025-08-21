@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {View, Text, Image, StyleSheet} from 'react-native';
+import {View, Text, Image, StyleSheet, Platform} from 'react-native';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Card from 'shared/components/Card';
 import Title from 'shared/components/Title';
@@ -9,6 +9,8 @@ import ModalWrapper from 'shared/components/ModalWrapper';
 import SelectableField from 'shared/components/SelectableField';
 import {Picker} from '@react-native-picker/picker';
 import {useQuery} from '@apollo/client';
+import Slider from '@react-native-community/slider';
+import * as ImagePicker from 'expo-image-picker';
 
 import {LIST_TAXONOMY} from 'features/cv/graphql/taxonomies.graphql';
 
@@ -162,14 +164,30 @@ const BatchCaptureScreen = () => {
     }
   };
 
-  const handleFileChange = (index: number, file?: File) => {
-    setTiles(prev => {
-      const copy = [...prev];
-      copy[index] = {...copy[index], file};
-      return copy;
-    });
-    if (file) uploadTile(index, file);
-  };
+const handleFileChange = (index: number, file?: File) => {
+  setTiles(prev => {
+    const copy = [...prev];
+    copy[index] = {...copy[index], file};
+    return copy;
+  });
+  if (file) uploadTile(index, file);
+};
+
+const pickImageNative = async (index: number) => {
+  const res = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    quality: 1,
+  });
+  if (!res.canceled && res.assets?.[0]) {
+    const asset = res.assets[0];
+    const response = await fetch(asset.uri);
+    const blob = await response.blob();
+    const name = asset.fileName || 'upload.jpg';
+    const type = blob.type || 'image/jpeg';
+    const file = new File([blob], name, {type});
+    handleFileChange(index, file as any);
+  }
+};
 
   const uploadTile = async (index: number, file: File) => {
     const tile = tiles[index];
@@ -275,17 +293,29 @@ const BatchCaptureScreen = () => {
         onPress={() => setEquipmentModalVisible(true)}
         disabled={!selectedGym}
       />
-            <View>
-        <Title subtitle={"Count: " + form.count} align="left"/>
-        <input
-          type="range"
-          min={1}
-          max={10}
-          value={Number(form.count)}
-          onChange={e =>
-            setForm({...form, count: String((e.target as any).value)})
-          }
-        />
+                  <View>
+        <Title subtitle={`Count: ${form.count}`} align="left" />
+        {Platform.OS === 'web' ? (
+          <input
+            type="range"
+            min={1}
+            max={10}
+            value={Number(form.count)}
+            onChange={e =>
+              setForm({...form, count: String((e.target as any).value)})
+            }
+          />
+        ) : (
+          <Slider
+            minimumValue={1}
+            maximumValue={10}
+            step={1}
+            value={Number(form.count)}
+            onValueChange={v =>
+              setForm({...form, count: String(v)})
+            }
+          />
+        )}
       </View>
       <Button
         text="Start Session"
@@ -303,14 +333,22 @@ const BatchCaptureScreen = () => {
       <View style={styles.grid}>
         {tiles.map((tile, idx) => (
           <View key={tile.storageKey} style={styles.tile}>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={e =>
-                handleFileChange(idx, (e.target as any)?.files?.[0] as any)
-              }
-            />
-            <Text>Progress: {tile.putProgress}%</Text>
+            {Platform.OS === 'web' ? (
+              <input
+                type="file"
+                accept="image/*"
+                onChange={e =>
+                  handleFileChange(idx, (e.target as any)?.files?.[0] as any)
+                }
+              />
+            ) : (
+              <Button
+                text="Choose Image"
+                small
+                onPress={() => pickImageNative(idx)}
+              />
+            )}
+            <Title subtitle={"Progress: " + tile.putProgress + "%"}/>
             {tile.state === 'PUT_ERROR' && <Text style={styles.error}>Error</Text>}
           </View>
         ))}
