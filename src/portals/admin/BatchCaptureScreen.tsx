@@ -142,7 +142,7 @@ const BatchCaptureScreen = () => {
           input: {
             gymId,
             count,
-            contentTypes: ['image/*'],
+            contentTypes: Array.from({ length: count }, () => 'image/*'),
             equipmentId,
           },
         },
