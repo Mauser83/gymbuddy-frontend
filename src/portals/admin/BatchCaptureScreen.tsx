@@ -61,6 +61,7 @@ function putWithProgress(
   return new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', item.url);
+    xhr.timeout = 60000; // 60s safety
     (item.requiredHeaders || []).forEach(h =>
       xhr.setRequestHeader((h.key ?? h.name)!, h.value),
     );
@@ -72,16 +73,23 @@ function putWithProgress(
     ) {
       xhr.setRequestHeader('Content-Type', file.type);
     }
+    xhr.onloadstart = () => console.log('[PUT] start', item.storageKey);
     xhr.upload.onprogress = e => {
       if (e.lengthComputable) {
         onProgress(Math.round((e.loaded / e.total) * 100));
       }
     };
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState === 2) console.log('[PUT] headers received', xhr.status);
+      if (xhr.readyState === 3) console.log('[PUT] loading…');
+    };
     xhr.onload = () =>
       xhr.status >= 200 && xhr.status < 300
         ? resolve()
         : reject(new Error(`PUT ${xhr.status}`));
-    xhr.onerror = () => reject(new Error('Network error'));
+    xhr.onerror = () => reject(new Error('Network error (CORS/SSL?)'));
+    xhr.ontimeout = () => reject(new Error('PUT timeout (60s)'));
+    xhr.onabort = () => reject(new Error('PUT aborted'));
     xhr.send(file);
   });
 }
@@ -121,9 +129,26 @@ const BatchCaptureScreen = () => {
   const [equipmentModalVisible, setEquipmentModalVisible] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [tiles, setTiles] = useState<UploadTile[]>([]);
-  const [uploading, setUploading] = useState(false);
+    const tilesRef = React.useRef<UploadTile[]>([]);
   type Phase = 'SELECT' | 'PREPARED' | 'UPLOADING' | 'FINALIZED' | 'TAGGING';
   const [phase, setPhase] = useState<Phase>('SELECT');
+  React.useEffect(() => {
+    tilesRef.current = tiles;
+  }, [tiles]);
+  React.useEffect(() => {
+    if (phase !== 'PREPARED') return;
+    // Now the presigned URLs are in tiles; start the upload chain.
+    (async () => {
+      setPhase('UPLOADING');
+      await uploadAll();
+      await finalizeSession();
+    })().catch(err => {
+      console.error(err);
+      setPhase('PREPARED');
+      Toast.show({type: 'error', text1: 'Upload failed'});
+    });
+  }, [phase]);
+  const [uploading, setUploading] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const [createSession, {loading: preparing}] = useCreateUploadSession();
@@ -219,12 +244,23 @@ const BatchCaptureScreen = () => {
     setPhase('PREPARED');
   };
 
-  // Upload all pending tiles
+    // Upload all pending tiles
   const uploadAll = async () => {
-    const pending = tiles
+    const pending = tilesRef.current
       .map((t, i) => ({t, i}))
       .filter(({t}) => t.url && t.file && t.state === 'EMPTY');
-    if (!pending.length) return;
+    console.log('[UPLOAD] pending', pending.length);
+    if (!pending.length) {
+      const empties = tilesRef.current.filter(
+        t => t.file && !t.url && t.state === 'EMPTY',
+      );
+      if (empties.length) {
+        console.warn(
+          '[UPLOAD] found EMPTY tiles without presigns; did prepare run?',
+        );
+      }
+      return;
+    }
     setUploading(true);
     for (const {t, i} of pending) {
       setTiles(prev => {
@@ -257,10 +293,10 @@ const BatchCaptureScreen = () => {
     setUploading(false);
   };
 
-  // Finalize session
+      // Finalize session
   const finalizeSession = async () => {
     if (!sessionId) return;
-    const items = tiles
+    const items = tilesRef.current
       .filter(
         t => t.state !== 'REMOVED' && (t.state === 'PUTTING' || t.putProgress === 100),
       )
@@ -298,7 +334,6 @@ const BatchCaptureScreen = () => {
         text1: `Queued ${payload.queuedJobs} jobs`,
       });
       setPhase('FINALIZED');
-      setTimeout(() => setPhase('TAGGING'), 600);
     } catch (err) {
       console.error(err);
       setPhase('PREPARED');
@@ -354,13 +389,16 @@ const BatchCaptureScreen = () => {
           />
           <SelectableField
             label="Equipment"
-            value={selectedEquipment ? selectedEquipment.name : 'Select Equipment'}
+            value={
+              selectedEquipment ? selectedEquipment.name : 'Select Equipment'
+            }
             onPress={() => setEquipmentModalVisible(true)}
             disabled={!selectedGym}
           />
         </View>
         <View style={{marginTop: spacing.md}}>
-          <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm}}>
+          <View
+            style={{flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm}}>
             {tiles.map((t, idx) =>
               t.state === 'REMOVED' ? null : (
                 <ThumbnailTile
@@ -407,18 +445,12 @@ const BatchCaptureScreen = () => {
           onPress={async () => {
             try {
               if (phase === 'SELECT') {
-                await prepareSession();
+                await prepareSession(); // will setPhase('PREPARED')
+                return; // let React apply setTiles before starting uploads
               }
-              if (phase === 'SELECT' || phase === 'PREPARED') {
-                setPhase('UPLOADING');
-                await uploadAll();
-              }
-              if (
-                phase === 'SELECT' ||
-                phase === 'PREPARED' ||
-                phase === 'UPLOADING'
-              ) {
-                await finalizeSession();
+              if (phase === 'FINALIZED') {
+                setPhase('TAGGING');
+                return;
               }
             } catch (e) {
               console.error(e);
@@ -518,8 +550,7 @@ function ThumbnailTile({
         borderWidth: 1,
         borderColor: theme.colors.accentStart,
         backgroundColor: theme.colors.surface,
-      }}
-    >
+      }}>
       {tile.previewUri ? (
         <Image
           source={{uri: tile.previewUri}}
@@ -542,8 +573,7 @@ function ThumbnailTile({
             bottom: 0,
             height: 4,
             backgroundColor: theme.colors.disabledBorder,
-          }}
-        >
+          }}>
           <View
             style={{
               width: `${tile.putProgress}%`,
@@ -563,8 +593,7 @@ function ThumbnailTile({
             paddingVertical: 2,
             borderRadius: 9999,
             backgroundColor: theme.colors.disabledSurface,
-          }}
-        >
+          }}>
           <Text style={{fontSize: 10, color: theme.colors.textPrimary}}>
             Finalized
           </Text>
@@ -613,11 +642,7 @@ const styles = StyleSheet.create({
 
 export default BatchCaptureScreen;
 
-function AngleApplyToolbar({
-  selectedImageIds,
-}: {
-  selectedImageIds: string[];
-}) {
+function AngleApplyToolbar({selectedImageIds}: {selectedImageIds: string[]}) {
   const {data, loading} = useAngles();
   const [apply, {loading: saving}] = useApplyTags();
   const [angleId, setAngleId] = useState<number | null>(null);
@@ -632,12 +657,13 @@ function AngleApplyToolbar({
         gap: spacing.sm,
         alignItems: 'center',
         marginTop: spacing.sm,
-      }}
-    >
+      }}>
       <SelectableField
         label="Angle"
         value={
-          angleId ? angles.find((a: any) => a.id === angleId)?.label : 'Choose angle'
+          angleId
+            ? angles.find((a: any) => a.id === angleId)?.label
+            : 'Choose angle'
         }
         onPress={() => setModalVisible(true)}
         disabled={loading}
@@ -654,7 +680,9 @@ function AngleApplyToolbar({
         disabled={!selectedImageIds.length || !angleId || saving}
       />
 
-      <ModalWrapper visible={modalVisible} onClose={() => setModalVisible(false)}>
+      <ModalWrapper
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}>
         <Card>
           <Title text="Choose Angle" />
           {angles.map((a: any) => (
@@ -664,8 +692,7 @@ function AngleApplyToolbar({
                 setAngleId(a.id);
                 setModalVisible(false);
               }}
-              style={{padding: spacing.sm}}
-            >
+              style={{padding: spacing.sm}}>
               <Text>{a.label}</Text>
             </Pressable>
           ))}
