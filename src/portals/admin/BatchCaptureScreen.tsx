@@ -1,5 +1,13 @@
 import React, {useState} from 'react';
-import {View, Text, Image, Pressable, StyleSheet, Platform} from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  Pressable,
+  StyleSheet,
+  Platform,
+  useWindowDimensions,
+} from 'react-native';
 import Toast from 'react-native-toast-message';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Card from 'shared/components/Card';
@@ -8,9 +16,11 @@ import Button from 'shared/components/Button';
 import LoadingState from 'shared/components/LoadingState';
 import ModalWrapper from 'shared/components/ModalWrapper';
 import SelectableField from 'shared/components/SelectableField';
+import OptionItem from 'shared/components/OptionItem';
 import * as ImagePicker from 'expo-image-picker';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import {spacing} from 'shared/theme/tokens';
+import {useNavigate} from 'react-router-native';
 
 import GymPickerModal, {
   Gym,
@@ -22,7 +32,11 @@ import {
   useCreateUploadSession,
   useFinalizeGymImages,
 } from 'features/cv/hooks/useUploadSession';
-import {useAngles, useApplyTags} from 'features/cv/hooks/useTagging';
+import {
+  useApplyTaxonomies,
+  useTaxonomyOptions,
+  TaxonomyOption,
+} from 'features/cv/hooks/useTagging';
 type TileState =
   | 'EMPTY'
   | 'PUTTING'
@@ -120,6 +134,7 @@ const initialForm = {
 
 const BatchCaptureScreen = () => {
   const {theme} = useTheme();
+  const navigate = useNavigate();
   const [form, setForm] = useState(initialForm);
   const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(
@@ -130,7 +145,7 @@ const BatchCaptureScreen = () => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [tiles, setTiles] = useState<UploadTile[]>([]);
     const tilesRef = React.useRef<UploadTile[]>([]);
-  type Phase = 'SELECT' | 'PREPARED' | 'UPLOADING' | 'FINALIZED' | 'TAGGING';
+  type Phase = 'SELECT' | 'PREPARED' | 'UPLOADING' | 'TAGGING';
   const [phase, setPhase] = useState<Phase>('SELECT');
   React.useEffect(() => {
     tilesRef.current = tiles;
@@ -149,11 +164,78 @@ const BatchCaptureScreen = () => {
     });
   }, [phase]);
   const [uploading, setUploading] = useState(false);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const [createSession, {loading: preparing}] = useCreateUploadSession();
   const [finalize, {loading: finalizing}] = useFinalizeGymImages();
 
+  const {data: ang} = useTaxonomyOptions('ANGLE');
+  const {data: hgt} = useTaxonomyOptions('HEIGHT');
+  const {data: dst} = useTaxonomyOptions('DISTANCE');
+  const {data: lgt} = useTaxonomyOptions('LIGHTING');
+  const {data: mir} = useTaxonomyOptions('MIRROR');
+  const {data: spl} = useTaxonomyOptions('SPLIT');
+  const {data: src} = useTaxonomyOptions('SOURCE');
+  const angles = (ang?.taxonomyTypes as TaxonomyOption[]) ?? [];
+  const heights = (hgt?.taxonomyTypes as TaxonomyOption[]) ?? [];
+  const distances = (dst?.taxonomyTypes as TaxonomyOption[]) ?? [];
+  const lighting = (lgt?.taxonomyTypes as TaxonomyOption[]) ?? [];
+  const mirrors = (mir?.taxonomyTypes as TaxonomyOption[]) ?? [];
+  const splits = (spl?.taxonomyTypes as TaxonomyOption[]) ?? [];
+  const sources = (src?.taxonomyTypes as TaxonomyOption[]) ?? [];
+
+  const [applyTaxonomies] = useApplyTaxonomies();
+
+  const [defaults, setDefaults] = useState<{
+    lightingId?: number;
+    splitId?: number;
+    sourceId?: number;
+  }>({});
+  const [defaultOpen, setDefaultOpen] = useState<{k?: string; visible: boolean}>({
+    visible: false,
+  });
+  const openDefault = (k: string) => setDefaultOpen({k, visible: true});
+  const closeDefault = () => setDefaultOpen({visible: false});
+  const DEFAULT_PICKMAP: Record<
+    string,
+    {label: string; value?: number; options: TaxonomyOption[]}
+  > = {
+    lighting: {label: 'Lighting', value: defaults.lightingId, options: lighting},
+    split: {label: 'Split', value: defaults.splitId, options: splits},
+    source: {label: 'Source', value: defaults.sourceId, options: sources},
+  };
+  const currentDefault = defaultOpen.k
+    ? DEFAULT_PICKMAP[defaultOpen.k]
+    : null;
+
+  async function applySingle(
+    imageId: string,
+    patch: Partial<{
+      angleId: number;
+      heightId: number;
+      distanceId: number;
+      lightingId: number;
+      mirrorId: number;
+    }> ,
+  ) {
+    await applyTaxonomies({
+      variables: {input: {imageIds: [Number(imageId)], ...patch}},
+    });
+  }
+
+  async function applyDefaults() {
+    const imageIds = tilesToShow
+      .map(t => t.imageId)
+      .filter(Boolean)
+      .map(id => Number(id));
+    if (!imageIds.length) return;
+    const patch: any = {};
+    if (defaults.lightingId) patch.lightingId = defaults.lightingId;
+    if (defaults.splitId) patch.splitId = defaults.splitId;
+    if (defaults.sourceId) patch.sourceId = defaults.sourceId;
+    if (!Object.keys(patch).length) return;
+    await applyTaxonomies({variables: {input: {imageIds, ...patch}}});
+    Toast.show({type: 'success', text1: 'Applied to all'});
+  }
   // Add images (web)
   const handleAddWeb = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from((e.target as any).files ?? []) as File[];
@@ -333,7 +415,7 @@ const BatchCaptureScreen = () => {
         type: 'success',
         text1: `Queued ${payload.queuedJobs} jobs`,
       });
-      setPhase('FINALIZED');
+      setPhase('TAGGING');
     } catch (err) {
       console.error(err);
       setPhase('PREPARED');
@@ -365,14 +447,6 @@ const BatchCaptureScreen = () => {
   };
 
   const tilesToShow = tiles.filter(t => t.state !== 'REMOVED');
-  const toggleSelect = (idx: number) => {
-    setSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(idx)) next.delete(idx);
-      else next.add(idx);
-      return next;
-    });
-  };
 
   return (
     <ScreenLayout scroll>
@@ -438,9 +512,7 @@ const BatchCaptureScreen = () => {
                 ? 'Upload & Finalize'
                 : phase === 'UPLOADING'
                   ? 'Uploading…'
-                  : phase === 'FINALIZED'
-                    ? 'Tag images'
-                    : 'Continue'
+                  : 'Done'
           }
           onPress={async () => {
             try {
@@ -448,8 +520,8 @@ const BatchCaptureScreen = () => {
                 await prepareSession(); // will setPhase('PREPARED')
                 return; // let React apply setTiles before starting uploads
               }
-              if (phase === 'FINALIZED') {
-                setPhase('TAGGING');
+              if (phase === 'TAGGING') {
+                navigate('/admin/equipment-recognition');
                 return;
               }
             } catch (e) {
@@ -464,31 +536,68 @@ const BatchCaptureScreen = () => {
             preparing ||
             uploading ||
             finalizing ||
-            !selectedGym ||
-            !selectedEquipment ||
-            tilesToShow.length === 0
+            (phase === 'SELECT' &&
+              (!selectedGym || !selectedEquipment || tilesToShow.length === 0))
           }
         />
         {(preparing || uploading || finalizing) && <LoadingState />}
 
         {phase === 'TAGGING' && (
-          <Card style={{marginTop: spacing.md}}>
-            <Title text="Tag images" subtitle="Apply Angle to selected" />
-            <View style={{flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm}}>
+          <>
+            <Card style={{marginTop: spacing.md}} compact>
+              <Title text="Defaults" />
+              <View style={{gap: spacing.sm}}>
+                <SelectableField
+                  label="Lighting"
+                  value={labelOf(defaults.lightingId, lighting) || 'Choose'}
+                  onPress={() => openDefault('lighting')}
+                />
+                <SelectableField
+                  label="Split"
+                  value={labelOf(defaults.splitId, splits) || 'Choose'}
+                  onPress={() => openDefault('split')}
+                />
+                <SelectableField
+                  label="Source"
+                  value={labelOf(defaults.sourceId, sources) || 'Choose'}
+                  onPress={() => openDefault('source')}
+                />
+                <Button text="Apply to all" onPress={applyDefaults} />
+              </View>
+            </Card>
+            <Card title="Tag images" compact style={{marginTop: spacing.md}}>
               {tilesToShow.map((t, idx) => (
-                <Pressable key={idx} onPress={() => toggleSelect(idx)}>
-                  <View style={{opacity: selected.has(idx) ? 1 : 0.6}}>
-                    <ThumbnailTile tile={t} onRemove={() => {}} canRemove={false} />
-                  </View>
-                </Pressable>
+                <TagRow
+                  key={t.imageId ?? idx}
+                  tile={t}
+                  angles={angles}
+                  heights={heights}
+                  distances={distances}
+                  lighting={lighting}
+                  mirrors={mirrors}
+                  onApply={patch => applySingle(t.imageId!, patch)}
+                />
               ))}
-            </View>
-            <AngleApplyToolbar
-              selectedImageIds={Array.from(selected)
-                .map(i => tilesToShow[i].imageId)
-                .filter(Boolean) as string[]}
-            />
-          </Card>
+            </Card>
+            <ModalWrapper visible={defaultOpen.visible} onClose={closeDefault}>
+              <View style={{padding: spacing.md}}>
+                <Title text={`Choose ${currentDefault?.label}`} align="center" />
+                {currentDefault?.options.map(o => (
+                  <OptionItem
+                    key={o.id}
+                    text={o.label}
+                    onPress={() => {
+                      setDefaults(prev => ({
+                        ...prev,
+                        [`${defaultOpen.k}Id`]: o.id,
+                      }) as any);
+                      closeDefault();
+                    }}
+                  />
+                ))}
+              </View>
+            </ModalWrapper>
+          </>
         )}
       </Card>
       <ModalWrapper
@@ -640,64 +749,174 @@ const styles = StyleSheet.create({
   },
 });
 
-export default BatchCaptureScreen;
+type Opt = {id: number; label: string};
+const labelOf = (id?: number, opts: Opt[] = []) =>
+  opts.find(o => o.id === id)?.label;
 
-function AngleApplyToolbar({selectedImageIds}: {selectedImageIds: string[]}) {
-  const {data, loading} = useAngles();
-  const [apply, {loading: saving}] = useApplyTags();
-  const [angleId, setAngleId] = useState<number | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
+function TagRow({
+  tile,
+  angles,
+  heights,
+  distances,
+  lighting,
+  mirrors,
+  onApply,
+}: {
+  tile: UploadTile;
+  angles: Opt[];
+  heights: Opt[];
+  distances: Opt[];
+  lighting: Opt[];
+  mirrors: Opt[];
+  onApply: (
+    patch: Partial<{
+      angleId: number;
+      heightId: number;
+      distanceId: number;
+      lightingId: number;
+      mirrorId: number;
+    }>,
+  ) => Promise<void>;
+}) {
+  const {theme} = useTheme();
+  const [open, setOpen] = React.useState<{k?: string; visible: boolean}>(
+    {
+      visible: false,
+    },
+  );
+  const [local, setLocal] = React.useState<{
+    angleId?: number;
+    heightId?: number;
+    distanceId?: number;
+    lightingId?: number;
+    mirrorId?: number;
+  }>({});
 
-  const angles = data?.taxonomyTypes ?? [];
+  const thumb = tile.previewUri ?? tile.signedUrl;
+  const {width} = useWindowDimensions();
+  const isNarrow = width < 600;
+
+  const openPicker = (k: string) => setOpen({k, visible: true});
+  const close = () => setOpen({visible: false});
+
+  const PICKMAP: Record<
+    string,
+    {label: string; value?: number; options: Opt[]}
+  > = {
+    angle: {label: 'Angle', value: local.angleId, options: angles},
+    lighting: {label: 'Lighting', value: local.lightingId, options: lighting},
+    height: {label: 'Height', value: local.heightId, options: heights},
+    distance: {label: 'Distance', value: local.distanceId, options: distances},
+    mirror: {label: 'Mirror', value: local.mirrorId, options: mirrors},
+  };
+
+  const current = open.k ? PICKMAP[open.k] : null;
 
   return (
     <View
       style={{
-        flexDirection: 'row',
-        gap: spacing.sm,
-        alignItems: 'center',
-        marginTop: spacing.sm,
+        flexDirection: isNarrow ? 'column' : 'row',
+        gap: spacing.md,
+        alignItems: 'flex-start',
+        paddingVertical: spacing.sm,
       }}>
-      <SelectableField
-        label="Angle"
-        value={
-          angleId
-            ? angles.find((a: any) => a.id === angleId)?.label
-            : 'Choose angle'
-        }
-        onPress={() => setModalVisible(true)}
-        disabled={loading}
-      />
-      <Button
-        text={`Apply to ${selectedImageIds.length} image(s)`}
-        onPress={async () => {
-          if (!selectedImageIds.length || !angleId) return;
-          await apply({
-            variables: {imageIds: selectedImageIds.map(Number), angleId},
-          });
-          Toast.show({type: 'success', text1: 'Angle applied'});
-        }}
-        disabled={!selectedImageIds.length || !angleId || saving}
-      />
+      <View
+        style={{
+          width: 128,
+          height: 128,
+          borderRadius: 12,
+          overflow: 'hidden',
+          borderWidth: 1,
+          borderColor: theme.colors.divider,
+        }}>
+        <Image
+          source={{uri: thumb}}
+          style={{width: '100%', height: '100%'}}
+          resizeMode="cover"
+        />
+        {tile.state === 'FINALIZED' && (
+          <View
+            style={{
+              position: 'absolute',
+              left: 6,
+              bottom: 6,
+              backgroundColor: theme.colors.disabledSurface,
+              borderRadius: 999,
+              paddingHorizontal: 6,
+              paddingVertical: 2,
+            }}>
+            <Text style={{fontSize: 10, color: theme.colors.textPrimary}}>
+              Finalized
+            </Text>
+          </View>
+        )}
+      </View>
 
-      <ModalWrapper
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}>
-        <Card>
-          <Title text="Choose Angle" />
-          {angles.map((a: any) => (
-            <Pressable
-              key={a.id}
+      <View style={{flex: 1, gap: spacing.sm}}>
+        <SelectableField
+          label="Angle"
+          value={labelOf(local.angleId, angles) || 'Choose'}
+          onPress={() => openPicker('angle')}
+        />
+        <SelectableField
+          label="Lighting"
+          value={labelOf(local.lightingId, lighting) || 'Choose'}
+          onPress={() => openPicker('lighting')}
+        />
+        <SelectableField
+          label="Height"
+          value={labelOf(local.heightId, heights) || 'Choose'}
+          onPress={() => openPicker('height')}
+        />
+        <SelectableField
+          label="Distance"
+          value={labelOf(local.distanceId, distances) || 'Choose'}
+          onPress={() => openPicker('distance')}
+        />
+        <SelectableField
+          label="Mirror"
+          value={labelOf(local.mirrorId, mirrors) || 'Choose'}
+          onPress={() => openPicker('mirror')}
+        />
+
+        <Button
+          text="Save"
+          variant="solid"
+          onPress={async () => {
+            if (!tile.imageId) return;
+            await onApply({
+              angleId: local.angleId,
+              heightId: local.heightId,
+              distanceId: local.distanceId,
+              lightingId: local.lightingId,
+              mirrorId: local.mirrorId,
+            });
+            Toast.show({type: 'success', text1: 'Saved'});
+          }}
+          disabled={!tile.imageId}
+        />
+      </View>
+
+      <ModalWrapper visible={open.visible} onClose={close}>
+        <View style={{padding: spacing.md}}>
+          <Title text={`Choose ${current?.label}`} align="center" />
+          {current?.options.map(o => (
+            <OptionItem
+              key={o.id}
+              text={o.label}
               onPress={() => {
-                setAngleId(a.id);
-                setModalVisible(false);
+                setLocal(prev => ({
+                  ...prev,
+                  [`${open.k}Id`]: o.id,
+                }) as any);
+                close();
               }}
-              style={{padding: spacing.sm}}>
-              <Text>{a.label}</Text>
-            </Pressable>
+            />
           ))}
-        </Card>
+        </View>
       </ModalWrapper>
     </View>
   );
 }
+
+export default BatchCaptureScreen;

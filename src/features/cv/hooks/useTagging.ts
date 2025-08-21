@@ -1,26 +1,32 @@
-import { gql, useMutation, useQuery } from '@apollo/client';
+import {gql, useMutation, useQuery} from '@apollo/client';
 
-export const ANGLES = gql`
-  query Angles {
-    taxonomyTypes(kind: ANGLE, active: true) {
+// Generic taxonomy options query
+const TAXONOMY_OPTIONS = gql`
+  query TaxonomyOptions($kind: TaxonomyKind!, $active: Boolean) {
+    taxonomyTypes(kind: $kind, active: $active) {
       id
       label
     }
   }
 `;
 
-export const APPLY_TAGS = gql`
-  mutation Apply($imageIds: [Int!]!, $angleId: Int) {
-    applyTaxonomiesToGymImages(input: { imageIds: $imageIds, angleId: $angleId }) {
+// Mutation for applying taxonomies to gym images
+const APPLY_TAXONOMIES = gql`
+  mutation ApplyTaxonomies($input: ApplyTaxonomiesInput!) {
+    applyTaxonomiesToGymImages(input: $input) {
       updatedCount
     }
   }
 `;
 
-export function useAngles() {
-  return useQuery(ANGLES);
+// Fetch active taxonomy options for a given kind
+export function useTaxonomyOptions(kind: string) {
+  return useQuery(TAXONOMY_OPTIONS, {variables: {kind, active: true}});
 }
 
-export function useApplyTags() {
-  return useMutation(APPLY_TAGS);
+// Mutation hook for applying taxonomy values
+export function useApplyTaxonomies() {
+  return useMutation(APPLY_TAXONOMIES);
 }
+
+export type TaxonomyOption = {id: number; label: string};
