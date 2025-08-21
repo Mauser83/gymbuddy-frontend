@@ -9,7 +9,10 @@ export const CREATE_UPLOAD_SESSION = gql`
         url
         storageKey
         expiresAt
-        requiredHeaders { name value }
+        requiredHeaders {
+          name
+          value
+        }
       }
     }
   }
@@ -18,15 +21,20 @@ export const CREATE_UPLOAD_SESSION = gql`
 export const FINALIZE_GYM_IMAGES = gql`
   mutation FinalizeGymImages($input: FinalizeGymImagesInput!) {
     finalizeGymImages(input: $input) {
-      images { id imageId storageKey }
-      queuedJobs { id jobType status }
+      images {
+        id
+        gymId
+        equipmentId
+        status
+      }
+      queuedJobs
     }
   }
 `;
 
 export const IMAGE_URL_MANY = gql`
-  query ImageUrlMany($keys: [String!]!, $ttl: Int) {
-    imageUrlMany(storageKeys: $keys, ttlSec: $ttl) {
+  query ImageUrlMany($keys: [String!]!, $ttlSec: Int) {
+    imageUrlMany(storageKeys: $keys, ttlSec: $ttlSec) {
       storageKey
       url
       expiresAt
@@ -35,7 +43,9 @@ export const IMAGE_URL_MANY = gql`
 `;
 
 export const APPLY_TAXONOMIES = gql`
-  mutation ApplyTaxonomiesToGymImages($input: ApplyTaxonomiesToGymImagesInput!) {
+  mutation ApplyTaxonomiesToGymImages(
+    $input: ApplyTaxonomiesToGymImagesInput!
+  ) {
     applyTaxonomiesToGymImages(input: $input) {
       updatedCount
     }

@@ -23,7 +23,7 @@ export function useImageUrlMany(options?: any) {
   });
 
   const refresh = (keys: string[], ttl?: number) =>
-    load({variables: {keys, ttl}});
+    load({variables: {keys, ttlSec: ttl}});
 
   const patchUrls = (tiles: any[], results: any[]) => {
     const map = new Map(results.map(r => [r.storageKey, r]));
