@@ -9,7 +9,7 @@ export const CREATE_UPLOAD_SESSION = gql`
         url
         storageKey
         expiresAt
-        requiredHeaders { key value }
+        requiredHeaders { name value }
       }
     }
   }
