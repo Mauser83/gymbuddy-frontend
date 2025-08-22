@@ -64,7 +64,8 @@
     "typescript": "^5.8.3",
     "volkeno-react-native-drag-drop": "^1.1.2",
     "yup": "^1.6.1",
-    "expo-image-picker": "~16.1.4"
+    "expo-image-picker": "~16.1.4",
+    "expo-clipboard": "~7.1.5"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
