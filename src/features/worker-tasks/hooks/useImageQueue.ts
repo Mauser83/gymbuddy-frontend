@@ -1,13 +1,11 @@
 import {useQuery} from '@apollo/client';
-import {useEffect, useState} from 'react';
+import {useEffect} from 'react';
 import {AppState, AppStateStatus} from 'react-native';
-import {
-  IMAGE_QUEUE,
-} from '../graphql/queue.graphql';
+import {IMAGE_JOBS} from '../graphql/queue.graphql';
 import type {
   ImageJobStatus,
   ImageJobType,
-  ImageQueueResponse,
+  ImageQueueItem,
 } from '../types';
 
 interface Filters {
@@ -26,14 +24,19 @@ export const useImageQueue = (
   filters: Filters,
   options?: Options,
 ) => {
-  const [offset, setOffset] = useState(0);
   const pollMs = options?.pollMs ?? 10000;
 
+  const singleStatus =
+    Array.isArray(filters.status) && filters.status.length === 1
+      ? filters.status[0]
+      : null;
+
   const {data, loading, error, refetch, startPolling, stopPolling} = useQuery<{
-    imageQueue: ImageQueueResponse;
-  }>(IMAGE_QUEUE, {
-    variables: {...filters, offset, limit: filters.limit ?? 50},
+    imageJobs: ImageQueueItem[];
+  }>(IMAGE_JOBS, {
+    variables: {status: singleStatus, limit: filters.limit ?? 50},
     pollInterval: options?.pauseOnHidden ? 0 : pollMs,
+    fetchPolicy: 'cache-and-network',
     notifyOnNetworkStatusChange: true,
   });
 
@@ -66,17 +69,28 @@ export const useImageQueue = (
     };
   }, [pollMs, startPolling, stopPolling, options?.pauseOnHidden]);
 
-  const items = data?.imageQueue?.items ?? [];
-  const total = data?.imageQueue?.total ?? 0;
+  const raw: ImageQueueItem[] = data?.imageJobs ?? [];
 
-  return {
-    data,
-    items,
-    total,
-    loading,
-    error,
-    refetch,
-    setOffset,
-    offset,
-  } as const;
+  const normalized = raw.map(r => ({
+    ...r,
+    jobType: (r.jobType || '').toLowerCase(),
+  }));
+
+  const byType =
+    filters.jobType?.length
+      ? normalized.filter(r => filters.jobType.includes(r.jobType as any))
+      : normalized;
+
+  const q = (filters.query ?? '').trim().toLowerCase();
+  const items = q
+    ? byType.filter(r =>
+        (r.id ?? '').toLowerCase().includes(q) ||
+        (r.imageId ?? '').toLowerCase().includes(q) ||
+        (r.storageKey ?? '').toLowerCase().includes(q) ||
+        (r.lastError ?? '').toLowerCase().includes(q),
+      )
+    : byType;
+  const total = items.length;
+
+  return {items, total, loading, error, refetch} as const;
 };
