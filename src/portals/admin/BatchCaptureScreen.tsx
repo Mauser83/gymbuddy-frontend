@@ -1,13 +1,5 @@
 import React, {useState} from 'react';
-import {
-  View,
-  Text,
-  Image,
-  Pressable,
-  StyleSheet,
-  Platform,
-  useWindowDimensions,
-} from 'react-native';
+import {View, Text, Image, Pressable, StyleSheet, Platform} from 'react-native';
 import Toast from 'react-native-toast-message';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Card from 'shared/components/Card';
@@ -94,7 +86,8 @@ function putWithProgress(
       }
     };
     xhr.onreadystatechange = () => {
-      if (xhr.readyState === 2) console.log('[PUT] headers received', xhr.status);
+      if (xhr.readyState === 2)
+        console.log('[PUT] headers received', xhr.status);
       if (xhr.readyState === 3) console.log('[PUT] loading…');
     };
     xhr.onload = () =>
@@ -144,7 +137,7 @@ const BatchCaptureScreen = () => {
   const [equipmentModalVisible, setEquipmentModalVisible] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [tiles, setTiles] = useState<UploadTile[]>([]);
-    const tilesRef = React.useRef<UploadTile[]>([]);
+  const tilesRef = React.useRef<UploadTile[]>([]);
   type Phase = 'SELECT' | 'PREPARED' | 'UPLOADING' | 'TAGGING';
   const [phase, setPhase] = useState<Phase>('SELECT');
   React.useEffect(() => {
@@ -186,11 +179,13 @@ const BatchCaptureScreen = () => {
   const [applyTaxonomies] = useApplyTaxonomies();
 
   const [defaults, setDefaults] = useState<{
-    lightingId?: number;
     splitId?: number;
     sourceId?: number;
   }>({});
-  const [defaultOpen, setDefaultOpen] = useState<{k?: string; visible: boolean}>({
+  const [defaultOpen, setDefaultOpen] = useState<{
+    k?: string;
+    visible: boolean;
+  }>({
     visible: false,
   });
   const openDefault = (k: string) => setDefaultOpen({k, visible: true});
@@ -199,13 +194,10 @@ const BatchCaptureScreen = () => {
     string,
     {label: string; value?: number; options: TaxonomyOption[]}
   > = {
-    lighting: {label: 'Lighting', value: defaults.lightingId, options: lighting},
     split: {label: 'Split', value: defaults.splitId, options: splits},
     source: {label: 'Source', value: defaults.sourceId, options: sources},
   };
-  const currentDefault = defaultOpen.k
-    ? DEFAULT_PICKMAP[defaultOpen.k]
-    : null;
+  const currentDefault = defaultOpen.k ? DEFAULT_PICKMAP[defaultOpen.k] : null;
 
   async function applySingle(
     imageId: string,
@@ -215,7 +207,7 @@ const BatchCaptureScreen = () => {
       distanceId: number;
       lightingId: number;
       mirrorId: number;
-    }> ,
+    }>,
   ) {
     await applyTaxonomies({
       variables: {input: {imageIds: [Number(imageId)], ...patch}},
@@ -229,7 +221,6 @@ const BatchCaptureScreen = () => {
       .map(id => Number(id));
     if (!imageIds.length) return;
     const patch: any = {};
-    if (defaults.lightingId) patch.lightingId = defaults.lightingId;
     if (defaults.splitId) patch.splitId = defaults.splitId;
     if (defaults.sourceId) patch.sourceId = defaults.sourceId;
     if (!Object.keys(patch).length) return;
@@ -326,7 +317,7 @@ const BatchCaptureScreen = () => {
     setPhase('PREPARED');
   };
 
-    // Upload all pending tiles
+  // Upload all pending tiles
   const uploadAll = async () => {
     const pending = tilesRef.current
       .map((t, i) => ({t, i}))
@@ -375,12 +366,14 @@ const BatchCaptureScreen = () => {
     setUploading(false);
   };
 
-      // Finalize session
+  // Finalize session
   const finalizeSession = async () => {
     if (!sessionId) return;
     const items = tilesRef.current
       .filter(
-        t => t.state !== 'REMOVED' && (t.state === 'PUTTING' || t.putProgress === 100),
+        t =>
+          t.state !== 'REMOVED' &&
+          (t.state === 'PUTTING' || t.putProgress === 100),
       )
       .map(t => ({storageKey: t.storageKey!}));
     try {
@@ -484,8 +477,8 @@ const BatchCaptureScreen = () => {
               ),
             )}
 
-            {phase === 'SELECT' && (
-              Platform.OS === 'web' ? (
+            {phase === 'SELECT' &&
+              (Platform.OS === 'web' ? (
                 <label style={addTileStyle(theme) as any}>
                   <input
                     type="file"
@@ -494,14 +487,27 @@ const BatchCaptureScreen = () => {
                     style={{display: 'none'}}
                     onChange={handleAddWeb}
                   />
-                  <Text style={{textAlign: 'center', color: theme.colors.accentStart}}>＋ Add image</Text>
+                  <Text
+                    style={{
+                      textAlign: 'center',
+                      color: theme.colors.accentStart,
+                    }}>
+                    ＋ Add image
+                  </Text>
                 </label>
               ) : (
-                <Pressable onPress={pickImagesNative} style={addTileStyle(theme) as any}>
-                  <Text style={{textAlign: 'center', color: theme.colors.accentStart}}>＋ Add images</Text>
+                <Pressable
+                  onPress={pickImagesNative}
+                  style={addTileStyle(theme) as any}>
+                  <Text
+                    style={{
+                      textAlign: 'center',
+                      color: theme.colors.accentStart,
+                    }}>
+                    ＋ Add images
+                  </Text>
                 </Pressable>
-              )
-            )}
+              ))}
           </View>
         </View>
         <Button
@@ -548,11 +554,6 @@ const BatchCaptureScreen = () => {
               <Title text="Defaults" />
               <View style={{gap: spacing.sm}}>
                 <SelectableField
-                  label="Lighting"
-                  value={labelOf(defaults.lightingId, lighting) || 'Choose'}
-                  onPress={() => openDefault('lighting')}
-                />
-                <SelectableField
                   label="Split"
                   value={labelOf(defaults.splitId, splits) || 'Choose'}
                   onPress={() => openDefault('split')}
@@ -581,16 +582,22 @@ const BatchCaptureScreen = () => {
             </Card>
             <ModalWrapper visible={defaultOpen.visible} onClose={closeDefault}>
               <View style={{padding: spacing.md}}>
-                <Title text={`Choose ${currentDefault?.label}`} align="center" />
+                <Title
+                  text={`Choose ${currentDefault?.label}`}
+                  align="center"
+                />
                 {currentDefault?.options.map(o => (
                   <OptionItem
                     key={o.id}
                     text={o.label}
                     onPress={() => {
-                      setDefaults(prev => ({
-                        ...prev,
-                        [`${defaultOpen.k}Id`]: o.id,
-                      }) as any);
+                      setDefaults(
+                        prev =>
+                          ({
+                            ...prev,
+                            [`${defaultOpen.k}Id`]: o.id,
+                          }) as any,
+                      );
                       closeDefault();
                     }}
                   />
@@ -692,22 +699,6 @@ function ThumbnailTile({
           />
         </View>
       )}
-      {tile.state === 'FINALIZED' && (
-        <View
-          style={{
-            position: 'absolute',
-            left: 6,
-            bottom: 6,
-            paddingHorizontal: 6,
-            paddingVertical: 2,
-            borderRadius: 9999,
-            backgroundColor: theme.colors.disabledSurface,
-          }}>
-          <Text style={{fontSize: 10, color: theme.colors.textPrimary}}>
-            Finalized
-          </Text>
-        </View>
-      )}
       {canRemove && (
         <Pressable
           onPress={onRemove}
@@ -722,9 +713,10 @@ function ThumbnailTile({
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: theme.colors.accentStart,
-          }}
-        >
-          <Text style={{color: 'white', fontWeight: '700', lineHeight: 22}}>×</Text>
+          }}>
+          <Text style={{color: 'white', fontWeight: '700', lineHeight: 22}}>
+            ×
+          </Text>
         </Pressable>
       )}
     </View>
@@ -779,11 +771,9 @@ function TagRow({
   ) => Promise<void>;
 }) {
   const {theme} = useTheme();
-  const [open, setOpen] = React.useState<{k?: string; visible: boolean}>(
-    {
-      visible: false,
-    },
-  );
+  const [open, setOpen] = React.useState<{k?: string; visible: boolean}>({
+    visible: false,
+  });
   const [local, setLocal] = React.useState<{
     angleId?: number;
     heightId?: number;
@@ -793,8 +783,7 @@ function TagRow({
   }>({});
 
   const thumb = tile.previewUri ?? tile.signedUrl;
-  const {width} = useWindowDimensions();
-  const isNarrow = width < 600;
+  const isWeb = Platform.OS === 'web';
 
   const openPicker = (k: string) => setOpen({k, visible: true});
   const close = () => setOpen({visible: false});
@@ -815,7 +804,7 @@ function TagRow({
   return (
     <View
       style={{
-        flexDirection: isNarrow ? 'column' : 'row',
+        flexDirection: isWeb ? 'row' : 'column',
         gap: spacing.md,
         alignItems: 'flex-start',
         paddingVertical: spacing.sm,
@@ -834,22 +823,6 @@ function TagRow({
           style={{width: '100%', height: '100%'}}
           resizeMode="cover"
         />
-        {tile.state === 'FINALIZED' && (
-          <View
-            style={{
-              position: 'absolute',
-              left: 6,
-              bottom: 6,
-              backgroundColor: theme.colors.disabledSurface,
-              borderRadius: 999,
-              paddingHorizontal: 6,
-              paddingVertical: 2,
-            }}>
-            <Text style={{fontSize: 10, color: theme.colors.textPrimary}}>
-              Finalized
-            </Text>
-          </View>
-        )}
       </View>
 
       <View style={{flex: 1, gap: spacing.sm}}>
@@ -905,10 +878,13 @@ function TagRow({
               key={o.id}
               text={o.label}
               onPress={() => {
-                setLocal(prev => ({
-                  ...prev,
-                  [`${open.k}Id`]: o.id,
-                }) as any);
+                setLocal(
+                  prev =>
+                    ({
+                      ...prev,
+                      [`${open.k}Id`]: o.id,
+                    }) as any,
+                );
                 close();
               }}
             />
