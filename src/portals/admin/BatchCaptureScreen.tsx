@@ -200,7 +200,7 @@ const BatchCaptureScreen = () => {
   const currentDefault = defaultOpen.k ? DEFAULT_PICKMAP[defaultOpen.k] : null;
 
   async function applySingle(
-    imageId: string,
+    imageId: string | undefined,
     patch: Partial<{
       angleId: number;
       heightId: number;
@@ -209,13 +209,14 @@ const BatchCaptureScreen = () => {
       mirrorId: number;
     }>,
   ) {
+    if (typeof imageId !== 'string' || imageId.length === 0) return;
     await applyTaxonomies({
       variables: {input: {imageIds: [imageId], ...patch}},
     });
   }
 
   async function applyDefaults() {
-    const imageIds = tilesRef.current
+    const imageIds = tiles
       .map(t => t.imageId)
       .filter((id): id is string => typeof id === 'string' && id.length > 0);
     if (!imageIds.length) return;
@@ -365,7 +366,7 @@ const BatchCaptureScreen = () => {
     setUploading(false);
   };
 
-    // Finalize session
+  // Finalize session
   const finalizeSession = async () => {
     if (!sessionId) return;
     // Build a candidates list with ORIGINAL indexes preserved
@@ -391,22 +392,33 @@ const BatchCaptureScreen = () => {
         },
       });
       const payload = res.data.finalizeGymImages;
-      setTiles(prev => {
-        const next = [...prev];
-        payload.images.forEach((img: any, i: number) => {
-          const dest = candidates[i]?.idx;
-          if (dest == null) return;
-          next[dest] = {
-            ...next[dest],
-            state: 'FINALIZED',
-            imageId: String(img.id),
-          };
-        });
-        return next;
+            if (payload.images.length !== candidates.length) {
+        console.warn(
+          '[FINALIZE] mismatch: returned images',
+          payload.images.length,
+          'candidates',
+          candidates.length,
+        );
+      }
+      // Build an updated array *now*, not inside setState
+      const base = tilesRef.current.slice();
+      payload.images.forEach((img: any, i: number) => {
+        const dest = candidates[i]?.idx;
+        if (dest == null) return;
+        base[dest] = {
+          ...base[dest],
+          state: 'FINALIZED',
+          imageId: String(img.id), // GymEquipmentImage.id
+        };
       });
+      // Write ref first so immediate reads see IDs
+      tilesRef.current = base;
+      setTiles(base);
+
       console.log('[FINALIZE] images:', payload.images.map((x: any) => x.id));
       console.log('[FINALIZE] candidates idx:', candidates.map(c => c.idx));
-      console.log('[TAG] row ids:', tilesRef.current.map(t => t.imageId));
+      console.log('[TAG] row ids (post-assign):', tilesRef.current.map(t => t.imageId));
+
       Toast.show({
         type: 'success',
         text1: `Queued ${payload.queuedJobs} jobs`,
