@@ -6,6 +6,7 @@ const TAXONOMY_OPTIONS = gql`
     taxonomyTypes(kind: $kind, active: $active) {
       id
       label
+      kind
     }
   }
 `;
@@ -21,7 +22,10 @@ const APPLY_TAXONOMIES = gql`
 
 // Fetch active taxonomy options for a given kind
 export function useTaxonomyOptions(kind: string) {
-  return useQuery(TAXONOMY_OPTIONS, {variables: {kind, active: true}});
+  return useQuery(TAXONOMY_OPTIONS, {
+    variables: {kind, active: true},
+    fetchPolicy: 'network-only',
+  });
 }
 
 // Mutation hook for applying taxonomy values
