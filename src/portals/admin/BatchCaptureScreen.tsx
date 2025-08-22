@@ -210,15 +210,14 @@ const BatchCaptureScreen = () => {
     }>,
   ) {
     await applyTaxonomies({
-      variables: {input: {imageIds: [Number(imageId)], ...patch}},
+      variables: {input: {imageIds: [imageId], ...patch}},
     });
   }
 
   async function applyDefaults() {
-    const imageIds = tilesToShow
+    const imageIds = tilesRef.current
       .map(t => t.imageId)
-      .filter(Boolean)
-      .map(id => Number(id));
+      .filter((id): id is string => typeof id === 'string' && id.length > 0);
     if (!imageIds.length) return;
     const patch: any = {};
     if (defaults.splitId) patch.splitId = defaults.splitId;
@@ -366,16 +365,18 @@ const BatchCaptureScreen = () => {
     setUploading(false);
   };
 
-  // Finalize session
+    // Finalize session
   const finalizeSession = async () => {
     if (!sessionId) return;
-    const items = tilesRef.current
+    // Build a candidates list with ORIGINAL indexes preserved
+    const candidates = tilesRef.current
+      .map((t, idx) => ({t, idx}))
       .filter(
-        t =>
+        ({t}) =>
           t.state !== 'REMOVED' &&
           (t.state === 'PUTTING' || t.putProgress === 100),
-      )
-      .map(t => ({storageKey: t.storageKey!}));
+      );
+    const items = candidates.map(({t}) => ({storageKey: t.storageKey!}));
     try {
       const res = await finalize({
         variables: {
@@ -393,17 +394,19 @@ const BatchCaptureScreen = () => {
       setTiles(prev => {
         const next = [...prev];
         payload.images.forEach((img: any, i: number) => {
-          if (!next[i]) return;
-          if (next[i].state !== 'REMOVED') {
-            next[i] = {
-              ...next[i],
-              state: 'FINALIZED',
-              imageId: String(img.id),
-            };
-          }
+          const dest = candidates[i]?.idx;
+          if (dest == null) return;
+          next[dest] = {
+            ...next[dest],
+            state: 'FINALIZED',
+            imageId: String(img.id),
+          };
         });
         return next;
       });
+      console.log('[FINALIZE] images:', payload.images.map((x: any) => x.id));
+      console.log('[FINALIZE] candidates idx:', candidates.map(c => c.idx));
+      console.log('[TAG] row ids:', tilesRef.current.map(t => t.imageId));
       Toast.show({
         type: 'success',
         text1: `Queued ${payload.queuedJobs} jobs`,
