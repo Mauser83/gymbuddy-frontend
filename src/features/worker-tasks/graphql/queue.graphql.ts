@@ -1,36 +1,29 @@
++18
+-28
+
 import {gql} from '@apollo/client';
 
-export const IMAGE_QUEUE = gql`
-  query ImageQueue(
-    $status: [ImageJobStatus!]
-    $jobType: [ImageJobType!]
-    $query: String
-    $limit: Int = 50
-    $offset: Int = 0
+export const IMAGE_JOBS = gql`
+  query ImageJobs(
+    $status: ImageJobStatus
+    $limit: Int
   ) {
-    imageQueue(
+    imageJobs(
       status: $status
-      jobType: $jobType
-      search: $query
       limit: $limit
-      offset: $offset
     ) {
-      items {
-        id
-        imageId
-        storageKey
-        jobType
-        status
-        attempts
-        priority
-        scheduledAt
-        startedAt
-        finishedAt
-        lastError
-        updatedAt
-      }
-      total
-      hasMore
+      id
+      imageId
+      storageKey
+      jobType
+      status
+      attempts
+      priority
+      scheduledAt
+      startedAt
+      finishedAt
+      lastError
+      updatedAt
     }
   }
 `;

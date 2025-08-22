@@ -5,7 +5,7 @@ export interface ImageQueueItem {
   id: string;
   imageId?: string | null;
   storageKey?: string | null;
-  jobType: ImageJobType;
+  jobType: string;
   status: ImageJobStatus;
   attempts: number;
   priority?: number | null;
@@ -14,10 +14,4 @@ export interface ImageQueueItem {
   finishedAt?: string | null;
   lastError?: string | null;
   updatedAt?: string | null;
-}
-
-export interface ImageQueueResponse {
-  items: ImageQueueItem[];
-  total: number;
-  hasMore: boolean;
 }

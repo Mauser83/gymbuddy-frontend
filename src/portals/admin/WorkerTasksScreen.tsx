@@ -44,7 +44,12 @@ const WorkerTasksScreen = () => {
   const [retryImageJob] = useMutation(RETRY_IMAGE_JOB);
 
   const {items, loading, refetch} = useImageQueue(
-    {status, jobType, query: debouncedSearch, limit: 50},
+    {
+      status,
+      jobType,
+      query: debouncedSearch,
+      limit: 50,
+    },
     {pollMs: autoRefreshOn ? 10000 : 0, pauseOnHidden: true},
   );
 
@@ -91,11 +96,7 @@ const WorkerTasksScreen = () => {
             onClear={() => setSearch('')}
           />
           <View style={{flexDirection: 'row', gap: spacing.md}}>
-            <Button
-              text="Refresh"
-              onPress={() => refetch()}
-              small
-            />
+            <Button text="Refresh" onPress={() => refetch()} small />
             <Button
               text={autoRefreshOn ? 'Auto On' : 'Auto Off'}
               onPress={() => setAutoRefreshOn(!autoRefreshOn)}
@@ -110,7 +111,10 @@ const WorkerTasksScreen = () => {
         onRetry={onRetry}
         onPreview={key => setPreviewKey(key)}
       />
-      <PreviewModal storageKey={previewKey} onClose={() => setPreviewKey(null)} />
+      <PreviewModal
+        storageKey={previewKey}
+        onClose={() => setPreviewKey(null)}
+      />
 
       <ModalWrapper visible={statusModal} onClose={() => setStatusModal(false)}>
         <View style={{padding: spacing.md}}>
