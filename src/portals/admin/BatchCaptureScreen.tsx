@@ -322,7 +322,6 @@ const BatchCaptureScreen = () => {
     const pending = tilesRef.current
       .map((t, i) => ({t, i}))
       .filter(({t}) => t.url && t.file && t.state === 'EMPTY');
-    console.log('[UPLOAD] pending', pending.length);
     if (!pending.length) {
       const empties = tilesRef.current.filter(
         t => t.file && !t.url && t.state === 'EMPTY',
@@ -414,11 +413,6 @@ const BatchCaptureScreen = () => {
       // Write ref first so immediate reads see IDs
       tilesRef.current = base;
       setTiles(base);
-
-      console.log('[FINALIZE] images:', payload.images.map((x: any) => x.id));
-      console.log('[FINALIZE] candidates idx:', candidates.map(c => c.idx));
-      console.log('[TAG] row ids (post-assign):', tilesRef.current.map(t => t.imageId));
-
       Toast.show({
         type: 'success',
         text1: `Queued ${payload.queuedJobs} jobs`,
