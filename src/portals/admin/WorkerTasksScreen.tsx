@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {View} from 'react-native';
+import {View, Platform, Alert} from 'react-native';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Card from 'shared/components/Card';
 import Title from 'shared/components/Title';
@@ -11,6 +11,7 @@ import OptionItem from 'shared/components/OptionItem';
 import {spacing} from 'shared/theme/tokens';
 import {useImageQueue} from 'features/worker-tasks/hooks/useImageQueue';
 import QueueTable from 'features/worker-tasks/components/QueueTable';
+import PreviewModal from 'features/worker-tasks/components/PreviewModal';
 import ErrorPanel from 'features/worker-tasks/components/ErrorPanel';
 import {ImageJobStatus, ImageJobType} from 'features/worker-tasks/types';
 import {useMutation} from '@apollo/client';
@@ -47,6 +48,10 @@ const WorkerTasksScreen = () => {
   const [statusModal, setStatusModal] = useState(false);
   const [typeModal, setTypeModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [preview, setPreview] = useState<{
+    storageKey?: string;
+    url?: string;
+  } | null>(null);
   const [runOnce, {loading: processing, data: workerData, error: runError}] =
     useMutation(RUN_IMAGE_WORKER_ONCE, {errorPolicy: 'all'});
 
@@ -155,20 +160,35 @@ const WorkerTasksScreen = () => {
           <ErrorPanel error={occurredErrors} />
         </Card>
       )}
+
       <QueueTable
         groups={visibleGroups}
         thumbs={thumbs}
         loading={loading}
-        onOpenRaw={url => {
-          (globalThis as any).window?.open(
-            url,
-            '_blank',
-            'noopener,noreferrer',
-          );
+        onOpenRaw={({url, storageKey}) => {
+          if (Platform.OS === 'web') {
+            (globalThis as any).window?.open(
+              url,
+              '_blank',
+              'noopener,noreferrer',
+            );
+            return;
+          }
+          if (storageKey) setPreview({storageKey});
+          else if (url) setPreview({url});
+          else Alert.alert('No preview available');
         }}
       />
 
-      <ModalWrapper visible={statusModal} onClose={() => setStatusModal(false)}>
+      {Platform.OS !== 'web' && !!preview && (
+        <PreviewModal
+          storageKey={preview.storageKey ?? null}
+          url={preview.url}
+          onClose={() => setPreview(null)}
+        />
+      )}
+
+     <ModalWrapper visible={statusModal} onClose={() => setStatusModal(false)}>
         <View style={{padding: spacing.md}}>
           {allStatuses.map(s => (
             <OptionItem

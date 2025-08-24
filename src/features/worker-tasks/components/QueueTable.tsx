@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Text, Image, TouchableOpacity} from 'react-native';
+import {View, Text, Image, Pressable, Platform} from 'react-native';
 import Card from 'shared/components/Card';
 import LoadingState from 'shared/components/LoadingState';
 import {useTheme} from 'shared/theme/ThemeProvider';
@@ -9,7 +9,7 @@ type Props = {
   groups: ImageJobGroup[];
   thumbs: Record<string, string>;
   loading: boolean;
-  onOpenRaw: (url: string) => void;
+  onOpenRaw: (payload: {url: string; storageKey?: string}) => void;
 };
 
 const copy = (text?: string | null) => {
@@ -98,12 +98,28 @@ export default function QueueTable({
             <View style={{flexDirection: 'row', gap: 12}}>
               <View style={{width: 120}}>
                 {thumbUrl ? (
-                  <TouchableOpacity onPress={() => onOpenRaw(thumbUrl)}>
+                  <Pressable
+                    onPress={() =>
+                      onOpenRaw({
+                        url: thumbUrl,
+                        storageKey: g.storageKey ?? undefined,
+                      })
+                    }
+                    {...(Platform.OS === 'web'
+                      ? {role: 'link', tabIndex: 0}
+                      : {})}
+                    style={{
+                      width: 120,
+                      height: 120,
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                    }}
+                  >
                     <Image
                       source={{uri: thumbUrl}}
-                      style={{width: 120, height: 120, borderRadius: 8}}
+                      style={{width: '100%', height: '100%'}}
                     />
-                  </TouchableOpacity>
+                  </Pressable>
                 ) : (
                   <View
                     style={{
