@@ -5,6 +5,9 @@ import Button from 'shared/components/Button';
 import {useLazyQuery} from '@apollo/client';
 import {IMAGE_URL_MANY} from '../graphql/queue.graphql';
 import {spacing} from 'shared/theme/tokens';
+import LoadingState from 'shared/components/LoadingState';
+import NoResults from 'shared/components/NoResults';
+import { useTheme } from 'shared/theme/ThemeProvider';
 
 interface PreviewModalProps {
   storageKey: string | null;
@@ -12,6 +15,7 @@ interface PreviewModalProps {
 }
 
 const PreviewModal = ({storageKey, onClose}: PreviewModalProps) => {
+  const {theme} = useTheme();
   const [fetchUrl, {data, loading}] = useLazyQuery(IMAGE_URL_MANY, {
     fetchPolicy: 'network-only',
   });
@@ -28,7 +32,7 @@ const PreviewModal = ({storageKey, onClose}: PreviewModalProps) => {
     <ModalWrapper visible={!!storageKey} onClose={onClose}>
       <View style={{padding: spacing.lg, alignItems: 'center'}}>
         {loading ? (
-          <Text>Loading...</Text>
+          <LoadingState text='Loading...'/>
         ) : (
           <>
             {url ? (
@@ -37,15 +41,15 @@ const PreviewModal = ({storageKey, onClose}: PreviewModalProps) => {
                 style={{width: 300, height: 300, marginBottom: spacing.md}}
               />
             ) : (
-              <Text>No image</Text>
+              <NoResults message="No image"/>
             )}
-            <Text style={{marginBottom: spacing.md}}>{storageKey}</Text>
+            <Text style={{marginBottom: spacing.md, color: theme.colors.textPrimary}}>{storageKey}</Text>
             {url && Platform.OS === 'web' && (
               <a href={url} target="_blank" rel="noreferrer">
                 Open raw
               </a>
             )}
-            <Button variant="outline" text="Close" onPress={onClose} />
+            <Button text="Close" onPress={onClose} />
           </>
         )}
       </View>
