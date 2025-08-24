@@ -10,26 +10,28 @@ import NoResults from 'shared/components/NoResults';
 import {useTheme} from 'shared/theme/ThemeProvider';
 
 interface PreviewModalProps {
-  storageKey: string | null;
+  storageKey?: string | null;
+  url?: string | null;
   onClose: () => void;
 }
 
-const PreviewModal = ({storageKey, onClose}: PreviewModalProps) => {
+const PreviewModal = ({storageKey, url: urlProp, onClose}: PreviewModalProps) => {
   const {theme} = useTheme();
   const [fetchUrl, {data, loading, error}] = useLazyQuery(IMAGE_URL_MANY, {
     fetchPolicy: 'network-only',
   });
 
   useEffect(() => {
+    if (urlProp) return;
     if (storageKey) {
       fetchUrl({variables: {keys: [storageKey]}});
     }
-  }, [storageKey, fetchUrl]);
+  }, [storageKey, urlProp, fetchUrl]);
 
-  const url = data?.imageUrlMany?.[0]?.url;
+  const url = urlProp ?? data?.imageUrlMany?.[0]?.url;
 
   return (
-    <ModalWrapper visible={!!storageKey} onClose={onClose}>
+    <ModalWrapper visible={!!storageKey || !!urlProp} onClose={onClose}>
       <View style={{padding: spacing.lg, alignItems: 'center'}}>
         {loading ? (
           <LoadingState text='Loading...'/>
