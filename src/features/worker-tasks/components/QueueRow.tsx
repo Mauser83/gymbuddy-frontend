@@ -40,26 +40,26 @@ const QueueRow = ({item, onRetry, onPreview}: QueueRowProps) => {
         <Text style={{color: statusColor[item.status], flex: 1}}>
           {item.status.toUpperCase()}
         </Text>
-        <Text style={{flex: 1}}>{item.jobType.toUpperCase()}</Text>
+        <Text style={{flex: 1, color: theme.colors.textPrimary}}>{item.jobType.toUpperCase()}</Text>
         <View style={{flex: 2}}>
           {item.storageKey ? (
             <TouchableOpacity onPress={() => onPreview(item.storageKey!)}>
               <Text style={{color: theme.colors.accentStart}} numberOfLines={1}>
-                Preview {item.storageKey}
+                Preview
               </Text>
             </TouchableOpacity>
           ) : item.imageId ? (
             <TouchableOpacity
               onPress={() => console.log('open image', item.imageId)}>
               <Text style={{color: theme.colors.accentStart}} numberOfLines={1}>
-                Open {item.imageId}
+                Open
               </Text>
             </TouchableOpacity>
           ) : (
             <Text style={{color: theme.colors.textSecondary}}>(n/a)</Text>
           )}
         </View>
-        <Text style={{width: 40, textAlign: 'center'}}>{item.attempts}</Text>
+        <Text style={{width: 40, textAlign: 'center', color: theme.colors.textPrimary}}>{item.attempts}</Text>
         {item.lastError && (
           <TouchableOpacity onPress={() => setExpanded(!expanded)}>
             <Text style={{color: theme.colors.accentStart}}>
@@ -69,7 +69,6 @@ const QueueRow = ({item, onRetry, onPreview}: QueueRowProps) => {
         )}
         <Button
           text="Retry"
-          variant={item.status === 'failed' ? 'solid' : 'outline'}
           onPress={() => onRetry(item)}
           small
         />
