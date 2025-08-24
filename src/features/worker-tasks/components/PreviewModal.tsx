@@ -7,7 +7,7 @@ import {IMAGE_URL_MANY} from '../graphql/queue.graphql';
 import {spacing} from 'shared/theme/tokens';
 import LoadingState from 'shared/components/LoadingState';
 import NoResults from 'shared/components/NoResults';
-import { useTheme } from 'shared/theme/ThemeProvider';
+import {useTheme} from 'shared/theme/ThemeProvider';
 
 interface PreviewModalProps {
   storageKey: string | null;
@@ -16,13 +16,13 @@ interface PreviewModalProps {
 
 const PreviewModal = ({storageKey, onClose}: PreviewModalProps) => {
   const {theme} = useTheme();
-  const [fetchUrl, {data, loading}] = useLazyQuery(IMAGE_URL_MANY, {
+  const [fetchUrl, {data, loading, error}] = useLazyQuery(IMAGE_URL_MANY, {
     fetchPolicy: 'network-only',
   });
 
   useEffect(() => {
     if (storageKey) {
-      fetchUrl({variables: {keys: [storageKey], ttl: 300}});
+      fetchUrl({variables: {keys: [storageKey]}});
     }
   }, [storageKey, fetchUrl]);
 
@@ -33,6 +33,8 @@ const PreviewModal = ({storageKey, onClose}: PreviewModalProps) => {
       <View style={{padding: spacing.lg, alignItems: 'center'}}>
         {loading ? (
           <LoadingState text='Loading...'/>
+                  ) : error ? (
+          <NoResults message="Failed to sign preview URL"/>
         ) : (
           <>
             {url ? (

@@ -1,6 +1,3 @@
-+45
--0
-
 import React from 'react';
 import {View, Text} from 'react-native';
 import Button from 'shared/components/Button';
@@ -40,7 +37,7 @@ const ErrorPanel = ({error}: ErrorPanelProps) => {
         }}>
         {error}
       </Text>
-      <Button variant="outline" text="Copy" onPress={copy} small />
+      <Button text="Copy" onPress={copy} small />
     </View>
   );
 };

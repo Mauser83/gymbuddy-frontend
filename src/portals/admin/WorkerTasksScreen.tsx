@@ -41,6 +41,7 @@ const WorkerTasksScreen = () => {
   const [statusModal, setStatusModal] = useState(false);
   const [typeModal, setTypeModal] = useState(false);
   const [previewKey, setPreviewKey] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
   const [retryImageJob] = useMutation(RETRY_IMAGE_JOB);
 
   const {items, loading, refetch} = useImageQueue(
@@ -75,35 +76,51 @@ const WorkerTasksScreen = () => {
   };
 
   return (
-    <ScreenLayout scroll={false}>
+    <ScreenLayout scroll>
       <Card variant="glass" compact>
-        <Title text="Worker Tasks" subtitle="Background job controls" />
-        <View style={{gap: spacing.md}}>
-          <SelectableField
-            label="Status"
-            value={status.join(', ')}
-            onPress={() => setStatusModal(true)}
-          />
-          <SelectableField
-            label="Job Type"
-            value={jobType.join(', ')}
-            onPress={() => setTypeModal(true)}
-          />
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="imageId, storageKey, or text"
-            onClear={() => setSearch('')}
-          />
-          <View style={{flexDirection: 'row', gap: spacing.md}}>
-            <Button text="Refresh" onPress={() => refetch()} small />
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Title text="Worker Tasks" subtitle="Background job controls" />
+          <View style={{flexDirection: 'row', gap: spacing.sm}}>
             <Button
               text={autoRefreshOn ? 'Auto On' : 'Auto Off'}
               onPress={() => setAutoRefreshOn(!autoRefreshOn)}
               small
             />
+            <Button text="Refresh" onPress={() => refetch()} small />
+            <Button
+              text={showFilters ? 'Hide Filters' : 'Filters'}
+              onPress={() => setShowFilters(s => !s)}
+              variant="outline"
+              small
+            />
           </View>
         </View>
+        {showFilters && (
+          <View style={{gap: spacing.sm, marginTop: spacing.sm}}>
+            <SelectableField
+              label="Status"
+              value={status.join(', ')}
+              onPress={() => setStatusModal(true)}
+            />
+            <SelectableField
+              label="Job Type"
+              value={jobType.join(', ')}
+              onPress={() => setTypeModal(true)}
+            />
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="imageId, storageKey, or text"
+              onClear={() => setSearch('')}
+            />
+          </View>
+        )}
       </Card>
       <QueueTable
         items={items}
@@ -127,20 +144,6 @@ const WorkerTasksScreen = () => {
             />
           ))}
           <Button text="Done" onPress={() => setStatusModal(false)} />
-        </View>
-      </ModalWrapper>
-
-      <ModalWrapper visible={typeModal} onClose={() => setTypeModal(false)}>
-        <View style={{padding: spacing.md}}>
-          {allTypes.map(t => (
-            <OptionItem
-              key={t}
-              text={t}
-              onPress={() => toggleType(t)}
-              selected={jobType.includes(t)}
-            />
-          ))}
-          <Button text="Done" onPress={() => setTypeModal(false)} />
         </View>
       </ModalWrapper>
     </ScreenLayout>
