@@ -1,22 +1,21 @@
 import React from 'react';
 import {View, Text, Image, TouchableOpacity} from 'react-native';
 import Card from 'shared/components/Card';
-import Button from 'shared/components/Button';
 import LoadingState from 'shared/components/LoadingState';
 import {useTheme} from 'shared/theme/ThemeProvider';
-import type {
-  ImageJobGroup,
-  ImageQueueItem,
-  ImageJobType,
-} from '../types';
+import type {ImageJobGroup, ImageQueueItem, ImageJobType} from '../types';
 
-interface Props {
+type Props = {
   groups: ImageJobGroup[];
   thumbs: Record<string, string>;
   loading: boolean;
-  onRetry: (item: ImageQueueItem) => void;
   onOpenRaw: (url: string) => void;
-}
+};
+
+const copy = (text?: string | null) => {
+  if (!text) return;
+  (globalThis as any).navigator?.clipboard?.writeText(text);
+};
 
 const StatusChip = ({
   status,
@@ -28,8 +27,8 @@ const StatusChip = ({
   const {theme} = useTheme();
   const colorMap: Record<ImageQueueItem['status'], string> = {
     pending: theme.colors.textSecondary,
-    running: theme.colors.accentStart,
-    done: theme.colors.textPrimary,
+    processing: theme.colors.accentStart,
+    succeeded: theme.colors.textPrimary,
     failed: theme.colors.error,
   };
   const color = colorMap[status];
@@ -41,8 +40,7 @@ const StatusChip = ({
         borderRadius: 8,
         borderWidth: 1,
         borderColor: color,
-      }}
-    >
+      }}>
       <Text style={{color, fontWeight: '600'}}>{text}</Text>
     </View>
   );
@@ -52,7 +50,6 @@ export default function QueueTable({
   groups,
   thumbs,
   loading,
-  onRetry,
   onOpenRaw,
 }: Props) {
   if (loading) return <LoadingState text="Loading..." />;
@@ -67,7 +64,7 @@ export default function QueueTable({
           const label = jt.toUpperCase();
           const failed = status === 'failed';
           const showAttempts = failed && (j?.attempts ?? 0) > 0;
-          return (
+return (
             <View
               key={jt}
               style={{
@@ -75,26 +72,21 @@ export default function QueueTable({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 paddingVertical: 6,
-              }}
-            >
-              <View style={{flexDirection: 'row', gap: 8, alignItems: 'center'}}>
+              }}>
+              <View
+                style={{flexDirection: 'row', gap: 8, alignItems: 'center'}}>
                 <StatusChip status={status} text={label} />
                 {failed && j?.lastError ? (
                   <Text
-                    onPress={() =>
-                      (globalThis as any).navigator?.clipboard?.writeText(
-                        j.lastError!,
-                      )
-                    }
-                    style={{opacity: 0.8, textDecorationLine: 'underline'}}
-                  >
+                    onPress={() => copy(j.lastError)}
+                    style={{opacity: 0.8, textDecorationLine: 'underline'}}>
                     error
                   </Text>
                 ) : null}
               </View>
-              <View style={{flexDirection: 'row', gap: 8, alignItems: 'center'}}>
-                {showAttempts && <Text>retry: {j?.attempts}</Text>}
-                {j && <Button text="Retry" onPress={() => onRetry(j)} small />}
+              <View
+                style={{flexDirection: 'row', gap: 8, alignItems: 'center'}}>
+                {showAttempts && <Text>attempts: {j?.attempts}</Text>}
               </View>
             </View>
           );
@@ -120,18 +112,21 @@ export default function QueueTable({
                       backgroundColor: '#222',
                       alignItems: 'center',
                       justifyContent: 'center',
-                    }}
-                  >
+                    }}>
                     <Text style={{opacity: 0.6}}>no image</Text>
                   </View>
                 )}
               </View>
               <View style={{flex: 1}}>
-                {line('hash')}
-                <View style={{height: 1, opacity: 0.05, backgroundColor: '#fff'}} />
-                {line('safety')}
-                <View style={{height: 1, opacity: 0.05, backgroundColor: '#fff'}} />
-                {line('embed')}
+                {g.jobs.hash && line('hash')}
+                <View
+                  style={{height: 1, opacity: 0.05, backgroundColor: '#fff'}}
+                />
+                {g.jobs.safety && line('safety')}
+                <View
+                  style={{height: 1, opacity: 0.05, backgroundColor: '#fff'}}
+                />
+                {g.jobs.embed && line('embed')}
               </View>
             </View>
           </Card>

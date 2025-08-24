@@ -1,4 +1,5 @@
-export type ImageJobStatus = 'pending' | 'running' | 'done' | 'failed';
+export type ImageJobStatus = 'pending' | 'processing' | 'succeeded' | 'failed';
+
 export type ImageJobType = 'hash' | 'safety' | 'embed';
 
 export interface ImageQueueItem {

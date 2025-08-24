@@ -1,17 +1,8 @@
-+18
--28
-
 import {gql} from '@apollo/client';
 
 export const IMAGE_JOBS = gql`
-  query ImageJobs(
-    $status: ImageJobStatus
-    $limit: Int
-  ) {
-    imageJobs(
-      status: $status
-      limit: $limit
-    ) {
+  query ImageJobs($status: ImageJobStatus, $limit: Int) {
+    imageJobs(status: $status, limit: $limit) {
       id
       imageId
       storageKey
@@ -38,29 +29,8 @@ export const IMAGE_URL_MANY = gql`
   }
 `;
 
-export const RETRY_IMAGE_JOB = gql`
-  mutation RetryImageJob($id: ID!) {
-    retryImageJob(id: $id) {
-      id
-      status
-      attempts
-      updatedAt
-    }
-  }
-`;
-
-export const RETRY_IMAGE_JOBS_BY_IMAGE = gql`
-  mutation RetryImageJobsByImage($imageId: ID!) {
-    retryImageJobs(imageId: $imageId) {
-      count
-    }
-  }
-`;
-
-export const RETRY_IMAGE_JOBS_BY_STORAGE_KEY = gql`
-  mutation RetryImageJobsByStorageKey($storageKey: String!) {
-    retryImageJobsByStorageKey(storageKey: $storageKey) {
-      count
-    }
+export const RUN_IMAGE_WORKER_ONCE = gql`
+  mutation RunImageWorkerOnce {
+    runImageWorkerOnce
   }
 `;

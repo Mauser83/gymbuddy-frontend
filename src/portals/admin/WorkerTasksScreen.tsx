@@ -11,15 +11,11 @@ import OptionItem from 'shared/components/OptionItem';
 import {spacing} from 'shared/theme/tokens';
 import {useImageQueue} from 'features/worker-tasks/hooks/useImageQueue';
 import QueueTable from 'features/worker-tasks/components/QueueTable';
-import {
-  ImageJobStatus,
-  ImageJobType,
-  ImageQueueItem,
-} from 'features/worker-tasks/types';
+import {ImageJobStatus, ImageJobType} from 'features/worker-tasks/types';
 import {useMutation} from '@apollo/client';
-import {RETRY_IMAGE_JOB} from 'features/worker-tasks/graphql/queue.graphql';
+import {RUN_IMAGE_WORKER_ONCE} from 'features/worker-tasks/graphql/queue.graphql';
 
-const allStatuses: ImageJobStatus[] = ['pending', 'running', 'done', 'failed'];
+const allStatuses: ImageJobStatus[] = ['pending', 'processing', 'succeeded', 'failed'];
 const allTypes: ImageJobType[] = ['hash', 'safety', 'embed'];
 
 function useDebouncedValue<T>(value: T, delay = 300): T {
@@ -40,7 +36,7 @@ const WorkerTasksScreen = () => {
   const [statusModal, setStatusModal] = useState(false);
   const [typeModal, setTypeModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [retryImageJob] = useMutation(RETRY_IMAGE_JOB);
+  const [runOnce, {loading: processing}] = useMutation(RUN_IMAGE_WORKER_ONCE);
 
   const {groups, thumbs, loading, refetch} = useImageQueue(
     {
@@ -64,43 +60,37 @@ const WorkerTasksScreen = () => {
     );
   };
 
-  const onRetry = async (item: ImageQueueItem) => {
-    try {
-      await retryImageJob({variables: {id: item.id}});
-      refetch();
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  return (
+    return (
     <ScreenLayout scroll>
       <Card variant="glass" compact>
+        <Title text="Worker Tasks" subtitle="Background job controls" />
         <View
           style={{
             flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <Title text="Worker Tasks" subtitle="Background job controls" />
-          <View style={{flexDirection: 'row', gap: spacing.xs, flexWrap: 'wrap'}}>
-            <Button
-              text={autoRefreshOn ? 'Auto On' : 'Auto Off'}
-              onPress={() => setAutoRefreshOn(!autoRefreshOn)}
-              small
-            />
-            <Button
-              text="Refresh"
-              onPress={() => refetch()}
-              small
-            />
-            <Button
-              text={showFilters ? 'Hide Filters' : 'Filters'}
-              onPress={() => setShowFilters(s => !s)}
-              small
-            />
-          </View>
+            gap: spacing.xs,
+            flexWrap: 'wrap',
+            marginTop: spacing.sm,
+          }}>
+          <Button
+            text={autoRefreshOn ? 'Auto On' : 'Auto Off'}
+            onPress={() => setAutoRefreshOn(!autoRefreshOn)}
+            small
+          />
+          <Button text="Refresh" onPress={() => refetch()} small />
+          <Button
+            text={showFilters ? 'Hide Filters' : 'Filters'}
+            onPress={() => setShowFilters(s => !s)}
+            small
+          />
+          <Button
+            text={processing ? 'Processing…' : 'Process Image Queue'}
+            onPress={async () => {
+              await runOnce();
+              refetch();
+            }}
+            disabled={processing}
+            small
+          />
         </View>
         {showFilters && (
           <View style={{gap: spacing.sm, marginTop: spacing.sm}}>
@@ -127,9 +117,12 @@ const WorkerTasksScreen = () => {
         groups={groups}
         thumbs={thumbs}
         loading={loading}
-        onRetry={onRetry}
         onOpenRaw={url => {
-          (globalThis as any).window?.open(url, '_blank', 'noopener,noreferrer');
+          (globalThis as any).window?.open(
+            url,
+            '_blank',
+            'noopener,noreferrer',
+          );
         }}
       />
 
