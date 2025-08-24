@@ -30,7 +30,10 @@ export const IMAGE_URL_MANY = gql`
 `;
 
 export const RUN_IMAGE_WORKER_ONCE = gql`
-  mutation RunImageWorkerOnce {
-    runImageWorkerOnce
+  mutation RunImageWorkerOnce($max: Int = 150) {
+    runImageWorkerOnce(max: $max) {
+      ok
+      status
+    }
   }
 `;
