@@ -29,8 +29,8 @@ export const IMAGE_JOBS = gql`
 `;
 
 export const IMAGE_URL_MANY = gql`
-  query ImageUrlMany($keys: [String!]!, $ttl: Int = 300) {
-    imageUrlMany(storageKeys: $keys, ttl: $ttl) {
+  query ImageUrlMany($keys: [String!]!) {
+    imageUrlMany(storageKeys: $keys) {
       storageKey
       url
       expiresAt
