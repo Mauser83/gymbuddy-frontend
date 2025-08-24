@@ -18,8 +18,8 @@ const QueueRow = ({item, onRetry, onPreview}: QueueRowProps) => {
 
   const statusColor: Record<ImageQueueItem['status'], string> = {
     pending: theme.colors.textSecondary,
-    running: theme.colors.accentStart,
-    done: theme.colors.textPrimary,
+    processing: theme.colors.accentStart,
+    succeeded: theme.colors.textPrimary,
     failed: theme.colors.error,
   };
 
