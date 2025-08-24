@@ -1,11 +1,12 @@
-import {useQuery} from '@apollo/client';
+import {useLazyQuery, useQuery} from '@apollo/client';
 import {useEffect} from 'react';
 import {AppState, AppStateStatus} from 'react-native';
-import {IMAGE_JOBS} from '../graphql/queue.graphql';
+import {IMAGE_JOBS, IMAGE_URL_MANY} from '../graphql/queue.graphql';
 import type {
   ImageJobStatus,
   ImageJobType,
   ImageQueueItem,
+  ImageJobGroup,
 } from '../types';
 
 interface Filters {
@@ -73,7 +74,7 @@ export const useImageQueue = (
 
   const normalized = raw.map(r => ({
     ...r,
-    jobType: (r.jobType || '').toLowerCase(),
+    jobType: (r.jobType || '').toLowerCase() as any,
   }));
 
   const byType =
@@ -90,7 +91,42 @@ export const useImageQueue = (
         (r.lastError ?? '').toLowerCase().includes(q),
       )
     : byType;
+
+  // —— Group by (imageId || storageKey) ————————————————
+  const groupsMap = new Map<string, ImageJobGroup>();
+  for (const it of items) {
+    const key = it.imageId ?? (it.storageKey ? `sk:${it.storageKey}` : `bad:${it.id}`);
+    let g = groupsMap.get(key);
+    if (!g) {
+      g = {key, imageId: it.imageId ?? null, storageKey: it.storageKey ?? null, jobs: {}};
+      groupsMap.set(key, g);
+    }
+    const jt = it.jobType as ImageJobType;
+    if (!g.jobs[jt]) g.jobs[jt] = it; // first occurrence wins
+  }
+  const groups = Array.from(groupsMap.values());
+
+  // —— Batch-sign unique storageKeys for thumbnails ——————————
+  const skList = Array.from(new Set(groups.map(g => g.storageKey).filter(Boolean))) as string[];
+  const [fetchMany, {data: signedData}] = useLazyQuery(IMAGE_URL_MANY, {fetchPolicy: 'network-only'});
+  useEffect(() => {
+    if (skList.length) fetchMany({variables: {keys: skList}});
+  }, [fetchMany, skList.join('|')]);
+
+  const signedMap: Record<string, string> = {};
+  (signedData?.imageUrlMany || []).forEach((r: {storageKey: string; url: string}) => {
+    signedMap[r.storageKey] = r.url;
+  });
+
   const total = items.length;
 
-  return {items, total, loading, error, refetch} as const;
+  return {
+    items,
+    groups,
+    thumbs: signedMap,
+    total,
+    loading,
+    error,
+    refetch,
+  } as const;
 };

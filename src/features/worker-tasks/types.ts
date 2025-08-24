@@ -15,3 +15,10 @@ export interface ImageQueueItem {
   lastError?: string | null;
   updatedAt?: string | null;
 }
+
+export interface ImageJobGroup {
+  key: string; // imageId or "sk:<storageKey>" or fallback
+  imageId?: string | null;
+  storageKey?: string | null;
+  jobs: Partial<Record<ImageJobType, ImageQueueItem>>;
+}

@@ -11,7 +11,6 @@ import OptionItem from 'shared/components/OptionItem';
 import {spacing} from 'shared/theme/tokens';
 import {useImageQueue} from 'features/worker-tasks/hooks/useImageQueue';
 import QueueTable from 'features/worker-tasks/components/QueueTable';
-import PreviewModal from 'features/worker-tasks/components/PreviewModal';
 import {
   ImageJobStatus,
   ImageJobType,
@@ -40,11 +39,10 @@ const WorkerTasksScreen = () => {
   const [autoRefreshOn, setAutoRefreshOn] = useState(true);
   const [statusModal, setStatusModal] = useState(false);
   const [typeModal, setTypeModal] = useState(false);
-  const [previewKey, setPreviewKey] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [retryImageJob] = useMutation(RETRY_IMAGE_JOB);
 
-  const {items, loading, refetch} = useImageQueue(
+  const {groups, thumbs, loading, refetch} = useImageQueue(
     {
       status,
       jobType,
@@ -86,17 +84,20 @@ const WorkerTasksScreen = () => {
           }}
         >
           <Title text="Worker Tasks" subtitle="Background job controls" />
-          <View style={{flexDirection: 'row', gap: spacing.sm}}>
+          <View style={{flexDirection: 'row', gap: spacing.xs, flexWrap: 'wrap'}}>
             <Button
               text={autoRefreshOn ? 'Auto On' : 'Auto Off'}
               onPress={() => setAutoRefreshOn(!autoRefreshOn)}
               small
             />
-            <Button text="Refresh" onPress={() => refetch()} small />
+            <Button
+              text="Refresh"
+              onPress={() => refetch()}
+              small
+            />
             <Button
               text={showFilters ? 'Hide Filters' : 'Filters'}
               onPress={() => setShowFilters(s => !s)}
-              variant="outline"
               small
             />
           </View>
@@ -123,14 +124,13 @@ const WorkerTasksScreen = () => {
         )}
       </Card>
       <QueueTable
-        items={items}
+        groups={groups}
+        thumbs={thumbs}
         loading={loading}
         onRetry={onRetry}
-        onPreview={key => setPreviewKey(key)}
-      />
-      <PreviewModal
-        storageKey={previewKey}
-        onClose={() => setPreviewKey(null)}
+        onOpenRaw={url => {
+          (globalThis as any).window?.open(url, '_blank', 'noopener,noreferrer');
+        }}
       />
 
       <ModalWrapper visible={statusModal} onClose={() => setStatusModal(false)}>
