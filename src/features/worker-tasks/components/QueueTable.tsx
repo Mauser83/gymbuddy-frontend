@@ -25,23 +25,26 @@ const StatusChip = ({
   text: string;
 }) => {
   const {theme} = useTheme();
+  // Prefer theme tokens; fall back to bright colors if not present
+  const GREEN = (theme.colors as any).success ?? '#22c55e';
+  const RED = theme.colors.error ?? '#ef4444';
+  const YELLOW = (theme.colors as any).warning ?? '#eab308';
   const colorMap: Record<ImageQueueItem['status'], string> = {
-    pending: theme.colors.textSecondary,
-    processing: theme.colors.accentStart,
-    succeeded: theme.colors.textPrimary,
-    failed: theme.colors.error,
+    succeeded: GREEN,
+    failed: RED,
+    pending: YELLOW,
+    processing: YELLOW,
   };
-  const color = colorMap[status];
+  const color = colorMap[status] ?? YELLOW;
   return (
     <View
       style={{
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: color,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 999,
+        backgroundColor: color,
       }}>
-      <Text style={{color, fontWeight: '600'}}>{text}</Text>
+      <Text style={{color: '#fff', fontWeight: '700'}}>{text}</Text>
     </View>
   );
 };
@@ -52,6 +55,7 @@ export default function QueueTable({
   loading,
   onOpenRaw,
 }: Props) {
+    const {theme} = useTheme();
   if (loading) return <LoadingState text="Loading..." />;
 
   return (
@@ -60,11 +64,15 @@ export default function QueueTable({
         const thumbUrl = g.storageKey ? thumbs[g.storageKey] : undefined;
         const line = (jt: ImageJobType) => {
           const j = g.jobs[jt];
-          const status = j?.status ?? 'pending';
+          // If worker left it "pending" but set lastError, visually treat as failed
+          const rawStatus = (j?.status ??
+            'pending') as ImageQueueItem['status'];
+          const status: ImageQueueItem['status'] =
+            rawStatus !== 'succeeded' && j?.lastError ? 'failed' : rawStatus;
           const label = jt.toUpperCase();
           const failed = status === 'failed';
           const showAttempts = failed && (j?.attempts ?? 0) > 0;
-return (
+          return (
             <View
               key={jt}
               style={{
@@ -76,17 +84,10 @@ return (
               <View
                 style={{flexDirection: 'row', gap: 8, alignItems: 'center'}}>
                 <StatusChip status={status} text={label} />
-                {failed && j?.lastError ? (
-                  <Text
-                    onPress={() => copy(j.lastError)}
-                    style={{opacity: 0.8, textDecorationLine: 'underline'}}>
-                    error
-                  </Text>
-                ) : null}
               </View>
               <View
                 style={{flexDirection: 'row', gap: 8, alignItems: 'center'}}>
-                {showAttempts && <Text>attempts: {j?.attempts}</Text>}
+                {showAttempts && <Text style={{color: theme.colors.textPrimary}}>attempts: {j?.attempts}</Text>}
               </View>
             </View>
           );

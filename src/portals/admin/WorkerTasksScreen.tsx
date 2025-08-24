@@ -11,11 +11,18 @@ import OptionItem from 'shared/components/OptionItem';
 import {spacing} from 'shared/theme/tokens';
 import {useImageQueue} from 'features/worker-tasks/hooks/useImageQueue';
 import QueueTable from 'features/worker-tasks/components/QueueTable';
+import ErrorPanel from 'features/worker-tasks/components/ErrorPanel';
 import {ImageJobStatus, ImageJobType} from 'features/worker-tasks/types';
 import {useMutation} from '@apollo/client';
 import {RUN_IMAGE_WORKER_ONCE} from 'features/worker-tasks/graphql/queue.graphql';
+import ErrorMessage from 'shared/components/ErrorMessage';
 
-const allStatuses: ImageJobStatus[] = ['pending', 'processing', 'succeeded', 'failed'];
+const allStatuses: ImageJobStatus[] = [
+  'pending',
+  'processing',
+  'succeeded',
+  'failed',
+];
 const allTypes: ImageJobType[] = ['hash', 'safety', 'embed'];
 
 function useDebouncedValue<T>(value: T, delay = 300): T {
@@ -28,7 +35,11 @@ function useDebouncedValue<T>(value: T, delay = 300): T {
 }
 
 const WorkerTasksScreen = () => {
-  const [status, setStatus] = useState<ImageJobStatus[]>(allStatuses);
+  const [status, setStatus] = useState<ImageJobStatus[]>([
+    'pending',
+    'processing',
+    'failed',
+  ]);
   const [jobType, setJobType] = useState<ImageJobType[]>(allTypes);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 300);
@@ -36,7 +47,8 @@ const WorkerTasksScreen = () => {
   const [statusModal, setStatusModal] = useState(false);
   const [typeModal, setTypeModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [runOnce, {loading: processing}] = useMutation(RUN_IMAGE_WORKER_ONCE);
+  const [runOnce, {loading: processing, data: workerData, error: runError}] =
+    useMutation(RUN_IMAGE_WORKER_ONCE, {errorPolicy: 'all'});
 
   const {groups, thumbs, loading, refetch} = useImageQueue(
     {
@@ -46,6 +58,26 @@ const WorkerTasksScreen = () => {
       limit: 50,
     },
     {pollMs: autoRefreshOn ? 10000 : 0, pauseOnHidden: true},
+  );
+
+  // Aggregate occurred errors across all jobs (unique + readable)
+  const occurredErrors = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const g of groups) {
+      for (const jt of ['hash', 'safety', 'embed'] as const) {
+        const e = g.jobs[jt]?.lastError;
+        if (e) set.add(`${jt.toUpperCase()}: ${e}`);
+      }
+    }
+    return Array.from(set).join('\n\n');
+  }, [groups]);
+
+  const visibleGroups = React.useMemo(
+    () =>
+      groups.filter(g =>
+        Object.values(g.jobs).some(j => j && j.status !== 'succeeded'),
+      ),
+    [groups],
   );
 
   const toggleStatus = (s: ImageJobStatus) => {
@@ -60,7 +92,7 @@ const WorkerTasksScreen = () => {
     );
   };
 
-    return (
+  return (
     <ScreenLayout scroll>
       <Card variant="glass" compact>
         <Title text="Worker Tasks" subtitle="Background job controls" />
@@ -85,7 +117,7 @@ const WorkerTasksScreen = () => {
           <Button
             text={processing ? 'Processing…' : 'Process Image Queue'}
             onPress={async () => {
-              await runOnce();
+              await runOnce({variables: {max: 150}});
               refetch();
             }}
             disabled={processing}
@@ -113,8 +145,18 @@ const WorkerTasksScreen = () => {
           </View>
         )}
       </Card>
+      {/* Worker feedback */}
+      {workerData?.runImageWorkerOnce?.status === 'already-running' && (
+        <ErrorMessage message="Worker is already running a batch." />
+      )}
+      {runError && <ErrorMessage message="Failed to trigger worker" />}
+      {!!occurredErrors && (
+        <Card compact style={{marginTop: spacing.sm}}>
+          <ErrorPanel error={occurredErrors} />
+        </Card>
+      )}
       <QueueTable
-        groups={groups}
+        groups={visibleGroups}
         thumbs={thumbs}
         loading={loading}
         onOpenRaw={url => {
