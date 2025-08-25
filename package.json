@@ -38,7 +38,6 @@
     "expo-status-bar": "~2.2.3",
     "formik": "^2.4.6",
     "graphql": "^16.10.0",
-    "graphql-request": "^7.1.2",
     "graphql-ws": "^6.0.4",
     "i18n-iso-countries": "^7.14.0",
     "jwt-decode": "^4.0.0",
