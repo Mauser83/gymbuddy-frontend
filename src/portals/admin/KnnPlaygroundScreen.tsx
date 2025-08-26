@@ -31,12 +31,11 @@ const KnnPlaygroundScreen = () => {
     useLatestEmbeddedImage();
 
   const inputError = useMemo(() => {
-    if (!imageId) return 'Image ID is required';
-    if (!/^\d+$/.test(imageId)) return 'Image ID must be numeric';
+    if (!imageId?.trim()) return 'Enter an imageId.';
     return null;
   }, [imageId]);
 
-  const input = inputError ? null : {imageId, scope, limit};
+  const input = inputError ? null : {imageId: imageId.trim(), scope, limit};
 
   const {neighbors, thumbs, error: knnError, isLoading: knnLoading} =
     useKnnSearch(input);
@@ -53,9 +52,10 @@ const KnnPlaygroundScreen = () => {
     setNoLatest(false);
     try {
       const res = await fetchLatest(activeGymId);
-      const id = res.data?.latestEmbeddedImage?.imageId;
-      if (id) {
-        setImageId(String(id));
+      const latest = res.data?.latestEmbeddedImage;
+      if (latest?.imageId) {
+        setImageId(latest.imageId);
+        setScope('GYM');
       } else {
         setImageId('');
         setNoLatest(true);
@@ -85,18 +85,16 @@ const KnnPlaygroundScreen = () => {
           <Button
             text="GLOBAL"
             onPress={() => setScope('GLOBAL')}
-            variant={scope === 'GLOBAL' ? 'solid' : 'outline'}
             small
           />
           <Button
             text="GYM"
             onPress={() => setScope('GYM')}
-            variant={scope === 'GYM' ? 'solid' : 'outline'}
             small
           />
         </ButtonRow>
         <View style={{marginBottom: spacing.md}}>
-          <Text>Limit: {limit}</Text>
+          <Text style={{color: theme.colors.textPrimary}}>Limit: {limit}</Text>
           <Slider
             minimumValue={5}
             maximumValue={50}
@@ -136,11 +134,11 @@ const KnnPlaygroundScreen = () => {
                     }}
                   />
                 )}
-                <Text style={{marginBottom: spacing.xs}}>
+                <Text style={{marginBottom: spacing.xs, color: theme.colors.textPrimary}}>
                   score: {item.score.toFixed(3)}
                 </Text>
                 {item.equipmentId && (
-                  <Text style={{marginBottom: spacing.sm}}>
+                  <Text style={{marginBottom: spacing.sm, color: theme.colors.textPrimary}}>
                     equipmentId: {item.equipmentId}
                   </Text>
                 )}
@@ -166,11 +164,11 @@ const KnnPlaygroundScreen = () => {
                   }}
                 />
               )}
-              <Text style={{marginBottom: spacing.xs}}>
+              <Text style={{marginBottom: spacing.xs, color: theme.colors.textPrimary}}>
                 score: {n.score.toFixed(3)}
               </Text>
               {n.equipmentId && (
-                <Text style={{marginBottom: spacing.sm}}>
+                <Text style={{marginBottom: spacing.sm, color: theme.colors.textPrimary}}>
                   equipmentId: {n.equipmentId}
                 </Text>
               )}
