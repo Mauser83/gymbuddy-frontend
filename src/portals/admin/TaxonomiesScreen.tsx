@@ -149,7 +149,7 @@ const TaxonomiesScreen = () => {
   return (
     <ScreenLayout scroll>
       <Card>
-        <Title text="Taxonomies"/>
+        <Title text="Taxonomies" />
         <View
           style={{marginBottom: spacing.md, overflow: 'visible'}}
           onLayout={e => setContainerWidth(e.nativeEvent.layout.width)}>
@@ -290,7 +290,6 @@ const TaxonomiesScreen = () => {
                 <Text style={{flex: 2, color: theme.colors.textPrimary}}>
                   {row.name}
                 </Text>
-
                 <View style={{width: 80, alignItems: 'flex-start'}}>
                   <Switch
                     value={row.active}
@@ -304,7 +303,6 @@ const TaxonomiesScreen = () => {
                     }
                   />
                 </View>
-
                 <View style={{width: 60, alignItems: 'flex-end'}}>
                   <Button
                     text="Edit"
@@ -320,16 +318,10 @@ const TaxonomiesScreen = () => {
       </Card>
       <ModalWrapper visible={!!modal} onClose={closeModal}>
         <View style={{padding: spacing.lg}}>
-          <Text
-            style={{
-              fontSize: fontSizes.lg,
-              fontWeight: fontWeights.bold,
-              color: theme.colors.textPrimary,
-              marginBottom: spacing.md,
-            }}>
-            {modal?.mode === 'create' ? 'Create' : 'Edit'}{' '}
-            {TABS.find(t => t.key === activeTab)?.label}
-          </Text>
+          <Title
+            align="left"
+            text={`${modal?.mode === 'create' ? 'Create' : 'Edit'} ${TABS.find(t => t.key === activeTab)?.label}`}
+          />
           <FormInput
             label="Name"
             value={name}
@@ -363,7 +355,7 @@ const TaxonomiesScreen = () => {
               />
             </View>
           )}
-          {error && <FormError message={error} />}
+          {error ? <FormError message={error} /> : null}
           <Button
             text="Save"
             onPress={modal?.mode === 'create' ? handleCreate : handleEdit}
