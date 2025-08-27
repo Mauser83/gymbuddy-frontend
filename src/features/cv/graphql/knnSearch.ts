@@ -6,6 +6,7 @@ export const KNN_SEARCH = gql`
       imageId
       equipmentId
       score
+      storageKey
     }
   }
 `;
