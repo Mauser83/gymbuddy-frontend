@@ -15,7 +15,11 @@ import {spacing} from 'shared/theme/tokens';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import {useKnnSearch} from 'features/cv/hooks/useKnnSearch';
 import {useLatestEmbeddedImage} from 'features/cv/hooks/useLatestEmbeddedImage';
-import {useRoleContext} from 'features/auth/context/RoleContext';
+import ModalWrapper from 'shared/components/ModalWrapper';
+import SelectableField from 'shared/components/SelectableField';
+import GymPickerModal, {
+  Gym,
+} from 'features/workout-sessions/components/GymPickerModal';
 
 const KnnPlaygroundScreen = () => {
   const [imageId, setImageId] = useState('');
@@ -24,21 +28,33 @@ const KnnPlaygroundScreen = () => {
   const [noLatest, setNoLatest] = useState(false);
   const navigate = useNavigate();
   const {theme} = useTheme();
-  const role = useRoleContext();
-  const activeGymId = role?.gymId ? Number(role.gymId) : undefined;
+  const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
+  const [gymModalVisible, setGymModalVisible] = useState(false);
+  const activeGymId = selectedGym?.id;
 
   const {
     latest,
     isLoading: latestLoading,
     error: latestError,
-  } = useLatestEmbeddedImage({scope: 'GYM'});
+  } = useLatestEmbeddedImage(
+    activeGymId ? {scope: 'GYM', gymId: activeGymId} : null,
+  );
 
   const inputError = useMemo(() => {
     if (!imageId?.trim()) return 'Enter an imageId.';
+    if (scope === 'GYM' && !activeGymId) return 'Select a gym.';
     return null;
-  }, [imageId]);
+  }, [imageId, scope, activeGymId]);
 
-  const input = inputError ? null : {imageId: imageId.trim(), scope, limit};
+  const input =
+    inputError || (scope === 'GYM' && !activeGymId)
+      ? null
+      : {
+          imageId: imageId.trim(),
+          scope,
+          limit,
+          gymId: scope === 'GYM' ? activeGymId : undefined,
+        };
 
   const {
     neighbors,
@@ -87,8 +103,17 @@ const KnnPlaygroundScreen = () => {
           <Button text="GLOBAL" onPress={() => setScope('GLOBAL')} small />
           <Button text="GYM" onPress={() => setScope('GYM')} small />
         </ButtonRow>
-        {scope === 'GYM' && !activeGymId && (
-          <ErrorMessage message="You don't have an active gym. Switch role or choose GLOBAL." />
+        {scope === 'GYM' && (
+          <>
+            <SelectableField
+              label="Gym"
+              value={selectedGym ? selectedGym.name : 'Select Gym'}
+              onPress={() => setGymModalVisible(true)}
+            />
+            {!selectedGym && (
+              <ErrorMessage message="Select a gym or choose GLOBAL." />
+            )}
+          </>
         )}
         <View style={{marginBottom: spacing.md}}>
           <Text style={{color: theme.colors.textPrimary}}>Limit: {limit}</Text>
@@ -176,6 +201,19 @@ const KnnPlaygroundScreen = () => {
           ))
         )}
       </Card>
+      <ModalWrapper
+        visible={gymModalVisible}
+        onClose={() => setGymModalVisible(false)}>
+        {gymModalVisible && (
+          <GymPickerModal
+            onClose={() => setGymModalVisible(false)}
+            onSelect={gym => {
+              setSelectedGym(gym);
+              setGymModalVisible(false);
+            }}
+          />
+        )}
+      </ModalWrapper>
     </ScreenLayout>
   );
 };
