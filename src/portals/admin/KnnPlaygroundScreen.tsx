@@ -1,5 +1,5 @@
 import React, {useMemo, useState} from 'react';
-import {View, Text, Image, FlatList} from 'react-native';
+import {View, Text, FlatList} from 'react-native';
 import {useNavigate} from 'react-router-native';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Card from 'shared/components/Card';
@@ -11,10 +11,10 @@ import ErrorMessage from 'shared/components/ErrorMessage';
 import LoadingState from 'shared/components/LoadingState';
 import NoResults from 'shared/components/NoResults';
 import Slider from '@react-native-community/slider';
-import {spacing, borderRadius} from 'shared/theme/tokens';
+import {spacing} from 'shared/theme/tokens';
 import {useTheme} from 'shared/theme/ThemeProvider';
-import { useKnnSearch } from 'features/cv/hooks/useKnnSearch';
-import { useLatestEmbeddedImage } from 'features/cv/hooks/useLatestEmbeddedImage';
+import {useKnnSearch} from 'features/cv/hooks/useKnnSearch';
+import {useLatestEmbeddedImage} from 'features/cv/hooks/useLatestEmbeddedImage';
 import {useRoleContext} from 'features/auth/context/RoleContext';
 
 const KnnPlaygroundScreen = () => {
@@ -27,8 +27,11 @@ const KnnPlaygroundScreen = () => {
   const role = useRoleContext();
   const activeGymId = role?.gymId ? Number(role.gymId) : undefined;
 
-  const {fetchLatest, loading: latestLoading, error: latestError} =
-    useLatestEmbeddedImage();
+  const {
+    fetchLatest,
+    loading: latestLoading,
+    error: latestError,
+  } = useLatestEmbeddedImage();
 
   const inputError = useMemo(() => {
     if (!imageId?.trim()) return 'Enter an imageId.';
@@ -37,8 +40,11 @@ const KnnPlaygroundScreen = () => {
 
   const input = inputError ? null : {imageId: imageId.trim(), scope, limit};
 
-  const {neighbors, thumbs, error: knnError, isLoading: knnLoading} =
-    useKnnSearch(input);
+  const {
+    neighbors,
+    error: knnError,
+    isLoading: knnLoading,
+  } = useKnnSearch(input);
 
   const error = knnError || latestError;
   const isLoading = knnLoading || latestLoading;
@@ -82,17 +88,12 @@ const KnnPlaygroundScreen = () => {
         {inputError && !noLatest && <ErrorMessage message={inputError} />}
         <ButtonRow>
           <Button text="Use latest embedded" onPress={handleUseLatest} small />
-          <Button
-            text="GLOBAL"
-            onPress={() => setScope('GLOBAL')}
-            small
-          />
-          <Button
-            text="GYM"
-            onPress={() => setScope('GYM')}
-            small
-          />
+          <Button text="GLOBAL" onPress={() => setScope('GLOBAL')} small />
+          <Button text="GYM" onPress={() => setScope('GYM')} small />
         </ButtonRow>
+        {scope === 'GYM' && !activeGymId && (
+          <ErrorMessage message="You don't have an active gym. Switch role or choose GLOBAL." />
+        )}
         <View style={{marginBottom: spacing.md}}>
           <Text style={{color: theme.colors.textPrimary}}>Limit: {limit}</Text>
           <Slider
@@ -107,7 +108,10 @@ const KnnPlaygroundScreen = () => {
         </View>
         {isLoading && <LoadingState text="Searching..." />}
         {error && (
-          <ErrorMessage message={String(error)} containerStyle={{marginBottom: spacing.md}} />
+          <ErrorMessage
+            message={String(error)}
+            containerStyle={{marginBottom: spacing.md}}
+          />
         )}
         {!isLoading && !error && noLatest && (
           <NoResults message="No embedded images yet for this gym. Finalize some uploads first." />
@@ -119,21 +123,10 @@ const KnnPlaygroundScreen = () => {
           <FlatList
             data={sorted}
             keyExtractor={item => item.imageId}
-            renderItem={({item, index}) => (
+            renderItem={({item}) => (
               <Card
                 variant="glass"
                 style={{marginBottom: spacing.md}}>
-                {thumbs[index] && (
-                  <Image
-                    source={{uri: thumbs[index]!}}
-                    style={{
-                      width: '100%',
-                      height: 200,
-                      borderRadius: borderRadius.md,
-                      marginBottom: spacing.sm,
-                    }}
-                  />
-                )}
                 <Text style={{marginBottom: spacing.xs, color: theme.colors.textPrimary}}>
                   score: {item.score.toFixed(3)}
                 </Text>
@@ -151,19 +144,8 @@ const KnnPlaygroundScreen = () => {
             )}
           />
         ) : (
-          sorted.map((n, i) => (
+          sorted.map(n => (
             <Card key={n.imageId} variant="glass" style={{marginBottom: spacing.md}}>
-              {thumbs[i] && (
-                <Image
-                  source={{uri: thumbs[i]!}}
-                  style={{
-                    width: '100%',
-                    height: 200,
-                    borderRadius: borderRadius.md,
-                    marginBottom: spacing.sm,
-                  }}
-                />
-              )}
               <Text style={{marginBottom: spacing.xs, color: theme.colors.textPrimary}}>
                 score: {n.score.toFixed(3)}
               </Text>

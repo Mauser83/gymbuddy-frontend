@@ -1,12 +1,11 @@
-import {gql} from '@apollo/client';
+import { gql } from '@apollo/client';
 
-export const KnnSearchDocument = gql`
+export const KNN_SEARCH = gql`
   query Knn($input: KnnSearchInput!) {
     knnSearch(input: $input) {
       imageId
       equipmentId
       score
-      storageKey
     }
   }
 `;
