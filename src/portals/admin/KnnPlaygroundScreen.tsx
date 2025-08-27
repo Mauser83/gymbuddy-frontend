@@ -28,10 +28,10 @@ const KnnPlaygroundScreen = () => {
   const activeGymId = role?.gymId ? Number(role.gymId) : undefined;
 
   const {
-    fetchLatest,
-    loading: latestLoading,
+    latest,
+    isLoading: latestLoading,
     error: latestError,
-  } = useLatestEmbeddedImage();
+  } = useLatestEmbeddedImage({scope: 'GYM'});
 
   const inputError = useMemo(() => {
     if (!imageId?.trim()) return 'Enter an imageId.';
@@ -54,19 +54,15 @@ const KnnPlaygroundScreen = () => {
     [neighbors],
   );
 
-  const handleUseLatest = async () => {
+  const handleUseLatest = () => {
     setNoLatest(false);
-    try {
-      const res = await fetchLatest(activeGymId);
-      const latest = res.data?.latestEmbeddedImage;
-      if (latest?.imageId) {
-        setImageId(latest.imageId);
-        setScope('GYM');
-      } else {
-        setImageId('');
-        setNoLatest(true);
-      }
-    } catch {}
+    if (latest?.imageId) {
+      setImageId(latest.imageId);
+      setScope(latest.scope === 'GLOBAL' ? 'GLOBAL' : 'GYM');
+    } else {
+      setImageId('');
+      setNoLatest(true);
+    }
   };
 
   return (
@@ -124,14 +120,20 @@ const KnnPlaygroundScreen = () => {
             data={sorted}
             keyExtractor={item => item.imageId}
             renderItem={({item}) => (
-              <Card
-                variant="glass"
-                style={{marginBottom: spacing.md}}>
-                <Text style={{marginBottom: spacing.xs, color: theme.colors.textPrimary}}>
+              <Card variant="glass" style={{marginBottom: spacing.md}}>
+                <Text
+                  style={{
+                    marginBottom: spacing.xs,
+                    color: theme.colors.textPrimary,
+                  }}>
                   score: {item.score.toFixed(3)}
                 </Text>
                 {item.equipmentId && (
-                  <Text style={{marginBottom: spacing.sm, color: theme.colors.textPrimary}}>
+                  <Text
+                    style={{
+                      marginBottom: spacing.sm,
+                      color: theme.colors.textPrimary,
+                    }}>
                     equipmentId: {item.equipmentId}
                   </Text>
                 )}
@@ -145,12 +147,23 @@ const KnnPlaygroundScreen = () => {
           />
         ) : (
           sorted.map(n => (
-            <Card key={n.imageId} variant="glass" style={{marginBottom: spacing.md}}>
-              <Text style={{marginBottom: spacing.xs, color: theme.colors.textPrimary}}>
+            <Card
+              key={n.imageId}
+              variant="glass"
+              style={{marginBottom: spacing.md}}>
+              <Text
+                style={{
+                  marginBottom: spacing.xs,
+                  color: theme.colors.textPrimary,
+                }}>
                 score: {n.score.toFixed(3)}
               </Text>
               {n.equipmentId && (
-                <Text style={{marginBottom: spacing.sm, color: theme.colors.textPrimary}}>
+                <Text
+                  style={{
+                    marginBottom: spacing.sm,
+                    color: theme.colors.textPrimary,
+                  }}>
                   equipmentId: {n.equipmentId}
                 </Text>
               )}

@@ -1,16 +1,34 @@
-import {useLazyQuery} from '@apollo/client';
-import {LatestEmbeddedImageDocument} from '../graphql/latestEmbeddedImage';
+import { useQuery } from '@apollo/client';
+import { LATEST_EMBEDDED_IMAGE } from '../graphql/latestEmbeddedImage';
+import { useRoleContext } from 'features/auth/context/RoleContext';
 
-export function useLatestEmbeddedImage() {
-  const [run, {data, loading, error}] = useLazyQuery(
-    LatestEmbeddedImageDocument,
-    {fetchPolicy: 'network-only'},
-  );
+type Scope = 'GLOBAL' | 'GYM' | 'AUTO';
+type Input = { scope: Scope; gymId?: number; equipmentId?: number };
+
+export function useLatestEmbeddedImage(input: Input | null) {
+  const role = useRoleContext();
+  const activeGymId = role?.gymId ? Number(role.gymId) : undefined;
+
+  const needsGym = input?.scope === 'GYM' || input?.scope === 'AUTO';
+  const vars = input
+    ? {
+        input: {
+          scope: input.scope,
+          gymId: needsGym ? (input.gymId ?? activeGymId) : undefined,
+          equipmentId: input.equipmentId,
+        },
+      }
+    : undefined;
+
+  const { data, loading, error } = useQuery(LATEST_EMBEDDED_IMAGE, {
+    variables: vars,
+    skip: !input || (needsGym && !(input.gymId ?? activeGymId)),
+    fetchPolicy: 'no-cache',
+  });
 
   return {
-    fetchLatest: (gymId?: number) => run({variables: {gymId}}),
-    latest: data?.latestEmbeddedImage ?? null,
-    loading,
+    latest: data?.getLatestEmbeddedImage ?? null,
+    isLoading: loading,
     error,
   };
 }

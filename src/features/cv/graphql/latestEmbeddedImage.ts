@@ -1,10 +1,11 @@
-import {gql} from '@apollo/client';
+import { gql } from '@apollo/client';
 
-export const LatestEmbeddedImageDocument = gql`
-  query LatestEmbeddedImage($gymId: Int) {
-    latestEmbeddedImage(gymId: $gymId) {
+export const LATEST_EMBEDDED_IMAGE = gql`
+  query LatestEmbeddedImage($input: LatestEmbeddedImageInput!) {
+    getLatestEmbeddedImage(input: $input) {
       imageId
       createdAt
+      scope
     }
   }
 `;
