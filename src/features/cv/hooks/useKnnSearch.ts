@@ -9,6 +9,13 @@ export type Input = {
   gymId?: number;
 };
 
+export type Neighbor = {
+  imageId: string;
+  equipmentId?: number | null;
+  score: number;
+  storageKey: string;
+};
+
 export function useKnnSearch(input: Input | null) {
   const role = useRoleContext();
   const activeGymId = role?.gymId ? Number(role.gymId) : undefined;
@@ -34,6 +41,6 @@ export function useKnnSearch(input: Input | null) {
     fetchPolicy: 'no-cache',
   });
 
-  const neighbors = data?.knnSearch ?? [];
+  const neighbors: Neighbor[] = data?.knnSearch ?? [];
   return {neighbors, isLoading: loading, error};
 }

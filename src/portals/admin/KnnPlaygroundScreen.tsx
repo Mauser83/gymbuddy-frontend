@@ -1,5 +1,5 @@
-import React, {useMemo, useState} from 'react';
-import {View, Text, FlatList} from 'react-native';
+import React, {useMemo, useState, useEffect} from 'react';
+import {View, Text, FlatList, Image} from 'react-native';
 import {useNavigate} from 'react-router-native';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Card from 'shared/components/Card';
@@ -15,6 +15,7 @@ import {spacing} from 'shared/theme/tokens';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import {useKnnSearch} from 'features/cv/hooks/useKnnSearch';
 import {useLatestEmbeddedImage} from 'features/cv/hooks/useLatestEmbeddedImage';
+import {useThumbUrls} from 'features/cv/hooks/useThumbUrls';
 import ModalWrapper from 'shared/components/ModalWrapper';
 import SelectableField from 'shared/components/SelectableField';
 import GymPickerModal, {
@@ -69,6 +70,22 @@ const KnnPlaygroundScreen = () => {
     () => [...neighbors].sort((a, b) => b.score - a.score),
     [neighbors],
   );
+
+  const storageKeys = useMemo(
+    () => sorted.map(n => n.storageKey).filter(Boolean),
+    [sorted],
+  );
+  const {data: thumbData, refresh: refreshThumbs} = useThumbUrls();
+  useEffect(() => {
+    refreshThumbs(storageKeys);
+  }, [refreshThumbs, storageKeys]);
+  const thumbs = useMemo(() => {
+    const record: Record<string, string> = {};
+    thumbData?.imageUrlMany?.forEach((r: any) => {
+      record[r.storageKey] = r.url;
+    });
+    return record;
+  }, [thumbData]);
 
   const handleUseLatest = () => {
     setNoLatest(false);
@@ -146,6 +163,17 @@ const KnnPlaygroundScreen = () => {
             keyExtractor={item => item.imageId}
             renderItem={({item}) => (
               <Card variant="glass" style={{marginBottom: spacing.md}}>
+                {!!thumbs?.[item.storageKey] && (
+                  <Image
+                    source={{uri: thumbs[item.storageKey]}}
+                    style={{
+                      width: 120,
+                      height: 120,
+                      borderRadius: 12,
+                      marginBottom: spacing.sm,
+                    }}
+                  />
+                )}
                 <Text
                   style={{
                     marginBottom: spacing.xs,
@@ -176,6 +204,17 @@ const KnnPlaygroundScreen = () => {
               key={n.imageId}
               variant="glass"
               style={{marginBottom: spacing.md}}>
+              {!!thumbs?.[n.storageKey] && (
+                <Image
+                  source={{uri: thumbs[n.storageKey]}}
+                  style={{
+                    width: 120,
+                    height: 120,
+                    borderRadius: 12,
+                    marginBottom: spacing.sm,
+                  }}
+                />
+              )}
               <Text
                 style={{
                   marginBottom: spacing.xs,
