@@ -195,7 +195,11 @@ const ImageManagementScreen = () => {
   const handleApprove = useCallback(
     async (r: Row) => {
       try {
-        await approveMutate({variables: {id: r.id}});
+        await approveMutate({
+          variables: {
+            input: {id: r.id},
+          },
+        });
         setForceApprove(false);
         setSelected(null);
         refetch();
@@ -211,8 +215,10 @@ const ImageManagementScreen = () => {
       try {
         await promoteMutate({
           variables: {
-            id: r.id,
-            force: isAdmin && forceApprove ? true : undefined,
+            input: {
+              id: r.id,
+              force: isAdmin && forceApprove ? true : undefined,
+            },
           },
         });
         setSelected(null);
@@ -233,7 +239,9 @@ const ImageManagementScreen = () => {
     if (!rejecting) return;
     try {
       await rejectMutate({
-        variables: {id: rejecting.id, reason: rejectReason || undefined},
+        variables: {
+          input: {id: rejecting.id, reason: rejectReason || undefined},
+        },
       });
       setRejecting(null);
       setSelected(null);
@@ -295,7 +303,10 @@ const ImageManagementScreen = () => {
               <View style={styles.bottomLeft}>
                 {/* tiny id for copy/debug */}
                 <Text
-                  style={[styles.metaText, {color: theme.colors.textPrimary, opacity: 0.7}]}
+                  style={[
+                    styles.metaText,
+                    {color: theme.colors.textPrimary, opacity: 0.7},
+                  ]}
                   numberOfLines={1}
                   ellipsizeMode="middle">
                   {item.id}
@@ -455,9 +466,12 @@ const ImageManagementScreen = () => {
                 style={styles.detailImage}
                 onError={() => handleThumbError(selected.storageKey)}
               />
-              <Text style={[styles.modalText, {color: theme.colors.textPrimary}]}>
+              <Text
+                style={[styles.modalText, {color: theme.colors.textPrimary}]}>
                 {selected.gymName ?? `Gym ${selected.gymId}`}
-                {selected.createdAt ? ` • ${formatDate(selected.createdAt)}` : ''}
+                {selected.createdAt
+                  ? ` • ${formatDate(selected.createdAt)}`
+                  : ''}
               </Text>
 
               {/* Safety */}
@@ -476,25 +490,33 @@ const ImageManagementScreen = () => {
                     )
                       ? 'success'
                       : selected.safety?.state === 'FAILED'
-                      ? 'warning'
-                      : 'default'
+                        ? 'warning'
+                        : 'default'
                   }
                 />
                 {typeof selected.safety?.score === 'number' && (
-                  <Text style={[styles.modalText, {color: theme.colors.textPrimary}]}>
+                  <Text
+                    style={[
+                      styles.modalText,
+                      {color: theme.colors.textPrimary},
+                    ]}>
                     score: {selected.safety.score.toFixed(2)}
                   </Text>
                 )}
               </View>
               {!!selected.safety?.reasons?.length && (
-                <Text style={[styles.modalText, {color: theme.colors.textPrimary}]}>
+                <Text
+                  style={[styles.modalText, {color: theme.colors.textPrimary}]}>
                   reasons: {selected.safety.reasons.join(', ')}
                 </Text>
               )}
 
               {/* Duplicates */}
               {!!selected.dupCount && selected.dupCount > 0 && (
-                <Text style={[styles.modalText, {color: theme.colors.textPrimary}]}>Possible duplicate (sha match)</Text>
+                <Text
+                  style={[styles.modalText, {color: theme.colors.textPrimary}]}>
+                  Possible duplicate (sha match)
+                </Text>
               )}
               {!!selected.sha256 && (
                 <Button
@@ -510,7 +532,8 @@ const ImageManagementScreen = () => {
 
               {/* Tag names */}
               <View style={{marginTop: 8}}>
-                <Text style={[styles.modalText, {color: theme.colors.textPrimary}]}>
+                <Text
+                  style={[styles.modalText, {color: theme.colors.textPrimary}]}>
                   {[
                     getTagName('angle', selected.tags?.angleId) &&
                       `angle: ${getTagName('angle', selected.tags?.angleId)}`,
@@ -581,7 +604,10 @@ const ImageManagementScreen = () => {
                 styles.rejectContent,
                 {backgroundColor: theme.colors.surface},
               ]}>
-              <Text style={[styles.modalTitle, {color: theme.colors.textPrimary}]}>Reject Reason</Text>
+              <Text
+                style={[styles.modalTitle, {color: theme.colors.textPrimary}]}>
+                Reject Reason
+              </Text>
               <TextInput
                 style={[styles.textArea, {color: theme.colors.textPrimary}]}
                 multiline
