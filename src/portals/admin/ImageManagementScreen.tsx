@@ -50,7 +50,15 @@ type Row = {
   sha256: string;
   status: string;
   createdAt?: string;
-  tags?: {angleId?: number; splitId?: number; sourceId?: number};
+  tags?: {
+    angleId?: number;
+    heightId?: number;
+    distanceId?: number;
+    lightingId?: number;
+    mirrorId?: number;
+    splitId?: number;
+    sourceId?: number;
+  };
   safety?: {
     state?: 'PENDING' | 'COMPLETE' | 'FAILED';
     score?: number | null;
@@ -113,8 +121,17 @@ const ImageManagementScreen = () => {
   const [forceApprove, setForceApprove] = useState(false);
   const [errored, setErrored] = useState<Set<string>>(new Set());
   const tagNames = useTagNameMaps();
-  const getTagName = (kind: 'angle' | 'split' | 'source', id?: number) =>
-    id != null ? tagNames[kind].get(Number(id)) : undefined;
+  const getTagName = (
+    kind:
+      | 'angle'
+      | 'height'
+      | 'distance'
+      | 'lighting'
+      | 'mirror'
+      | 'split'
+      | 'source',
+    id?: number,
+  ) => (id != null ? tagNames[kind].get(Number(id)) : undefined);
 
   const filters = useMemo(
     () => ({
@@ -483,7 +500,6 @@ const ImageManagementScreen = () => {
                 <Button
                   text="Copy SHA"
                   small
-                  variant="outline"
                   onPress={() =>
                     (globalThis as any).navigator?.clipboard?.writeText?.(
                       selected.sha256,
@@ -498,6 +514,14 @@ const ImageManagementScreen = () => {
                   {[
                     getTagName('angle', selected.tags?.angleId) &&
                       `angle: ${getTagName('angle', selected.tags?.angleId)}`,
+                    getTagName('height', selected.tags?.heightId) &&
+                      `height: ${getTagName('height', selected.tags?.heightId)}`,
+                    getTagName('distance', selected.tags?.distanceId) &&
+                      `distance: ${getTagName('distance', selected.tags?.distanceId)}`,
+                    getTagName('lighting', selected.tags?.lightingId) &&
+                      `lighting: ${getTagName('lighting', selected.tags?.lightingId)}`,
+                    getTagName('mirror', selected.tags?.mirrorId) &&
+                      `mirror: ${getTagName('mirror', selected.tags?.mirrorId)}`,
                     getTagName('split', selected.tags?.splitId) &&
                       `split: ${getTagName('split', selected.tags?.splitId)}`,
                     getTagName('source', selected.tags?.sourceId) &&
@@ -557,7 +581,7 @@ const ImageManagementScreen = () => {
                 styles.rejectContent,
                 {backgroundColor: theme.colors.surface},
               ]}>
-              <Text style={styles.modalTitle}>Reject Reason</Text>
+              <Text style={[styles.modalTitle, {color: theme.colors.textPrimary}]}>Reject Reason</Text>
               <TextInput
                 style={[styles.textArea, {color: theme.colors.textPrimary}]}
                 multiline

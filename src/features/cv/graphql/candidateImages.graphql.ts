@@ -11,7 +11,15 @@ export const CANDIDATE_GLOBAL_IMAGES = gql`
       sha256
       status
       createdAt
-      tags { angleId splitId sourceId }
+      tags {
+        angleId
+        heightId
+        distanceId
+        lightingId
+        mirrorId
+        splitId
+        sourceId
+      }
       safety { state score reasons }
       dupCount
       __typename
