@@ -65,7 +65,7 @@ const Chip = ({
     <View
       style={{
         backgroundColor: bg,
-        paddingHorizontal: 8,
+        paddingHorizontal: 6,
         paddingVertical: 2,
         borderRadius: 999,
       }}>
@@ -231,7 +231,7 @@ const ImageManagementScreen = () => {
             </View>
             <View style={styles.rowInfo}>
               <Text
-                style={styles.idText}
+                style={[styles.idText, {color: theme.colors.textPrimary}]}
                 numberOfLines={1}
                 ellipsizeMode="middle">
                 {item.id}
@@ -239,7 +239,7 @@ const ImageManagementScreen = () => {
               <Text
                 numberOfLines={1}
                 ellipsizeMode="middle"
-                style={styles.shaText}>
+                style={[styles.shaText, {color: theme.colors.textPrimary}]}> 
                 sha256 {item.sha256}
               </Text>
               <View style={styles.chipRow}>
@@ -298,7 +298,7 @@ const ImageManagementScreen = () => {
       windowSize={7}
       initialNumToRender={12}
       removeClippedSubviews
-      getItemLayout={(_, index) => ({length: 88, offset: 88 * index, index})}
+      // getItemLayout removed: variable row height
     />
   );
 
@@ -536,17 +536,14 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#333',
-    height: 88,
+    minHeight: 110,
   },
-  thumbWrapper: {
-    width: 64,
-    height: 64,
-  },
+  thumbWrapper: {width: 64, height: 64, marginRight: 12},
   thumb: {
     width: 64,
     height: 64,
@@ -571,8 +568,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   shaText: {color: '#666', fontSize: 12},
-  chipRow: {flexDirection: 'row', gap: 6, marginTop: 4},
-  buttonCol: {flexDirection: 'row', gap: 8, flexShrink: 0},
+  chipRow: {flexDirection: 'row', gap: 6, marginTop: 6},
+  buttonCol: {
+    flexDirection: 'column',
+    gap: 8,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    width: 110,
+    flexShrink: 0,
+  },
   infoBanner: {
     flexDirection: 'row',
     alignItems: 'center',
