@@ -20,7 +20,11 @@ export const CANDIDATE_GLOBAL_IMAGES = gql`
         splitId
         sourceId
       }
-      safety { state score reasons }
+      safety {
+        state
+        score
+        reasons
+      }
       dupCount
       __typename
     }
@@ -28,43 +32,47 @@ export const CANDIDATE_GLOBAL_IMAGES = gql`
 `;
 
 export const APPROVE_GYM_IMAGE = gql`
-  mutation ApproveGymImage($id: ID!, $splitId: ID) {
-    approveGymImage(id: $id, splitId: $splitId) {
-      equipmentImage {
-        id
-        equipmentId
-        storageKey
-      }
+  mutation ApproveGymImage($input: ApproveGymImageInput!) {
+    approveGymImage(input: $input) {
       gymImage {
         id
         status
+        __typename
       }
+      equipmentImage {
+        id
+        __typename
+      }
+      __typename
     }
   }
 `;
 
 export const REJECT_GYM_IMAGE = gql`
-  mutation RejectGymImage($id: ID!, $reason: String) {
-    rejectGymImage(id: $id, reason: $reason) {
+  mutation RejectGymImage($input: RejectGymImageInput!) {
+    rejectGymImage(input: $input) {
       gymImage {
         id
         status
-        rejectionReason
+        __typename
       }
+      __typename
     }
   }
 `;
 
 export const PROMOTE_GYM_IMAGE_TO_GLOBAL = gql`
-  mutation PromoteGymImageToGlobal($id: ID!, $splitId: ID, $force: Boolean) {
-    promoteGymImageToGlobal(id: $id, splitId: $splitId, force: $force) {
-      equipmentImage {
-        id
-      }
+  mutation PromoteGymImageToGlobal($input: PromoteGymImageToGlobalInput!) {
+    promoteGymImageToGlobal(input: $input) {
       gymImage {
         id
-        promotedAt
+        __typename
       }
+      equipmentImage {
+        id
+        __typename
+      }
+      __typename
     }
   }
 `;
