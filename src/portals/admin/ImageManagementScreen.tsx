@@ -65,11 +65,11 @@ const Chip = ({
     <View
       style={{
         backgroundColor: bg,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
         borderRadius: 999,
       }}>
-      <Text style={{color: '#fff', fontSize: 10}}>{text}</Text>
+      <Text style={{color: '#fff', fontSize: 12}}>{text}</Text>
     </View>
   );
 };
@@ -211,7 +211,8 @@ const ImageManagementScreen = () => {
       return (
         <Pressable onPress={() => setSelected(item)}>
           <View style={styles.row}>
-            <View style={styles.thumbWrapper}>
+            {/* LEFT: thumb + text under it */}
+            <View style={styles.thumbCol}>
               {url ? (
                 <Image
                   source={{uri: url}}
@@ -228,52 +229,39 @@ const ImageManagementScreen = () => {
                   <Text style={styles.retryText}>↻</Text>
                 </Pressable>
               )}
+
+              <View style={styles.textBlock}>
+                <Text
+                  style={[styles.idText, {color: theme.colors.textPrimary}]}
+                  numberOfLines={1}
+                  ellipsizeMode="middle">
+                  {item.id}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  ellipsizeMode="middle"
+                  style={[styles.shaText, {color: theme.colors.textPrimary}]}> 
+                  sha256 {item.sha256}
+                </Text>
+              </View>
             </View>
-            <View style={styles.rowInfo}>
-              <Text
-                style={[styles.idText, {color: theme.colors.textPrimary}]}
-                numberOfLines={1}
-                ellipsizeMode="middle">
-                {item.id}
-              </Text>
-              <Text
-                numberOfLines={1}
-                ellipsizeMode="middle"
-                style={[styles.shaText, {color: theme.colors.textPrimary}]}> 
-                sha256 {item.sha256}
-              </Text>
+
+            {/* MIDDLE: bigger chips */}
+            <View style={styles.centerCol}>
               <View style={styles.chipRow}>
-                <Chip
-                  text={
-                    isCandidateLike(item.status) ? 'CANDIDATE' : item.status
-                  }
-                />
+                <Chip text={isCandidateLike(item.status) ? 'CANDIDATE' : item.status} />
                 <Chip
                   text={item.safety?.state ?? 'UNKNOWN'}
-                  tone={
-                    item.safety?.state === 'COMPLETE' ? 'success' : 'warning'
-                  }
+                  tone={item.safety?.state === 'COMPLETE' ? 'success' : 'warning'}
                 />
               </View>
             </View>
+
+            {/* RIGHT: vertical buttons */}
             <View style={styles.buttonCol}>
-              <Button
-                text="Approve"
-                small
-                disabled={!canApprove(item)}
-                onPress={() => handleApprove(item)}
-              />
-              <Button
-                text="Reject"
-                small
-                variant="outline"
-                onPress={() => handleReject(item)}
-              />
-              <Button
-                text="Promote"
-                small
-                onPress={() => handlePromote(item)}
-              />
+              <Button text="Approve" small disabled={!canApprove(item)} onPress={() => handleApprove(item)} />
+              <Button text="Reject" small variant="outline" onPress={() => handleReject(item)} />
+              <Button text="Promote" small onPress={() => handlePromote(item)} />
             </View>
           </View>
         </Pressable>
@@ -536,14 +524,18 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#333',
-    minHeight: 110,
+    minHeight: 120,
   },
-  thumbWrapper: {width: 64, height: 64, marginRight: 12},
+  thumbCol: {
+    width: Platform.OS === 'web' ? 240 : 200,
+    alignItems: 'center',
+    marginRight: 12,
+  },
   thumb: {
     width: 64,
     height: 64,
@@ -562,19 +554,33 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryText: {color: '#fff', fontSize: 18},
-  rowInfo: {flex: 1, minWidth: 0, marginLeft: 12},
+  textBlock: {
+    marginTop: 8,
+    width: '100%',
+    alignItems: 'center',
+  },
   idText: {
     fontFamily: Platform.OS === 'android' ? 'monospace' : 'Menlo',
     fontSize: 12,
   },
-  shaText: {color: '#666', fontSize: 12},
-  chipRow: {flexDirection: 'row', gap: 6, marginTop: 6},
+  shaText: {fontSize: 12},
+  centerCol: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   buttonCol: {
     flexDirection: 'column',
     gap: 8,
     alignItems: 'flex-end',
     justifyContent: 'center',
-    width: 110,
+    width: 120,
     flexShrink: 0,
   },
   infoBanner: {
