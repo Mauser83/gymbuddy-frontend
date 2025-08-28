@@ -204,33 +204,45 @@ const ImageManagementScreen = () => {
     }
   }, [rejectMutate, rejecting, rejectReason, refetch]);
 
-  const renderRow = useCallback(
+const renderRow = useCallback(
     ({item}: {item: Row}) => {
       const url = urlByKey.get(item.storageKey);
       const isErrored = errored.has(item.storageKey);
       return (
         <Pressable onPress={() => setSelected(item)}>
           <View style={styles.row}>
-            {/* LEFT: thumb + text under it */}
-            <View style={styles.thumbCol}>
-              {url ? (
-                <Image
-                  source={{uri: url}}
-                  style={styles.thumb}
-                  onError={() => handleThumbError(item.storageKey)}
-                />
-              ) : (
-                <View style={[styles.thumb, {backgroundColor: '#333'}]} />
-              )}
-              {isErrored && (
-                <Pressable
-                  style={styles.retryOverlay}
-                  onPress={() => handleThumbError(item.storageKey)}>
-                  <Text style={styles.retryText}>↻</Text>
-                </Pressable>
-              )}
-
-              <View style={styles.textBlock}>
+            {/* LEFT SIDE: thumbnail + chips above text */}
+            <View style={styles.leftCol}>
+              <View style={styles.thumbRow}>
+                <View style={styles.thumbCol}>
+                  {url ? (
+                    <Image
+                      source={{uri: url}}
+                      style={styles.thumb}
+                      onError={() => handleThumbError(item.storageKey)}
+                    />
+                  ) : (
+                    <View style={[styles.thumb, {backgroundColor: '#333'}]} />
+                  )}
+                  {isErrored && (
+                    <Pressable
+                      style={styles.retryOverlay}
+                      onPress={() => handleThumbError(item.storageKey)}>
+                      <Text style={styles.retryText}>↻</Text>
+                    </Pressable>
+                  )}
+                </View>
+                <View style={styles.chipCol}>
+                  <Chip text={isCandidateLike(item.status) ? 'CANDIDATE' : item.status} />
+                  <Chip
+                    text={item.safety?.state ?? 'UNKNOWN'}
+                    tone={
+                      item.safety?.state === 'COMPLETE' ? 'success' : 'warning'
+                    }
+                  />
+                </View>
+              </View>
+              <View style={styles.textCol}>
                 <Text
                   style={[styles.idText, {color: theme.colors.textPrimary}]}
                   numberOfLines={1}
@@ -240,28 +252,32 @@ const ImageManagementScreen = () => {
                 <Text
                   numberOfLines={1}
                   ellipsizeMode="middle"
-                  style={[styles.shaText, {color: theme.colors.textPrimary}]}> 
+                  style={[styles.shaText, {color: theme.colors.textPrimary}]}
+                >
                   sha256 {item.sha256}
                 </Text>
               </View>
             </View>
 
-            {/* MIDDLE: chips stacked vertically */}
-            <View style={styles.centerCol}>
-              <View style={styles.chipCol}>
-                <Chip text={isCandidateLike(item.status) ? 'CANDIDATE' : item.status} />
-                <Chip
-                  text={item.safety?.state ?? 'UNKNOWN'}
-                  tone={item.safety?.state === 'COMPLETE' ? 'success' : 'warning'}
-                />
-              </View>
-            </View>
-
             {/* RIGHT: vertical buttons */}
             <View style={styles.buttonCol}>
-              <Button text="Approve" small disabled={!canApprove(item)} onPress={() => handleApprove(item)} />
-              <Button text="Reject" small variant="outline" onPress={() => handleReject(item)} />
-              <Button text="Promote" small onPress={() => handlePromote(item)} />
+              <Button
+                text="Approve"
+                small
+                disabled={!canApprove(item)}
+                onPress={() => handleApprove(item)}
+              />
+              <Button
+                text="Reject"
+                small
+                variant="outline"
+                onPress={() => handleReject(item)}
+              />
+              <Button
+                text="Promote"
+                small
+                onPress={() => handlePromote(item)}
+              />
             </View>
           </View>
         </Pressable>
@@ -524,17 +540,25 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#333',
     minHeight: 120,
   },
-  thumbCol: {
+  leftCol: {
     width: Platform.OS === 'web' ? 240 : 200,
-    alignItems: 'flex-start',   // left-align the whole column
     marginRight: 12,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
+  thumbRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  thumbCol: {
+    alignItems: 'flex-start',
   },
   thumb: {
     width: 64,
@@ -554,27 +578,22 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryText: {color: '#fff', fontSize: 18},
-  textBlock: {
+  textCol: {
     marginTop: 8,
     width: '100%',
-    alignItems: 'flex-start',   // left-align id + sha
+    alignItems: 'flex-start',
   },
   idText: {
     fontFamily: Platform.OS === 'android' ? 'monospace' : 'Menlo',
     fontSize: 12,
   },
   shaText: {fontSize: 12},
-  centerCol: {
-    flex: 1,
-    minWidth: 0,
-    alignItems: 'center',     // keep chips visually centered between left & right
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
   chipCol: {
     flexDirection: 'column',
-    alignItems: 'center',
-    rowGap: 8,                // RN web supports gap; native fallback below
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    marginLeft: 8,
+    gap: 6,
   },
   buttonCol: {
     flexDirection: 'column',
@@ -583,6 +602,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 120,
     flexShrink: 0,
+    marginLeft: 'auto',
   },
   infoBanner: {
     flexDirection: 'row',
