@@ -10,6 +10,7 @@ import {
   Modal,
   Switch,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Button from 'shared/components/Button';
@@ -23,7 +24,9 @@ import {useImageUrls} from 'features/cv/hooks/useImageUrls';
 import {useApproveGymImage} from 'features/cv/hooks/useApproveGymImage';
 import {useRejectGymImage} from 'features/cv/hooks/useRejectGymImage';
 import {usePromoteGymImageToGlobal} from 'features/cv/hooks/usePromoteGymImageToGlobal';
-import GymPickerModal, {Gym} from 'features/workout-sessions/components/GymPickerModal';
+import GymPickerModal, {
+  Gym,
+} from 'features/workout-sessions/components/GymPickerModal';
 import EquipmentPickerModal from 'features/gyms/components/EquipmentPickerModal';
 import {Equipment} from 'features/equipment/types/equipment.types';
 import NoResults from 'shared/components/NoResults';
@@ -44,7 +47,13 @@ type Row = {
   dupCount?: number;
 };
 
-const Chip = ({text, tone = 'default'}: {text: string; tone?: 'default' | 'success' | 'warning'}) => {
+const Chip = ({
+  text,
+  tone = 'default',
+}: {
+  text: string;
+  tone?: 'default' | 'success' | 'warning';
+}) => {
   const {theme} = useTheme();
   const colorMap: Record<string, string> = {
     success: (theme.colors as any).success ?? '#22c55e',
@@ -53,7 +62,13 @@ const Chip = ({text, tone = 'default'}: {text: string; tone?: 'default' | 'succe
   };
   const bg = colorMap[tone] ?? colorMap.default;
   return (
-    <View style={{backgroundColor: bg, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999}}>
+    <View
+      style={{
+        backgroundColor: bg,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 999,
+      }}>
       <Text style={{color: '#fff', fontSize: 10}}>{text}</Text>
     </View>
   );
@@ -73,7 +88,8 @@ const ImageManagementScreen = () => {
   );
   const [gymModalVisible, setGymModalVisible] = useState(false);
   const [equipmentModalVisible, setEquipmentModalVisible] = useState(false);
-  const [status, setStatus] = useState<typeof STATUS_OPTIONS[number]>('CANDIDATE');
+  const [status, setStatus] =
+    useState<(typeof STATUS_OPTIONS)[number]>('CANDIDATE');
   const [search, setSearch] = useState('');
   const [limit, setLimit] = useState(50);
 
@@ -95,7 +111,10 @@ const ImageManagementScreen = () => {
   );
 
   const {data, loading, error, refetch} = useCandidateImages(filters);
-  const rowsRaw: Row[] = useMemo(() => data?.candidateGlobalImages ?? [], [data]);
+  const rowsRaw: Row[] = useMemo(
+    () => data?.candidateGlobalImages ?? [],
+    [data],
+  );
   const rows: Row[] = useMemo(
     () =>
       rowsRaw.filter(r => {
@@ -152,7 +171,10 @@ const ImageManagementScreen = () => {
     async (r: Row) => {
       try {
         await promoteMutate({
-          variables: {id: r.id, force: isAdmin && forceApprove ? true : undefined},
+          variables: {
+            id: r.id,
+            force: isAdmin && forceApprove ? true : undefined,
+          },
         });
         setSelected(null);
         refetch();
@@ -208,15 +230,29 @@ const ImageManagementScreen = () => {
               )}
             </View>
             <View style={styles.rowInfo}>
-              <Text style={styles.idText}>{item.id}</Text>
-              <Text numberOfLines={1} style={styles.shaText}>
+              <Text
+                style={styles.idText}
+                numberOfLines={1}
+                ellipsizeMode="middle">
+                {item.id}
+              </Text>
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="middle"
+                style={styles.shaText}>
                 sha256 {item.sha256}
               </Text>
               <View style={styles.chipRow}>
-                <Chip text={isCandidateLike(item.status) ? 'CANDIDATE' : item.status} />
+                <Chip
+                  text={
+                    isCandidateLike(item.status) ? 'CANDIDATE' : item.status
+                  }
+                />
                 <Chip
                   text={item.safety?.state ?? 'UNKNOWN'}
-                  tone={item.safety?.state === 'COMPLETE' ? 'success' : 'warning'}
+                  tone={
+                    item.safety?.state === 'COMPLETE' ? 'success' : 'warning'
+                  }
                 />
               </View>
             </View>
@@ -243,7 +279,15 @@ const ImageManagementScreen = () => {
         </Pressable>
       );
     },
-    [urlByKey, errored, handleThumbError, canApprove, handleApprove, handleReject, handlePromote],
+    [
+      urlByKey,
+      errored,
+      handleThumbError,
+      canApprove,
+      handleApprove,
+      handleReject,
+      handlePromote,
+    ],
   );
 
   const list = (
@@ -267,9 +311,7 @@ const ImageManagementScreen = () => {
       />
       <SelectableField
         label="Equipment"
-        value={
-          selectedEquipment ? selectedEquipment.name : 'Select Equipment'
-        }
+        value={selectedEquipment ? selectedEquipment.name : 'Select Equipment'}
         onPress={() => setEquipmentModalVisible(true)}
         disabled={!selectedGym}
       />
@@ -318,8 +360,8 @@ const ImageManagementScreen = () => {
           <Button text="Retry" small onPress={() => refetch()} />
         </View>
       ) : rows.length === 0 ? (
-        <View style={styles.empty}> 
-          <NoResults message="No results. Adjust filters."/>
+        <View style={styles.empty}>
+          <NoResults message="No results. Adjust filters." />
         </View>
       ) : (
         list
@@ -333,7 +375,10 @@ const ImageManagementScreen = () => {
           onRequestClose={() => setSelected(null)}>
           <View style={styles.modalOverlay}>
             <View
-              style={[styles.modalContent, {backgroundColor: theme.colors.surface}]}> 
+              style={[
+                styles.modalContent,
+                {backgroundColor: theme.colors.surface},
+              ]}>
               <Image
                 source={{uri: urlByKey.get(selected.storageKey)}}
                 style={styles.detailImage}
@@ -347,7 +392,10 @@ const ImageManagementScreen = () => {
               {isAdmin && (
                 <View style={styles.forceRow}>
                   <Text style={styles.modalText}>Force Approve</Text>
-                  <Switch value={forceApprove} onValueChange={setForceApprove} />
+                  <Switch
+                    value={forceApprove}
+                    onValueChange={setForceApprove}
+                  />
                 </View>
               )}
               <View style={styles.modalButtons}>
@@ -360,7 +408,6 @@ const ImageManagementScreen = () => {
                 <Button
                   text="Reject"
                   small
-                  variant="outline"
                   onPress={() => handleReject(selected)}
                 />
                 <Button
@@ -388,7 +435,10 @@ const ImageManagementScreen = () => {
           onRequestClose={() => setRejecting(null)}>
           <View style={styles.modalOverlay}>
             <View
-              style={[styles.rejectContent, {backgroundColor: theme.colors.surface}]}> 
+              style={[
+                styles.rejectContent,
+                {backgroundColor: theme.colors.surface},
+              ]}>
               <Text style={styles.modalTitle}>Reject Reason</Text>
               <TextInput
                 style={[styles.textArea, {color: theme.colors.textPrimary}]}
@@ -515,11 +565,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryText: {color: '#fff', fontSize: 18},
-  rowInfo: {flex: 1, marginLeft: 12},
-  idText: {fontFamily: 'Menlo', fontSize: 12},
+  rowInfo: {flex: 1, minWidth: 0, marginLeft: 12},
+  idText: {
+    fontFamily: Platform.OS === 'android' ? 'monospace' : 'Menlo',
+    fontSize: 12,
+  },
   shaText: {color: '#666', fontSize: 12},
   chipRow: {flexDirection: 'row', gap: 6, marginTop: 4},
-  buttonCol: {flexDirection: 'row', gap: 8},
+  buttonCol: {flexDirection: 'row', gap: 8, flexShrink: 0},
   infoBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -580,7 +633,12 @@ const styles = StyleSheet.create({
     padding: 8,
     minHeight: 80,
   },
-  presetsRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginVertical: 8},
+  presetsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginVertical: 8,
+  },
   presetChip: {backgroundColor: '#666'},
 });
 
