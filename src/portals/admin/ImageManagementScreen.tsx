@@ -24,6 +24,7 @@ import {useImageUrls} from 'features/cv/hooks/useImageUrls';
 import {useApproveGymImage} from 'features/cv/hooks/useApproveGymImage';
 import {useRejectGymImage} from 'features/cv/hooks/useRejectGymImage';
 import {usePromoteGymImageToGlobal} from 'features/cv/hooks/usePromoteGymImageToGlobal';
+import {useTagNameMaps} from 'features/cv/hooks/useTagNameMaps';
 import GymPickerModal, {
   Gym,
 } from 'features/workout-sessions/components/GymPickerModal';
@@ -36,6 +37,9 @@ const SAFETY_OPTIONS = ['ALL', 'PENDING', 'COMPLETE', 'FAILED'] as const;
 
 const isCandidateLike = (s: string) =>
   s === 'PENDING' || s === 'PROCESSING' || s === 'CANDIDATE';
+
+const formatDate = (iso?: string) =>
+  iso ? new Date(iso).toLocaleString() : '';
 
 type Row = {
   id: string;
@@ -108,6 +112,9 @@ const ImageManagementScreen = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [forceApprove, setForceApprove] = useState(false);
   const [errored, setErrored] = useState<Set<string>>(new Set());
+  const tagNames = useTagNameMaps();
+  const getTagName = (kind: 'angle' | 'split' | 'source', id?: number) =>
+    id != null ? tagNames[kind].get(Number(id)) : undefined;
 
   const filters = useMemo(
     () => ({
@@ -132,7 +139,9 @@ const ImageManagementScreen = () => {
   const rows: Row[] = useMemo(
     () =>
       rowsRaw.filter(r =>
-        status === 'CANDIDATE' ? isCandidateLike(r.status) : r.status === status,
+        status === 'CANDIDATE'
+          ? isCandidateLike(r.status)
+          : r.status === status,
       ),
     [rowsRaw, status],
   );
@@ -170,13 +179,14 @@ const ImageManagementScreen = () => {
     async (r: Row) => {
       try {
         await approveMutate({variables: {id: r.id}});
+        setForceApprove(false);
         setSelected(null);
         refetch();
       } catch (e) {
         console.error(e);
       }
     },
-    [approveMutate, refetch],
+    [approveMutate, refetch, setForceApprove],
   );
 
   const handlePromote = useCallback(
@@ -245,60 +255,42 @@ const ImageManagementScreen = () => {
                   )}
                 </View>
                 <View style={styles.chipsCol}>
-                  <Chip text={isCandidateLike(item.status) ? 'CANDIDATE' : item.status} />
+                  <Chip
+                    text={
+                      isCandidateLike(item.status) ? 'CANDIDATE' : item.status
+                    }
+                  />
                   <Chip
                     text={item.safety?.state ?? 'UNKNOWN'}
                     tone={
                       item.safety?.state === 'COMPLETE'
                         ? 'success'
                         : item.safety?.state === 'FAILED'
-                        ? 'warning'
-                        : 'default'
+                          ? 'warning'
+                          : 'default'
                     }
                   />
-                  {typeof item.safety?.score === 'number' && (
-                    <Chip text={`score ${item.safety.score.toFixed(2)}`} />
-                  )}
                   {!!item.dupCount && item.dupCount > 0 && (
                     <Chip text={`dup×${item.dupCount}`} />
                   )}
                 </View>
               </View>
               <View style={styles.bottomLeft}>
+                {/* tiny id for copy/debug */}
                 <Text
-                  style={[styles.idText, {color: theme.colors.textPrimary}]}
+                  style={[styles.metaText, {color: theme.colors.textPrimary, opacity: 0.7}]}
                   numberOfLines={1}
                   ellipsizeMode="middle">
                   {item.id}
                 </Text>
+
+                {/* main meta line */}
                 <Text
-                  numberOfLines={1}
-                  ellipsizeMode="middle"
-                  style={[styles.shaText, {color: theme.colors.textPrimary}]}
-                >
-                  sha256 {item.sha256}
+                  style={[styles.metaText, {color: theme.colors.textPrimary}]}
+                  numberOfLines={1}>
+                  {item.gymName ?? `Gym ${item.gymId}`}
+                  {item.createdAt ? ` • ${formatDate(item.createdAt)}` : ''}
                 </Text>
-                {!!item.gymName && (
-                  <Text
-                    style={[styles.metaText, {color: theme.colors.textPrimary}]}
-                    numberOfLines={1}>
-                    {item.gymName}
-                    {item.createdAt ? ` • ${item.createdAt}` : ''}
-                  </Text>
-                )}
-                {!!item.tags && (
-                  <Text
-                    style={[styles.metaText, {color: theme.colors.textPrimary}]}
-                    numberOfLines={1}>
-                    {[
-                      item.tags.angleId && `angle:${item.tags.angleId}`,
-                      item.tags.splitId && `split:${item.tags.splitId}`,
-                      item.tags.sourceId && `src:${item.tags.sourceId}`,
-                    ]
-                      .filter(Boolean)
-                      .join('  ')}
-                  </Text>
-                )}
               </View>
             </View>
 
@@ -310,11 +302,7 @@ const ImageManagementScreen = () => {
                 disabled={!canApprove(item)}
                 onPress={() => handleApprove(item)}
               />
-              <Button
-                text="Reject"
-                small
-                onPress={() => handleReject(item)}
-              />
+              <Button text="Reject" small onPress={() => handleReject(item)} />
               <Button
                 text="Promote"
                 small
@@ -450,20 +438,89 @@ const ImageManagementScreen = () => {
                 style={styles.detailImage}
                 onError={() => handleThumbError(selected.storageKey)}
               />
-              <Text style={[styles.modalText, {color: theme.colors.textPrimary}]}>id: {selected.id}</Text>
-              <Text style={[styles.modalText, {color: theme.colors.textPrimary}]}>sha256: {selected.sha256}</Text>
               <Text style={[styles.modalText, {color: theme.colors.textPrimary}]}>
-                safety: {selected.safety?.state ?? 'UNKNOWN'}
+                {selected.gymName ?? `Gym ${selected.gymId}`}
+                {selected.createdAt ? ` • ${formatDate(selected.createdAt)}` : ''}
               </Text>
-              {isAdmin && (
-                <View style={styles.forceRow}>
-                  <Text style={[styles.modalText, {color: theme.colors.accentStart}]}>Force Approve</Text>
-                  <Switch
-                    value={forceApprove}
-                    onValueChange={setForceApprove}
+
+              {/* Safety */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginTop: 8,
+                }}>
+                <Chip
+                  text={selected.safety?.state ?? 'UNKNOWN'}
+                  tone={
+                    ['COMPLETED', 'COMPLETE'].includes(
+                      (selected.safety?.state as string) || '',
+                    )
+                      ? 'success'
+                      : selected.safety?.state === 'FAILED'
+                      ? 'warning'
+                      : 'default'
+                  }
+                />
+                {typeof selected.safety?.score === 'number' && (
+                  <Text style={[styles.modalText, {color: theme.colors.textPrimary}]}>
+                    score: {selected.safety.score.toFixed(2)}
+                  </Text>
+                )}
+              </View>
+              {!!selected.safety?.reasons?.length && (
+                <Text style={[styles.modalText, {color: theme.colors.textPrimary}]}>
+                  reasons: {selected.safety.reasons.join(', ')}
+                </Text>
+              )}
+
+              {/* Duplicates */}
+              {!!selected.dupCount && selected.dupCount > 0 && (
+                <Text style={[styles.modalText, {color: theme.colors.textPrimary}]}>Possible duplicate (sha match)</Text>
+              )}
+              {!!selected.sha256 && (
+                <Button
+                  text="Copy SHA"
+                  small
+                  variant="outline"
+                  onPress={() =>
+                    (globalThis as any).navigator?.clipboard?.writeText?.(
+                      selected.sha256,
+                    )
+                  }
+                />
+              )}
+
+              {/* Tag names */}
+              <View style={{marginTop: 8}}>
+                <Text style={[styles.modalText, {color: theme.colors.textPrimary}]}>
+                  {[
+                    getTagName('angle', selected.tags?.angleId) &&
+                      `angle: ${getTagName('angle', selected.tags?.angleId)}`,
+                    getTagName('split', selected.tags?.splitId) &&
+                      `split: ${getTagName('split', selected.tags?.splitId)}`,
+                    getTagName('source', selected.tags?.sourceId) &&
+                      `source: ${getTagName('source', selected.tags?.sourceId)}`,
+                  ]
+                    .filter(Boolean)
+                    .join('  ')}
+                </Text>
+              </View>
+
+              {isAdmin && selected.safety?.state !== 'COMPLETE' && (
+                <View style={{marginTop: 8}}>
+                  <Button
+                    text="Force Approve"
+                    small
+                    onPress={() => {
+                      setForceApprove(true);
+                      handleApprove(selected);
+                    }}
                   />
                 </View>
               )}
+
               <View style={styles.modalButtons}>
                 <Button
                   text="Approve"
@@ -482,11 +539,7 @@ const ImageManagementScreen = () => {
                   onPress={() => handlePromote(selected)}
                 />
               </View>
-              <Button
-                text="Close"
-                small
-                onPress={() => setSelected(null)}
-              />
+              <Button text="Close" small onPress={() => setSelected(null)} />
             </View>
           </View>
         </Modal>
@@ -527,7 +580,6 @@ const ImageManagementScreen = () => {
                 <Button
                   text="Cancel"
                   small
-                  variant="outline"
                   onPress={() => setRejecting(null)}
                 />
               </View>
