@@ -246,9 +246,9 @@ const ImageManagementScreen = () => {
               </View>
             </View>
 
-            {/* MIDDLE: bigger chips */}
+            {/* MIDDLE: chips stacked vertically */}
             <View style={styles.centerCol}>
-              <View style={styles.chipRow}>
+              <View style={styles.chipCol}>
                 <Chip text={isCandidateLike(item.status) ? 'CANDIDATE' : item.status} />
                 <Chip
                   text={item.safety?.state ?? 'UNKNOWN'}
@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
   },
   thumbCol: {
     width: Platform.OS === 'web' ? 240 : 200,
-    alignItems: 'center',
+    alignItems: 'flex-start',   // left-align the whole column
     marginRight: 12,
   },
   thumb: {
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
   textBlock: {
     marginTop: 8,
     width: '100%',
-    alignItems: 'center',
+    alignItems: 'flex-start',   // left-align id + sha
   },
   idText: {
     fontFamily: Platform.OS === 'android' ? 'monospace' : 'Menlo',
@@ -567,13 +567,14 @@ const styles = StyleSheet.create({
   centerCol: {
     flex: 1,
     minWidth: 0,
-    alignItems: 'center',
+    alignItems: 'center',     // keep chips visually centered between left & right
     justifyContent: 'center',
+    paddingHorizontal: 8,
   },
-  chipRow: {
-    flexDirection: 'row',
+  chipCol: {
+    flexDirection: 'column',
     alignItems: 'center',
-    gap: 10,
+    rowGap: 8,                // RN web supports gap; native fallback below
   },
   buttonCol: {
     flexDirection: 'column',
