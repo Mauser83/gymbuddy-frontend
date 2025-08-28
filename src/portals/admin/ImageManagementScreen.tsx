@@ -30,6 +30,9 @@ import NoResults from 'shared/components/NoResults';
 
 const STATUS_OPTIONS = ['CANDIDATE', 'APPROVED', 'REJECTED'] as const;
 
+const isCandidateLike = (s: string) =>
+  s === 'PENDING' || s === 'PROCESSING' || s === 'CANDIDATE';
+
 type Row = {
   id: string;
   gymId?: string;
@@ -97,8 +100,8 @@ const ImageManagementScreen = () => {
     () =>
       rowsRaw.filter(r => {
         if (gymId && String(r.gymId) !== String(gymId)) return false;
-        if (status && r.status !== status) return false;
-        return true;
+        if (status === 'CANDIDATE') return isCandidateLike(r.status);
+        return r.status === status;
       }),
     [rowsRaw, gymId, status],
   );
@@ -210,7 +213,7 @@ const ImageManagementScreen = () => {
                 sha256 {item.sha256}
               </Text>
               <View style={styles.chipRow}>
-                <Chip text={item.status} />
+                <Chip text={isCandidateLike(item.status) ? 'CANDIDATE' : item.status} />
                 <Chip
                   text={item.safety?.state ?? 'UNKNOWN'}
                   tone={item.safety?.state === 'COMPLETE' ? 'success' : 'warning'}
