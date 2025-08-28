@@ -32,18 +32,26 @@ import {Equipment} from 'features/equipment/types/equipment.types';
 import NoResults from 'shared/components/NoResults';
 
 const STATUS_OPTIONS = ['CANDIDATE', 'APPROVED', 'REJECTED'] as const;
+const SAFETY_OPTIONS = ['ALL', 'PENDING', 'COMPLETE', 'FAILED'] as const;
 
 const isCandidateLike = (s: string) =>
   s === 'PENDING' || s === 'PROCESSING' || s === 'CANDIDATE';
 
 type Row = {
   id: string;
-  gymId?: string;
-  equipmentId?: string;
+  gymId?: number | string;
+  gymName?: string;
+  equipmentId?: number | string;
   storageKey: string;
   sha256: string;
   status: string;
-  safety?: {state?: string; score?: number; reasons?: string[]};
+  createdAt?: string;
+  tags?: {angleId?: number; splitId?: number; sourceId?: number};
+  safety?: {
+    state?: 'PENDING' | 'COMPLETE' | 'FAILED';
+    score?: number | null;
+    reasons?: string[];
+  };
   dupCount?: number;
 };
 
@@ -90,6 +98,8 @@ const ImageManagementScreen = () => {
   const [equipmentModalVisible, setEquipmentModalVisible] = useState(false);
   const [status, setStatus] =
     useState<(typeof STATUS_OPTIONS)[number]>('CANDIDATE');
+  const [safety, setSafety] = useState<(typeof SAFETY_OPTIONS)[number]>('ALL');
+  const [flaggedOnly, setFlaggedOnly] = useState(false);
   const [search, setSearch] = useState('');
   const [limit, setLimit] = useState(50);
 
@@ -106,8 +116,12 @@ const ImageManagementScreen = () => {
       status,
       search: search || undefined,
       limit,
+      safety:
+        safety === 'ALL'
+          ? undefined
+          : {state: safety, flaggedOnly: flaggedOnly || undefined},
     }),
-    [equipmentId, gymId, status, search, limit],
+    [equipmentId, gymId, status, search, limit, safety, flaggedOnly],
   );
 
   const {data, loading, error, refetch} = useCandidateImages(filters);
@@ -117,12 +131,10 @@ const ImageManagementScreen = () => {
   );
   const rows: Row[] = useMemo(
     () =>
-      rowsRaw.filter(r => {
-        if (gymId && String(r.gymId) !== String(gymId)) return false;
-        if (status === 'CANDIDATE') return isCandidateLike(r.status);
-        return r.status === status;
-      }),
-    [rowsRaw, gymId, status],
+      rowsRaw.filter(r =>
+        status === 'CANDIDATE' ? isCandidateLike(r.status) : r.status === status,
+      ),
+    [rowsRaw, status],
   );
   const storageKeys = useMemo(() => rows.map(r => r.storageKey), [rows]);
   const {urlByKey, refresh} = useImageUrls(storageKeys, 600);
@@ -204,7 +216,7 @@ const ImageManagementScreen = () => {
     }
   }, [rejectMutate, rejecting, rejectReason, refetch]);
 
-const renderRow = useCallback(
+  const renderRow = useCallback(
     ({item}: {item: Row}) => {
       const url = urlByKey.get(item.storageKey);
       const isErrored = errored.has(item.storageKey);
@@ -232,17 +244,27 @@ const renderRow = useCallback(
                     </Pressable>
                   )}
                 </View>
-                <View style={styles.chipCol}>
+                <View style={styles.chipsCol}>
                   <Chip text={isCandidateLike(item.status) ? 'CANDIDATE' : item.status} />
                   <Chip
                     text={item.safety?.state ?? 'UNKNOWN'}
                     tone={
-                      item.safety?.state === 'COMPLETE' ? 'success' : 'warning'
+                      item.safety?.state === 'COMPLETE'
+                        ? 'success'
+                        : item.safety?.state === 'FAILED'
+                        ? 'warning'
+                        : 'default'
                     }
                   />
+                  {typeof item.safety?.score === 'number' && (
+                    <Chip text={`score ${item.safety.score.toFixed(2)}`} />
+                  )}
+                  {!!item.dupCount && item.dupCount > 0 && (
+                    <Chip text={`dup×${item.dupCount}`} />
+                  )}
                 </View>
               </View>
-              <View style={styles.textCol}>
+              <View style={styles.bottomLeft}>
                 <Text
                   style={[styles.idText, {color: theme.colors.textPrimary}]}
                   numberOfLines={1}
@@ -256,6 +278,27 @@ const renderRow = useCallback(
                 >
                   sha256 {item.sha256}
                 </Text>
+                {!!item.gymName && (
+                  <Text
+                    style={[styles.metaText, {color: theme.colors.textPrimary}]}
+                    numberOfLines={1}>
+                    {item.gymName}
+                    {item.createdAt ? ` • ${item.createdAt}` : ''}
+                  </Text>
+                )}
+                {!!item.tags && (
+                  <Text
+                    style={[styles.metaText, {color: theme.colors.textPrimary}]}
+                    numberOfLines={1}>
+                    {[
+                      item.tags.angleId && `angle:${item.tags.angleId}`,
+                      item.tags.splitId && `split:${item.tags.splitId}`,
+                      item.tags.sourceId && `src:${item.tags.sourceId}`,
+                    ]
+                      .filter(Boolean)
+                      .join('  ')}
+                  </Text>
+                )}
               </View>
             </View>
 
@@ -270,7 +313,6 @@ const renderRow = useCallback(
               <Button
                 text="Reject"
                 small
-                variant="outline"
                 onPress={() => handleReject(item)}
               />
               <Button
@@ -341,6 +383,33 @@ const renderRow = useCallback(
           </Pressable>
         ))}
       </View>
+      <View style={styles.segmentRow}>
+        {SAFETY_OPTIONS.map(s => (
+          <Pressable
+            key={s}
+            onPress={() => setSafety(s)}
+            style={[styles.segment, safety === s && styles.segmentActive]}>
+            <Text
+              style={{
+                color: safety === s ? '#fff' : theme.colors.textPrimary,
+                fontSize: 12,
+              }}>
+              {s}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <View style={styles.flagRow}>
+        <Text
+          style={{
+            color: theme.colors.textPrimary,
+            fontSize: 12,
+            marginRight: 6,
+          }}>
+          Flagged only
+        </Text>
+        <Switch value={flaggedOnly} onValueChange={setFlaggedOnly} />
+      </View>
       <Button text="Apply" small onPress={() => refetch()} />
       {loading && <ActivityIndicator style={{marginLeft: 8}} />}
     </View>
@@ -349,13 +418,6 @@ const renderRow = useCallback(
   return (
     <ScreenLayout>
       {toolbar}
-      {(gymId || status !== 'CANDIDATE') && (
-        <View style={styles.infoBanner}>
-          <Text style={{color: '#fff', flex: 1}}>
-            Gym/Status filters are local for now; server filter coming in M5.2.
-          </Text>
-        </View>
-      )}
       {loading && rows.length === 0 ? (
         <LoadingState text="Loading images..." />
       ) : error ? (
@@ -388,14 +450,14 @@ const renderRow = useCallback(
                 style={styles.detailImage}
                 onError={() => handleThumbError(selected.storageKey)}
               />
-              <Text style={styles.modalText}>id: {selected.id}</Text>
-              <Text style={styles.modalText}>sha256: {selected.sha256}</Text>
-              <Text style={styles.modalText}>
+              <Text style={[styles.modalText, {color: theme.colors.textPrimary}]}>id: {selected.id}</Text>
+              <Text style={[styles.modalText, {color: theme.colors.textPrimary}]}>sha256: {selected.sha256}</Text>
+              <Text style={[styles.modalText, {color: theme.colors.textPrimary}]}>
                 safety: {selected.safety?.state ?? 'UNKNOWN'}
               </Text>
               {isAdmin && (
                 <View style={styles.forceRow}>
-                  <Text style={styles.modalText}>Force Approve</Text>
+                  <Text style={[styles.modalText, {color: theme.colors.accentStart}]}>Force Approve</Text>
                   <Switch
                     value={forceApprove}
                     onValueChange={setForceApprove}
@@ -423,7 +485,6 @@ const renderRow = useCallback(
               <Button
                 text="Close"
                 small
-                variant="outline"
                 onPress={() => setSelected(null)}
               />
             </View>
@@ -578,7 +639,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryText: {color: '#fff', fontSize: 18},
-  textCol: {
+  bottomLeft: {
     marginTop: 8,
     width: '100%',
     alignItems: 'flex-start',
@@ -588,7 +649,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   shaText: {fontSize: 12},
-  chipCol: {
+  chipsCol: {
     flexDirection: 'column',
     alignItems: 'flex-start',
     justifyContent: 'flex-start',
@@ -603,14 +664,6 @@ const styles = StyleSheet.create({
     width: 120,
     flexShrink: 0,
     marginLeft: 'auto',
-  },
-  infoBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    backgroundColor: '#2563eb',
-    borderRadius: 6,
-    marginBottom: 8,
   },
   errorBanner: {
     flexDirection: 'row',
@@ -671,6 +724,8 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   presetChip: {backgroundColor: '#666'},
+  flagRow: {flexDirection: 'row', alignItems: 'center', gap: 4},
+  metaText: {fontSize: 11, opacity: 0.85, marginTop: 2},
 });
 
 export default ImageManagementScreen;
