@@ -1,41 +1,16 @@
 import {gql} from '@apollo/client';
 
 export const CANDIDATE_GLOBAL_IMAGES = gql`
-  query CandidateGlobalImages(
-    $equipmentId: ID!
-    $limit: Int
-    $gymId: ID
-    $status: CandidateStatus
-    $safety: SafetyStatus
-    $search: String
-  ) {
-    candidateGlobalImages(
-      equipmentId: $equipmentId
-      limit: $limit
-      gymId: $gymId
-      status: $status
-      safety: $safety
-      search: $search
-    ) {
+  query CandidateGlobalImages($input: CandidateGlobalImagesInput!) {
+    candidateGlobalImages(input: $input) {
       id
       gymId
-      gymName
       equipmentId
       storageKey
       sha256
-      createdAt
-      safety {
-        state
-        score
-        reasons
-      }
       status
-      tags {
-        angleId
-        splitId
-        sourceId
-      }
-    }
+      __typename
+  }
   }
 `;
 
