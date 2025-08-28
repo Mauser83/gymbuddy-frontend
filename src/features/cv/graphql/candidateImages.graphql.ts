@@ -5,12 +5,17 @@ export const CANDIDATE_GLOBAL_IMAGES = gql`
     candidateGlobalImages(input: $input) {
       id
       gymId
+      gymName
       equipmentId
       storageKey
       sha256
       status
+      createdAt
+      tags { angleId splitId sourceId }
+      safety { state score reasons }
+      dupCount
       __typename
-  }
+    }
   }
 `;
 
