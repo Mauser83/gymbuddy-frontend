@@ -120,7 +120,6 @@ const ImageManagementScreen = () => {
   const [selected, setSelected] = useState<Row | null>(null);
   const [rejecting, setRejecting] = useState<Row | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [forceApprove, setForceApprove] = useState(false);
   const [errored, setErrored] = useState<Set<string>>(new Set());
   const tagNames = useTagNameMaps();
   const getTagName = (
@@ -190,9 +189,11 @@ const ImageManagementScreen = () => {
   );
 
   const canApprove = useCallback(
-    (r: Row) => (isAdmin && forceApprove) || r.safety?.state === 'COMPLETE',
-    [isAdmin, forceApprove],
+    (r: Row) => r.safety?.state === 'COMPLETE',
+    [],
   );
+
+  const canPromote = useCallback((r: Row) => r.status === 'APPROVED', []);
 
   const handleApprove = useCallback(
     async (r: Row, force?: boolean) => {
@@ -205,7 +206,6 @@ const ImageManagementScreen = () => {
             },
           },
         });
-        setForceApprove(false); // optional, no longer needed
         setSelected(null);
         refetch();
       } catch (e) {
@@ -216,15 +216,10 @@ const ImageManagementScreen = () => {
   );
 
   const handlePromote = useCallback(
-    async (r: Row) => {
+    async (r: Row, force?: boolean) => {
       try {
         await promoteMutate({
-          variables: {
-            input: {
-              id: r.id,
-              force: isAdmin && forceApprove ? true : undefined,
-            },
-          },
+          variables: {input: {id: r.id, force: !!force}},
         });
         setSelected(null);
         refetch();
@@ -232,7 +227,7 @@ const ImageManagementScreen = () => {
         console.error(e);
       }
     },
-    [promoteMutate, refetch, isAdmin, forceApprove],
+    [promoteMutate, refetch],
   );
 
   const handleReject = useCallback((r: Row) => {
@@ -339,6 +334,7 @@ const ImageManagementScreen = () => {
               <Button
                 text="Promote"
                 small
+                disabled={!canPromote(item)}
                 onPress={() => handlePromote(item)}
               />
             </View>
@@ -354,6 +350,7 @@ const ImageManagementScreen = () => {
       handleApprove,
       handleReject,
       handlePromote,
+      canPromote,
     ],
   );
 
@@ -582,9 +579,7 @@ const ImageManagementScreen = () => {
                   text="Approve"
                   small
                   disabled={!canApprove(selected)}
-                  onPress={() =>
-                    handleApprove(selected, isAdmin && forceApprove)
-                  }
+                  onPress={() => handleApprove(selected)}
                 />
                 <Button
                   text="Reject"
@@ -594,6 +589,7 @@ const ImageManagementScreen = () => {
                 <Button
                   text="Promote"
                   small
+                  disabled={!canPromote(selected)}
                   onPress={() => handlePromote(selected)}
                 />
               </View>
