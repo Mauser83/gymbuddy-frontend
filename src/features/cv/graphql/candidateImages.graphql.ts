@@ -10,6 +10,12 @@ export const CANDIDATE_GLOBAL_IMAGES = gql`
       storageKey
       sha256
       status
+      approvedAt
+      approvedBy {
+        id
+        username
+        __typename
+      }
       createdAt
       tags {
         angleId
@@ -37,10 +43,12 @@ export const APPROVE_GYM_IMAGE = gql`
       gymImage {
         id
         status
-        __typename
-      }
-      equipmentImage {
-        id
+        approvedAt
+        approvedBy {
+          id
+          username
+          __typename
+        }
         __typename
       }
       __typename

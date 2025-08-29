@@ -49,6 +49,8 @@ type Row = {
   storageKey: string;
   sha256: string;
   status: string;
+  approvedAt?: string;
+  approvedBy?: {id: string; username?: string};
   createdAt?: string;
   tags?: {
     angleId?: number;
@@ -473,6 +475,12 @@ const ImageManagementScreen = () => {
                   ? ` • ${formatDate(selected.createdAt)}`
                   : ''}
               </Text>
+              {selected.approvedAt && (
+                <Text
+                  style={[styles.modalText, {color: theme.colors.textPrimary}]}> 
+                  Approved by {selected.approvedBy?.username ?? 'Unknown'} on {formatDate(selected.approvedAt)}
+                </Text>
+              )}
 
               {/* Safety */}
               <View
