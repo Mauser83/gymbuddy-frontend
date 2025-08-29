@@ -574,6 +574,16 @@ const ImageManagementScreen = () => {
                 </View>
               )}
 
+              {isAdmin && selected.safety?.state !== 'COMPLETE' && (
+                <View style={{marginTop: 8}}>
+                  <Button
+                    text="Force Promote"
+                    small
+                    onPress={() => handlePromote(selected, true)}
+                  />
+                </View>
+              )}
+
               <View style={styles.modalButtons}>
                 <Button
                   text="Approve"
