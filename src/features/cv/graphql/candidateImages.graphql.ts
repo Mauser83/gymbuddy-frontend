@@ -70,16 +70,18 @@ export const REJECT_GYM_IMAGE = gql`
 `;
 
 export const PROMOTE_GYM_IMAGE_TO_GLOBAL = gql`
-  mutation PromoteGymImageToGlobal($input: PromoteGymImageToGlobalInput!) {
+  mutation PromoteGymImageToGlobal($input: PromoteGymImageInput!) {
     promoteGymImageToGlobal(input: $input) {
       gymImage {
         id
+        status
         __typename
       }
       equipmentImage {
         id
         __typename
       }
+      destinationKey
       __typename
     }
   }
