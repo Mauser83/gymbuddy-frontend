@@ -195,21 +195,24 @@ const ImageManagementScreen = () => {
   );
 
   const handleApprove = useCallback(
-    async (r: Row) => {
+    async (r: Row, force?: boolean) => {
       try {
         await approveMutate({
           variables: {
-            input: {id: r.id},
+            input: {
+              id: r.id,
+              force: !!force, // will be true when forcing
+            },
           },
         });
-        setForceApprove(false);
+        setForceApprove(false); // optional, no longer needed
         setSelected(null);
         refetch();
       } catch (e) {
         console.error(e);
       }
     },
-    [approveMutate, refetch, setForceApprove],
+    [approveMutate, refetch],
   );
 
   const handlePromote = useCallback(
@@ -477,8 +480,9 @@ const ImageManagementScreen = () => {
               </Text>
               {selected.approvedAt && (
                 <Text
-                  style={[styles.modalText, {color: theme.colors.textPrimary}]}> 
-                  Approved by {selected.approvedBy?.username ?? 'Unknown'} on {formatDate(selected.approvedAt)}
+                  style={[styles.modalText, {color: theme.colors.textPrimary}]}>
+                  Approved by {selected.approvedBy?.username ?? 'Unknown'} on{' '}
+                  {formatDate(selected.approvedAt)}
                 </Text>
               )}
 
@@ -568,10 +572,7 @@ const ImageManagementScreen = () => {
                   <Button
                     text="Force Approve"
                     small
-                    onPress={() => {
-                      setForceApprove(true);
-                      handleApprove(selected);
-                    }}
+                    onPress={() => handleApprove(selected, true)}
                   />
                 </View>
               )}
@@ -581,7 +582,9 @@ const ImageManagementScreen = () => {
                   text="Approve"
                   small
                   disabled={!canApprove(selected)}
-                  onPress={() => handleApprove(selected)}
+                  onPress={() =>
+                    handleApprove(selected, isAdmin && forceApprove)
+                  }
                 />
                 <Button
                   text="Reject"
