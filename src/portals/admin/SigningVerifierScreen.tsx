@@ -127,7 +127,7 @@ const SigningVerifierScreen = () => {
         <View style={styles.fieldRow}>
           <TextInput
             ref={inputRef}
-            style={[styles.input, {borderColor: theme.colors.divider}]}
+            style={[styles.input, {borderColor: theme.colors.divider, color: theme.colors.textPrimary}]}
             value={inputKey}
             onChangeText={setInputKey}
             placeholder="storageKey"
@@ -153,7 +153,7 @@ const SigningVerifierScreen = () => {
           )}
         </View>
         <View style={styles.fieldRow}>
-          <Text style={styles.label}>TTL</Text>
+          <Text style={[styles.label, {color: theme.colors.textPrimary}]}>TTL</Text>
           <Picker
             selectedValue={ttlSec}
             style={styles.picker}
@@ -167,7 +167,6 @@ const SigningVerifierScreen = () => {
           <Button text="Generate URL" onPress={generate} disabled={loading} />
           <Button
             text="Re-sign"
-            variant="outline"
             onPress={reSign}
             disabled={!activeKey}
           />
@@ -184,8 +183,8 @@ const SigningVerifierScreen = () => {
                 referrerPolicy="no-referrer"
               />
             </View>
-            <Text>Expires in: {formatRemaining(remaining)}</Text>
-            <Text>Status: {status}</Text>
+            <Text style={{color: theme.colors.textPrimary}}>Expires in: {formatRemaining(remaining)}</Text>
+            <Text style={{color: theme.colors.textPrimary}}>Status: {status}</Text>
             <View style={styles.actionRow}>
               <Button text="Open in new tab" small onPress={openInNewTab} />
               <Button text="Copy URL" small onPress={copyUrl} />
