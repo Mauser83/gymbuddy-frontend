@@ -157,7 +157,7 @@ const SigningVerifierScreen = () => {
           <Picker
             selectedValue={ttlSec}
             style={styles.picker}
-            onValueChange={v => setTtlSec(v)}>
+            onValueChange={v => setTtlSec(Number(v))}>
             {TTL_OPTIONS.map(o => (
               <Picker.Item key={o} label={`${o}`} value={o} />
             ))}
