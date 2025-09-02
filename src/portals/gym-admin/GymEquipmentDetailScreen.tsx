@@ -1,17 +1,24 @@
-import React from 'react';
+import React, {useCallback, useState} from 'react';
+import {Alert, FlatList, Image, TouchableOpacity} from 'react-native';
 import {useNavigate, useParams} from 'react-router-native';
 import {useQuery, useMutation} from '@apollo/client';
+import * as ImagePicker from 'expo-image-picker';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Title from 'shared/components/Title';
 import DetailField from 'shared/components/DetailField';
 import LoadingState from 'shared/components/LoadingState';
 import NoResults from 'shared/components/NoResults';
 import Button from 'shared/components/Button';
+import Card from 'shared/components/Card';
 import {
   GET_GYM_EQUIPMENT_DETAIL,
   REMOVE_GYM_EQUIPMENT,
+  LIST_GYM_EQUIPMENT_IMAGES,
+  CREATE_EQUIPMENT_TRAINING_UPLOAD_TICKET,
+  FINALIZE_EQUIPMENT_TRAINING_IMAGE,
+  DELETE_GYM_EQUIPMENT_IMAGE,
 } from 'features/gyms/graphql/gymEquipment';
-import {GymEquipment} from 'features/gyms/types/gym.types';
+import {GymEquipment, GymEquipmentImage} from 'features/gyms/types/gym.types';
 
 export default function GymEquipmentDetailScreen() {
   const {gymId, gymEquipmentId} = useParams<{gymId: string; gymEquipmentId: string}>();
@@ -27,6 +34,134 @@ export default function GymEquipmentDetailScreen() {
   const [removeEquipment, {loading: removing}] = useMutation(REMOVE_GYM_EQUIPMENT);
 
   const equipment = data?.getGymEquipmentDetail;
+
+  const {
+    data: imagesData,
+    loading: imagesLoading,
+    fetchMore,
+    refetch: refetchImages,
+  } = useQuery<{
+    listGymEquipmentImages: {
+      items: GymEquipmentImage[];
+      nextCursor?: string | null;
+    };
+  }>(LIST_GYM_EQUIPMENT_IMAGES, {
+    variables: {gymEquipmentId: Number(gymEquipmentId), limit: 24},
+  });
+
+  const [createTicket] = useMutation(CREATE_EQUIPMENT_TRAINING_UPLOAD_TICKET);
+  const [finalizeImage] = useMutation(FINALIZE_EQUIPMENT_TRAINING_IMAGE);
+  const [deleteImage] = useMutation(DELETE_GYM_EQUIPMENT_IMAGE);
+  const [uploading, setUploading] = useState(false);
+
+  const images = imagesData?.listGymEquipmentImages.items ?? [];
+  const nextCursor = imagesData?.listGymEquipmentImages.nextCursor ?? undefined;
+
+  const loadMore = useCallback(() => {
+    if (!nextCursor) return;
+    fetchMore({
+      variables: {cursor: nextCursor},
+      updateQuery: (prev, {fetchMoreResult}) => {
+        if (!fetchMoreResult) return prev;
+        return {
+          listGymEquipmentImages: {
+            ...fetchMoreResult.listGymEquipmentImages,
+            items: [
+              ...prev.listGymEquipmentImages.items,
+              ...fetchMoreResult.listGymEquipmentImages.items,
+            ],
+          },
+        };
+      },
+    });
+  }, [nextCursor, fetchMore]);
+
+  const handleAddPhotos = useCallback(async () => {
+    if (!equipment) return;
+    setUploading(true);
+    try {
+      const {status} = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        throw new Error('Media library permission required.');
+      }
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        allowsEditing: false,
+        quality: 1,
+      });
+      if (res.canceled || !res.assets?.length) {
+        setUploading(false);
+        return;
+      }
+      for (const asset of res.assets) {
+        const blob = await fetch(asset.uri).then(r => r.blob());
+        const name = asset.fileName || '';
+        const extMatch = name.match(/\.([a-zA-Z0-9]+)$/);
+        let ext = extMatch ? extMatch[1].toLowerCase() : '';
+        if (!ext) {
+          const mime = blob.type;
+          if (mime === 'image/png') ext = 'png';
+          else if (mime === 'image/jpeg') ext = 'jpg';
+          else ext = 'jpg';
+        }
+        const ticketRes = await createTicket({
+          variables: {
+            gymId: Number(gymId),
+            equipmentId: equipment.equipment.id,
+            ext,
+          },
+        });
+        const putUrl = ticketRes.data?.createEquipmentTrainingUploadTicket.putUrl;
+        const storageKey = ticketRes.data?.createEquipmentTrainingUploadTicket.storageKey;
+        if (!putUrl || !storageKey) {
+          throw new Error('Failed to obtain upload ticket.');
+        }
+        const putResp = await fetch(putUrl, {
+          method: 'PUT',
+          body: blob,
+          headers: {
+            'Content-Type': blob.type || 'application/octet-stream',
+          },
+        });
+        if (!putResp.ok) {
+          throw new Error(`Upload failed with status ${putResp.status}`);
+        }
+        await finalizeImage({
+          variables: {
+            gymEquipmentId: Number(gymEquipmentId),
+            storageKey,
+          },
+        });
+      }
+      await refetchImages();
+    } catch (e: any) {
+      Alert.alert('Upload failed', e?.message || String(e));
+    } finally {
+      setUploading(false);
+    }
+  }, [equipment, createTicket, finalizeImage, gymId, gymEquipmentId, refetchImages]);
+
+  const confirmDelete = useCallback(
+    (id: string) => {
+      Alert.alert('Delete photo?', undefined, [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteImage({variables: {imageId: id}});
+              await refetchImages();
+            } catch (e: any) {
+              Alert.alert('Delete failed', e?.message || String(e));
+            }
+          },
+        },
+      ]);
+    },
+    [deleteImage, refetchImages],
+  );
 
   const handleRemove = async () => {
     try {
@@ -61,7 +196,47 @@ export default function GymEquipmentDetailScreen() {
           {equipment.note ? (
             <DetailField label="Note" value={equipment.note} />
           ) : null}
-          <Button
+<Card
+            title="Gym photos"
+            text="Environment-specific training images"
+          >
+            {imagesLoading ? (
+              <LoadingState text="Loading photos..." />
+            ) : images.length === 0 ? (
+              <NoResults message="No gym photos yet." />
+            ) : (
+              <FlatList
+                data={images}
+                numColumns={3}
+                keyExtractor={item => item.id}
+                renderItem={({item}) => (
+                  <TouchableOpacity
+                    onLongPress={() => confirmDelete(item.id)}
+                    style={{flex: 1, margin: 4}}
+                  >
+                    <Image
+                      source={{uri: item.url}}
+                      style={{width: '100%', aspectRatio: 1, borderRadius: 12}}
+                    />
+                  </TouchableOpacity>
+                )}
+                onEndReached={loadMore}
+                onEndReachedThreshold={0.5}
+              />
+            )}
+            <Button
+              text={uploading ? 'Uploading...' : 'Add photos'}
+              onPress={handleAddPhotos}
+              disabled={uploading}
+            />
+          </Card>
+          <Card title="Global photos" text="Catalog images">
+            <DetailField
+              label="Count"
+              value={String(equipment.equipment.images?.length ?? 0)}
+            />
+            {/* TODO: implement catalog images grid */}
+          </Card>          <Button
             text={removing ? 'Removing...' : 'Remove from Gym'}
             onPress={handleRemove}
             disabled={removing}
