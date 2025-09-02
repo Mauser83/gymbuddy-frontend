@@ -43,12 +43,21 @@ const EquipmentRecognitionCaptureScreen = () => {
     discardRecognition,
   } = useRecognition();
 
-    const candidateList = useMemo(() => {
+  const decision: string | undefined = result?.attempt?.decision;
+  const candidateList = useMemo(() => {
     if (!result) return [];
-    if (result.globalCandidates?.length) return result.globalCandidates;
-    if (result.gymCandidates?.length) return result.gymCandidates;
-    return [];
-  }, [result]);
+    switch (decision) {
+      case 'GLOBAL_ACCEPT':
+        return result.globalCandidates ?? [];
+      case 'GYM_ACCEPT':
+      case 'GYM_SELECT':
+        return result.gymCandidates ?? [];
+      case 'RETAKE':
+        return result.gymCandidates ?? [];
+      default:
+        return [];
+    }
+  }, [result, decision]);
   const candidateKeys = useMemo(
     () => candidateList.map((c: any) => c.storageKey),
     [candidateList],
@@ -64,7 +73,6 @@ const EquipmentRecognitionCaptureScreen = () => {
     });
     return record;
   }, [thumbData]);
-  const decision: string | undefined = result?.attempt?.decision;
   const candidateUrl = (key: string) => thumbs[key] ?? null;
   
   const ensureCameraPermission = async () => {
@@ -137,9 +145,12 @@ const EquipmentRecognitionCaptureScreen = () => {
       const payload = rec.data?.recognizeImage;
       if (!payload) throw new Error('recognizeImage returned no data');
 
-      const top =
-        payload.globalCandidates?.[0] ?? payload.gymCandidates?.[0] ?? null;
-
+      const stageCandidates =
+        payload?.attempt?.decision === 'GLOBAL_ACCEPT'
+          ? payload.globalCandidates
+          : payload.gymCandidates;
+      const top = stageCandidates?.[0] ?? null;
+      
       setResult(payload);
       setSelected(top?.equipmentId ?? null);
     } catch (e) {
