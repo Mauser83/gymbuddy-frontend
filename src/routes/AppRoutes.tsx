@@ -51,6 +51,7 @@ import FriendsScreen from 'portals/user/FriendsScreen';
 import GroupsScreen from 'portals/user/GroupsScreen';
 import LeaderboardsScreen from 'portals/user/LeaderboardsScreen';
 import MessagesScreen from 'portals/user/MessagesScreen';
+import EquipmentRecognitionCaptureScreen from 'portals/user/EquipmentRecognitionCaptureScreen';
 import AdminSystemCatalogScreen from 'portals/admin/AdminSystemCatalogScreen';
 import AdminEquipmentCatalogScreen from 'portals/admin/AdminEquipmentCatalogScreen';
 import AdminExerciseCatalogScreen from 'portals/admin/AdminExerciseCatalogScreen';
@@ -117,6 +118,14 @@ const AppRoutes = () => {
           <Route path="/user/groups" element={<RequireRole roles={['user']}><GroupsScreen /></RequireRole>} />
           <Route path="/user/leaderboards" element={<RequireRole roles={['user']}><LeaderboardsScreen /></RequireRole>} />
           <Route path="/user/messages" element={<RequireRole roles={['user']}><MessagesScreen /></RequireRole>} />
+          <Route
+            path="/user/recognize-equipment"
+            element={
+              <RequireRole roles={['user']}>
+                <EquipmentRecognitionCaptureScreen />
+              </RequireRole>
+            }
+          />
           <Route path="/workout-session" element={<RequireRole roles={['user']}><WorkoutSessionHistoryScreen /></RequireRole>} />
           <Route path="/workout-session/:sessionId" element={<RequireRole roles={['user']}><WorkoutSessionDetailScreen /></RequireRole>} />
 
