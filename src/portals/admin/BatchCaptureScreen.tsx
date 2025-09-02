@@ -641,9 +641,12 @@ const BatchCaptureScreen = () => {
           <EquipmentPickerModal
             gymId={selectedGym.id}
             onClose={() => setEquipmentModalVisible(false)}
-            onSelect={eq => {
-              setSelectedEquipment(eq);
-              setForm(prev => ({...prev, equipmentId: String(eq.id)}));
+            onSelect={ge => {
+              setSelectedEquipment(ge.equipment);
+              setForm(prev => ({
+                ...prev,
+                equipmentId: String(ge.equipment.id),
+              }));
               setEquipmentModalVisible(false);
             }}
           />

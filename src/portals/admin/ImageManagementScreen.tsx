@@ -676,9 +676,9 @@ const ImageManagementScreen = () => {
           <EquipmentPickerModal
             gymId={selectedGym.id}
             onClose={() => setEquipmentModalVisible(false)}
-            onSelect={eq => {
-              setSelectedEquipment(eq);
-              setEquipmentId(String(eq.id));
+            onSelect={ge => {
+              setSelectedEquipment(ge.equipment);
+              setEquipmentId(String(ge.equipment.id));
               setEquipmentModalVisible(false);
             }}
           />
