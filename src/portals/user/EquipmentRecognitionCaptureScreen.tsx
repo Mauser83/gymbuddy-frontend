@@ -20,6 +20,7 @@ import ModalWrapper from 'shared/components/ModalWrapper';
 import GymPickerModal, {
   Gym as PickerGym,
 } from 'features/workout-sessions/components/GymPickerModal';
+import EquipmentPickerModal from 'features/gyms/components/EquipmentPickerModal';
 import useRecognition from 'features/cv/hooks/useRecognition';
 import LoadingSpinner from 'shared/components/LoadingSpinner';
 import ButtonRow from 'shared/components/ButtonRow';
@@ -33,6 +34,8 @@ const EquipmentRecognitionCaptureScreen = () => {
   const [offerTraining, setOfferTraining] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [gymModalVisible, setGymModalVisible] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [manualPick, setManualPick] = useState(false);
   const [gym, setGym] = useState<PickerGym | null>(null);
   const [busy, setBusy] = useState(false);
   const [camPerm, requestCamPerm] = ImagePicker.useCameraPermissions();
@@ -44,6 +47,7 @@ const EquipmentRecognitionCaptureScreen = () => {
   } = useRecognition();
 
   const decision: string | undefined = result?.attempt?.decision;
+  const canSelect = decision !== 'RETAKE' || manualPick;
   const candidateList = useMemo(() => {
     if (!result) return [];
     switch (decision) {
@@ -53,7 +57,7 @@ const EquipmentRecognitionCaptureScreen = () => {
       case 'GYM_SELECT':
         return result.gymCandidates ?? [];
       case 'RETAKE':
-        return result.gymCandidates ?? [];
+        return [];
       default:
         return [];
     }
@@ -74,7 +78,7 @@ const EquipmentRecognitionCaptureScreen = () => {
     return record;
   }, [thumbData]);
   const candidateUrl = (key: string) => thumbs[key] ?? null;
-  
+
   const ensureCameraPermission = async () => {
     if (camPerm?.granted) return true;
     const res = await requestCamPerm();
@@ -97,7 +101,34 @@ const EquipmentRecognitionCaptureScreen = () => {
       allowsEditing: false,
     });
 
-  const handleCapture = async () => {
+  const uploadAndRecognize = async (uri: string) => {
+    if (!gym) throw new Error('Gym not selected');
+    const ticket = await createUploadTicket(Number(gym.id), 'jpg');
+    const t = ticket.data?.createRecognitionUploadTicket;
+    if (!t) throw new Error('Failed to create upload ticket');
+
+    const blob = await (await fetch(uri)).blob();
+    await fetch(t.putUrl, {
+      method: 'PUT',
+      headers: {'Content-Type': 'image/jpeg'},
+      body: blob,
+    });
+
+    const rec = await recognizeImage(t.ticketToken, 3);
+    const payload = rec.data?.recognizeImage;
+    if (!payload) throw new Error('recognizeImage returned no data');
+
+    const stageCandidates =
+      payload?.attempt?.decision === 'GLOBAL_ACCEPT'
+        ? payload.globalCandidates
+        : payload.gymCandidates;
+    const top = stageCandidates?.[0] ?? null;
+
+    setResult(payload);
+    setSelected(top?.equipmentId ?? null);
+  };
+
+    const handleCapture = async () => {
     try {
       if (!gym) {
         setGymModalVisible(true);
@@ -130,29 +161,7 @@ const EquipmentRecognitionCaptureScreen = () => {
       const asset = res.assets[0];
       setImageUri(asset.uri);
 
-      const ticket = await createUploadTicket(Number(gym.id), 'jpg');
-      const t = ticket.data?.createRecognitionUploadTicket;
-      if (!t) throw new Error('Failed to create upload ticket');
-
-      const blob = await (await fetch(asset.uri)).blob();
-      await fetch(t.putUrl, {
-        method: 'PUT',
-        headers: {'Content-Type': 'image/jpeg'},
-        body: blob,
-      });
-
-      const rec = await recognizeImage(t.ticketToken, 3);
-      const payload = rec.data?.recognizeImage;
-      if (!payload) throw new Error('recognizeImage returned no data');
-
-      const stageCandidates =
-        payload?.attempt?.decision === 'GLOBAL_ACCEPT'
-          ? payload.globalCandidates
-          : payload.gymCandidates;
-      const top = stageCandidates?.[0] ?? null;
-      
-      setResult(payload);
-      setSelected(top?.equipmentId ?? null);
+      await uploadAndRecognize(asset.uri);
     } catch (e) {
       console.error(e);
       Alert.alert('Capture failed', (e as Error)?.message ?? 'Unknown error');
@@ -161,13 +170,9 @@ const EquipmentRecognitionCaptureScreen = () => {
     }
   };
 
+
   const handleConfirm = async () => {
-    if (!result) return;
-    if (decision === 'RETAKE') {
-      Alert.alert('Low confidence', 'Please retake the photo.');
-      return;
-    }
-    if (selected == null) return;
+    if (!result || selected == null) return;
     await confirmRecognition(
       String(result.attempt.attemptId),
       Number(selected),
@@ -177,6 +182,7 @@ const EquipmentRecognitionCaptureScreen = () => {
     setResult(null);
     setOfferTraining(false);
     setSelected(null);
+    setManualPick(false);
   };
 
   const handleRetake = async () => {
@@ -187,6 +193,12 @@ const EquipmentRecognitionCaptureScreen = () => {
     setResult(null);
     setOfferTraining(false);
     setSelected(null);
+    setManualPick(false);
+  };
+
+  const handleRetakeCapture = async () => {
+    await handleRetake();
+    await handleCapture();
   };
 
   let content: React.ReactNode = null;
@@ -198,75 +210,87 @@ const EquipmentRecognitionCaptureScreen = () => {
     content = (
       <View style={{gap: 16, alignItems: 'center'}}>
         <Image source={{uri: imageUri}} style={{width: 200, height: 200}} />
-        {candidateList.length > 0 && (
-          <View style={{width: '100%', gap: 12}}>
-            {decision === 'RETAKE' ? (
-              <Text style={{color: theme.colors.textSecondary}}>
-                Low confidence. Please retake or optionally opt-in to
-                training.
-              </Text>
-            ) : (
+        {decision === 'RETAKE' ? (
+          <>
+            <Text style={{color: theme.colors.textSecondary}}>
+              Low confidence (&lt;55%). Please retake.
+            </Text>
+            {!manualPick && (
+              <Button
+                text="Pick equipment manually"
+                onPress={() => setPickerOpen(true)}
+              />
+            )}
+          </>
+        ) : (
+          candidateList.length > 0 && (
+            <View style={{width: '100%', gap: 12}}>
               <Text style={{color: theme.colors.textSecondary}}>
                 Pick the closest match:
               </Text>
-            )}
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={{paddingVertical: 4}}>
-              {candidateList.map((c: any) => {
-                const url = candidateUrl(c.storageKey);
-                const isSelected = selected === c.equipmentId;
-                return (
-                  <Pressable
-                    key={`${c.equipmentId}-${c.imageId}`}
-                    onPress={() => setSelected(c.equipmentId)}
-                    style={{
-                      marginRight: 12,
-                      borderWidth: 2,
-                      borderColor: isSelected
-                        ? theme.colors.accentStart
-                        : 'transparent',
-                      borderRadius: 12,
-                      overflow: 'hidden',
-                      width: 96,
-                      height: 96,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: theme.colors.surface,
-                    }}>
-                    {url ? (
-                      <Image source={{uri: url}} style={{width: 96, height: 96}} />
-                    ) : (
-                      <Text
-                        style={{
-                          color: theme.colors.textSecondary,
-                          padding: 8,
-                        }}>
-                        #{c.equipmentId}
-                      </Text>
-                    )}
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{paddingVertical: 4}}>
+                {candidateList.map((c: any) => {
+                  const url = candidateUrl(c.storageKey);
+                  const isSelected = selected === c.equipmentId;
+                  return (
+                    <Pressable
+                      key={`${c.equipmentId}-${c.imageId}`}
+                      onPress={() => setSelected(c.equipmentId)}
+                      style={{
+                        marginRight: 12,
+                        borderWidth: 2,
+                        borderColor: isSelected
+                          ? theme.colors.accentStart
+                          : 'transparent',
+                        borderRadius: 12,
+                        overflow: 'hidden',
+                        width: 96,
+                        height: 96,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: theme.colors.surface,
+                      }}>
+                      {url ? (
+                        <Image
+                          source={{uri: url}}
+                          style={{width: 96, height: 96}}
+                        />
+                      ) : (
+                        <Text
+                          style={{
+                            color: theme.colors.textSecondary,
+                            padding: 8,
+                          }}>
+                          #{c.equipmentId}
+                        </Text>
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )
+        )}
+        {canSelect && (
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+            <Switch value={offerTraining} onValueChange={setOfferTraining} />
+            <Text style={{flex: 1, color: theme.colors.textPrimary}}>
+              Help improve recognition by allowing this photo to be used for
+              training.
+            </Text>
           </View>
         )}
-        <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
-          <Switch value={offerTraining} onValueChange={setOfferTraining} />
-          <Text style={{flex: 1, color: theme.colors.textPrimary}}>
-            Help improve recognition by allowing this photo to be used for
-            training.
-          </Text>
-        </View>
         <ButtonRow>
           <Button
             text="Confirm"
             onPress={handleConfirm}
-            disabled={decision === 'RETAKE' || selected == null}
+            disabled={!canSelect || selected == null}
           />
-          <Button text="Retake" onPress={handleRetake} />
+          <Button text="Retake" onPress={handleRetakeCapture} />
         </ButtonRow>
       </View>
     );
@@ -298,6 +322,21 @@ const EquipmentRecognitionCaptureScreen = () => {
             setGymModalVisible(false);
           }}
         />
+      </ModalWrapper>
+      <ModalWrapper
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}>
+        {gym && (
+          <EquipmentPickerModal
+            gymId={gym.id}
+            onClose={() => setPickerOpen(false)}
+            onSelect={ge => {
+              setPickerOpen(false);
+              setManualPick(true);
+              setSelected(ge.id);
+            }}
+          />
+        )}
       </ModalWrapper>
     </ScreenLayout>
   );

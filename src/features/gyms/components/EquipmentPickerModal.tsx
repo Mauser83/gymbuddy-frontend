@@ -8,12 +8,12 @@ import ClickableList from 'shared/components/ClickableList';
 import LoadingState from 'shared/components/LoadingState';
 import NoResults from 'shared/components/NoResults';
 import {GET_GYM_EQUIPMENT} from 'features/gyms/graphql/gymEquipment';
-import {Equipment} from 'features/equipment/types/equipment.types';
+import {GymEquipment} from 'features/gyms/types/gym.types';
 
 interface EquipmentPickerModalProps {
   gymId: number;
   onClose: () => void;
-  onSelect: (equipment: Equipment) => void;
+  onSelect: (ge: GymEquipment) => void;
 }
 
 export default function EquipmentPickerModal({
@@ -24,15 +24,15 @@ export default function EquipmentPickerModal({
   const [search, setSearch] = useState('');
   const {data, loading} = useQuery(GET_GYM_EQUIPMENT, {variables: {gymId}});
 
-  const equipment = useMemo<Equipment[]>(
-    () => data?.getGymEquipment?.map((ge: any) => ge.equipment) ?? [],
+  const equipment = useMemo<GymEquipment[]>(
+    () => data?.getGymEquipment ?? [],
     [data],
   );
 
   const filtered = useMemo(
     () =>
-      equipment.filter(eq =>
-        eq.name.toLowerCase().includes(search.toLowerCase()),
+      equipment.filter(ge =>
+        ge.equipment.name.toLowerCase().includes(search.toLowerCase()),
       ),
     [equipment, search],
   );
@@ -53,12 +53,12 @@ export default function EquipmentPickerModal({
       ) : (
         <ScrollView style={{maxHeight: 500}}>
           <ClickableList
-            items={filtered.map(eq => ({
-              id: eq.id,
-              label: eq.name,
-              subLabel: eq.brand,
+            items={filtered.map(ge => ({
+              id: ge.id,
+              label: ge.equipment.name,
+              subLabel: ge.equipment.brand,
               onPress: () => {
-                onSelect(eq);
+                onSelect(ge);
                 onClose();
               },
             }))}
