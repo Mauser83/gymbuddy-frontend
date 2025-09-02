@@ -95,16 +95,61 @@ export const REMOVE_GYM_EQUIPMENT = gql`
   }
 `;
 
-export const UPLOAD_GYM_EQUIPMENT_IMAGE = gql`
-  mutation UploadGymEquipmentImage($input: UploadGymEquipmentImageInput!) {
-    uploadGymEquipmentImage(input: $input) {
+export const LIST_GYM_EQUIPMENT_IMAGES = gql`
+  query ListGymEquipmentImages($gymEquipmentId: Int!, $limit: Int, $cursor: String) {
+    listGymEquipmentImages(
+      gymEquipmentId: $gymEquipmentId
+      limit: $limit
+      cursor: $cursor
+    ) {
+      items {
+        id
+        url
+        isPrimary
+        capturedAt
+        # TODO: If backend returns storageKey instead of url, map to CDN
+      }
+      nextCursor
+    }
+  }
+`;
+
+export const CREATE_EQUIPMENT_TRAINING_UPLOAD_TICKET = gql`
+  mutation CreateEquipmentTrainingUploadTicket(
+    $gymId: Int!
+    $equipmentId: Int!
+    $ext: String!
+  ) {
+    createEquipmentTrainingUploadTicket(
+      gymId: $gymId
+      equipmentId: $equipmentId
+      ext: $ext
+    ) {
+      putUrl
+      storageKey
+    }
+  }
+`;
+
+export const FINALIZE_EQUIPMENT_TRAINING_IMAGE = gql`
+  mutation FinalizeEquipmentTrainingImage(
+    $gymEquipmentId: Int!
+    $storageKey: String!
+  ) {
+    finalizeEquipmentTrainingImage(
+      gymEquipmentId: $gymEquipmentId
+      storageKey: $storageKey
+    ) {
       id
+      url
+      isPrimary
+      createdAt
     }
   }
 `;
 
 export const DELETE_GYM_EQUIPMENT_IMAGE = gql`
-  mutation DeleteGymEquipmentImage($imageId: Int!) {
+  mutation DeleteGymEquipmentImage($imageId: ID!) {
     deleteGymEquipmentImage(imageId: $imageId)
   }
 `;

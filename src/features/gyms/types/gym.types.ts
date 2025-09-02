@@ -40,8 +40,10 @@ export interface GymEquipment {
 }
 
 export interface GymEquipmentImage {
-  id: number;
-  createdAt: string;
+  id: string;
+  url: string;
+  isPrimary?: boolean;
+  capturedAt?: string;
 }
 
 export interface Trainer {
