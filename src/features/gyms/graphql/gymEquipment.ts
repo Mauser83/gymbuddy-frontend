@@ -1,4 +1,3 @@
-// gymEquipment.graphql.ts
 import { gql } from '@apollo/client';
 
 export const GET_GYM_EQUIPMENT = gql`
@@ -30,6 +29,40 @@ export const GET_GYM_EQUIPMENT = gql`
   }
 `;
 
+export const GET_GYM_EQUIPMENT_DETAIL = gql`
+  query GetGymEquipmentDetail($gymEquipmentId: Int!) {
+    getGymEquipmentDetail(gymEquipmentId: $gymEquipmentId) {
+      id
+      quantity
+      note
+      createdAt
+      updatedAt
+      images {
+        id
+      }
+      gym {
+        id
+        name
+      }
+      equipment {
+        id
+        name
+        brand
+        category {
+          id
+          name
+        }
+        subcategory {
+          id
+          name
+        }
+        images {
+          id
+        }
+      }
+    }
+  }
+`;
 
 export const ASSIGN_EQUIPMENT_TO_GYM = gql`
   mutation AssignEquipmentToGym($input: AssignEquipmentToGymInput!) {

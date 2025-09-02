@@ -67,6 +67,7 @@ This document describes how screens in the current project relate to each other 
   - Manage equipment → `/gym-admin/gyms/:gymId/equipment`
   - Manage staff → `/gym-admin/gyms/:gymId/staff`
 - **`/gym-admin/gyms/:gymId/equipment` – `GymEquipmentListScreen`**
+- **`/gym-admin/gyms/:gymId/equipment/:gymEquipmentId` – `GymEquipmentDetailScreen`**
 
 ## Fallback
 - Any unknown route renders `NoResults` ("Page not found.")
