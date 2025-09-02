@@ -13,33 +13,19 @@ import AddEquipmentToGymModal from 'features/gyms/components/AddEquipmentToGymMo
 export default function GymEquipmentListScreen() {
   const {gymId} = useParams<{gymId: string}>();
   const navigate = useNavigate();
-  const {gymEquipment, loading, refetch, removeEquipment} = useGymEquipment(
-    Number(gymId),
-  );
+  const {gymEquipment, loading, refetch} = useGymEquipment(Number(gymId));
   const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
-
-  const handleRemove = async (gymEquipmentId: number) => {
-    try {
-      await removeEquipment({variables: {gymEquipmentId}}); // ✅ updated variable
-      refetch();
-    } catch (error) {
-      console.error('Failed to remove gym equipment:', error);
-    }
+  const handleAssignComplete = () => {
+    refetch();
   };
-
-const handleAssignComplete = () => {
-  refetch();
-};
   const equipmentItems = [...gymEquipment]
     .sort((a, b) => a.equipment.name.localeCompare(b.equipment.name))
     .map((item: GymEquipment) => ({
       id: item.id,
       label: `${item.equipment.name} (${item.quantity}x)`,
       subLabel: item.note || item.equipment.brand,
-      onPress: () => {}, // could open a detail view later
-      rightElement: (
-        <Button text="Remove" onPress={() => handleRemove(item.id)} />
-      ),
+      onPress: () =>
+        navigate(`/gym-admin/gyms/${gymId}/equipment/${item.id}`),
     }));
 
   return (

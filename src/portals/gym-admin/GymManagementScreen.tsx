@@ -31,7 +31,7 @@ const GymManagementScreen = () => {
     variables: {id: gymId},
   });
 
-  const gym = data?.gymById;
+  const gym = data?.gym;
 
   useEffect(() => {
     if (!user) navigate('/');
