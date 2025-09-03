@@ -41,9 +41,10 @@ export interface GymEquipment {
 
 export interface GymEquipmentImage {
   id: string;
-  url: string;
+  url?: string;
   isPrimary?: boolean;
-  capturedAt?: string;
+  status: 'PENDING' | 'APPROVED' | 'QUARANTINED';
+  capturedAt: string;
 }
 
 export interface Trainer {

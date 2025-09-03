@@ -106,8 +106,8 @@ export const LIST_GYM_EQUIPMENT_IMAGES = gql`
         id
         url
         isPrimary
+        status
         capturedAt
-        # TODO: If backend returns storageKey instead of url, map to CDN
       }
       nextCursor
     }
