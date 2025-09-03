@@ -21,14 +21,16 @@ import EquipmentPickerModal from 'features/gyms/components/EquipmentPickerModal'
 import {Equipment} from 'features/equipment/types/equipment.types';
 
 import {
-  useCreateUploadSession,
-  useFinalizeGymImages,
+  useCreateAdminUploadTicket,
+  useFinalizeGymImagesAdmin,
 } from 'features/cv/hooks/useUploadSession';
+import {useAuth} from 'features/auth/context/AuthContext';
 import {
   useApplyTaxonomies,
   useTaxonomyOptions,
   TaxonomyOption,
 } from 'features/cv/hooks/useTagging';
+import AccessDenied from 'shared/components/AccessDenied';
 type TileState =
   | 'EMPTY'
   | 'PUTTING'
@@ -120,6 +122,14 @@ function guessMimeFromName(name: string) {
   return 'image/jpeg';
 }
 
+function extFromMime(mime: string) {
+  if (mime === 'image/jpeg') return 'jpg';
+  if (mime === 'image/png') return 'png';
+  if (mime === 'image/heic') return 'heic';
+  if (mime === 'image/webp') return 'webp';
+  return 'jpg';
+}
+
 const initialForm = {
   gymId: '',
   equipmentId: '',
@@ -128,6 +138,15 @@ const initialForm = {
 const BatchCaptureScreen = () => {
   const {theme} = useTheme();
   const navigate = useNavigate();
+  const {user} = useAuth();
+  const isAdmin = user?.appRole === 'ADMIN' || user?.appRole === 'MODERATOR';
+  if (!isAdmin) {
+    return (
+      <ScreenLayout>
+        <AccessDenied />
+      </ScreenLayout>
+    );
+  }
   const [form, setForm] = useState(initialForm);
   const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(
@@ -135,7 +154,6 @@ const BatchCaptureScreen = () => {
   );
   const [gymModalVisible, setGymModalVisible] = useState(false);
   const [equipmentModalVisible, setEquipmentModalVisible] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
   const [tiles, setTiles] = useState<UploadTile[]>([]);
   const tilesRef = React.useRef<UploadTile[]>([]);
   type Phase = 'SELECT' | 'PREPARED' | 'UPLOADING' | 'TAGGING';
@@ -158,8 +176,8 @@ const BatchCaptureScreen = () => {
   }, [phase]);
   const [uploading, setUploading] = useState(false);
 
-  const [createSession, {loading: preparing}] = useCreateUploadSession();
-  const [finalize, {loading: finalizing}] = useFinalizeGymImages();
+  const [createTicket, {loading: preparing}] = useCreateAdminUploadTicket();
+  const [finalize, {loading: finalizing}] = useFinalizeGymImagesAdmin();
 
   const {data: ang} = useTaxonomyOptions('ANGLE');
   const {data: hgt} = useTaxonomyOptions('HEIGHT');
@@ -277,43 +295,34 @@ const BatchCaptureScreen = () => {
 
   // Prepare session once files are added
   const prepareSession = async () => {
-    const pending = tiles.filter(t => t.state === 'EMPTY' && t.file && !t.url);
+    const pending = tiles
+      .map((t, i) => ({t, i}))
+      .filter(({t}) => t.state === 'EMPTY' && t.file && !t.url);
     if (!pending.length) return;
-    const contentTypes = pending.map(t => resolveMimeType(t.file!));
-    const {data} = await createSession({
-      variables: {
-        input: {
-          gymId: Number(form.gymId),
-          equipmentId: Number(form.equipmentId),
-          count: contentTypes.length,
-          contentTypes,
+    for (const {t, i} of pending) {
+      const mime = resolveMimeType(t.file!);
+      const ext = extFromMime(mime);
+      const {data} = await createTicket({
+        variables: {
+          input: {
+            gymId: Number(form.gymId),
+            ext,
+          },
         },
-      },
-    });
-    const session = data.createUploadSession;
-    setSessionId(session.sessionId);
-    setTiles(prev => {
-      const next = [...prev];
-      let pi = 0;
-      for (let i = 0; i < next.length; i++) {
-        if (
-          next[i].state === 'EMPTY' &&
-          next[i].file &&
-          pi < session.items.length &&
-          !next[i].url
-        ) {
-          const item = session.items[pi++];
-          next[i] = {
-            ...next[i],
-            storageKey: item.storageKey,
-            url: item.url,
-            requiredHeaders: item.requiredHeaders,
-            expiresAt: item.expiresAt,
-          };
-        }
-      }
-      return next;
-    });
+      });
+      const item = data.createAdminUploadTicket;
+      setTiles(prev => {
+        const next = [...prev];
+        next[i] = {
+          ...next[i],
+          storageKey: item.storageKey,
+          url: item.url,
+          requiredHeaders: item.requiredHeaders,
+          expiresAt: item.expiresAt,
+        };
+        return next;
+      });
+    }
     setPhase('PREPARED');
   };
 
@@ -367,7 +376,6 @@ const BatchCaptureScreen = () => {
 
   // Finalize session
   const finalizeSession = async () => {
-    if (!sessionId) return;
     // Build a candidates list with ORIGINAL indexes preserved
     const candidates = tilesRef.current
       .map((t, idx) => ({t, idx}))
@@ -376,22 +384,19 @@ const BatchCaptureScreen = () => {
           t.state !== 'REMOVED' &&
           (t.state === 'PUTTING' || t.putProgress === 100),
       );
-    const items = candidates.map(({t}) => ({storageKey: t.storageKey!}));
+    const storageKeys = candidates.map(({t}) => t.storageKey!);
     try {
       const res = await finalize({
         variables: {
           input: {
-            sessionId,
-            defaults: {
-              gymId: Number(form.gymId),
-              equipmentId: Number(form.equipmentId),
-            },
-            items,
+            gymId: Number(form.gymId),
+            equipmentId: Number(form.equipmentId),
+            storageKeys,
           },
         },
       });
-      const payload = res.data.finalizeGymImages;
-            if (payload.images.length !== candidates.length) {
+      const payload = res.data.finalizeGymImagesAdmin;
+      if (payload.images.length !== candidates.length) {
         console.warn(
           '[FINALIZE] mismatch: returned images',
           payload.images.length,
