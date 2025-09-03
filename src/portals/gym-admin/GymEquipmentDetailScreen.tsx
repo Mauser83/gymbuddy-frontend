@@ -279,100 +279,111 @@ const handleTakePhoto = useCallback(async () => {
   };
 
   return (
-    <ScreenLayout scroll>
-      <Title
-        text={equipment?.equipment.name || 'Equipment Detail'}
-      />
+    // Use non-scrolling layout because FlatList handles scrolling
+    <ScreenLayout>
       {loading ? (
         <LoadingState text="Loading equipment..." />
       ) : !equipment ? (
         <NoResults message="Equipment not found." />
       ) : (
-        <>
-          <DetailField label="Brand" value={equipment.equipment.brand || 'N/A'} />
-          <DetailField
-            label="Category"
-            value={equipment.equipment.category?.name || 'N/A'}
-          />
-          <DetailField
-            label="Subcategory"
-            value={equipment.equipment.subcategory?.name || 'N/A'}
-          />
-          <DetailField label="Quantity" value={String(equipment.quantity)} />
-          {equipment.note ? (
-            <DetailField label="Note" value={equipment.note} />
-          ) : null}
-<Card
-            title="Gym photos"
-            text="Environment-specific training images"
-          >
-            {imagesLoading ? (
+        <FlatList
+          data={images}
+          numColumns={3}
+          keyExtractor={item => item.id}
+          renderItem={({item}) => (
+            <TouchableOpacity
+              onLongPress={() => confirmDelete(item.id)}
+              style={{flex: 1, margin: 4}}>
+              <Image
+                source={{uri: item.url!}}
+                style={{width: '100%', aspectRatio: 1, borderRadius: 12}}
+              />
+              {item.status === 'PENDING' && (
+                <View style={{position: 'absolute', top: 4, left: 4}}>
+                  <Chip text="Processing…" />
+                </View>
+              )}
+              {item.status === 'QUARANTINED' && isAdmin && (
+                <View style={{position: 'absolute', top: 4, left: 4}}>
+                  <Chip text="Blocked" tone="warning" />
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListHeaderComponent={
+            <>
+              <Title text={equipment.equipment.name || 'Equipment Detail'} />
+              <DetailField
+                label="Brand"
+                value={equipment.equipment.brand || 'N/A'}
+              />
+              <DetailField
+                label="Category"
+                value={equipment.equipment.category?.name || 'N/A'}
+              />
+              <DetailField
+                label="Subcategory"
+                value={equipment.equipment.subcategory?.name || 'N/A'}
+              />
+              <DetailField
+                label="Quantity"
+                value={String(equipment.quantity)}
+              />
+              {equipment.note ? (
+                <DetailField label="Note" value={equipment.note} />
+              ) : null}
+              <Card
+                title="Gym photos"
+                text="Environment-specific training images"
+                compact
+              />
+            </>
+          }
+          ListEmptyComponent={
+            imagesLoading ? (
               <LoadingState text="Loading photos..." />
             ) : imagesError ? (
               <>
                 <NoResults message="Failed to load photos." />
                 <Button text="Retry" onPress={() => refetchImages()} />
               </>
-            ) : images.length === 0 ? (
-              <NoResults message="No gym photos yet." />
             ) : (
-              <FlatList
-                data={images}
-                numColumns={3}
-                keyExtractor={item => item.id}
-                renderItem={({item}) => (
-                  <TouchableOpacity
-                    onLongPress={() => confirmDelete(item.id)}
-                    style={{flex: 1, margin: 4}}
-                  >
-                    <Image
-                      source={{uri: item.url!}}
-                      style={{width: '100%', aspectRatio: 1, borderRadius: 12}}
-                    />
-                    {item.status === 'PENDING' && (
-                      <View style={{position: 'absolute', top: 4, left: 4}}>
-                        <Chip text="Processing…" />
-                      </View>
-                    )}
-                    {item.status === 'QUARANTINED' && isAdmin && (
-                      <View style={{position: 'absolute', top: 4, left: 4}}>
-                        <Chip text="Blocked" tone="warning" />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                )}
-                onEndReached={loadMore}
-                onEndReachedThreshold={0.5}
-              />
-            )}
-            <ButtonRow>
+              <NoResults message="No gym photos yet." />
+            )
+          }
+          ListFooterComponent={
+            <>
+              <ButtonRow>
+                <Button
+                  text={uploading ? 'Uploading...' : 'Add photos'}
+                  onPress={handleAddPhotos}
+                  disabled={uploading}
+                  fullWidth
+                />
+                <Button
+                  text={uploading ? 'Uploading...' : 'Take photo'}
+                  onPress={handleTakePhoto}
+                  disabled={uploading}
+                  fullWidth
+                />
+              </ButtonRow>
+              <Card title="Global photos" text="Catalog images">
+                <DetailField
+                  label="Count"
+                  value={String(equipment.equipment.images?.length ?? 0)}
+                />
+                {/* TODO: implement catalog images grid */}
+              </Card>
               <Button
-                text={uploading ? 'Uploading...' : 'Add photos'}
-                onPress={handleAddPhotos}
-                disabled={uploading}
-                fullWidth
+                text={removing ? 'Removing...' : 'Remove from Gym'}
+                onPress={handleRemove}
+                disabled={removing}
               />
-              <Button
-                text={uploading ? 'Uploading...' : 'Take photo'}
-                onPress={handleTakePhoto}
-                disabled={uploading}
-                fullWidth
-              />
-            </ButtonRow>
-          </Card>
-            <Card title="Global photos" text="Catalog images">
-              <DetailField
-                label="Count"
-                value={String(equipment.equipment.images?.length ?? 0)}
-              />
-              {/* TODO: implement catalog images grid */}
-            </Card>
-            <Button
-              text={removing ? 'Removing...' : 'Remove from Gym'}
-              onPress={handleRemove}
-              disabled={removing}
-            />
-        </>
+            </>
+          }
+        />
       )}
     </ScreenLayout>
   );
