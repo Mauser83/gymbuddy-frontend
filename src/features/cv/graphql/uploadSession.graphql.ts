@@ -51,3 +51,31 @@ export const APPLY_TAXONOMIES = gql`
     }
   }
 `;
+
+export const CREATE_ADMIN_UPLOAD_TICKET = gql`
+  mutation CreateAdminUploadTicket($input: CreateAdminUploadTicketInput!) {
+    createAdminUploadTicket(input: $input) {
+      url
+      storageKey
+      expiresAt
+      requiredHeaders {
+        name
+        value
+      }
+    }
+  }
+`;
+
+export const FINALIZE_GYM_IMAGES_ADMIN = gql`
+  mutation FinalizeGymImagesAdmin($input: FinalizeGymImagesAdminInput!) {
+    finalizeGymImagesAdmin(input: $input) {
+      images {
+        id
+        gymId
+        equipmentId
+        status
+      }
+      queuedJobs
+    }
+  }
+`;
