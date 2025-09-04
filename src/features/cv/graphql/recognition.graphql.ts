@@ -23,7 +23,9 @@ export const RECOGNIZE_IMAGE = gql`
         createdAt
         decision
       }
-      globalCandidates {
+
+      # (legacy; keep for backwards-compat or fallback)
+        globalCandidates {
         equipmentId
         imageId
         score
@@ -34,6 +36,22 @@ export const RECOGNIZE_IMAGE = gql`
         imageId
         score
         storageKey
+      }
+
+      # NEW equipment-level aggregation from backend
+      equipmentCandidates {
+        equipmentId
+        equipmentName
+        topScore
+        representative {
+          imageId
+          equipmentId
+          storageKey
+          score
+        }
+        source
+        totalImagesConsidered
+        # images { imageId equipmentId storageKey score }  # optional if you want previews
       }
     }
   }

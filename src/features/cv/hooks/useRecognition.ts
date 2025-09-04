@@ -1,6 +1,3 @@
-+41
--0
-
 import {useMutation} from '@apollo/client';
 import {
   CREATE_RECOGNITION_UPLOAD_TICKET,
@@ -18,8 +15,13 @@ export const useRecognition = () => {
   const createUploadTicket = (gymId: number, ext: string) =>
     createTicket({variables: {gymId, ext}});
 
-  const recognizeImage = (ticketToken: string, limit = 3) =>
-    recognize({variables: {ticketToken, limit}});
+  const recognizeImage = async (ticketToken: string, limit = 3) => {
+    const {data} = await recognize({
+      variables: {ticketToken, limit},
+      fetchPolicy: 'no-cache',
+    });
+    return data?.recognizeImage ?? null;
+  };
 
   const confirmRecognition = (
     attemptId: string,
