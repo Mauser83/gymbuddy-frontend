@@ -3,6 +3,11 @@ import {gql} from '@apollo/client';
 export type GymImageStatus =
   | 'PENDING'
   | 'PROCESSING'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'QUARANTINED';
+
+export type AdminImageListStatus =
   | 'CANDIDATE'
   | 'APPROVED'
   | 'REJECTED'
@@ -11,7 +16,7 @@ export type GymImageStatus =
 export interface CandidateGlobalImagesInput {
   equipmentId: number;
   gymId?: number;
-  status?: GymImageStatus;
+  status?: AdminImageListStatus;
   search?: string;
   limit?: number;
   safety?: {state?: 'PENDING' | 'COMPLETE' | 'FAILED'; flaggedOnly?: boolean};

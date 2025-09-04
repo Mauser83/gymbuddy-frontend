@@ -1,14 +1,14 @@
 import {useQuery} from '@apollo/client';
 import {
   CANDIDATE_GLOBAL_IMAGES,
-  GymImageStatus,
   CandidateGlobalImagesInput,
+  AdminImageListStatus,
 } from '../graphql/candidateImages.graphql';
 
 export type CandidateImageFilters = {
   equipmentId: number | string;
   gymId?: number | string;
-  status?: GymImageStatus;
+  status?: AdminImageListStatus;
   search?: string;
   limit?: number;
   safety?: {state?: 'PENDING' | 'COMPLETE' | 'FAILED'; flaggedOnly?: boolean};
