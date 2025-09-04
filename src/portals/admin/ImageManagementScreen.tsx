@@ -35,9 +35,7 @@ import NoResults from 'shared/components/NoResults';
 const STATUS_OPTIONS = ['CANDIDATE', 'APPROVED', 'REJECTED', 'QUARANTINED'] as const;
 const SAFETY_OPTIONS = ['ALL', 'PENDING', 'COMPLETE', 'FAILED'] as const;
 
-const isCandidateLike = (s: string) =>
-  s === 'PENDING' || s === 'PROCESSING' || s === 'CANDIDATE';
-// NOTE: QUARANTINED is intentionally NOT candidate-like
+const isCandidateLike = (s?: string) => s === 'PENDING'; // UI “CANDIDATE” = DB PENDING
 
 const formatDate = (iso?: string) =>
   iso ? new Date(iso).toLocaleString() : '';
@@ -297,6 +295,11 @@ const ImageManagementScreen = () => {
                           : 'default'
                     }
                   />
+                  {(item.status === 'QUARANTINED' ||
+                    item.safety?.state === 'FAILED') &&
+                    (item.safety?.reasons ?? []).map(r => (
+                      <Chip key={r} text={r} tone="warning" />
+                    ))}
                   {!!item.dupCount && item.dupCount > 0 && (
                     <Chip text={`dup×${item.dupCount}`} />
                   )}
