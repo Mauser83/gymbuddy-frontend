@@ -27,6 +27,102 @@ import ButtonRow from 'shared/components/ButtonRow';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import {useThumbUrls} from 'features/cv/hooks/useThumbUrls';
 
+interface CandidateCardProps {
+  equipmentId: number;
+  title: string;
+  imageKey: string;
+  score: number;
+  onSelect: () => void;
+  selected: boolean;
+  size: number;
+}
+
+const CandidateCard = ({
+  equipmentId,
+  title,
+  imageKey,
+  score,
+  onSelect,
+  selected,
+  size,
+}: CandidateCardProps) => {
+  const {theme} = useTheme();
+  const {data, refresh} = useThumbUrls();
+  useEffect(() => {
+    if (imageKey) refresh([imageKey]);
+  }, [imageKey, refresh]);
+  const url = data?.imageUrlMany?.[0]?.url;
+  void equipmentId;
+  void score;
+
+  return (
+    <Pressable
+      onPress={onSelect}
+      style={{
+        marginRight: size === 96 ? 12 : 0,
+        borderWidth: 2,
+        borderColor: selected ? theme.colors.accentStart : 'transparent',
+        borderRadius: 12,
+        overflow: 'hidden',
+        width: size,
+        height: size,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.surface,
+      }}>
+      {url ? (
+        <Image source={{uri: url}} style={{width: size, height: size}} />
+      ) : (
+        <Text style={{color: theme.colors.textSecondary}}>{title}</Text>
+      )}
+    </Pressable>
+  );
+};
+
+const LargeCandidateCard = (props: Omit<CandidateCardProps, 'size'>) => (
+  <CandidateCard {...props} size={200} />
+);
+
+const SmallCandidateCard = (props: Omit<CandidateCardProps, 'size'>) => (
+  <CandidateCard {...props} size={96} />
+);
+
+const HorizontalList = ({children}: {children: React.ReactNode}) => (
+  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{paddingVertical: 4}}>
+    {children}
+  </ScrollView>
+);
+
+const Disclosure = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => {
+  const {theme} = useTheme();
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={{width: '100%'}}>
+      <Pressable onPress={() => setOpen(o => !o)} style={{paddingVertical: 4}}>
+        <Text style={{color: theme.colors.textPrimary}}>
+          {title} {open ? '▲' : '▼'}
+        </Text>
+      </Pressable>
+      {open && <View style={{marginTop: 8}}>{children}</View>}
+    </View>
+  );
+};
+
+const EmptyState = ({text}: {text: string}) => {
+  const {theme} = useTheme();
+  return (
+    <Text style={{color: theme.colors.textSecondary, textAlign: 'center'}}>
+      {text}
+    </Text>
+  );
+};
+
 const EquipmentRecognitionCaptureScreen = () => {
   const {theme} = useTheme();
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -48,36 +144,23 @@ const EquipmentRecognitionCaptureScreen = () => {
 
   const decision: string | undefined = result?.attempt?.decision;
   const canSelect = decision !== 'RETAKE' || manualPick;
-  const candidateList = useMemo(() => {
-    if (!result) return [];
-    switch (decision) {
-      case 'GLOBAL_ACCEPT':
-        return result.globalCandidates ?? [];
-      case 'GYM_ACCEPT':
-      case 'GYM_SELECT':
-        return result.gymCandidates ?? [];
-      case 'RETAKE':
-        return [];
-      default:
-        return [];
-    }
-  }, [result, decision]);
-  const candidateKeys = useMemo(
-    () => candidateList.map((c: any) => c.storageKey),
-    [candidateList],
-  );
-  const {data: thumbData, refresh: refreshThumbs} = useThumbUrls();
+  const eqCandidates: any[] = result?.equipmentCandidates ?? [];
+
+  const primary = useMemo(() => {
+    if (!eqCandidates.length) return null;
+    return eqCandidates[0];
+  }, [eqCandidates]);
+
+  const alternates = useMemo(() => {
+    if (eqCandidates.length <= 1) return [];
+    return eqCandidates.slice(1);
+  }, [eqCandidates]);
+
   useEffect(() => {
-    refreshThumbs(candidateKeys);
-  }, [refreshThumbs, candidateKeys]);
-  const thumbs = useMemo(() => {
-    const record: Record<string, string> = {};
-    thumbData?.imageUrlMany?.forEach((r: any) => {
-      record[r.storageKey] = r.url;
-    });
-    return record;
-  }, [thumbData]);
-  const candidateUrl = (key: string) => thumbs[key] ?? null;
+    if (primary && selected == null) {
+      setSelected(primary.equipmentId);
+    }
+  }, [primary, selected]);
 
   const ensureCameraPermission = async () => {
     if (camPerm?.granted) return true;
@@ -118,14 +201,8 @@ const EquipmentRecognitionCaptureScreen = () => {
     const payload = rec.data?.recognizeImage;
     if (!payload) throw new Error('recognizeImage returned no data');
 
-    const stageCandidates =
-      payload?.attempt?.decision === 'GLOBAL_ACCEPT'
-        ? payload.globalCandidates
-        : payload.gymCandidates;
-    const top = stageCandidates?.[0] ?? null;
-
     setResult(payload);
-    setSelected(top?.equipmentId ?? null);
+    setSelected(null);
   };
 
     const handleCapture = async () => {
@@ -210,11 +287,42 @@ const EquipmentRecognitionCaptureScreen = () => {
     content = (
       <View style={{gap: 16, alignItems: 'center'}}>
         <Image source={{uri: imageUri}} style={{width: 200, height: 200}} />
-        {decision === 'RETAKE' ? (
+        {primary ? (
           <>
-            <Text style={{color: theme.colors.textSecondary}}>
-              Low confidence (&lt;55%). Please retake.
-            </Text>
+            <LargeCandidateCard
+              equipmentId={primary.equipmentId}
+              title={primary.equipmentName ?? `#${primary.equipmentId}`}
+              imageKey={primary.representative.storageKey}
+              score={primary.topScore}
+              onSelect={() => setSelected(primary.equipmentId)}
+              selected={selected === primary.equipmentId}
+            />
+            {primary.topScore >= 0.9 && (
+              <Text style={{color: theme.colors.textSecondary}}>
+                Looks like {primary.equipmentName ?? `#${primary.equipmentId}`} (90%+)
+              </Text>
+            )}
+            {alternates.length > 0 && (
+              <Disclosure title={`Other options (${alternates.length})`}>
+                <HorizontalList>
+                  {alternates.map(c => (
+                    <SmallCandidateCard
+                      key={c.equipmentId}
+                      equipmentId={c.equipmentId}
+                      title={c.equipmentName ?? `#${c.equipmentId}`}
+                      imageKey={c.representative.storageKey}
+                      score={c.topScore}
+                      onSelect={() => setSelected(c.equipmentId)}
+                      selected={selected === c.equipmentId}
+                    />
+                  ))}
+                </HorizontalList>
+              </Disclosure>
+            )}
+          </>
+        ) : (
+          <>
+            <EmptyState text="No good match. Try retaking the photo." />
             {!manualPick && (
               <Button
                 text="Pick equipment manually"
@@ -222,58 +330,6 @@ const EquipmentRecognitionCaptureScreen = () => {
               />
             )}
           </>
-        ) : (
-          candidateList.length > 0 && (
-            <View style={{width: '100%', gap: 12}}>
-              <Text style={{color: theme.colors.textSecondary}}>
-                Pick the closest match:
-              </Text>
-
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={{paddingVertical: 4}}>
-                {candidateList.map((c: any) => {
-                  const url = candidateUrl(c.storageKey);
-                  const isSelected = selected === c.equipmentId;
-                  return (
-                    <Pressable
-                      key={`${c.equipmentId}-${c.imageId}`}
-                      onPress={() => setSelected(c.equipmentId)}
-                      style={{
-                        marginRight: 12,
-                        borderWidth: 2,
-                        borderColor: isSelected
-                          ? theme.colors.accentStart
-                          : 'transparent',
-                        borderRadius: 12,
-                        overflow: 'hidden',
-                        width: 96,
-                        height: 96,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: theme.colors.surface,
-                      }}>
-                      {url ? (
-                        <Image
-                          source={{uri: url}}
-                          style={{width: 96, height: 96}}
-                        />
-                      ) : (
-                        <Text
-                          style={{
-                            color: theme.colors.textSecondary,
-                            padding: 8,
-                          }}>
-                          #{c.equipmentId}
-                        </Text>
-                      )}
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            </View>
-          )
         )}
         {canSelect && (
           <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
