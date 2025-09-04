@@ -1,5 +1,22 @@
 import {gql} from '@apollo/client';
 
+export type GymImageStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'CANDIDATE'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'QUARANTINED';
+
+export interface CandidateGlobalImagesInput {
+  equipmentId: number;
+  gymId?: number;
+  status?: GymImageStatus;
+  search?: string;
+  limit?: number;
+  safety?: {state?: 'PENDING' | 'COMPLETE' | 'FAILED'; flaggedOnly?: boolean};
+}
+
 export const CANDIDATE_GLOBAL_IMAGES = gql`
   query CandidateGlobalImages($input: CandidateGlobalImagesInput!) {
     candidateGlobalImages(input: $input) {

@@ -32,11 +32,12 @@ import EquipmentPickerModal from 'features/gyms/components/EquipmentPickerModal'
 import {Equipment} from 'features/equipment/types/equipment.types';
 import NoResults from 'shared/components/NoResults';
 
-const STATUS_OPTIONS = ['CANDIDATE', 'APPROVED', 'REJECTED'] as const;
+const STATUS_OPTIONS = ['CANDIDATE', 'APPROVED', 'REJECTED', 'QUARANTINED'] as const;
 const SAFETY_OPTIONS = ['ALL', 'PENDING', 'COMPLETE', 'FAILED'] as const;
 
 const isCandidateLike = (s: string) =>
   s === 'PENDING' || s === 'PROCESSING' || s === 'CANDIDATE';
+// NOTE: QUARANTINED is intentionally NOT candidate-like
 
 const formatDate = (iso?: string) =>
   iso ? new Date(iso).toLocaleString() : '';
@@ -189,7 +190,7 @@ const ImageManagementScreen = () => {
   );
 
   const canApprove = useCallback(
-    (r: Row) => r.safety?.state === 'COMPLETE',
+    (r: Row) => r.status !== 'QUARANTINED' && r.safety?.state === 'COMPLETE',
     [],
   );
 
@@ -284,6 +285,7 @@ const ImageManagementScreen = () => {
                     text={
                       isCandidateLike(item.status) ? 'CANDIDATE' : item.status
                     }
+                    tone={item.status === 'QUARANTINED' ? 'warning' : 'default'}
                   />
                   <Chip
                     text={item.safety?.state ?? 'UNKNOWN'}
@@ -324,19 +326,23 @@ const ImageManagementScreen = () => {
 
             {/* RIGHT: vertical buttons */}
             <View style={styles.buttonCol}>
-              <Button
-                text="Approve"
-                small
-                disabled={!canApprove(item)}
-                onPress={() => handleApprove(item)}
-              />
+              {item.status !== 'QUARANTINED' && (
+                <Button
+                  text="Approve"
+                  small
+                  disabled={!canApprove(item)}
+                  onPress={() => handleApprove(item)}
+                />
+              )}
               <Button text="Reject" small onPress={() => handleReject(item)} />
-              <Button
-                text="Promote"
-                small
-                disabled={!canPromote(item)}
-                onPress={() => handlePromote(item)}
-              />
+              {item.status !== 'QUARANTINED' && (
+                <Button
+                  text="Promote"
+                  small
+                  disabled={!canPromote(item)}
+                  onPress={() => handlePromote(item)}
+                />
+              )}
             </View>
           </View>
         </Pressable>
@@ -564,44 +570,52 @@ const ImageManagementScreen = () => {
                 </Text>
               </View>
 
-              {isAdmin && selected.safety?.state !== 'COMPLETE' && (
-                <View style={{marginTop: 8}}>
-                  <Button
-                    text="Force Approve"
-                    small
-                    onPress={() => handleApprove(selected, true)}
-                  />
-                </View>
-              )}
+{isAdmin &&
+                selected.status !== 'QUARANTINED' &&
+                selected.safety?.state !== 'COMPLETE' && (
+                  <View style={{marginTop: 8}}>
+                    <Button
+                      text="Force Approve"
+                      small
+                      onPress={() => handleApprove(selected, true)}
+                    />
+                  </View>
+                )}
 
-              {isAdmin && selected.safety?.state !== 'COMPLETE' && (
-                <View style={{marginTop: 8}}>
-                  <Button
-                    text="Force Promote"
-                    small
-                    onPress={() => handlePromote(selected, true)}
-                  />
-                </View>
-              )}
+              {isAdmin &&
+                selected.status !== 'QUARANTINED' &&
+                selected.safety?.state !== 'COMPLETE' && (
+                  <View style={{marginTop: 8}}>
+                    <Button
+                      text="Force Promote"
+                      small
+                      onPress={() => handlePromote(selected, true)}
+                    />
+                  </View>
+                )}
 
               <View style={styles.modalButtons}>
-                <Button
-                  text="Approve"
-                  small
-                  disabled={!canApprove(selected)}
-                  onPress={() => handleApprove(selected)}
-                />
+                {selected.status !== 'QUARANTINED' && (
+                  <Button
+                    text="Approve"
+                    small
+                    disabled={!canApprove(selected)}
+                    onPress={() => handleApprove(selected)}
+                  />
+                )}
                 <Button
                   text="Reject"
                   small
                   onPress={() => handleReject(selected)}
                 />
-                <Button
-                  text="Promote"
-                  small
-                  disabled={!canPromote(selected)}
-                  onPress={() => handlePromote(selected)}
-                />
+                {selected.status !== 'QUARANTINED' && (
+                  <Button
+                    text="Promote"
+                    small
+                    disabled={!canPromote(selected)}
+                    onPress={() => handlePromote(selected)}
+                  />
+                )}
               </View>
               <Button text="Close" small onPress={() => setSelected(null)} />
             </View>
