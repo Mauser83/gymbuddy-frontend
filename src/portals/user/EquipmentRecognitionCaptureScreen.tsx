@@ -144,8 +144,31 @@ const EquipmentRecognitionCaptureScreen = () => {
 
   const decision: string | undefined = result?.attempt?.decision;
   const canSelect = decision !== 'RETAKE' || manualPick;
-  const eqCandidates: any[] = result?.equipmentCandidates ?? [];
+  const fallbackFromImages = (list?: any[]) => {
+    if (!list?.length) return [];
+    const sorted = [...list].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+    const seen = new Set<number>();
+    const dedup: any[] = [];
+    for (const c of sorted) {
+      if (seen.has(c.equipmentId)) continue;
+      seen.add(c.equipmentId);
+      dedup.push({
+        equipmentId: c.equipmentId,
+        equipmentName: undefined,
+        topScore: c.score ?? 0,
+        representative: c,
+        source: 'GYM',
+        totalImagesConsidered: 1,
+      });
+      if (dedup.length >= 3) break;
+    }
+    return dedup;
+  };
 
+  const eqCandidates: any[] =
+    result?.equipmentCandidates ??
+    fallbackFromImages(result?.gymCandidates) ??
+    [];
   const primary = useMemo(() => {
     if (!eqCandidates.length) return null;
     return eqCandidates[0];
@@ -197,8 +220,8 @@ const EquipmentRecognitionCaptureScreen = () => {
       body: blob,
     });
 
-    const rec = await recognizeImage(t.ticketToken, 3);
-    const payload = rec.data?.recognizeImage;
+    const payload = await recognizeImage(t.ticketToken, 3);
+
     if (!payload) throw new Error('recognizeImage returned no data');
 
     setResult(payload);
