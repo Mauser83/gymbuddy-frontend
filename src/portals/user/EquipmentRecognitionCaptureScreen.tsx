@@ -35,6 +35,7 @@ interface CandidateCardProps {
   onSelect: () => void;
   selected: boolean;
   size: number;
+  muted?: boolean;
 }
 
 const CandidateCard = ({
@@ -45,6 +46,7 @@ const CandidateCard = ({
   onSelect,
   selected,
   size,
+  muted,
 }: CandidateCardProps) => {
   const {theme} = useTheme();
   const {data, refresh} = useThumbUrls();
@@ -69,11 +71,28 @@ const CandidateCard = ({
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: theme.colors.surface,
+        opacity: muted ? 0.5 : 1,
       }}>
       {url ? (
         <Image source={{uri: url}} style={{width: size, height: size}} />
       ) : (
         <Text style={{color: theme.colors.textSecondary}}>{title}</Text>
+      )}
+      {muted && (
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 4,
+            right: 4,
+            backgroundColor: theme.colors.surface,
+            paddingHorizontal: 4,
+            paddingVertical: 2,
+            borderRadius: 4,
+          }}>
+          <Text style={{color: theme.colors.textSecondary, fontSize: 10}}>
+            Low confidence
+          </Text>
+        </View>
       )}
     </Pressable>
   );
@@ -319,6 +338,7 @@ const EquipmentRecognitionCaptureScreen = () => {
               score={primary.topScore}
               onSelect={() => setSelected(primary.equipmentId)}
               selected={selected === primary.equipmentId}
+              muted={primary.topScore < 0.7}
             />
             {primary.topScore >= 0.9 && (
               <Text style={{color: theme.colors.textSecondary}}>
@@ -329,17 +349,18 @@ const EquipmentRecognitionCaptureScreen = () => {
               <Disclosure title={`Other options (${alternates.length})`}>
                 <HorizontalList>
                   {alternates.map(c => (
-                    <SmallCandidateCard
-                      key={c.equipmentId}
-                      equipmentId={c.equipmentId}
-                      title={c.equipmentName ?? `#${c.equipmentId}`}
-                      imageKey={c.representative.storageKey}
-                      score={c.topScore}
-                      onSelect={() => setSelected(c.equipmentId)}
-                      selected={selected === c.equipmentId}
-                    />
-                  ))}
-                </HorizontalList>
+                  <SmallCandidateCard
+                    key={c.equipmentId}
+                    equipmentId={c.equipmentId}
+                    title={c.equipmentName ?? `#${c.equipmentId}`}
+                    imageKey={c.representative.storageKey}
+                    score={c.topScore}
+                    onSelect={() => setSelected(c.equipmentId)}
+                    selected={selected === c.equipmentId}
+                    muted={c.topScore < 0.7}
+                  />
+                ))}
+              </HorizontalList>
               </Disclosure>
             )}
           </>
