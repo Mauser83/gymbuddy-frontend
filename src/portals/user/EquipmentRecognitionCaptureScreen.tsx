@@ -107,7 +107,10 @@ const SmallCandidateCard = (props: Omit<CandidateCardProps, 'size'>) => (
 );
 
 const HorizontalList = ({children}: {children: React.ReactNode}) => (
-  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{paddingVertical: 4}}>
+  <ScrollView
+    horizontal
+    showsHorizontalScrollIndicator={false}
+    style={{paddingVertical: 4}}>
     {children}
   </ScrollView>
 );
@@ -147,7 +150,12 @@ const EquipmentRecognitionCaptureScreen = () => {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
   const [offerTraining, setOfferTraining] = useState(false);
+  // equipmentId of the selected equipment
   const [selected, setSelected] = useState<number | null>(null);
+  type SelectionSource = 'candidate' | 'manual';
+  const [selectedFrom, setSelectedFrom] = useState<SelectionSource | null>(
+    null,
+  );
   const [gymModalVisible, setGymModalVisible] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [manualPick, setManualPick] = useState(false);
@@ -160,6 +168,14 @@ const EquipmentRecognitionCaptureScreen = () => {
     confirmRecognition,
     discardRecognition,
   } = useRecognition();
+
+  // Normalize gym equipment rows into equipmentId
+  const toEquipmentId = (ge: any): number => {
+    if (typeof ge?.equipmentId === 'number') return ge.equipmentId;
+    if (ge?.equipment && typeof ge.equipment.id === 'number')
+      return ge.equipment.id;
+    return Number.isFinite(ge?.id) ? ge.id : NaN;
+  };
 
   const decision: string | undefined = result?.attempt?.decision;
   const canSelect = decision !== 'RETAKE' || manualPick;
@@ -201,6 +217,7 @@ const EquipmentRecognitionCaptureScreen = () => {
   useEffect(() => {
     if (primary && selected == null) {
       setSelected(primary.equipmentId);
+      setSelectedFrom('candidate');
     }
   }, [primary, selected]);
 
@@ -247,7 +264,7 @@ const EquipmentRecognitionCaptureScreen = () => {
     setSelected(null);
   };
 
-    const handleCapture = async () => {
+  const handleCapture = async () => {
     try {
       if (!gym) {
         setGymModalVisible(true);
@@ -289,7 +306,6 @@ const EquipmentRecognitionCaptureScreen = () => {
     }
   };
 
-
   const handleConfirm = async () => {
     if (!result || selected == null) return;
     await confirmRecognition(
@@ -302,6 +318,7 @@ const EquipmentRecognitionCaptureScreen = () => {
     setOfferTraining(false);
     setSelected(null);
     setManualPick(false);
+    setSelectedFrom(null);
   };
 
   const handleRetake = async () => {
@@ -313,6 +330,7 @@ const EquipmentRecognitionCaptureScreen = () => {
     setOfferTraining(false);
     setSelected(null);
     setManualPick(false);
+    setSelectedFrom(null);
   };
 
   const handleRetakeCapture = async () => {
@@ -336,33 +354,51 @@ const EquipmentRecognitionCaptureScreen = () => {
               title={primary.equipmentName ?? `#${primary.equipmentId}`}
               imageKey={primary.representative.storageKey}
               score={primary.topScore}
-              onSelect={() => setSelected(primary.equipmentId)}
+              onSelect={() => {
+                setSelected(primary.equipmentId);
+                setSelectedFrom('candidate');
+              }}
               selected={selected === primary.equipmentId}
               muted={primary.topScore < 0.7}
             />
             {primary.topScore >= 0.9 && (
               <Text style={{color: theme.colors.textSecondary}}>
-                Looks like {primary.equipmentName ?? `#${primary.equipmentId}`} (90%+)
+                Looks like {primary.equipmentName ?? `#${primary.equipmentId}`}{' '}
+                (90%+)
               </Text>
             )}
             {alternates.length > 0 && (
               <Disclosure title={`Other options (${alternates.length})`}>
                 <HorizontalList>
                   {alternates.map(c => (
-                  <SmallCandidateCard
-                    key={c.equipmentId}
-                    equipmentId={c.equipmentId}
-                    title={c.equipmentName ?? `#${c.equipmentId}`}
-                    imageKey={c.representative.storageKey}
-                    score={c.topScore}
-                    onSelect={() => setSelected(c.equipmentId)}
-                    selected={selected === c.equipmentId}
-                    muted={c.topScore < 0.7}
-                  />
-                ))}
-              </HorizontalList>
+                    <SmallCandidateCard
+                      key={c.equipmentId}
+                      equipmentId={c.equipmentId}
+                      title={c.equipmentName ?? `#${c.equipmentId}`}
+                      imageKey={c.representative.storageKey}
+                      score={c.topScore}
+                      onSelect={() => {
+                        setSelected(c.equipmentId);
+                        setSelectedFrom('candidate');
+                      }}
+                      selected={selected === c.equipmentId}
+                      muted={c.topScore < 0.7}
+                    />
+                  ))}
+                </HorizontalList>
               </Disclosure>
             )}
+            <Pressable
+              onPress={() => setPickerOpen(true)}
+              style={{paddingVertical: 6}}>
+              <Text
+                style={{
+                  textDecorationLine: 'underline',
+                  color: theme.colors.textSecondary,
+                }}>
+                Not this? Pick from gym list
+              </Text>
+            </Pressable>
           </>
         ) : (
           <>
@@ -383,6 +419,13 @@ const EquipmentRecognitionCaptureScreen = () => {
               training.
             </Text>
           </View>
+        )}
+        {selected != null && (
+          <Text style={{color: theme.colors.textSecondary}}>
+            Selected:{' '}
+            {selectedFrom === 'manual' ? 'from gym list' : 'suggested'} (ID #
+            {selected})
+          </Text>
         )}
         <ButtonRow>
           <Button
@@ -423,9 +466,7 @@ const EquipmentRecognitionCaptureScreen = () => {
           }}
         />
       </ModalWrapper>
-      <ModalWrapper
-        visible={pickerOpen}
-        onClose={() => setPickerOpen(false)}>
+      <ModalWrapper visible={pickerOpen} onClose={() => setPickerOpen(false)}>
         {gym && (
           <EquipmentPickerModal
             gymId={gym.id}
@@ -433,7 +474,9 @@ const EquipmentRecognitionCaptureScreen = () => {
             onSelect={ge => {
               setPickerOpen(false);
               setManualPick(true);
-              setSelected(ge.id);
+              const eqId = toEquipmentId(ge);
+              setSelected(Number.isFinite(eqId) ? eqId : null);
+              setSelectedFrom('manual');
             }}
           />
         )}
