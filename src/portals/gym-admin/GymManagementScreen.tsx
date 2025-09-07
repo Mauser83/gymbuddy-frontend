@@ -3,7 +3,7 @@ import {View} from 'react-native';
 import {useParams, useNavigate} from 'react-router-native';
 import {useQuery} from '@apollo/client';
 import {useAuth} from '../../features/auth/context/AuthContext';
-import { GET_GYM_BY_ID } from 'features/gyms/graphql/gym.queries';
+import {GET_GYM_BY_ID} from 'features/gyms/graphql/gym.queries';
 import {GymRole} from 'features/gyms/types/gym.types';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import LoadingState from 'shared/components/LoadingState';
@@ -12,7 +12,7 @@ import Card from 'shared/components/Card';
 import Title from 'shared/components/Title';
 import DetailField from 'shared/components/DetailField';
 import Button from 'shared/components/Button';
-import { spacing } from 'shared/theme/tokens';
+import {spacing} from 'shared/theme/tokens';
 
 const GymManagementScreen = () => {
   const {gymId: idParam} = useParams();
@@ -56,12 +56,12 @@ const GymManagementScreen = () => {
       <Card
         variant="glass"
         title={gym.name}
-        text={!gym.isApproved ? "⏳ Pending Approval" : undefined}
+        text={!gym.isApproved ? '⏳ Pending Approval' : undefined}
         compact
-        style={{ marginBottom: spacing.md }}
+        style={{marginBottom: spacing.md}}
       />
 
-      <Card variant="glass" style={{ marginBottom: spacing.md }}>
+      <Card variant="glass" style={{marginBottom: spacing.md}}>
         <Title text="🏢 Gym Information" />
         <DetailField
           label="📝 Description"
@@ -80,7 +80,7 @@ const GymManagementScreen = () => {
         />
       </Card>
 
-      <Card variant="glass" style={{ marginBottom: spacing.md }}>
+      <Card variant="glass" style={{marginBottom: spacing.md}}>
         <Title text="Equipment" />
         <DetailField
           label="🏋️ Equipment Items"
@@ -89,6 +89,16 @@ const GymManagementScreen = () => {
         <Button
           onPress={() => navigate(`/gym-admin/gyms/${gymId}/equipment`)}
           text="Manage Equipment"
+        />
+      </Card>
+
+      <Card variant="glass" style={{marginBottom: spacing.md}}>
+        <Title text="Image Training Candidates" />
+        <Button
+          onPress={() =>
+            navigate(`/gym-admin/gyms/${gymId}/training-candidates`)
+          }
+          text="Review Candidates"
         />
       </Card>
 
