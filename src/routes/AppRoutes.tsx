@@ -65,6 +65,7 @@ import BatchCaptureScreen from 'portals/admin/BatchCaptureScreen';
 import KnnPlaygroundScreen from 'portals/admin/KnnPlaygroundScreen';
 import WorkerTasksScreen from 'portals/admin/WorkerTasksScreen';
 import ImageManagementScreen from 'portals/admin/ImageManagementScreen';
+import GlobalCurationScreen from 'portals/admin/GlobalCurationScreen';
 import SigningVerifierScreen from 'portals/admin/SigningVerifierScreen';
 import RoleSelectScreen from 'portals/user/RoleSelectScreen';
 
@@ -142,6 +143,7 @@ const AppRoutes = () => {
           <Route path="/exercise/edit/:id" element={<RequireRole roles={['admin']}><EditExerciseScreen /></RequireRole>} />
           <Route path="/users" element={<RequireRole roles={['admin']}><UsersScreen /></RequireRole>} />
           <Route path="/users/:id" element={<RequireRole roles={['admin']}><UserDetailScreen /></RequireRole>} />
+          <Route path="/admin/global-curation" element={<RequireRole roles={['admin']}><GlobalCurationScreen /></RequireRole>} />
           <Route path="/workoutplan/builder" element={<RequireRole roles={['user']}><WorkoutPlanBuilderScreen /></RequireRole>} />
           <Route path="/admin/catalog" element={<RequireRole roles={['admin']}><AdminSystemCatalogScreen /></RequireRole>} />
           <Route path="/admin/catalog/equipment" element={<RequireRole roles={['admin']}><AdminEquipmentCatalogScreen /></RequireRole>} />

@@ -81,6 +81,16 @@ const AppDashboardScreen = () => {
         </Card>
         <Card variant="glass">
           <Title
+            text="🌍 Global Image Curation"
+            subtitle="Review global image suggestions"
+          />
+          <Button
+            onPress={() => navigate('/admin/global-curation')}
+            text="Review Suggestions"
+          />
+        </Card>
+        <Card variant="glass">
+          <Title
             text="🛠️ Equipments"
             subtitle="View and manage global equipments"
           />
