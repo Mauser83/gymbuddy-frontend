@@ -61,7 +61,6 @@ export const CONFIRM_RECOGNITION = gql`
   mutation ConfirmRecognition($input: ConfirmRecognitionInput!) {
     confirmRecognition(input: $input) {
       saved
-      promotedStorageKey
     }
   }
 `;

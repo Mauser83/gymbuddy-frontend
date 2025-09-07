@@ -33,6 +33,7 @@ import CreateEquipmentScreen from 'portals/admin/CreateEquipmentScreen';
 import EditEquipmentScreen from 'portals/admin/EditEquipmentScreen';
 import GymEquipmentListScreen from 'portals/gym-admin/GymEquipmentListScreen';
 import GymEquipmentDetailScreen from 'portals/gym-admin/GymEquipmentDetailScreen';
+import GymTrainingCandidatesScreen from 'portals/gym-admin/GymTrainingCandidatesScreen';
 import ExerciseListScreen from 'portals/admin/ExerciseListScreen';
 import CreateExerciseScreen from 'portals/admin/CreateExerciseScreen';
 import EditExerciseScreen from 'portals/admin/EditExerciseScreen';
@@ -161,7 +162,8 @@ const AppRoutes = () => {
           <Route path="/gym-admin/gyms/:gymId" element={<RequireRole roles={['gym-manager']} checkGymId><GymManagementScreen /></RequireRole>} />
           <Route path="/gym-admin/gyms/:gymId/equipment" element={<RequireRole roles={['gym-manager']} checkGymId><GymEquipmentListScreen /></RequireRole>} />
           <Route path="/gym-admin/gyms/:gymId/equipment/:gymEquipmentId" element={<RequireRole roles={['gym-manager']} checkGymId><GymEquipmentDetailScreen /></RequireRole>} />
-          
+          <Route path="/gym-admin/gyms/:gymId/training-candidates" element={<RequireRole roles={['gym-manager']} checkGymId><GymTrainingCandidatesScreen /></RequireRole>} />
+
           {/* Trainer Portal */}
           <Route path="/trainer" element={<RequireRole roles={['trainer']}><TrainerDashboardScreen /></RequireRole>} />
 
