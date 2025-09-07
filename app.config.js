@@ -21,6 +21,19 @@ export default ({config}) => {
     // (optional) icons/badges:
     icon: isCvDev ? './assets/icon-dev.png' : './assets/icon.png',
 
+    // ✅ Add (or merge) plugins
+    plugins: [
+      ...(config.plugins ?? []),
+      ['expo-image-picker', {
+        photosPermission: 'Allow access to your photos to pick images for equipment recognition.',
+        cameraPermission: 'Allow camera access to scan gym equipment.',
+        // Include only if you capture video with audio:
+        // microphonePermission: 'Allow microphone while recording videos.',
+      }],
+      // If you SAVE to the photo library via expo-media-library, add its plugin too:
+      // ['expo-media-library', { photosPermission: 'Allow saving images to your photo library.' }],
+    ],
+
     ios: {
       ...(config.ios ?? {}),
       // <-- NEW: separate bundle id so it installs side-by-side
@@ -31,6 +44,14 @@ export default ({config}) => {
         ...(config.ios?.infoPlist ?? {}),
         ITSAppUsesNonExemptEncryption: false,
         CFBundleDisplayName: isCvDev ? 'GymBuddy Dev' : 'GymBuddy', // explicit
+        NSCameraUsageDescription:
+          'We use the camera to recognize gym equipment.',
+        NSPhotoLibraryUsageDescription:
+          'Allow photo library access to pick images for recognition.',
+        NSPhotoLibraryAddUsageDescription:
+          'Allow saving recognized images to your photo library.',
+        // NSMicrophoneUsageDescription:
+        //   'We use the microphone when recording videos.',
       },
     },
 
@@ -43,7 +64,7 @@ export default ({config}) => {
     extra: {
       ...(config.extra ?? {}),
       eas: {
-        projectId: projectId // The projectId is now set here, correctly
+        projectId: projectId, // The projectId is now set here, correctly
       },
       stage: env,
       apiUrl: isCvDev ? process.env.API_DEV_URL : process.env.API_URL,
