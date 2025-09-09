@@ -74,6 +74,7 @@ export const FINALIZE_GYM_IMAGES_ADMIN = gql`
         gymId
         equipmentId
         status
+        storageKey
       }
       queuedJobs
     }

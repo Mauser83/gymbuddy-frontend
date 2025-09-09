@@ -71,7 +71,7 @@ function putWithProgress(
   return new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', item.url);
-    xhr.timeout = 60000; // 60s safety
+    xhr.timeout = 120000; // 120s safety
     (item.requiredHeaders || []).forEach(h =>
       xhr.setRequestHeader((h.key ?? h.name)!, h.value),
     );
@@ -99,7 +99,7 @@ function putWithProgress(
         ? resolve()
         : reject(new Error(`PUT ${xhr.status}`));
     xhr.onerror = () => reject(new Error('Network error (CORS/SSL?)'));
-    xhr.ontimeout = () => reject(new Error('PUT timeout (60s)'));
+    xhr.ontimeout = () => reject(new Error('PUT timeout (120s)'));
     xhr.onabort = () => reject(new Error('PUT aborted'));
     xhr.send(file);
   });
@@ -409,14 +409,30 @@ const BatchCaptureScreen = () => {
             });
             setTiles(prev => {
               const next = [...prev];
-              next[i] = {...next[i], putProgress: 100};
+              next[i] = {
+                ...next[i],
+                putProgress: 100,
+                state: 'URL_OK',
+              };
               return next;
             });
             return;
           } catch (err: any) {
-            if (attempt === 0 && String(err).includes('PUT 403')) {
-              await refreshTicket(i);
-              continue;
+            const msg = String(err);
+            if (attempt === 0) {
+              if (msg.includes('PUT 403')) {
+                await refreshTicket(i);
+                continue;
+              }
+              if (
+                msg.includes('PUT 408') ||
+                msg.includes('PUT 429') ||
+                /PUT 5\d\d/.test(msg) ||
+                msg.includes('Network error') ||
+                msg.includes('timeout')
+              ) {
+                continue;
+              }
             }
             throw err;
           }
@@ -426,6 +442,8 @@ const BatchCaptureScreen = () => {
         await attemptUpload();
       } catch (err) {
         console.error(err);
+        const name = tilesRef.current[i].file?.name ?? 'image';
+        Toast.show({type: 'error', text1: `${name} failed to upload`});
         setTiles(prev => {
           const next = [...prev];
           next[i] = {...next[i], state: 'PUT_ERROR'};
@@ -441,11 +459,7 @@ const BatchCaptureScreen = () => {
     // Build a candidates list with ORIGINAL indexes preserved
     const candidates = tilesRef.current
       .map((t, idx) => ({t, idx}))
-      .filter(
-        ({t}) =>
-          t.state !== 'REMOVED' &&
-          (t.state === 'PUTTING' || t.putProgress === 100),
-      );
+      .filter(({t}) => t.state === 'URL_OK');
     const storageKeys = candidates.map(({t}) => t.storageKey!);
     try {
       const res = await finalize({
@@ -466,10 +480,14 @@ const BatchCaptureScreen = () => {
           candidates.length,
         );
       }
-      // Build an updated array *now*, not inside setState
+      // Map storageKey to index for resilience
+      const keyMap = new Map<string, number>();
+      candidates.forEach(({t, idx}) => {
+        if (t.storageKey) keyMap.set(t.storageKey, idx);
+      });
       const base = tilesRef.current.slice();
-      payload.images.forEach((img: any, i: number) => {
-        const dest = candidates[i]?.idx;
+      payload.images.forEach((img: any) => {
+        const dest = img.storageKey ? keyMap.get(img.storageKey) : undefined;
         if (dest == null) return;
         base[dest] = {
           ...base[dest],
@@ -525,22 +543,49 @@ const BatchCaptureScreen = () => {
     });
     try {
       await refreshTicket(index);
-      await putWithProgress(
-        tilesRef.current[index].file!,
-        tilesRef.current[index] as PutItem,
-        p => {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          await putWithProgress(
+            tilesRef.current[index].file!,
+            tilesRef.current[index] as PutItem,
+            p => {
+              setTiles(prev => {
+                const next = [...prev];
+                next[index] = {...next[index], putProgress: p};
+                return next;
+              });
+            },
+          );
           setTiles(prev => {
             const next = [...prev];
-            next[index] = {...next[index], putProgress: p};
+            next[index] = {
+              ...next[index],
+              putProgress: 100,
+              state: 'URL_OK',
+            };
             return next;
           });
-        },
-      );
-      setTiles(prev => {
-        const next = [...prev];
-        next[index] = {...next[index], putProgress: 100};
-        return next;
-      });
+          break;
+        } catch (err: any) {
+          const msg = String(err);
+          if (attempt === 0) {
+            if (msg.includes('PUT 403')) {
+              await refreshTicket(index);
+              continue;
+            }
+            if (
+              msg.includes('PUT 408') ||
+              msg.includes('PUT 429') ||
+              /PUT 5\d\d/.test(msg) ||
+              msg.includes('Network error') ||
+              msg.includes('timeout')
+            ) {
+              continue;
+            }
+          }
+          throw err;
+        }
+      }
       const res = await finalize({
         variables: {
           input: {
@@ -562,6 +607,8 @@ const BatchCaptureScreen = () => {
       });
     } catch (err) {
       console.error(err);
+      const name = tilesRef.current[index].file?.name ?? 'image';
+      Toast.show({type: 'error', text1: `${name} failed to upload`});
       setTiles(prev => {
         const next = [...prev];
         next[index] = {...next[index], state: 'PUT_ERROR'};
