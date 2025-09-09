@@ -105,30 +105,15 @@ function putWithProgress(
   });
 }
 
-function resolveMimeType(file: File) {
-  if (file.type) return file.type;
-  const n = (file.name || '').toLowerCase();
-  if (n.endsWith('.jpg') || n.endsWith('.jpeg')) return 'image/jpeg';
-  if (n.endsWith('.png')) return 'image/png';
-  if (n.endsWith('.heic')) return 'image/heic';
-  if (n.endsWith('.webp')) return 'image/webp';
+function resolveMimeType(_file: File) {
   return 'image/jpeg';
 }
 
-function guessMimeFromName(name: string) {
-  const n = name.toLowerCase();
-  if (n.endsWith('.jpg') || n.endsWith('.jpeg')) return 'image/jpeg';
-  if (n.endsWith('.png')) return 'image/png';
-  if (n.endsWith('.heic')) return 'image/heic';
-  if (n.endsWith('.webp')) return 'image/webp';
+function guessMimeFromName(_name: string) {
   return 'image/jpeg';
 }
 
-function extFromMime(mime: string) {
-  if (mime === 'image/jpeg') return 'jpg';
-  if (mime === 'image/png') return 'png';
-  if (mime === 'image/heic') return 'heic';
-  if (mime === 'image/webp') return 'webp';
+function extFromMime(_mime: string) {
   return 'jpg';
 }
 
@@ -264,7 +249,8 @@ const BatchCaptureScreen = () => {
         );
         console.log('processed size', processed.size);
         const blob = await fetch(processed.uri).then(r => r.blob());
-        const file = new File([blob], f.name, {type: blob.type || 'image/jpeg'});
+        const base = f.name.replace(/\.[^/.]+$/, '');
+        const file = new File([blob], `${base}.jpg`, {type: 'image/jpeg'});
         newTiles.push({
           file,
           previewUri: processed.uri,
@@ -306,9 +292,8 @@ const BatchCaptureScreen = () => {
       );
       console.log('processed size', processed.size);
       const blob = await fetch(processed.uri).then(r => r.blob());
-      const name = asset.fileName || 'upload.jpg';
-      const type = blob.type || guessMimeFromName(name);
-      const file = new File([blob], name, {type});
+      const base = (asset.fileName || 'upload').replace(/\.[^/.]+$/, '');
+      const file = new File([blob], `${base}.jpg`, {type: 'image/jpeg'});
       newTiles.push({
         file,
         previewUri: processed.uri,
@@ -333,6 +318,7 @@ const BatchCaptureScreen = () => {
           input: {
             gymId: Number(form.gymId),
             ext,
+            contentLength: t.file!.size,
           },
         },
       });
@@ -350,6 +336,34 @@ const BatchCaptureScreen = () => {
       });
     }
     setPhase('PREPARED');
+  };
+
+  const refreshTicket = async (index: number) => {
+    const t = tilesRef.current[index];
+    if (!t.file) return;
+    const mime = resolveMimeType(t.file);
+    const ext = extFromMime(mime);
+    const {data} = await createTicket({
+      variables: {
+        input: {
+          gymId: Number(form.gymId),
+          ext,
+          contentLength: t.file.size,
+        },
+      },
+    });
+    const item = data.createAdminUploadTicket;
+    setTiles(prev => {
+      const next = [...prev];
+      next[index] = {
+        ...next[index],
+        storageKey: item.storageKey,
+        url: item.url,
+        requiredHeaders: item.requiredHeaders,
+        expiresAt: item.expiresAt,
+      };
+      return next;
+    });
   };
 
   // Upload all pending tiles
@@ -375,19 +389,41 @@ const BatchCaptureScreen = () => {
         next[i] = {...next[i], state: 'PUTTING', putProgress: 0};
         return next;
       });
+      const attemptUpload = async () => {
+        const current = tilesRef.current[i];
+        if (
+          current.expiresAt &&
+          new Date(current.expiresAt).getTime() <= Date.now()
+        ) {
+          await refreshTicket(i);
+        }
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const curr = tilesRef.current[i];
+            await putWithProgress(curr.file!, curr as PutItem, p => {
+              setTiles(prev => {
+                const next = [...prev];
+                next[i] = {...next[i], putProgress: p};
+                return next;
+              });
+            });
+            setTiles(prev => {
+              const next = [...prev];
+              next[i] = {...next[i], putProgress: 100};
+              return next;
+            });
+            return;
+          } catch (err: any) {
+            if (attempt === 0 && String(err).includes('PUT 403')) {
+              await refreshTicket(i);
+              continue;
+            }
+            throw err;
+          }
+        }
+      };
       try {
-        await putWithProgress(t.file!, t as PutItem, p => {
-          setTiles(prev => {
-            const next = [...prev];
-            next[i] = {...next[i], putProgress: p};
-            return next;
-          });
-        });
-        setTiles(prev => {
-          const next = [...prev];
-          next[i] = {...next[i], putProgress: 100};
-          return next;
-        });
+        await attemptUpload();
       } catch (err) {
         console.error(err);
         setTiles(prev => {
@@ -479,6 +515,61 @@ const BatchCaptureScreen = () => {
     });
   };
 
+  const retryTile = async (index: number) => {
+    const t = tilesRef.current[index];
+    if (!t?.file) return;
+    setTiles(prev => {
+      const next = [...prev];
+      next[index] = {...next[index], state: 'PUTTING', putProgress: 0};
+      return next;
+    });
+    try {
+      await refreshTicket(index);
+      await putWithProgress(
+        tilesRef.current[index].file!,
+        tilesRef.current[index] as PutItem,
+        p => {
+          setTiles(prev => {
+            const next = [...prev];
+            next[index] = {...next[index], putProgress: p};
+            return next;
+          });
+        },
+      );
+      setTiles(prev => {
+        const next = [...prev];
+        next[index] = {...next[index], putProgress: 100};
+        return next;
+      });
+      const res = await finalize({
+        variables: {
+          input: {
+            gymId: Number(form.gymId),
+            equipmentId: Number(form.equipmentId),
+            storageKeys: [tilesRef.current[index].storageKey!],
+          },
+        },
+      });
+      const img = res.data.finalizeGymImagesAdmin.images?.[0];
+      setTiles(prev => {
+        const next = [...prev];
+        next[index] = {
+          ...next[index],
+          state: 'FINALIZED',
+          imageId: img ? String(img.id) : next[index].imageId,
+        };
+        return next;
+      });
+    } catch (err) {
+      console.error(err);
+      setTiles(prev => {
+        const next = [...prev];
+        next[index] = {...next[index], state: 'PUT_ERROR'};
+        return next;
+      });
+    }
+  };
+
   const tilesToShow = tiles.filter(t => t.state !== 'REMOVED');
 
   return (
@@ -512,6 +603,7 @@ const BatchCaptureScreen = () => {
                   key={t.storageKey ?? t.previewUri ?? `idx-${idx}`}
                   tile={t}
                   onRemove={() => removeTile(idx)}
+                  onRetry={() => retryTile(idx)}
                   canRemove={phase === 'SELECT'}
                 />
               ),
@@ -690,10 +782,12 @@ const BatchCaptureScreen = () => {
 function ThumbnailTile({
   tile,
   onRemove,
+  onRetry,
   canRemove = true,
 }: {
   tile: UploadTile;
   onRemove: () => void;
+  onRetry?: () => void;
   canRemove?: boolean;
 }) {
   const {theme} = useTheme();
@@ -741,6 +835,23 @@ function ThumbnailTile({
             }}
           />
         </View>
+      )}
+      {tile.state === 'PUT_ERROR' && onRetry && (
+        <Pressable
+          onPress={onRetry}
+          accessibilityLabel="Retry upload"
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            paddingVertical: 4,
+            backgroundColor: theme.colors.accentStart,
+          }}>
+          <Text style={{color: 'white', fontSize: 12, textAlign: 'center'}}>
+            Retry
+          </Text>
+        </Pressable>
       )}
       {canRemove && (
         <Pressable
