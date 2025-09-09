@@ -3,6 +3,8 @@ import {Alert, FlatList, Image, TouchableOpacity, View, Text} from 'react-native
 import {useNavigate, useParams} from 'react-router-native';
 import {useQuery, useMutation} from '@apollo/client';
 import * as ImagePicker from 'expo-image-picker';
+import {preprocessImage} from 'shared/utils';
+import {uploadConfig} from 'config/upload';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Title from 'shared/components/Title';
 import DetailField from 'shared/components/DetailField';
@@ -128,7 +130,15 @@ export default function GymEquipmentDetailScreen() {
         return;
       }
       for (const asset of res.assets) {
-        const blob = await fetch(asset.uri).then(r => r.blob());
+        const processed = await preprocessImage(
+          asset.uri,
+          asset.width,
+          asset.height,
+          uploadConfig.gymImage.longSide,
+          uploadConfig.gymImage.quality,
+        );
+        console.log('processed size', processed.size);
+        const blob = await fetch(processed.uri).then(r => r.blob());
         const name = asset.fileName || '';
         const extMatch = name.match(/\.([a-zA-Z0-9]+)$/);
         let ext = extMatch ? extMatch[1].toLowerCase() : '';
@@ -193,7 +203,15 @@ const handleTakePhoto = useCallback(async () => {
         return;
       }
       const asset = res.assets[0];
-      const blob = await fetch(asset.uri).then(r => r.blob());
+      const processed = await preprocessImage(
+        asset.uri,
+        asset.width,
+        asset.height,
+        uploadConfig.gymImage.longSide,
+        uploadConfig.gymImage.quality,
+      );
+      console.log('processed size', processed.size);
+      const blob = await fetch(processed.uri).then(r => r.blob());
       const name = asset.fileName || '';
       const extMatch = name.match(/\.([a-zA-Z0-9]+)$/);
       let ext = extMatch ? extMatch[1].toLowerCase() : '';
