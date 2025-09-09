@@ -165,8 +165,7 @@ const EquipmentRecognitionCaptureScreen = () => {
   const [busy, setBusy] = useState(false);
   const [camPerm, requestCamPerm] = ImagePicker.useCameraPermissions();
   const {
-    createUploadTicket,
-    recognizeImage,
+    uploadAndRecognize: uploadAndRecognizeImage,
     confirmRecognition,
     discardRecognition,
   } = useRecognition();
@@ -247,9 +246,6 @@ const EquipmentRecognitionCaptureScreen = () => {
 
   const uploadAndRecognize = async (asset: ImagePicker.ImagePickerAsset) => {
     if (!gym) throw new Error('Gym not selected');
-    const ticket = await createUploadTicket(Number(gym.id), 'jpg');
-    const t = ticket.data?.createRecognitionUploadTicket;
-    if (!t) throw new Error('Failed to create upload ticket');
 
     const processed = await preprocessImage(
       asset.uri,
@@ -260,14 +256,7 @@ const EquipmentRecognitionCaptureScreen = () => {
     );
     console.log('processed size', processed.size);
     const blob = await (await fetch(processed.uri)).blob();
-    await fetch(t.putUrl, {
-      method: 'PUT',
-      headers: {'Content-Type': 'image/jpeg'},
-      body: blob,
-    });
-
-    const payload = await recognizeImage(t.ticketToken, 3);
-
+    const payload = await uploadAndRecognizeImage(Number(gym.id), blob, 3);
     if (!payload) throw new Error('recognizeImage returned no data');
 
     setResult(payload);
