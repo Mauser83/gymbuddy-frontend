@@ -13,6 +13,8 @@ import * as ImagePicker from 'expo-image-picker';
 import {useTheme} from 'shared/theme/ThemeProvider';
 import {spacing} from 'shared/theme/tokens';
 import {useNavigate} from 'react-router-native';
+import {preprocessImage} from 'shared/utils';
+import {uploadConfig} from 'config/upload';
 
 import GymPickerModal, {
   Gym,
@@ -246,18 +248,34 @@ const BatchCaptureScreen = () => {
     Toast.show({type: 'success', text1: 'Applied to all'});
   }
   // Add images (web)
-  const handleAddWeb = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddWeb = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from((e.target as any).files ?? []) as File[];
     if (!files.length) return;
-    setTiles(prev => [
-      ...prev,
-      ...files.map(f => ({
-        file: f,
-        previewUri: URL.createObjectURL(f),
-        putProgress: 0,
-        state: 'EMPTY' as const,
-      })),
-    ]);
+    const newTiles: UploadTile[] = [];
+    for (const f of files) {
+      const objectUrl = URL.createObjectURL(f);
+      try {
+        const processed = await preprocessImage(
+          objectUrl,
+          undefined,
+          undefined,
+          uploadConfig.gymImage.longSide,
+          uploadConfig.gymImage.quality,
+        );
+        console.log('processed size', processed.size);
+        const blob = await fetch(processed.uri).then(r => r.blob());
+        const file = new File([blob], f.name, {type: blob.type || 'image/jpeg'});
+        newTiles.push({
+          file,
+          previewUri: processed.uri,
+          putProgress: 0,
+          state: 'EMPTY' as const,
+        });
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    }
+    setTiles(prev => [...prev, ...newTiles]);
   };
 
   // Add images (native)
@@ -279,13 +297,21 @@ const BatchCaptureScreen = () => {
     if (res.canceled || !res.assets?.length) return;
     const newTiles: UploadTile[] = [];
     for (const asset of res.assets) {
-      const blob = await fetch(asset.uri).then(r => r.blob());
+      const processed = await preprocessImage(
+        asset.uri,
+        asset.width,
+        asset.height,
+        uploadConfig.gymImage.longSide,
+        uploadConfig.gymImage.quality,
+      );
+      console.log('processed size', processed.size);
+      const blob = await fetch(processed.uri).then(r => r.blob());
       const name = asset.fileName || 'upload.jpg';
       const type = blob.type || guessMimeFromName(name);
       const file = new File([blob], name, {type});
       newTiles.push({
         file,
-        previewUri: asset.uri,
+        previewUri: processed.uri,
         putProgress: 0,
         state: 'EMPTY' as const,
       });
