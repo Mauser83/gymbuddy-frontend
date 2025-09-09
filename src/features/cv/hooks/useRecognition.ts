@@ -19,8 +19,15 @@ export const useRecognition = () => {
     ext: string,
     contentLength?: number,
   ) =>
-    createTicket({variables: {gymId, ext, contentLength}});
-
+    createTicket({
+      variables: {
+        gymId,
+        ext,
+        contentType: 'image/jpeg',
+        contentLength,
+      },
+    });
+    
   const recognizeImage = async (ticketToken: string, limit = 3) => {
     const {data} = await recognize({
       variables: {ticketToken, limit},

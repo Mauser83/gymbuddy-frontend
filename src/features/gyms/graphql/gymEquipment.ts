@@ -116,17 +116,30 @@ export const LIST_GYM_EQUIPMENT_IMAGES = gql`
 
 export const CREATE_EQUIPMENT_TRAINING_UPLOAD_TICKET = gql`
   mutation CreateEquipmentTrainingUploadTicket(
-    $gymId: Int!
-    $equipmentId: Int!
-    $ext: String!
+    $gymId: Int!,
+    $equipmentId: Int!,
+    $ext: String!,
+    $contentType: String,
+    $contentLength: Int,
   ) {
     createEquipmentTrainingUploadTicket(
-      gymId: $gymId
-      equipmentId: $equipmentId
-      ext: $ext
+      input: {
+        gymId: $gymId
+        equipmentId: $equipmentId
+        upload: {
+          ext: $ext
+          contentType: $contentType
+          contentLength: $contentLength
+        }
+      }
     ) {
       putUrl
       storageKey
+      expiresAt
+      requiredHeaders {
+        name
+        value
+      }
     }
   }
 `;

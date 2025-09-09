@@ -72,8 +72,9 @@ function putWithProgress(
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', item.url);
     xhr.timeout = 120000; // 120s safety
-    (item.requiredHeaders || []).forEach(h =>
-      xhr.setRequestHeader((h.key ?? h.name)!, h.value),
+    (item.requiredHeaders || []).forEach(
+      (h: {key?: string; name?: string; value: string}) =>
+        xhr.setRequestHeader((h.key ?? h.name)!, h.value),
     );
     if (
       !(item.requiredHeaders || []).some(
@@ -317,8 +318,11 @@ const BatchCaptureScreen = () => {
         variables: {
           input: {
             gymId: Number(form.gymId),
-            ext,
-            contentLength: t.file!.size,
+            upload: {
+              ext,
+              contentType: mime,
+              contentLength: t.file!.size,
+            },
           },
         },
       });
@@ -347,8 +351,11 @@ const BatchCaptureScreen = () => {
       variables: {
         input: {
           gymId: Number(form.gymId),
-          ext,
-          contentLength: t.file.size,
+          upload: {
+            ext,
+            contentType: mime,
+            contentLength: t.file.size,
+          },
         },
       },
     });

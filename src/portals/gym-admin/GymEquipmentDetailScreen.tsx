@@ -1,5 +1,12 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {Alert, FlatList, Image, TouchableOpacity, View, Text} from 'react-native';
+import {
+  Alert,
+  FlatList,
+  Image,
+  TouchableOpacity,
+  View,
+  Text,
+} from 'react-native';
 import {useNavigate, useParams} from 'react-router-native';
 import {useQuery, useMutation} from '@apollo/client';
 import * as ImagePicker from 'expo-image-picker';
@@ -52,7 +59,10 @@ const Chip = ({
 };
 
 export default function GymEquipmentDetailScreen() {
-  const {gymId, gymEquipmentId} = useParams<{gymId: string; gymEquipmentId: string}>();
+  const {gymId, gymEquipmentId} = useParams<{
+    gymId: string;
+    gymEquipmentId: string;
+  }>();
   const navigate = useNavigate();
   const {user} = useAuth();
   const isAdmin = user?.appRole === 'ADMIN';
@@ -64,7 +74,8 @@ export default function GymEquipmentDetailScreen() {
     },
   );
 
-  const [removeEquipment, {loading: removing}] = useMutation(REMOVE_GYM_EQUIPMENT);
+  const [removeEquipment, {loading: removing}] =
+    useMutation(REMOVE_GYM_EQUIPMENT);
 
   const equipment = data?.getGymEquipmentDetail;
 
@@ -89,7 +100,9 @@ export default function GymEquipmentDetailScreen() {
   const [uploading, setUploading] = useState(false);
 
   const rawImages = imagesData?.listGymEquipmentImages.items ?? [];
-  const images = rawImages.filter(img => isAdmin || img.status !== 'QUARANTINED');
+  const images = rawImages.filter(
+    img => isAdmin || img.status !== 'QUARANTINED',
+  );
   const nextCursor = imagesData?.listGymEquipmentImages.nextCursor ?? undefined;
 
   const loadMore = useCallback(() => {
@@ -139,53 +152,50 @@ export default function GymEquipmentDetailScreen() {
         );
         console.log('processed size', processed.size);
         const blob = await fetch(processed.uri).then(r => r.blob());
-for (let attempt = 0; attempt < 2; attempt++) {
-          try {
-            const ticketRes = await createTicket({
-              variables: {
-                gymId: Number(gymId),
-                equipmentId: equipment.equipment.id,
-                ext: 'jpg',
-                contentLength: blob.size,
-              },
-            });
-            const putUrl =
-              ticketRes.data?.createEquipmentTrainingUploadTicket.putUrl;
-            const storageKey =
-              ticketRes.data?.createEquipmentTrainingUploadTicket.storageKey;
-            if (!putUrl || !storageKey) {
-              throw new Error('Failed to obtain upload ticket.');
-            }
-            const putResp = await fetch(putUrl, {
-              method: 'PUT',
-              body: blob,
-              headers: {
-                'Content-Type': 'image/jpeg',
-              },
-            });
-            if (
-              attempt === 0 &&
-              (putResp.status === 403 ||
-                putResp.status === 408 ||
-                putResp.status === 429 ||
-                putResp.status >= 500)
-            ) {
-              continue;
-            }
-            if (!putResp.ok) {
-              throw new Error(`Upload failed with status ${putResp.status}`);
-            }
-            await finalizeImage({
-              variables: {
-                gymEquipmentId: Number(gymEquipmentId),
-                storageKey,
-              },
-            });
-            break;
-          } catch (e) {
-            if (attempt === 0) continue;
-            throw e;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const ticketRes = await createTicket({
+            variables: {
+              gymId: Number(gymId),
+              equipmentId: equipment.equipment.id,
+              ext: 'jpg',
+              contentType: 'image/jpeg',
+              contentLength: blob.size,
+            },
+          });
+          const t = ticketRes.data?.createEquipmentTrainingUploadTicket;
+          const putUrl = t?.putUrl;
+          const storageKey = t?.storageKey;
+          const requiredHeaders = t?.requiredHeaders;
+          if (!putUrl || !storageKey) {
+            throw new Error('Failed to obtain upload ticket.');
           }
+          const headers: Record<string, string> = {};
+          requiredHeaders?.forEach((h: {name: string; value: string}) => {
+            headers[h.name] = h.value;
+          });
+          if (
+            !Object.keys(headers).some(h => h.toLowerCase() === 'content-type')
+          ) {
+            headers['Content-Type'] = 'image/jpeg';
+          }
+          const putResp = await fetch(putUrl, {
+            method: 'PUT',
+            body: blob,
+            headers,
+          });
+          if (putResp.status === 403 && attempt === 0) {
+            continue;
+          }
+          if (!putResp.ok) {
+            throw new Error(`Upload failed with status ${putResp.status}`);
+          }
+          await finalizeImage({
+            variables: {
+              gymEquipmentId: Number(gymEquipmentId),
+              storageKey,
+            },
+          });
+          break;
         }
       }
       await refetchImages();
@@ -194,9 +204,16 @@ for (let attempt = 0; attempt < 2; attempt++) {
     } finally {
       setUploading(false);
     }
-  }, [equipment, createTicket, finalizeImage, gymId, gymEquipmentId, refetchImages]);
+  }, [
+    equipment,
+    createTicket,
+    finalizeImage,
+    gymId,
+    gymEquipmentId,
+    refetchImages,
+  ]);
 
-const handleTakePhoto = useCallback(async () => {
+  const handleTakePhoto = useCallback(async () => {
     if (!equipment) return;
     setUploading(true);
     try {
@@ -224,52 +241,49 @@ const handleTakePhoto = useCallback(async () => {
       console.log('processed size', processed.size);
       const blob = await fetch(processed.uri).then(r => r.blob());
       for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          const ticketRes = await createTicket({
-            variables: {
-              gymId: Number(gymId),
-              equipmentId: equipment.equipment.id,
-              ext: 'jpg',
-              contentLength: blob.size,
-            },
-          });
-          const putUrl =
-            ticketRes.data?.createEquipmentTrainingUploadTicket.putUrl;
-          const storageKey =
-            ticketRes.data?.createEquipmentTrainingUploadTicket.storageKey;
-          if (!putUrl || !storageKey) {
-            throw new Error('Failed to obtain upload ticket.');
-          }
-          const putResp = await fetch(putUrl, {
-            method: 'PUT',
-            body: blob,
-            headers: {
-              'Content-Type': 'image/jpeg',
-            },
-          });
-          if (
-            attempt === 0 &&
-            (putResp.status === 403 ||
-              putResp.status === 408 ||
-              putResp.status === 429 ||
-              putResp.status >= 500)
-          ) {
-            continue;
-          }
-          if (!putResp.ok) {
-            throw new Error(`Upload failed with status ${putResp.status}`);
-          }
-          await finalizeImage({
-            variables: {
-              gymEquipmentId: Number(gymEquipmentId),
-              storageKey,
-            },
-          });
-          break;
-        } catch (e) {
-          if (attempt === 0) continue;
-          throw e;
+        const ticketRes = await createTicket({
+          variables: {
+            gymId: Number(gymId),
+            equipmentId: equipment.equipment.id,
+            ext: 'jpg',
+            contentType: 'image/jpeg',
+            contentLength: blob.size,
+          },
+        });
+        const t = ticketRes.data?.createEquipmentTrainingUploadTicket;
+        const putUrl = t?.putUrl;
+        const storageKey = t?.storageKey;
+        const requiredHeaders = t?.requiredHeaders;
+        if (!putUrl || !storageKey) {
+          throw new Error('Failed to obtain upload ticket.');
         }
+        const headers: Record<string, string> = {};
+        requiredHeaders?.forEach((h: {name: string; value: string}) => {
+          headers[h.name] = h.value;
+        });
+        if (
+          !Object.keys(headers).some(h => h.toLowerCase() === 'content-type')
+        ) {
+          headers['Content-Type'] = 'image/jpeg';
+        }
+        const putResp = await fetch(putUrl, {
+          method: 'PUT',
+          body: blob,
+          headers,
+        });
+        if (putResp.status === 403 && attempt === 0) {
+          continue;
+        }
+        if (!putResp.ok) {
+          throw new Error(`Upload failed with status ${putResp.status}`);
+        }
+        await finalizeImage({
+          variables: {
+            gymEquipmentId: Number(gymEquipmentId),
+            storageKey,
+          },
+        });
+        break;
       }
       await refetchImages();
     } catch (e: any) {
@@ -277,9 +291,16 @@ const handleTakePhoto = useCallback(async () => {
     } finally {
       setUploading(false);
     }
-  }, [equipment, createTicket, finalizeImage, gymId, gymEquipmentId, refetchImages]);
+  }, [
+    equipment,
+    createTicket,
+    finalizeImage,
+    gymId,
+    gymEquipmentId,
+    refetchImages,
+  ]);
 
-    useEffect(() => {
+  useEffect(() => {
     if (images.some(img => img.status === 'PENDING')) {
       const id = setInterval(() => {
         refetchImages();
@@ -288,7 +309,7 @@ const handleTakePhoto = useCallback(async () => {
     }
   }, [images, refetchImages]);
 
-    const confirmDelete = useCallback(
+  const confirmDelete = useCallback(
     (id: string) => {
       Alert.alert('Delete photo?', undefined, [
         {text: 'Cancel', style: 'cancel'},
@@ -311,7 +332,9 @@ const handleTakePhoto = useCallback(async () => {
 
   const handleRemove = async () => {
     try {
-      await removeEquipment({variables: {gymEquipmentId: Number(gymEquipmentId)}});
+      await removeEquipment({
+        variables: {gymEquipmentId: Number(gymEquipmentId)},
+      });
       navigate(`/gym-admin/gyms/${gymId}/equipment`);
     } catch (error) {
       console.error('Failed to remove gym equipment:', error);
