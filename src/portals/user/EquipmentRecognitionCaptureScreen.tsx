@@ -15,6 +15,8 @@ import Button from 'shared/components/Button';
 import Title from 'shared/components/Title';
 import * as ImagePicker from 'expo-image-picker';
 import * as Device from 'expo-device';
+import {preprocessImage} from 'shared/utils';
+import {uploadConfig} from 'config/upload';
 import SelectableField from 'shared/components/SelectableField';
 import ModalWrapper from 'shared/components/ModalWrapper';
 import GymPickerModal, {
@@ -243,13 +245,21 @@ const EquipmentRecognitionCaptureScreen = () => {
       allowsEditing: false,
     });
 
-  const uploadAndRecognize = async (uri: string) => {
+  const uploadAndRecognize = async (asset: ImagePicker.ImagePickerAsset) => {
     if (!gym) throw new Error('Gym not selected');
     const ticket = await createUploadTicket(Number(gym.id), 'jpg');
     const t = ticket.data?.createRecognitionUploadTicket;
     if (!t) throw new Error('Failed to create upload ticket');
 
-    const blob = await (await fetch(uri)).blob();
+    const processed = await preprocessImage(
+      asset.uri,
+      asset.width,
+      asset.height,
+      uploadConfig.recognitionImage.longSide,
+      uploadConfig.recognitionImage.quality,
+    );
+    console.log('processed size', processed.size);
+    const blob = await (await fetch(processed.uri)).blob();
     await fetch(t.putUrl, {
       method: 'PUT',
       headers: {'Content-Type': 'image/jpeg'},
@@ -297,7 +307,7 @@ const EquipmentRecognitionCaptureScreen = () => {
       const asset = res.assets[0];
       setImageUri(asset.uri);
 
-      await uploadAndRecognize(asset.uri);
+      await uploadAndRecognize(asset);
     } catch (e) {
       console.error(e);
       Alert.alert('Capture failed', (e as Error)?.message ?? 'Unknown error');
