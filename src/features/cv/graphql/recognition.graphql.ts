@@ -1,10 +1,22 @@
 import {gql} from '@apollo/client';
 
 export const CREATE_RECOGNITION_UPLOAD_TICKET = gql`
-  mutation CreateRecognitionUploadTicket($gymId: Int!, $ext: String!) {
-    createRecognitionUploadTicket(gymId: $gymId, ext: $ext) {
+  mutation CreateRecognitionUploadTicket(
+    $gymId: Int!
+    $ext: String!
+    $contentLength: Int
+  ) {
+    createRecognitionUploadTicket(
+      gymId: $gymId
+      ext: $ext
+      contentLength: $contentLength
+    ) {
       ticketToken
       putUrl
+      requiredHeaders {
+        name
+        value
+      }
       storageKey
       expiresAt
     }
