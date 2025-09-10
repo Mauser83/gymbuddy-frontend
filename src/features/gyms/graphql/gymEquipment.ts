@@ -123,23 +123,13 @@ export const CREATE_EQUIPMENT_TRAINING_UPLOAD_TICKET = gql`
     $contentLength: Int,
   ) {
     createEquipmentTrainingUploadTicket(
-      input: {
-        gymId: $gymId
-        equipmentId: $equipmentId
-        upload: {
-          ext: $ext
-          contentType: $contentType
-          contentLength: $contentLength
-        }
-      }
+      gymId: $gymId
+      equipmentId: $equipmentId
+      input: { ext: $ext, contentType: $contentType, contentLength: $contentLength }
     ) {
       putUrl
       storageKey
-      expiresAt
-      requiredHeaders {
-        name
-        value
-      }
+      __typename
     }
   }
 `;
