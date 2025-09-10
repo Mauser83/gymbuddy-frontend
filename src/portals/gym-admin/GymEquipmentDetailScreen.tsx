@@ -165,19 +165,12 @@ export default function GymEquipmentDetailScreen() {
           const t = ticketRes.data?.createEquipmentTrainingUploadTicket;
           const putUrl = t?.putUrl;
           const storageKey = t?.storageKey;
-          const requiredHeaders = t?.requiredHeaders;
           if (!putUrl || !storageKey) {
             throw new Error('Failed to obtain upload ticket.');
           }
-          const headers: Record<string, string> = {};
-          requiredHeaders?.forEach((h: {name: string; value: string}) => {
-            headers[h.name] = h.value;
-          });
-          if (
-            !Object.keys(headers).some(h => h.toLowerCase() === 'content-type')
-          ) {
-            headers['Content-Type'] = 'image/jpeg';
-          }
+          const headers: Record<string, string> = {
+            'Content-Type': 'image/jpeg',
+          };
           const putResp = await fetch(putUrl, {
             method: 'PUT',
             body: blob,
@@ -253,19 +246,12 @@ export default function GymEquipmentDetailScreen() {
         const t = ticketRes.data?.createEquipmentTrainingUploadTicket;
         const putUrl = t?.putUrl;
         const storageKey = t?.storageKey;
-        const requiredHeaders = t?.requiredHeaders;
         if (!putUrl || !storageKey) {
           throw new Error('Failed to obtain upload ticket.');
         }
-        const headers: Record<string, string> = {};
-        requiredHeaders?.forEach((h: {name: string; value: string}) => {
-          headers[h.name] = h.value;
-        });
-        if (
-          !Object.keys(headers).some(h => h.toLowerCase() === 'content-type')
-        ) {
-          headers['Content-Type'] = 'image/jpeg';
-        }
+        const headers: Record<string, string> = {
+          'Content-Type': 'image/jpeg',
+        };
         const putResp = await fetch(putUrl, {
           method: 'PUT',
           body: blob,
