@@ -522,7 +522,13 @@ const BatchCaptureScreen = () => {
           },
         },
       });
-      const payload = res.data.finalizeGymImagesAdmin;
+      const payload = res.data?.finalizeGymImagesAdmin;
+      if (!payload) {
+        const msg = res.errors?.[0]?.message ?? 'Failed to finalize images';
+        Toast.show({type: 'error', text1: msg});
+        setPhase('PREPARED');
+        return;
+      }
       if (payload.images.length !== candidates.length) {
         console.warn(
           '[FINALIZE] mismatch: returned images',
@@ -688,7 +694,20 @@ const BatchCaptureScreen = () => {
           },
         },
       });
-      const img = res.data.finalizeGymImagesAdmin.images?.[0];
+      const payload = res.data?.finalizeGymImagesAdmin;
+      if (!payload) {
+        const name = tilesRef.current[index].file?.name ?? 'image';
+        const msg = res.errors?.[0]?.message ?? `${name} failed to finalize`;
+        Toast.show({type: 'error', text1: msg});
+        setTiles(prev => {
+          const next = [...prev];
+          next[index] = {...next[index], state: 'PUT_ERROR'};
+          tilesRef.current = next;
+          return next;
+        });
+        return;
+      }
+      const img = payload.images?.[0];
       setTiles(prev => {
         const next = [...prev];
         next[index] = {
