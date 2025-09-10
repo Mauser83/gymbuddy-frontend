@@ -147,57 +147,20 @@ const EmptyState = ({text}: {text: string}) => {
   );
 };
 
-function buildEqCandidates(result: any): any[] {
-  if (
-    Array.isArray(result.equipmentCandidates) &&
-    result.equipmentCandidates.length > 0
-  ) {
-    return result.equipmentCandidates;
-  }
-  if (Array.isArray(result.gymCandidates) && result.gymCandidates.length > 0) {
-    const sorted = [...result.gymCandidates].sort(
-      (a, b) => (b.score ?? 0) - (a.score ?? 0),
-    );
-    const seen = new Set<number>();
-    const dedup: any[] = [];
-    for (const c of sorted) {
-      if (seen.has(c.equipmentId)) continue;
-      seen.add(c.equipmentId);
-      dedup.push({
-        equipmentId: c.equipmentId,
-        equipmentName: undefined,
-        topScore: c.score ?? 0,
-        representative: c,
-        source: 'GYM',
-        totalImagesConsidered: 1,
-      });
-      if (dedup.length >= 3) break;
-    }
-    if (dedup.length > 0) return dedup;
-  }
-  const a = result.attempt;
-  if (a?.bestEquipmentId) {
-    const rep =
-      (result.gymCandidates || []).find(
-        (g: any) => g.equipmentId === a.bestEquipmentId,
-      ) || null;
-    return [
-      {
-        equipmentId: a.bestEquipmentId,
-        equipmentName: undefined,
-        topScore: a.bestScore ?? 0,
-        representative:
-          rep || {
-            equipmentId: a.bestEquipmentId,
-            storageKey: a.storageKey,
-            score: a.bestScore ?? 0,
-          },
-        source: 'ATTEMPT',
-        totalImagesConsidered: (result.gymCandidates || []).length,
-      },
-    ];
-  }
-  return [];
+interface CandidateImage {
+  equipmentId: number;
+  imageId: string;
+  storageKey: string;
+  score: number;
+}
+
+interface EquipmentCandidate {
+  equipmentId: number;
+  equipmentName?: string | null;
+  topScore: number;
+  representative: CandidateImage;
+  source: string;
+  totalImagesConsidered: number;
 }
 
 const EquipmentRecognitionCaptureScreen = () => {
@@ -233,10 +196,13 @@ const EquipmentRecognitionCaptureScreen = () => {
 
   const decision: string | undefined = result?.attempt?.decision;
   const canSelect = decision !== 'RETAKE' || manualPick;
-    const eqCandidates = useMemo(() => {
-    if (!result) return [];
-    return buildEqCandidates(result);
-  }, [result]);
+  const eqCandidates = useMemo<EquipmentCandidate[]>(
+    () =>
+      Array.isArray(result?.equipmentCandidates)
+        ? (result.equipmentCandidates as EquipmentCandidate[])
+        : [],
+    [result],
+  );
 
   useEffect(() => {
     if (!result) return;
@@ -248,7 +214,7 @@ const EquipmentRecognitionCaptureScreen = () => {
         score: result.attempt?.bestScore,
         decision: result.attempt?.decision,
       },
-      built: eqCandidates.map((c: any) => ({
+      built: eqCandidates.map(c => ({
         id: c.equipmentId,
         score: c.topScore,
         src: c.source,
@@ -260,7 +226,7 @@ const EquipmentRecognitionCaptureScreen = () => {
     return eqCandidates[0];
   }, [eqCandidates]);
 
-  const alternates = useMemo(() => {
+  const alternates = useMemo<EquipmentCandidate[]>(() => {
     if (eqCandidates.length <= 1) return [];
     return eqCandidates.slice(1);
   }, [eqCandidates]);
