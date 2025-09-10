@@ -56,6 +56,7 @@ interface UploadTile {
   file?: File;
   previewUri?: string;
   putProgress: number;
+  putSucceeded: boolean;
   state: TileState;
   imageId?: string;
   signedUrl?: string;
@@ -67,22 +68,17 @@ function putWithProgress(
   file: File,
   item: PutItem,
   onProgress: (p: number) => void,
-) {
-  return new Promise<void>((resolve, reject) => {
+): Promise<number> {
+  return new Promise<number>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', item.url);
     xhr.timeout = 120000; // 120s safety
-    (item.requiredHeaders || []).forEach(
-      (h: {key?: string; name?: string; value: string}) =>
-        xhr.setRequestHeader((h.key ?? h.name)!, h.value),
+    const headers = item.requiredHeaders || [];
+    headers.forEach((h: {key?: string; name?: string; value: string}) =>
+      xhr.setRequestHeader((h.key ?? h.name)!, h.value),
     );
-    if (
-      !(item.requiredHeaders || []).some(
-        h => (h.key ?? h.name)?.toLowerCase() === 'content-type',
-      ) &&
-      file.type
-    ) {
-      xhr.setRequestHeader('Content-Type', file.type);
+    if (!headers.length) {
+      xhr.setRequestHeader('Content-Type', 'image/jpeg');
     }
     xhr.onloadstart = () => console.log('[PUT] start', item.storageKey);
     xhr.upload.onprogress = e => {
@@ -97,7 +93,7 @@ function putWithProgress(
     };
     xhr.onload = () =>
       xhr.status >= 200 && xhr.status < 300
-        ? resolve()
+        ? resolve(xhr.status)
         : reject(new Error(`PUT ${xhr.status}`));
     xhr.onerror = () => reject(new Error('Network error (CORS/SSL?)'));
     xhr.ontimeout = () => reject(new Error('PUT timeout (120s)'));
@@ -154,8 +150,8 @@ const BatchCaptureScreen = () => {
     // Now the presigned URLs are in tiles; start the upload chain.
     (async () => {
       setPhase('UPLOADING');
-      await uploadAll();
-      await finalizeSession();
+      const keys = await uploadAll();
+      await finalizeSession(keys);
     })().catch(err => {
       console.error(err);
       setPhase('PREPARED');
@@ -256,13 +252,18 @@ const BatchCaptureScreen = () => {
           file,
           previewUri: processed.uri,
           putProgress: 0,
+          putSucceeded: false,
           state: 'EMPTY' as const,
         });
       } finally {
         URL.revokeObjectURL(objectUrl);
       }
     }
-    setTiles(prev => [...prev, ...newTiles]);
+    setTiles(prev => {
+      const next = [...prev, ...newTiles];
+      tilesRef.current = next;
+      return next;
+    });
   };
 
   // Add images (native)
@@ -299,10 +300,15 @@ const BatchCaptureScreen = () => {
         file,
         previewUri: processed.uri,
         putProgress: 0,
+        putSucceeded: false,
         state: 'EMPTY' as const,
       });
     }
-    setTiles(prev => [...prev, ...newTiles]);
+    setTiles(prev => {
+      const next = [...prev, ...newTiles];
+      tilesRef.current = next;
+      return next;
+    });
   };
 
   // Prepare session once files are added
@@ -336,6 +342,7 @@ const BatchCaptureScreen = () => {
           requiredHeaders: item.requiredHeaders,
           expiresAt: item.expiresAt,
         };
+        tilesRef.current = next;
         return next;
       });
     }
@@ -369,12 +376,13 @@ const BatchCaptureScreen = () => {
         requiredHeaders: item.requiredHeaders,
         expiresAt: item.expiresAt,
       };
+      tilesRef.current = next;
       return next;
     });
   };
 
   // Upload all pending tiles
-  const uploadAll = async () => {
+  const uploadAll = async (): Promise<string[]> => {
     const pending = tilesRef.current
       .map((t, i) => ({t, i}))
       .filter(({t}) => t.url && t.file && t.state === 'EMPTY');
@@ -387,13 +395,20 @@ const BatchCaptureScreen = () => {
           '[UPLOAD] found EMPTY tiles without presigns; did prepare run?',
         );
       }
-      return;
+      return [];
     }
+    const successKeys: string[] = [];
     setUploading(true);
     for (const {t, i} of pending) {
       setTiles(prev => {
         const next = [...prev];
-        next[i] = {...next[i], state: 'PUTTING', putProgress: 0};
+        next[i] = {
+          ...next[i],
+          state: 'PUTTING',
+          putProgress: 0,
+          putSucceeded: false,
+        };
+        tilesRef.current = next;
         return next;
       });
       const attemptUpload = async () => {
@@ -407,22 +422,32 @@ const BatchCaptureScreen = () => {
         for (let attempt = 0; attempt < 2; attempt++) {
           try {
             const curr = tilesRef.current[i];
-            await putWithProgress(curr.file!, curr as PutItem, p => {
-              setTiles(prev => {
-                const next = [...prev];
-                next[i] = {...next[i], putProgress: p};
-                return next;
-              });
-            });
+            const status = await putWithProgress(
+              curr.file!,
+              curr as PutItem,
+              p => {
+                setTiles(prev => {
+                  const next = [...prev];
+                  next[i] = {...next[i], putProgress: p};
+                  tilesRef.current = next;
+                  return next;
+                });
+              },
+            );
             setTiles(prev => {
               const next = [...prev];
               next[i] = {
                 ...next[i],
                 putProgress: 100,
                 state: 'URL_OK',
+                putSucceeded: true,
+                storageKey: curr.storageKey,
               };
+              tilesRef.current = next;
               return next;
             });
+            successKeys.push(curr.storageKey!);
+            console.log('[PUT] tile', i, curr.storageKey, 'status', status);
             return;
           } catch (err: any) {
             const msg = String(err);
@@ -454,20 +479,39 @@ const BatchCaptureScreen = () => {
         setTiles(prev => {
           const next = [...prev];
           next[i] = {...next[i], state: 'PUT_ERROR'};
+          tilesRef.current = next;
           return next;
         });
       }
     }
     setUploading(false);
+    return successKeys;
   };
 
   // Finalize session
-  const finalizeSession = async () => {
-    // Build a candidates list with ORIGINAL indexes preserved
-    const candidates = tilesRef.current
-      .map((t, idx) => ({t, idx}))
-      .filter(({t}) => t.state === 'URL_OK');
-    const storageKeys = candidates.map(({t}) => t.storageKey!);
+  const finalizeSession = async (storageKeysArg?: string[]) => {
+    const allTiles = tilesRef.current;
+    const candidates = storageKeysArg
+      ? storageKeysArg
+          .map(sk => {
+            const idx = allTiles.findIndex(t => t.storageKey === sk);
+            return {t: allTiles[idx], idx};
+          })
+          .filter(c => c.idx != null && c.idx >= 0 && c.t)
+      : allTiles
+          .map((t, idx) => ({t, idx}))
+          .filter(({t}) => t.putSucceeded && t.storageKey);
+    const storageKeys =
+      storageKeysArg ?? candidates.map(({t}) => t.storageKey!);
+    console.log('[FINALIZE]', 'keys', storageKeys.length, storageKeys);
+    if (storageKeys.length === 0) {
+      Toast.show({
+        type: 'info',
+        text1: 'No uploaded photos to finalize yet.',
+      });
+      setPhase('SELECT');
+      return;
+    }
     try {
       const res = await finalize({
         variables: {
@@ -490,7 +534,7 @@ const BatchCaptureScreen = () => {
       // Map storageKey to index for resilience
       const keyMap = new Map<string, number>();
       candidates.forEach(({t, idx}) => {
-        if (t.storageKey) keyMap.set(t.storageKey, idx);
+        if (t?.storageKey) keyMap.set(t.storageKey, idx);
       });
       const base = tilesRef.current.slice();
       payload.images.forEach((img: any) => {
@@ -528,14 +572,17 @@ const BatchCaptureScreen = () => {
       if (!t.storageKey && (t.state === 'EMPTY' || t.state === 'PUT_ERROR')) {
         const next = [...prev];
         next.splice(index, 1);
+        tilesRef.current = next;
         return next;
       }
       // If uploaded but not finalized
       if (t.state !== 'FINALIZED') {
         const next = [...prev];
         next[index] = {...t, state: 'REMOVED'};
+        tilesRef.current = next;
         return next;
       }
+      tilesRef.current = prev;
       return prev;
     });
   };
@@ -545,20 +592,27 @@ const BatchCaptureScreen = () => {
     if (!t?.file) return;
     setTiles(prev => {
       const next = [...prev];
-      next[index] = {...next[index], state: 'PUTTING', putProgress: 0};
+      next[index] = {
+        ...next[index],
+        state: 'PUTTING',
+        putProgress: 0,
+        putSucceeded: false,
+      };
+      tilesRef.current = next;
       return next;
     });
     try {
       await refreshTicket(index);
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
-          await putWithProgress(
+          const status = await putWithProgress(
             tilesRef.current[index].file!,
             tilesRef.current[index] as PutItem,
             p => {
               setTiles(prev => {
                 const next = [...prev];
                 next[index] = {...next[index], putProgress: p};
+                tilesRef.current = next;
                 return next;
               });
             },
@@ -569,9 +623,19 @@ const BatchCaptureScreen = () => {
               ...next[index],
               putProgress: 100,
               state: 'URL_OK',
+              putSucceeded: true,
+              storageKey: tilesRef.current[index].storageKey,
             };
+            tilesRef.current = next;
             return next;
           });
+          console.log(
+            '[PUT] tile',
+            index,
+            tilesRef.current[index].storageKey,
+            'status',
+            status,
+          );
           break;
         } catch (err: any) {
           const msg = String(err);
@@ -593,12 +657,34 @@ const BatchCaptureScreen = () => {
           throw err;
         }
       }
+      const sk = tilesRef.current[index].storageKey;
+      console.log(
+        '[FINALIZE] tile count',
+        tilesRef.current.length,
+        'putSucceeded',
+        tilesRef.current.filter(t => t.putSucceeded).length,
+        'storageKeys',
+        sk ? [sk] : [],
+      );
+      if (!tilesRef.current[index].putSucceeded || !sk) {
+        Toast.show({
+          type: 'info',
+          text1: 'No uploaded photos to finalize yet.',
+        });
+        setTiles(prev => {
+          const next = [...prev];
+          next[index] = {...next[index], state: 'PUT_ERROR'};
+          tilesRef.current = next;
+          return next;
+        });
+        return;
+      }
       const res = await finalize({
         variables: {
           input: {
             gymId: Number(form.gymId),
             equipmentId: Number(form.equipmentId),
-            storageKeys: [tilesRef.current[index].storageKey!],
+            storageKeys: [sk],
           },
         },
       });
@@ -610,6 +696,7 @@ const BatchCaptureScreen = () => {
           state: 'FINALIZED',
           imageId: img ? String(img.id) : next[index].imageId,
         };
+        tilesRef.current = next;
         return next;
       });
     } catch (err) {
@@ -619,12 +706,16 @@ const BatchCaptureScreen = () => {
       setTiles(prev => {
         const next = [...prev];
         next[index] = {...next[index], state: 'PUT_ERROR'};
+        tilesRef.current = next;
         return next;
       });
     }
   };
 
   const tilesToShow = tiles.filter(t => t.state !== 'REMOVED');
+  const allDone = tiles.every(
+    t => t.putSucceeded || t.state === 'PUT_ERROR',
+  );
 
   return (
     <ScreenLayout scroll>
@@ -729,7 +820,8 @@ const BatchCaptureScreen = () => {
             uploading ||
             finalizing ||
             (phase === 'SELECT' &&
-              (!selectedGym || !selectedEquipment || tilesToShow.length === 0))
+              (!selectedGym || !selectedEquipment || tilesToShow.length === 0)) ||
+            (phase !== 'SELECT' && !allDone)
           }
         />
         {(preparing || uploading || finalizing) && <LoadingState />}
@@ -803,6 +895,11 @@ const BatchCaptureScreen = () => {
           <GymPickerModal
             onClose={() => setGymModalVisible(false)}
             onSelect={gym => {
+              if (tilesRef.current.length) {
+                tilesRef.current = [];
+                setTiles([]);
+                setPhase('SELECT');
+              }
               setSelectedGym(gym);
               setForm(prev => ({
                 ...prev,
@@ -819,6 +916,11 @@ const BatchCaptureScreen = () => {
             gymId={selectedGym.id}
             onClose={() => setEquipmentModalVisible(false)}
             onSelect={ge => {
+              if (tilesRef.current.length) {
+                tilesRef.current = [];
+                setTiles([]);
+                setPhase('SELECT');
+              }
               setSelectedEquipment(ge.equipment);
               setForm(prev => ({
                 ...prev,
