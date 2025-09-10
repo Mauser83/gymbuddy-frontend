@@ -63,9 +63,6 @@ export const useRecognition = () => {
       const headers: Record<string, string> = {
         'Content-Type': 'image/jpeg',
       };
-      if (Array.isArray(t.requiredHeaders)) {
-        for (const h of t.requiredHeaders) headers[h.name] = h.value;
-      }
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120_000);
