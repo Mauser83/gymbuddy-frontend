@@ -8,23 +8,13 @@ export const CREATE_RECOGNITION_UPLOAD_TICKET = gql`
     $contentLength: Int,
   ) {
     createRecognitionUploadTicket(
-      input: {
-        gymId: $gymId
-        upload: {
-          ext: $ext
-          contentType: $contentType
-          contentLength: $contentLength
-        }
-      }
+      gymId: $gymId
+      input: { ext: $ext, contentType: $contentType, contentLength: $contentLength }
     ) {
       ticketToken
       putUrl
       storageKey
       expiresAt
-      requiredHeaders {
-        name
-        value
-      }
     }
   }
 `;
