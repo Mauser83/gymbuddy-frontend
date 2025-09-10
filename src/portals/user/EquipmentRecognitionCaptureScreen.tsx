@@ -147,6 +147,59 @@ const EmptyState = ({text}: {text: string}) => {
   );
 };
 
+function buildEqCandidates(result: any): any[] {
+  if (
+    Array.isArray(result.equipmentCandidates) &&
+    result.equipmentCandidates.length > 0
+  ) {
+    return result.equipmentCandidates;
+  }
+  if (Array.isArray(result.gymCandidates) && result.gymCandidates.length > 0) {
+    const sorted = [...result.gymCandidates].sort(
+      (a, b) => (b.score ?? 0) - (a.score ?? 0),
+    );
+    const seen = new Set<number>();
+    const dedup: any[] = [];
+    for (const c of sorted) {
+      if (seen.has(c.equipmentId)) continue;
+      seen.add(c.equipmentId);
+      dedup.push({
+        equipmentId: c.equipmentId,
+        equipmentName: undefined,
+        topScore: c.score ?? 0,
+        representative: c,
+        source: 'GYM',
+        totalImagesConsidered: 1,
+      });
+      if (dedup.length >= 3) break;
+    }
+    if (dedup.length > 0) return dedup;
+  }
+  const a = result.attempt;
+  if (a?.bestEquipmentId) {
+    const rep =
+      (result.gymCandidates || []).find(
+        (g: any) => g.equipmentId === a.bestEquipmentId,
+      ) || null;
+    return [
+      {
+        equipmentId: a.bestEquipmentId,
+        equipmentName: undefined,
+        topScore: a.bestScore ?? 0,
+        representative:
+          rep || {
+            equipmentId: a.bestEquipmentId,
+            storageKey: a.storageKey,
+            score: a.bestScore ?? 0,
+          },
+        source: 'ATTEMPT',
+        totalImagesConsidered: (result.gymCandidates || []).length,
+      },
+    ];
+  }
+  return [];
+}
+
 const EquipmentRecognitionCaptureScreen = () => {
   const {theme} = useTheme();
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -162,7 +215,7 @@ const EquipmentRecognitionCaptureScreen = () => {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [manualPick, setManualPick] = useState(false);
   const [gym, setGym] = useState<PickerGym | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [isRecognizing, setIsRecognizing] = useState(false);
   const [camPerm, requestCamPerm] = ImagePicker.useCameraPermissions();
   const {
     uploadAndRecognize: uploadAndRecognizeImage,
@@ -180,31 +233,28 @@ const EquipmentRecognitionCaptureScreen = () => {
 
   const decision: string | undefined = result?.attempt?.decision;
   const canSelect = decision !== 'RETAKE' || manualPick;
-  const fallbackFromImages = (list?: any[]) => {
-    if (!list?.length) return [];
-    const sorted = [...list].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-    const seen = new Set<number>();
-    const dedup: any[] = [];
-    for (const c of sorted) {
-      if (seen.has(c.equipmentId)) continue;
-      seen.add(c.equipmentId);
-      dedup.push({
-        equipmentId: c.equipmentId,
-        equipmentName: undefined,
-        topScore: c.score ?? 0,
-        representative: c,
-        source: 'GYM',
-        totalImagesConsidered: 1,
-      });
-      if (dedup.length >= 3) break;
-    }
-    return dedup;
-  };
+    const eqCandidates = useMemo(() => {
+    if (!result) return [];
+    return buildEqCandidates(result);
+  }, [result]);
 
-  const eqCandidates: any[] =
-    result?.equipmentCandidates ??
-    fallbackFromImages(result?.gymCandidates) ??
-    [];
+  useEffect(() => {
+    if (!result) return;
+    console.log('[REC]', {
+      eqLen: result.equipmentCandidates?.length,
+      gymLen: result.gymCandidates?.length,
+      best: {
+        id: result.attempt?.bestEquipmentId,
+        score: result.attempt?.bestScore,
+        decision: result.attempt?.decision,
+      },
+      built: eqCandidates.map((c: any) => ({
+        id: c.equipmentId,
+        score: c.topScore,
+        src: c.source,
+      })),
+    });
+  }, [result, eqCandidates]);
   const primary = useMemo(() => {
     if (!eqCandidates.length) return null;
     return eqCandidates[0];
@@ -259,8 +309,7 @@ const EquipmentRecognitionCaptureScreen = () => {
     const payload = await uploadAndRecognizeImage(Number(gym.id), blob, 3);
     if (!payload) throw new Error('recognizeImage returned no data');
 
-    setResult(payload);
-    setSelected(null);
+    return payload;
   };
 
   const handleCapture = async () => {
@@ -270,12 +319,13 @@ const EquipmentRecognitionCaptureScreen = () => {
         return;
       }
 
-      setBusy(true);
+      setResult(null);
+      setIsRecognizing(true);
 
       const canUseCamera =
         Platform.OS !== 'ios' ? true : await ensureCameraPermission();
       if (!canUseCamera) {
-        setBusy(false);
+        setIsRecognizing(false);
         return;
       }
 
@@ -289,19 +339,21 @@ const EquipmentRecognitionCaptureScreen = () => {
           });
 
       if (res.canceled || !res.assets?.[0]?.uri) {
-        setBusy(false);
+        setIsRecognizing(false);
         return;
       }
 
       const asset = res.assets[0];
       setImageUri(asset.uri);
 
-      await uploadAndRecognize(asset);
+      const payload = await uploadAndRecognize(asset);
+      setResult(payload);
+      setSelected(null);
     } catch (e) {
       console.error(e);
       Alert.alert('Capture failed', (e as Error)?.message ?? 'Unknown error');
     } finally {
-      setBusy(false);
+      setIsRecognizing(false);
     }
   };
 
@@ -337,12 +389,14 @@ const EquipmentRecognitionCaptureScreen = () => {
     await handleCapture();
   };
 
+  const processing = isRecognizing || !result;
+
   let content: React.ReactNode = null;
-  if (busy) {
-    content = <LoadingSpinner />;
-  } else if (!imageUri) {
+  if (!imageUri) {
     content = <Button text="Capture Photo" onPress={handleCapture} />;
-  } else if (result) {
+  } else if (processing) {
+    content = <LoadingSpinner />;
+  } else {
     content = (
       <View style={{gap: 16, alignItems: 'center'}}>
         <Image source={{uri: imageUri}} style={{width: 200, height: 200}} />
@@ -434,13 +488,6 @@ const EquipmentRecognitionCaptureScreen = () => {
           />
           <Button text="Retake" onPress={handleRetakeCapture} />
         </ButtonRow>
-      </View>
-    );
-  } else {
-    content = (
-      <View style={{gap: 16, alignItems: 'center'}}>
-        <Image source={{uri: imageUri}} style={{width: 200, height: 200}} />
-        <Button text="Retry" onPress={handleCapture} />
       </View>
     );
   }
