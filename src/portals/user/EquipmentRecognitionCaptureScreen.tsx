@@ -163,6 +163,30 @@ interface EquipmentCandidate {
   totalImagesConsidered: number;
 }
 
+function fromImageCandidates(
+  imgs: any[] = [],
+  source: 'GYM' | 'GLOBAL' | 'DECISION',
+) {
+  if (!Array.isArray(imgs) || imgs.length === 0) return [];
+  const sorted = [...imgs].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  const seen = new Set<number>();
+  const out: any[] = [];
+  for (const c of sorted) {
+    if (seen.has(c.equipmentId)) continue;
+    seen.add(c.equipmentId);
+    out.push({
+      equipmentId: c.equipmentId,
+      equipmentName: undefined,
+      topScore: c.score ?? 0,
+      representative: c,
+      source,
+      totalImagesConsidered: imgs.length,
+    });
+    if (out.length >= 3) break;
+  }
+  return out;
+}
+
 const EquipmentRecognitionCaptureScreen = () => {
   const {theme} = useTheme();
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -196,24 +220,68 @@ const EquipmentRecognitionCaptureScreen = () => {
 
   const decision: string | undefined = result?.attempt?.decision;
   const canSelect = decision !== 'RETAKE' || manualPick;
-  const eqCandidates = useMemo<EquipmentCandidate[]>(
-    () =>
-      Array.isArray(result?.equipmentCandidates)
-        ? (result.equipmentCandidates as EquipmentCandidate[])
-        : [],
-    [result],
-  );
+  const eqCandidates = useMemo<EquipmentCandidate[]>(() => {
+    if (!result) return [];
+
+    if (
+      Array.isArray(result.equipmentCandidates) &&
+      result.equipmentCandidates.length > 0
+    ) {
+      return result.equipmentCandidates as EquipmentCandidate[];
+    }
+
+    const chosen =
+      decision === 'GYM_ACCEPT'
+        ? result.gymCandidates
+        : decision === 'GLOBAL_ACCEPT'
+          ? result.globalCandidates
+          : [];
+
+    if (Array.isArray(chosen) && chosen.length > 0) {
+      const src = decision === 'GYM_ACCEPT' ? 'GYM' : 'GLOBAL';
+      return fromImageCandidates(chosen, src) as EquipmentCandidate[];
+    }
+
+    const a = result.attempt;
+    if (
+      (decision === 'GYM_ACCEPT' || decision === 'GLOBAL_ACCEPT') &&
+      a?.bestEquipmentId
+    ) {
+      const pool = (result.gymCandidates ?? []).concat(
+        result.globalCandidates ?? [],
+      );
+      const rep =
+        pool.find((x: any) => x.equipmentId === a.bestEquipmentId) ?? {
+          equipmentId: a.bestEquipmentId,
+          storageKey: a.storageKey,
+          score: a.bestScore ?? 0,
+        };
+      return [
+        {
+          equipmentId: a.bestEquipmentId,
+          equipmentName: undefined,
+          topScore: a.bestScore ?? 0,
+          representative: rep,
+          source: 'ATTEMPT',
+          totalImagesConsidered: pool.length,
+        },
+      ] as any;
+    }
+
+    return [];
+  }, [result, decision]);
 
   useEffect(() => {
     if (!result) return;
     console.log('[REC]', {
-      eqLen: result.equipmentCandidates?.length,
-      gymLen: result.gymCandidates?.length,
+      decision: result.attempt?.decision,
       best: {
         id: result.attempt?.bestEquipmentId,
         score: result.attempt?.bestScore,
-        decision: result.attempt?.decision,
       },
+      eqLen: result.equipmentCandidates?.length,
+      gymLen: result.gymCandidates?.length,
+      globLen: result.globalCandidates?.length,
       built: eqCandidates.map(c => ({
         id: c.equipmentId,
         score: c.topScore,
