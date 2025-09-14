@@ -8,7 +8,7 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import Constants from 'expo-constants';
+import {API_BASE_URL} from '../../../config/env';
 
 export type AddressDetails = {
   address: string;
@@ -34,8 +34,7 @@ type AutocompletePrediction = {
   place_id: string;
 };
 
-const isWeb = Platform.OS === 'web';
-const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+const BACKEND_URL = API_BASE_URL;
 
 const AddressAutocompleteInput: React.FC<Props> = ({
   value,
@@ -46,11 +45,6 @@ const AddressAutocompleteInput: React.FC<Props> = ({
   const [suggestions, setSuggestions] = useState<AutocompletePrediction[]>([]);
   const [inputTouched, setInputTouched] = useState(false);
 
-  // Use a different state for the API key to handle the potential undefined value.
-  // Although we are now using the backend, it's good practice to keep this for
-  // potential future use or to signal a configuration issue.
-  const apiKey = Constants.expoConfig?.extra?.googleMapsApiKey;
-
   // Updated fetchSuggestions function to call the backend proxy
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -59,35 +53,24 @@ const AddressAutocompleteInput: React.FC<Props> = ({
         return;
       }
 
-       try {
-        if (isWeb) {
-          const res = await fetch(`${BACKEND_URL}/api/autocomplete`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ input: value }),
-          });
-          const json = await res.json();
-          const mapped = Array.isArray(json.suggestions)
-            ? json.suggestions
-                .map((s: any) => ({
-                  description: s.placePrediction?.text?.text ?? '',
-                  place_id: s.placePrediction?.placeId ?? '',
-                }))
-                .filter((s: AutocompletePrediction) => s.description && s.place_id)
-            : [];
-          setSuggestions(mapped);
-        } else {
-          const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
-            value,
-          )}&key=${apiKey}&language=en`;
-          const res = await fetch(url);
-          const json = await res.json();
-          if (json.status === 'OK') {
-            setSuggestions(json.predictions);
-          } else {
-            setSuggestions([]);
-          }
-        }
+      try {
+        const res = await fetch(
+          `${BACKEND_URL}/api/autocomplete?input=${encodeURIComponent(value)}`,
+        );
+        console.log('value:', value);
+        const json = await res.json();
+        const mapped = Array.isArray(json.suggestions)
+          ? json.suggestions
+              .map((s: any) => ({
+                description:
+                  s.placePrediction?.text?.text ?? s.description ?? '',
+                place_id: s.placePrediction?.placeId ?? s.place_id ?? '',
+              }))
+              .filter(
+                (s: AutocompletePrediction) => s.description && s.place_id,
+              )
+          : [];
+        setSuggestions(mapped);
       } catch (error) {
         setSuggestions([]);
       }
@@ -100,70 +83,60 @@ const AddressAutocompleteInput: React.FC<Props> = ({
   // Updated fetchPlaceDetails function to call the backend proxy
   const fetchPlaceDetails = async (placeId: string) => {
     try {
-      if (isWeb) {
-        const res = await fetch(`${BACKEND_URL}/api/place-details?place_id=${placeId}`);
-        const json = await res.json();
+      const res = await fetch(
+        `${BACKEND_URL}/api/place-details?place_id=${placeId}`,
+      );
+      const json = await res.json();
 
-        const lat = json.location?.latitude;
-        const lng = json.location?.longitude;
-        const address = json.formattedAddress;
+      const result = json.result ?? json;
+      const loc = result.location ?? result.geometry?.location ?? {};
+      const address =
+        result.formattedAddress ??
+        result.formatted_address ??
+        result.name ??
+        '';
 
-        const getComp = (type: string, field: 'shortText' | 'longText' = 'shortText') =>
-          json.addressComponents?.find((c: any) => c.types?.includes(type))?.[field] || '';
+      const addressComponents =
+        result.addressComponents ?? result.address_components ?? [];
 
-        if (lat !== undefined && lng !== undefined && address) {
-          onPlaceSelect({
-            address,
-            latitude: lat,
-            longitude: lng,
-            postalCode: getComp('postal_code'),
-            countryCode: getComp('country'),
-            country: getComp('country', 'longText'),
-            stateCode: getComp('administrative_area_level_1'),
-            state: getComp('administrative_area_level_1', 'longText'),
-            city:
-              getComp('locality', 'longText') ||
-              getComp('administrative_area_level_2', 'longText'),
-          });
-
-          setSuggestions([]);
-          onValidAddressSelected?.(true);
-        } else {
-          console.warn('Place details fetch failed');
-          onValidAddressSelected?.(false);
+      const getComp = (
+        type: string,
+        field: 'shortText' | 'longText' = 'shortText',
+      ) => {
+        const comp = addressComponents.find((c: any) =>
+          c.types?.includes(type),
+        );
+        if (!comp) {
+          return '';
         }
+        return field === 'shortText'
+          ? (comp.shortText ?? comp.short_name ?? '')
+          : (comp.longText ?? comp.long_name ?? '');
+      };
+
+      const lat = loc.lat ?? loc.latitude;
+      const lng = loc.lng ?? loc.longitude;
+
+      if (lat !== undefined && lng !== undefined && address) {
+        onPlaceSelect({
+          address,
+          latitude: Number(lat),
+          longitude: Number(lng),
+          postalCode: getComp('postal_code'),
+          countryCode: getComp('country'),
+          country: getComp('country', 'longText'),
+          stateCode: getComp('administrative_area_level_1'),
+          state: getComp('administrative_area_level_1', 'longText'),
+          city:
+            getComp('locality', 'longText') ||
+            getComp('administrative_area_level_2', 'longText'),
+        });
+
+        setSuggestions([]);
+        onValidAddressSelected?.(true);
       } else {
-        const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${apiKey}`;
-        const res = await fetch(url);
-        const json = await res.json();
-
-        if (json.status === 'OK') {
-          const result = json.result;
-          const lat = result.geometry.location.lat;
-          const lng = result.geometry.location.lng;
-          const address = result.formatted_address;
-
-          const getComp = (type: string) =>
-            result.address_components.find((c: any) => c.types.includes(type))?.short_name || '';
-
-          onPlaceSelect({
-            address,
-            latitude: lat,
-            longitude: lng,
-            postalCode: getComp('postal_code'),
-            countryCode: getComp('country'),
-            country: getComp('country'),
-            stateCode: getComp('administrative_area_level_1'),
-            state: getComp('administrative_area_level_1'),
-            city: getComp('locality') || getComp('administrative_area_level_2'),
-          });
-
-          setSuggestions([]);
-          onValidAddressSelected?.(true);
-        } else {
-          console.warn('Place details fetch failed:', json.status);
-          onValidAddressSelected?.(false);
-        }
+        console.warn('Place details fetch failed');
+        onValidAddressSelected?.(false);
       }
     } catch (err) {
       console.error('Place details error:', err);

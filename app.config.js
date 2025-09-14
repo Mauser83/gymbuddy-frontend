@@ -67,8 +67,6 @@ export default ({config}) => {
         projectId: projectId, // The projectId is now set here, correctly
       },
       stage: env,
-      apiUrl: isCvDev ? process.env.API_DEV_URL : process.env.API_URL,
-      googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
     },
   };
 };
