@@ -29,11 +29,16 @@ export const useRecognition = () => {
     });
     
   const recognizeImage = async (ticketToken: string, limit = 3) => {
-    const {data} = await recognize({
+    const res = await recognize({
       variables: {ticketToken, limit},
       fetchPolicy: 'no-cache',
+      errorPolicy: 'none',
     });
-    return data?.recognizeImage ?? null;
+    console.log(
+      '[HOOK] recognize payload keys',
+      Object.keys(res.data?.recognizeImage ?? {}),
+    );
+    return res.data?.recognizeImage ?? null;
   };
 
   const confirmRecognition = (
@@ -100,18 +105,23 @@ export const useRecognition = () => {
 
       for (let rAttempt = 0; rAttempt < 2; rAttempt++) {
         try {
-          const {data} = await recognize({
+          const res = await recognize({
             variables: {ticketToken: t.ticketToken, limit},
             fetchPolicy: 'no-cache',
+            errorPolicy: 'none',
           });
-          const result = data?.recognizeImage ?? null;
+          console.log(
+            '[HOOK] recognize payload keys',
+            Object.keys(res.data?.recognizeImage ?? {}),
+          );
+          const result = res.data?.recognizeImage ?? null;
           if (!result) throw new Error('recognizeImage returned no data');
           console.log('recognition upload', {
             size: blob.size,
             putStatus,
             retried,
           });
-          return {candidates: result, ticketToken: t.ticketToken};
+          return result;
         } catch (e) {
           if (rAttempt === 0) {
             retried = true;

@@ -161,6 +161,8 @@ interface EquipmentCandidate {
   representative: CandidateImage;
   source: string;
   totalImagesConsidered: number;
+  images?: CandidateImage[];
+  lowConfidence?: boolean;
 }
 
 function fromImageCandidates(
@@ -181,6 +183,8 @@ function fromImageCandidates(
       representative: c,
       source,
       totalImagesConsidered: imgs.length,
+      images: [],
+      lowConfidence: false,
     });
     if (out.length >= 3) break;
   }
@@ -264,6 +268,8 @@ const EquipmentRecognitionCaptureScreen = () => {
           representative: rep,
           source: 'ATTEMPT',
           totalImagesConsidered: pool.length,
+          images: [],
+          lowConfidence: false,
         },
       ] as any;
     }
@@ -340,8 +346,12 @@ const EquipmentRecognitionCaptureScreen = () => {
     );
     console.log('processed size', processed.size);
     const blob = await (await fetch(processed.uri)).blob();
-    const payload = await uploadAndRecognizeImage(Number(gym.id), blob, 3);
-    if (!payload) throw new Error('recognizeImage returned no data');
+    const raw = await uploadAndRecognizeImage(Number(gym.id), blob, 3);
+    const payload = raw && (raw.recognizeImage ?? raw);
+    if (!payload?.attempt) {
+      console.log('[SCREEN] bad payload shape', raw);
+      throw new Error('recognizeImage returned no data');
+    }
 
     return payload;
   };
