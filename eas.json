@@ -30,11 +30,13 @@
   },
   "submit": {
     "production": {
-      "ios": {        "ascAppId": "6749501544"
+      "ios": {
+        "ascAppId": "6749501544"
       }
     },
     "cvdev": {
-      "ios": {        "ascAppId": "6749850841"
+      "ios": {
+        "ascAppId": "6749850841"
       }
     }
   }
