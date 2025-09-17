@@ -1,4 +1,5 @@
 {
+  "extends": "@tsconfig/react-native/tsconfig.json",
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
@@ -9,13 +10,13 @@
     "skipLibCheck": true,
     "baseUrl": "./",
     "paths": {
-      "*": [
-        "./src/*"
-      ]
+      "*": ["./src/*", "*"]
     }
   },
   "exclude": [
-    "node_modules", "babel.config.js", "metro.config.js", "jest.config.js"
-  ],
-"extends": "@tsconfig/react-native/tsconfig.json"
+    "node_modules",
+    "babel.config.js",
+    "metro.config.js",
+    "jest.config.js"
+  ]
 }

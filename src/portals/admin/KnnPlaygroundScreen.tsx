@@ -139,7 +139,7 @@ const KnnPlaygroundScreen = () => {
             maximumValue={50}
             step={1}
             value={limit}
-            onValueChange={v => setLimit(Math.round(v))}
+            onValueChange={(v: number) => setLimit(Math.round(v))}
             minimumTrackTintColor={theme.colors.accentStart}
             maximumTrackTintColor={theme.colors.disabledSurface}
           />
