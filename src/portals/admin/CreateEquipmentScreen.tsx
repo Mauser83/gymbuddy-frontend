@@ -32,7 +32,7 @@ export default function CreateEquipmentScreen() {
 
   useEffect(() => {
     if (!user) navigate('/');
-  }, [user]);
+  }, [user, navigate]);
 
   const initialValues = {
     name: '',

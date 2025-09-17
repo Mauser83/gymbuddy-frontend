@@ -18,7 +18,6 @@ interface PlanModalsProps {
   values: FormValues;
   setFieldValue: (field: string, value: any) => void;
   workoutMeta: any;
-  refetch: () => Promise<any>;
   selectedExerciseIndex: number | null;
   setSelectedExerciseIndex: (index: number | null) => void;
   filteredExercises: any[];
@@ -34,7 +33,6 @@ export default function PlanModals({
   values,
   setFieldValue,
   workoutMeta,
-  refetch,
   selectedExerciseIndex,
   setSelectedExerciseIndex,
   filteredExercises,
@@ -75,7 +73,6 @@ export default function PlanModals({
           selectedIds={values.muscleGroupIds}
           onChange={(ids: number[]) => setFieldValue('muscleGroupIds', ids)}
           onClose={() => setActiveModal(null)}
-          onRefetch={refetch}
         />
       )}
       {activeModal === 'trainingMethodPicker' && (

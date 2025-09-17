@@ -7,7 +7,7 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import ExerciseGroupCard from 'src/shared/components/ExerciseGroupCard';
 import { useMetricRegistry } from 'src/shared/context/MetricRegistry';
 import { useTheme } from 'src/shared/theme/ThemeProvider';
-import { borderRadius, borderWidth, spacing } from 'src/shared/theme/tokens';
+import { borderWidth, spacing } from 'src/shared/theme/tokens';
 
 import { ExerciseLog } from '../types/userWorkouts.types';
 

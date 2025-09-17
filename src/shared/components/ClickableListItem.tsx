@@ -10,7 +10,6 @@ interface Props {
   onLongPress?: () => void;
   subLabel?: string;
   rightElement?: React.ReactNode;
-  selected?: boolean;
   disabled?: boolean; // ✅ new
 }
 
@@ -20,7 +19,6 @@ export default function ClickableListItem({
   onLongPress,
   subLabel,
   rightElement,
-  selected,
   disabled,
 }: Props) {
   const { theme } = useTheme();

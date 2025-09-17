@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-native';
 
 import EquipmentForm from 'src/features/equipment/components/EquipmentForm';

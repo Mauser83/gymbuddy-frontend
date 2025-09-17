@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from '@apollo/client';
 import React from 'react';
-import { Alert, FlatList, View } from 'react-native';
+import { Alert, FlatList } from 'react-native';
 
 import { APPROVE_GYM } from 'src/features/gyms/graphql/gym.mutations';
 import { GET_PENDING_GYMS } from 'src/features/gyms/graphql/gym.queries';

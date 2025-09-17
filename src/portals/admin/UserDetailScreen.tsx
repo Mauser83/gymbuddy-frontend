@@ -49,7 +49,7 @@ const UserDetailScreen = () => {
     if (!user || (user.appRole !== 'ADMIN' && user.appRole !== 'MODERATOR')) {
       navigate('/');
     }
-  }, [user]);
+  }, [user, navigate]);
 
   const onEditSave = async (appRole: string | null, userRole: string) => {
     try {

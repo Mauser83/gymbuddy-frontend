@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-native';
 
 import { useAuth } from 'src/features/auth/context/AuthContext';
 import { triggerLogout } from 'src/features/auth/utils/logoutTrigger'; // ✅ use this
-import { storage } from 'src/features/auth/utils/storage';
 import { GymRole } from 'src/features/gyms/types/gym.types';
 
 import { LOGIN_MUTATION, REGISTER_MUTATION } from '../graphql/auth.mutations';
@@ -21,7 +20,6 @@ export const useAuthService = () => {
 
         await setSession({ user, accessToken, refreshToken });
 
-        const saved = await storage.getItem('refreshToken');
         if (user.appRole === 'ADMIN' || user.appRole === 'MODERATOR') {
           navigate('/admin');
           return;

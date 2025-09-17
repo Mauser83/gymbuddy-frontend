@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-native';
+import { useParams } from 'react-router-native';
 
 import AddEquipmentToGymModal from 'src/features/gyms/components/AddEquipmentToGymModal';
 import { useGymEquipment } from 'src/features/gyms/hooks/useGymEquipment';
@@ -13,7 +13,6 @@ import Title from 'src/shared/components/Title';
 
 export default function GymEquipmentListScreen() {
   const { gymId } = useParams<{ gymId: string }>();
-  const navigate = useNavigate();
   const { gymEquipment, loading, refetch, removeEquipment } = useGymEquipment(Number(gymId));
   const [showAddEquipmentModal, setShowAddEquipmentModal] = useState(false);
 

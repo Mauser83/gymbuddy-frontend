@@ -1,16 +1,33 @@
+# .github/workflows/ci-master.yml
 name: CI (master)
+
 on:
   push:
     branches: [master]
   pull_request:
     branches: [master]
+
+# optional: cancel previous runs on the same branch/PR
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: '20', cache: npm }
+        with:
+          node-version: '20'
+          cache: npm
       - run: npm ci
-      - name: Lint (non-blocking)
-        run: npm run lint || true
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Prettier (check)
+        run: npm run format:check

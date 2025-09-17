@@ -34,11 +34,9 @@ import Card from 'src/shared/components/Card';
 import DetailField from 'src/shared/components/DetailField';
 import DividerWithLabel from 'src/shared/components/DividerWithLabel';
 import FormInput from 'src/shared/components/FormInput';
-import MetricInputGroup from 'src/shared/components/MetricInputGroup';
 import ScreenLayout from 'src/shared/components/ScreenLayout';
 import SelectableField from 'src/shared/components/SelectableField';
 import SetInputRow from 'src/shared/components/SetInputRow';
-import Title from 'src/shared/components/Title';
 import { useMetricRegistry } from 'src/shared/context/MetricRegistry';
 import { useExerciseLogSummary } from 'src/shared/hooks/ExerciseLogSummary';
 import { useTheme } from 'src/shared/theme/ThemeProvider';
@@ -413,7 +411,6 @@ export default function ActiveWorkoutSessionScreen() {
     if (!exercisesData || !equipmentData || !session?.gym?.id) return [];
 
     const allEquipment = equipmentData.gymEquipmentByGymId ?? [];
-    const usedExerciseIds = new Set(logs.map((log) => log.exerciseId));
 
     return (exercisesData.exercisesAvailableAtGym ?? []).filter((exercise: any) => {
       const requiredSubcategories =
@@ -425,7 +422,7 @@ export default function ActiveWorkoutSessionScreen() {
         allEquipment.some((eq: any) => eq.equipment.subcategory.id === subId),
       );
     });
-  }, [logs, exercisesData, equipmentData, session]);
+  }, [exercisesData, equipmentData, session]);
 
   return (
     <ScreenLayout scroll>
@@ -496,7 +493,6 @@ export default function ActiveWorkoutSessionScreen() {
             values,
             handleChange,
             handleBlur,
-            errors,
             touched,
             validateForm,
             setTouched,

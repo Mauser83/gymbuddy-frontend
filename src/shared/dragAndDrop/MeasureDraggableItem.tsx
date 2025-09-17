@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
 import { View } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
 
@@ -57,26 +57,29 @@ export const MeasuredDraggableItem = forwardRef<
 
     useEffect(() => {
       offsetStore.current[id] = offset;
-      return () => {
-        delete offsetStore.current[id];
-        delete layoutStore.current[id];
-      };
-    }, [id, offsetStore, layoutStore]);
+      const currentOffsetStore = offsetStore.current;
+      const currentLayoutStore = layoutStore.current;
 
-    const measure = () => {
+      return () => {
+        delete currentOffsetStore[id];
+        delete currentLayoutStore[id];
+      };
+    }, [id, offset, offsetStore, layoutStore]);
+
+    const measure = useCallback(() => {
       innerRef.current?.measure((x, y, width, height, pageX, pageY) => {
         if (width > 0 && height > 0) {
           layoutStore.current[id] = { x: pageX, y: pageY, width, height };
           offset.value = 0;
         }
       });
-    };
+    }, [id, layoutStore, offset]);
 
     useImperativeHandle(ref, () => ({ measure }));
 
     useEffect(() => {
       measure();
-    }, [id, layoutVersion, scrollLayoutVersion]);
+    }, [id, layoutVersion, scrollLayoutVersion, measure]);
 
     const animatedContainerStyle = useAnimatedStyle(() => ({
       transform: [{ translateY: offset.value }],

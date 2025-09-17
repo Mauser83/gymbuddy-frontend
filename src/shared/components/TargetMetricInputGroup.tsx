@@ -47,9 +47,6 @@ const TargetMetricInputGroup: React.FC<TargetMetricInputGroupProps> = ({
 
   const { theme } = useTheme();
 
-  const resolvedTypeId =
-    exerciseTypeId ?? (exerciseId ? exerciseTypeByExerciseId[exerciseId] : undefined);
-
   const metricIds = exerciseId
     ? getPlanningRelevantMetricIdsForExercise(exerciseId)
     : exerciseTypeId !== undefined

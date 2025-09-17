@@ -78,7 +78,7 @@ export default function EditExerciseScreen() {
           })) ?? [],
       });
     }
-  }, [id, data]);
+  }, [id, data, navigate]);
 
   if (loading || !formValues) {
     return (
@@ -127,7 +127,7 @@ export default function EditExerciseScreen() {
     <ScreenLayout scroll>
       <Title text="Edit Exercise" />
       <Formik initialValues={formValues} validationSchema={ExerciseSchema} onSubmit={handleSubmit}>
-        {({ handleSubmit, isSubmitting, errors, values }) => (
+        {({ handleSubmit, isSubmitting }) => (
           <>
             <ExerciseForm />
             {/* Submit / Cancel – main form actions */}

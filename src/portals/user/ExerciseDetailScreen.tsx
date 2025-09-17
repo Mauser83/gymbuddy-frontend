@@ -38,7 +38,7 @@ export default function ExerciseDetailScreen() {
     }
 
     // Sort muscle names within each body part
-    for (const [part, names] of groupedMap.entries()) {
+    for (const names of groupedMap.values()) {
       names.sort((a, b) => a.localeCompare(b));
     }
 

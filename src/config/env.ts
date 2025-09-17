@@ -1,6 +1,6 @@
-import Constants from 'expo-constants';
+import ExpoConstants from 'expo-constants';
 
-const extra = (Constants.expoConfig?.extra ?? {}) as {
+const extra = (ExpoConstants.expoConfig?.extra ?? {}) as {
   apiUrl?: string;
   stage?: string;
 };

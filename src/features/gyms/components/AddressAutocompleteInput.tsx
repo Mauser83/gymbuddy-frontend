@@ -1,4 +1,4 @@
-import Constants from 'expo-constants';
+import ExpoConstants from 'expo-constants';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -49,7 +49,7 @@ const AddressAutocompleteInput: React.FC<Props> = ({
   // Use a different state for the API key to handle the potential undefined value.
   // Although we are now using the backend, it's good practice to keep this for
   // potential future use or to signal a configuration issue.
-  const apiKey = Constants.expoConfig?.extra?.googleMapsApiKey;
+  const apiKey = ExpoConstants.expoConfig?.extra?.googleMapsApiKey;
 
   // Updated fetchSuggestions function to call the backend proxy
   useEffect(() => {
@@ -88,14 +88,14 @@ const AddressAutocompleteInput: React.FC<Props> = ({
             setSuggestions([]);
           }
         }
-      } catch (error) {
+      } catch {
         setSuggestions([]);
       }
     };
 
     const timeout = setTimeout(fetchSuggestions, 300);
     return () => clearTimeout(timeout);
-  }, [value]);
+  }, [value, apiKey]);
 
   // Updated fetchPlaceDetails function to call the backend proxy
   const fetchPlaceDetails = async (placeId: string) => {

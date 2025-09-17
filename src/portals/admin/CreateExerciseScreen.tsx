@@ -84,7 +84,7 @@ export default function CreateExerciseScreen() {
         validationSchema={ExerciseSchema}
         onSubmit={handleSubmit}
       >
-        {({ handleSubmit, isSubmitting, errors, values }) => {
+        {({ handleSubmit, isSubmitting }) => {
           return (
             <>
               <ExerciseForm />

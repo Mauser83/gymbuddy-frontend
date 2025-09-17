@@ -12,7 +12,6 @@ interface Props {
   selectedIds: number[];
   onChange: (ids: number[]) => void;
   onClose: () => void;
-  onRefetch: () => Promise<any>;
 }
 
 export default function MuscleGroupPickerModal({
@@ -20,7 +19,6 @@ export default function MuscleGroupPickerModal({
   selectedIds,
   onChange,
   onClose,
-  onRefetch,
 }: Props) {
   const toggleSelection = (id: number) => {
     const newIds = selectedIds.includes(id)

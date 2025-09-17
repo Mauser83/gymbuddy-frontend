@@ -4,7 +4,6 @@ import { Route, Routes, useNavigate, useLocation } from 'react-router-native';
 
 import { useAuth } from 'src/features/auth/context/AuthContext';
 import { useRole } from 'src/features/auth/context/RoleContext';
-
 // Screens
 import AdminEquipmentCatalogScreen from 'src/portals/admin/AdminEquipmentCatalogScreen';
 import AdminExerciseCatalogScreen from 'src/portals/admin/AdminExerciseCatalogScreen';
@@ -57,7 +56,7 @@ import { getDefaultRouteForRole } from './guards';
 import RequireRole from './RequireRole';
 
 const AppRoutes = () => {
-  const { user, isAuthenticated, sessionLoaded } = useAuth();
+  const { isAuthenticated, sessionLoaded } = useAuth();
   const { activeRole, loaded } = useRole();
   const navigate = useNavigate();
   const location = useLocation();

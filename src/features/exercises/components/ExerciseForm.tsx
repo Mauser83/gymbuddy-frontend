@@ -25,7 +25,7 @@ const modalHeight = screenHeight * 0.8;
 export default function ExerciseForm() {
   const { theme } = useTheme();
   const { values, setFieldValue } = useFormikContext<any>();
-  const { equipmentSubcategories, exerciseTypes, difficulties, muscles, bodyParts, refetchAll } =
+  const { equipmentSubcategories, exerciseTypes, difficulties, muscles, bodyParts } =
     useReferenceData();
   const sortedSubcategories = useMemo(
     () => [...equipmentSubcategories].sort((a, b) => a.name.localeCompare(b.name)),

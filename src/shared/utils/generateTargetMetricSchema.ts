@@ -26,7 +26,12 @@ export function generateTargetMetricSchema(metricIds: number[], metricRegistry: 
     Yup.object().shape({
       metricId: Yup.number()
         .required('Metric ID is required')
-        .oneOf(metricIds, 'Invalid metric ID'),
+        .oneOf(metricIds, 'Invalid metric ID')
+        .test(
+          'metric-known',
+          'Unknown metric reference',
+          (value) => value == null || metricRegistry[value] != null,
+        ),
       min: Yup.number()
         .typeError('Min must be a number')
         .min(0, 'Min must be at least 0')

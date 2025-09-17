@@ -5,7 +5,6 @@ import { ScrollView, View, TouchableOpacity, Text } from 'react-native';
 import { useReferenceData } from 'src/features/exercises/hooks/useReferenceData';
 import {
   useReferenceManagement,
-  CreateMetricInput,
   OrderedMetric,
 } from 'src/features/exercises/hooks/useReferenceManagement';
 import Button from 'src/shared/components/Button';

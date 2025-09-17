@@ -1,7 +1,7 @@
 import { useQuery } from '@apollo/client';
 import { format } from 'date-fns';
 import React from 'react';
-import { View, FlatList, TouchableOpacity } from 'react-native';
+import { FlatList, TouchableOpacity } from 'react-native';
 import { useNavigate } from 'react-router-native';
 
 import { useAuth } from 'src/features/auth/context/AuthContext';
@@ -11,7 +11,6 @@ import ErrorMessage from 'src/shared/components/ErrorMessage';
 import LoadingSpinner from 'src/shared/components/LoadingSpinner';
 import ScreenLayout from 'src/shared/components/ScreenLayout';
 import Title from 'src/shared/components/Title';
-import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 type WorkoutSessionPreview = {
   id: number;
@@ -31,7 +30,6 @@ type WorkoutSessionPreview = {
 const WorkoutSessionHistoryScreen = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { componentStyles } = useTheme();
 
   const { data, loading, error } = useQuery(GET_WORKOUT_SESSIONS_BY_USER, {
     variables: { userId: user?.id },

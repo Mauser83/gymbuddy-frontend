@@ -411,34 +411,6 @@ export default function AdminWorkoutPlanCatalogScreen() {
     await refetch();
   };
 
-  const catalogSections: { key: typeof mode; label: string; sublabel: string }[] = [
-    {
-      key: 'trainingGoal',
-      label: 'Training Goals',
-      sublabel: 'Click to manage training goals',
-    },
-    {
-      key: 'experienceLevel',
-      label: 'Experience Levels',
-      sublabel: 'Click to manage experience levels',
-    },
-    {
-      key: 'preset',
-      label: 'Intensity Presets',
-      sublabel: 'Click to manage intensity presets',
-    },
-    {
-      key: 'muscleGroup',
-      label: 'Muscle Groups',
-      sublabel: 'Click to manage muscle groups',
-    },
-    {
-      key: 'trainingMethod',
-      label: 'Training Methods',
-      sublabel: 'Click to manage training methods',
-    },
-  ];
-
   return (
     <ScreenLayout scroll>
       <Title

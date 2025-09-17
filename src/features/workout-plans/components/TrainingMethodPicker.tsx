@@ -4,7 +4,6 @@ import { ScrollView, View } from 'react-native';
 import Button from 'src/shared/components/Button';
 import OptionItem from 'src/shared/components/OptionItem';
 import Title from 'src/shared/components/Title';
-import { useTheme } from 'src/shared/theme/ThemeProvider';
 import { spacing } from 'src/shared/theme/tokens';
 
 interface TrainingMethodPickerProps {
@@ -20,8 +19,6 @@ export default function TrainingMethodPicker({
   onSelect,
   onClose,
 }: TrainingMethodPickerProps) {
-  const { theme } = useTheme();
-
   return (
     <>
       <Title text="Select Training Method" />
