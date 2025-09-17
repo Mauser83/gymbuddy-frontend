@@ -11,7 +11,7 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]       // ✅ use a scoped alias, not "*"
+      "@/*": ["src/*"] // ✅ use a scoped alias, not "*"
     }
   },
   "include": ["App.tsx", "src/**/*", "types/**/*"],
