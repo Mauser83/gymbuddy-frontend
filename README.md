@@ -18,7 +18,7 @@ React Native + Expo app for managing gyms, equipment, exercises, workout plans, 
 
 ## Branch strategy
 - **master** — stable app without CV features (this branch)
-- **CV_dev** — ongoing Computer Vision work (WIP): **[master branch](https://github.com/Mauser83/gymbuddy-frontend/tree/master)**
+- **CV_dev** — ongoing Computer Vision work (WIP): **[CV_dev branch](https://github.com/Mauser83/gymbuddy-frontend/tree/CV_dev)**
 
 ## Tech stack (frontend)
 - **Expo / React Native / TypeScript**
