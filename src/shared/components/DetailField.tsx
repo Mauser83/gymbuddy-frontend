@@ -1,6 +1,7 @@
 // shared/components/DetailField.tsx
 import React from 'react';
 import { View, Text, ViewStyle } from 'react-native';
+
 import { useTheme } from 'shared/theme/ThemeProvider';
 
 interface DetailFieldProps {

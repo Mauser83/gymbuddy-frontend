@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
   View,
@@ -11,8 +12,8 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
 } from 'react-native';
-import {LinearGradient} from 'expo-linear-gradient';
-import {useTheme} from 'shared/theme/ThemeProvider';
+
+import { useTheme } from 'shared/theme/ThemeProvider';
 
 interface ScreenLayoutProps {
   children: React.ReactNode;
@@ -32,12 +33,10 @@ const ScreenLayout = ({
   scroll = false,
   dismissKeyboardOnPress = true,
 }: ScreenLayoutProps) => {
-  const {theme, componentStyles} = useTheme();
+  const { theme, componentStyles } = useTheme();
 
   const contentStyle =
-    componentStyles.screenLayout[
-      variant === 'centered' ? 'centeredContainer' : 'container'
-    ];
+    componentStyles.screenLayout[variant === 'centered' ? 'centeredContainer' : 'container'];
 
   const webContainerStyle: ViewStyle =
     Platform.OS === 'web'
@@ -48,10 +47,7 @@ const ScreenLayout = ({
         }
       : {};
 
-  const wrapWithDismiss = (
-    inner: React.ReactNode,
-    style: StyleProp<ViewStyle>,
-  ) => {
+  const wrapWithDismiss = (inner: React.ReactNode, style: StyleProp<ViewStyle>) => {
     const content = <View style={style}>{inner}</View>;
     if (Platform.OS !== 'web' && dismissKeyboardOnPress) {
       return (
@@ -63,25 +59,22 @@ const ScreenLayout = ({
     return content;
   };
 
-   const renderContent = () => {
+  const renderContent = () => {
     if (scroll) {
       return (
         <ScrollView
           style={styles.flex}
           contentContainerStyle={[contentStyle, webContainerStyle]}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag">
+          keyboardDismissMode="on-drag"
+        >
           {wrapWithDismiss(children, styles.flex)}
         </ScrollView>
       );
     }
 
     if (Platform.OS === 'web') {
-      return (
-        <View style={[styles.flex, contentStyle, webContainerStyle]}>
-          {children}
-        </View>
-      );
+      return <View style={[styles.flex, contentStyle, webContainerStyle]}>{children}</View>;
     }
 
     return wrapWithDismiss(children, [styles.flex, contentStyle, webContainerStyle]);
@@ -90,11 +83,13 @@ const ScreenLayout = ({
   return (
     <LinearGradient
       colors={[theme.colors.background, theme.colors.surface]}
-      style={styles.gradient}>
+      style={styles.gradient}
+    >
       <SafeAreaView style={styles.flex}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.flex}>
+          style={styles.flex}
+        >
           {renderContent()}
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -103,8 +98,8 @@ const ScreenLayout = ({
 };
 
 const styles = StyleSheet.create({
-  gradient: { flex: 1 },
   flex: { flex: 1 },
+  gradient: { flex: 1 },
 });
 
 export default ScreenLayout;

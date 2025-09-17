@@ -12,6 +12,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+
 import { useTheme } from 'shared/theme/ThemeProvider';
 import { borderRadius, spacing } from 'shared/theme/tokens';
 
@@ -50,7 +51,8 @@ export default function ExerciseGroupCard({
             backgroundColor: finalBackground,
           },
           labelStyle,
-        ]}>
+        ]}
+      >
         {label}
       </Text>
       <View style={styles.content}>{children}</View>
@@ -60,24 +62,24 @@ export default function ExerciseGroupCard({
 
 const styles = StyleSheet.create({
   container: {
-    borderWidth: 2,
     borderRadius: borderRadius.lg,
-    paddingTop: spacing.lg,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.md,
-    position: 'relative',
+    borderWidth: 2,
     marginBottom: spacing.md,
-  },
-  label: {
-    position: 'absolute',
-    top: -10,
-    left: spacing.md,
-    paddingHorizontal: spacing.xs,
-    fontSize: 14,
-    fontWeight: 'bold',
-    zIndex: 1,
+    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.lg,
+    position: 'relative',
   },
   content: {
     marginTop: spacing.sm,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    left: spacing.md,
+    paddingHorizontal: spacing.xs,
+    position: 'absolute',
+    top: -10,
+    zIndex: 1,
   },
 });

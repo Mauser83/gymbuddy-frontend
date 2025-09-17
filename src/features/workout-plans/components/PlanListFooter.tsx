@@ -1,7 +1,9 @@
 import React from 'react';
-import {View} from 'react-native';
+import { View } from 'react-native';
+
 import Button from 'shared/components/Button';
-import {spacing} from 'shared/theme/tokens';
+import { spacing } from 'shared/theme/tokens';
+
 import type { ActiveModal } from '../types/modal.types';
 
 export type PlanListFooterProps = {
@@ -10,10 +12,10 @@ export type PlanListFooterProps = {
   setActiveModal: React.Dispatch<React.SetStateAction<ActiveModal>>;
 };
 
-export default function PlanListFooter({isEdit, onSubmit, setActiveModal}: PlanListFooterProps) {
+export default function PlanListFooter({ isEdit, onSubmit, setActiveModal }: PlanListFooterProps) {
   return (
-    <View style={{padding: spacing.md}}>
-      <View style={{paddingBottom: spacing.md}}>
+    <View style={{ padding: spacing.md }}>
+      <View style={{ paddingBottom: spacing.md }}>
         <Button text="Add Exercise" onPress={() => setActiveModal('selectExercise')} />
       </View>
       <Button text={isEdit ? 'Update Plan' : 'Save Plan'} onPress={onSubmit} />

@@ -5,6 +5,7 @@ React Native + Expo app for managing gyms, equipment, exercises, workout plans, 
 > **Showcase only.** This repository is a portfolio showcase and is **not runnable** without the private backend. If you’d like to test the app, request **TestFlight** access.
 
 ## Highlights (what this branch actually does)
+
 - **Auth + roles** (login required) → feature access is gated.
 - **CRUD domains**
   - **Exercises** CRUD
@@ -17,15 +18,18 @@ React Native + Expo app for managing gyms, equipment, exercises, workout plans, 
   - **Guided** sessions from a chosen plan (step-through flow)
 
 ## Branch strategy
+
 - **master** — stable app without CV features (this branch)
 - **CV_dev** — ongoing Computer Vision work (WIP): **[CV_dev branch](https://github.com/Mauser83/gymbuddy-frontend/tree/CV_dev)**
 
 ## Tech stack (frontend)
+
 - **Expo / React Native / TypeScript**
 - Navigation, forms, and local state with lightweight utilities (no secrets in JS)
 - EAS build profiles (e.g., `production`) — used internally to ship store builds
 
 ## Architecture (how to read the code)
+
 - **Entry**: app bootstrap + providers → navigation → screens
 - **Domain modules**: `/features/{exercises|equipment|gyms|workout-plans|workout-sessions}`
 - **API layer**: minimal fetch wrappers targeting the private backend
@@ -39,6 +43,7 @@ React Native + Expo app for managing gyms, equipment, exercises, workout plans, 
   6. `src/config/env.ts` — environment wiring
 
 ## Directory layout (short)
+
 ```
 assets/  # fonts, icons
 src/
@@ -51,6 +56,7 @@ src/
 ```
 
 ## Screens & flows (flagship)
+
 - **Gyms**: list, create, submit for approval, manage **gym equipment** even without approval.
 - **Equipment (global)**: create & categorize equipment used across gyms.
 - **Exercises**: define/edit exercises and equipment associations.
@@ -60,18 +66,20 @@ src/
   - **Guided**: follow a plan with step-through
 
 ## Environment variables
+
 See [`.env.example`](./.env.example). Do not commit real credentials.
 
-| NAME | Purpose | Required | Scope |
-| --- | --- | --- | --- |
-| `API_URL` | Backend API base URL (prod) | Yes | web / iOS / Android |
-| `API_DEV_URL` | Backend API base URL (dev) | No | web / iOS / Android |
-| `GOOGLE_MAPS_API_KEY` | Google Places API key | Yes | iOS / Android |
-| `EXPO_PUBLIC_API_URL` | Backend API base URL (public runtime) | Yes | web / iOS / Android |
+| NAME                  | Purpose                               | Required | Scope               |
+| --------------------- | ------------------------------------- | -------- | ------------------- |
+| `API_URL`             | Backend API base URL (prod)           | Yes      | web / iOS / Android |
+| `API_DEV_URL`         | Backend API base URL (dev)            | No       | web / iOS / Android |
+| `GOOGLE_MAPS_API_KEY` | Google Places API key                 | Yes      | iOS / Android       |
+| `EXPO_PUBLIC_API_URL` | Backend API base URL (public runtime) | Yes      | web / iOS / Android |
 
 > Use `env.ts` to shim alternate public var names if needed.
 
 ## Run locally
+
 This repository is a **showcase**. The app **does not run** without the private backend.
 
 - Local runs are **not supported**.
@@ -84,15 +92,18 @@ npx expo start
 ```
 
 ## Build & profiles
+
 - `production` — EAS internal profile used to produce store/TestFlight builds.
 - Submit uses App Store Connect API key (no Apple ID in repo).
 
 ## Security notes
+
 - No secrets in repo; frontend reads only public env vars.
 - Master uses a client Places key — restrict to required APIs and set quotas.
 - Backend endpoints enforce auth; CORS is handled server-side.
 
 ## Limitations & roadmap (for master)
+
 - Not self-hostable; backend is private.
 - Add more stats dashboards and filters.
 - Offline caching for recent sessions and plans.
@@ -100,8 +111,10 @@ npx expo start
 - Planned analytics: aggregate views (e.g., exercise/equipment usage, total volume, recency by gym) powered by the existing relationships. (Not yet in the UI.)
 
 ## License
+
 All Rights Reserved (showcase only).
 
 ## Contact
+
 Mauno Elo — mauser83@hotmail.com  
 **TestFlight:** access on request.

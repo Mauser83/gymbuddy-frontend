@@ -1,8 +1,9 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
+
+import { getComponentStyles } from './themes';
 import { Theme } from './types/theme.types';
 import { darkOrange } from './variants/darkOrange';
 // import { lightOrange } from './variants/lightOrange';
-import { getComponentStyles } from './themes';
 
 // Register all theme variants here
 const themes = {
@@ -31,9 +32,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <ThemeContext.Provider
-      value={{ theme, themeName, setThemeByName, componentStyles }}
-    >
+    <ThemeContext.Provider value={{ theme, themeName, setThemeByName, componentStyles }}>
       {children}
     </ThemeContext.Provider>
   );

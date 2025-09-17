@@ -1,9 +1,8 @@
 // ✅ Make this a utility instead of a component
-import {useMetricRegistry} from 'shared/context/MetricRegistry';
+import { useMetricRegistry } from 'shared/context/MetricRegistry';
 
 export const useExerciseLogSummary = () => {
-  const { getMetricIdsForExercise, metricRegistry, exerciseTypeByExerciseId } =
-    useMetricRegistry();
+  const { getMetricIdsForExercise, metricRegistry, exerciseTypeByExerciseId } = useMetricRegistry();
 
   return (log: {
     setNumber: number;
@@ -16,7 +15,7 @@ export const useExerciseLogSummary = () => {
 
     // 🏋️ For strength-type exercises
     if (exerciseTypeId === 1) {
-      const summaryMetricIds = metricIds.filter(id =>
+      const summaryMetricIds = metricIds.filter((id) =>
         ['Weight', 'Reps', 'RPE'].includes(metricRegistry[id]?.name),
       );
 
@@ -28,8 +27,7 @@ export const useExerciseLogSummary = () => {
       if (weight !== undefined && weight !== null) parts.push(`${weight} kg`);
       if (reps !== undefined && reps !== null) parts.push(`x ${reps}`);
 
-      const rpeText =
-        rpe !== undefined && rpe !== null ? `RPE ${rpe}` : '';
+      const rpeText = rpe !== undefined && rpe !== null ? `RPE ${rpe}` : '';
 
       const contentParts = [];
       const joined = parts.join(' ').trim();
@@ -42,7 +40,7 @@ export const useExerciseLogSummary = () => {
 
     // 🧪 Fallback: generic summary
     const values = metricIds
-      .map(id => {
+      .map((id) => {
         const val = metrics[id];
         const metric = metricRegistry[id];
         if (val == null || !metric) return null;

@@ -1,6 +1,7 @@
 import React from 'react';
-import {Text, View, TextStyle, ViewStyle} from 'react-native';
-import {useTheme} from 'shared/theme/ThemeProvider';
+import { Text, View, TextStyle, ViewStyle } from 'react-native';
+
+import { useTheme } from 'shared/theme/ThemeProvider';
 
 interface ErrorMessageProps {
   message: string;
@@ -8,8 +9,8 @@ interface ErrorMessageProps {
   containerStyle?: ViewStyle;
 }
 
-const ErrorMessage = ({message, style, containerStyle}: ErrorMessageProps) => {
-  const {componentStyles} = useTheme();
+const ErrorMessage = ({ message, style, containerStyle }: ErrorMessageProps) => {
+  const { componentStyles } = useTheme();
   const styles = componentStyles.errorMessage;
 
   return (

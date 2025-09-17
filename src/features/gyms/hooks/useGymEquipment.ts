@@ -1,21 +1,20 @@
+import { useQuery, useMutation } from '@apollo/client';
+
+import { AssignEquipmentToGymInput, GymEquipment } from 'features/gyms/types/gym.types';
+
 import {
   GET_GYM_EQUIPMENT,
   ASSIGN_EQUIPMENT_TO_GYM,
   REMOVE_GYM_EQUIPMENT,
   // GET_GYM_EQUIPMENT_STATS,
 } from '../graphql/gymEquipment';
-import { useQuery, useMutation } from '@apollo/client';
-import {
-  AssignEquipmentToGymInput,
-  GymEquipment,
-} from 'features/gyms/types/gym.types';
 
 export function useGymEquipment(gymId: number) {
   const { data, loading, refetch } = useQuery<{ getGymEquipment: GymEquipment[] }>(
     GET_GYM_EQUIPMENT,
     {
       variables: { gymId },
-    }
+    },
   );
 
   const [assignEquipment] = useMutation<

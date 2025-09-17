@@ -32,7 +32,6 @@ export const GET_GYM_EQUIPMENT = gql`
   }
 `;
 
-
 export const ASSIGN_EQUIPMENT_TO_GYM = gql`
   mutation AssignEquipmentToGym($input: AssignEquipmentToGymInput!) {
     assignEquipmentToGym(input: $input) {

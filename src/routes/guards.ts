@@ -1,4 +1,4 @@
-import {RoleContextState} from 'features/auth/context/RoleContext';
+import { RoleContextState } from 'features/auth/context/RoleContext';
 
 export const getDefaultRouteForRole = (ctx: RoleContextState | null): string => {
   if (!ctx) return '/';

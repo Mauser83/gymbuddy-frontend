@@ -1,43 +1,34 @@
-import React, {useState, useMemo} from 'react';
-import {ScrollView, View, Dimensions} from 'react-native';
-import {useFormikContext} from 'formik';
-import {useReferenceData} from '../hooks/useReferenceData';
-import FormInput from 'shared/components/FormInput';
-import SelectableField from 'shared/components/SelectableField';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import Title from 'shared/components/Title';
-import Button from 'shared/components/Button';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
-import EquipmentSlotModal from '../../../features/exercises/components/EquipmentSlotModal';
-import ClickableList from 'shared/components/ClickableList';
-import {
-  ExerciseType,
-  ExerciseDifficulty,
-  Muscle,
-} from '../types/exercise.types';
+import { useFormikContext } from 'formik';
+import React, { useState, useMemo } from 'react';
+import { ScrollView, View, Dimensions } from 'react-native';
 import Toast from 'react-native-toast-message';
-import ButtonRow from 'shared/components/ButtonRow';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import {useTheme} from 'shared/theme/ThemeProvider';
+
+import Button from 'shared/components/Button';
+import ButtonRow from 'shared/components/ButtonRow';
+import ClickableList from 'shared/components/ClickableList';
 import DetailField from 'shared/components/DetailField';
+import DividerWithLabel from 'shared/components/DividerWithLabel';
+import FormInput from 'shared/components/FormInput';
+import ModalWrapper from 'shared/components/ModalWrapper';
+import SelectableField from 'shared/components/SelectableField';
+import Title from 'shared/components/Title';
+import { useTheme } from 'shared/theme/ThemeProvider';
+
+import EquipmentSlotModal from '../../../features/exercises/components/EquipmentSlotModal';
+import { useReferenceData } from '../hooks/useReferenceData';
+import { ExerciseType, ExerciseDifficulty, Muscle } from '../types/exercise.types';
 
 const screenHeight = Dimensions.get('window').height;
 const modalHeight = screenHeight * 0.8;
 
 export default function ExerciseForm() {
-  const {theme} = useTheme();
-  const {values, setFieldValue} = useFormikContext<any>();
-  const {
-    equipmentSubcategories,
-    exerciseTypes,
-    difficulties,
-    muscles,
-    bodyParts,
-    refetchAll,
-  } = useReferenceData();
-    const sortedSubcategories = useMemo(
-    () =>
-      [...equipmentSubcategories].sort((a, b) => a.name.localeCompare(b.name)),
+  const { theme } = useTheme();
+  const { values, setFieldValue } = useFormikContext<any>();
+  const { equipmentSubcategories, exerciseTypes, difficulties, muscles, bodyParts, refetchAll } =
+    useReferenceData();
+  const sortedSubcategories = useMemo(
+    () => [...equipmentSubcategories].sort((a, b) => a.name.localeCompare(b.name)),
     [equipmentSubcategories],
   );
   const sortedMuscles = useMemo(
@@ -61,15 +52,9 @@ export default function ExerciseForm() {
   const [activeModal, setActiveModal] = useState<
     null | 'type' | 'difficulty' | 'primary' | 'secondary'
   >(null);
-  const [selectedBodyPartId, setSelectedBodyPartId] = useState<number | null>(
-    null,
-  );
-  const [muscleStep, setMuscleStep] = useState<'bodyPart' | 'muscle'>(
-    'bodyPart',
-  );
-  const [expandedSlotIndex, setExpandedSlotIndex] = useState<number | null>(
-    null,
-  );
+  const [selectedBodyPartId, setSelectedBodyPartId] = useState<number | null>(null);
+  const [muscleStep, setMuscleStep] = useState<'bodyPart' | 'muscle'>('bodyPart');
+  const [expandedSlotIndex, setExpandedSlotIndex] = useState<number | null>(null);
 
   const openEditSlot = (index: number) => {
     setSlotEditIndex(index);
@@ -77,9 +62,7 @@ export default function ExerciseForm() {
   };
 
   const deleteSlot = (index: number) => {
-    const updated = values.equipmentSlots.filter(
-      (_: any, i: number) => i !== index,
-    );
+    const updated = values.equipmentSlots.filter((_: any, i: number) => i !== index);
     setFieldValue('equipmentSlots', updated);
   };
 
@@ -94,9 +77,7 @@ export default function ExerciseForm() {
 
     const newSubcategoryIds = slot.options.map((opt: any) => opt.subcategoryId);
 
-    const hasDuplicates = newSubcategoryIds.some((id: any) =>
-      otherSubcategoryIds.includes(id),
-    );
+    const hasDuplicates = newSubcategoryIds.some((id: any) => otherSubcategoryIds.includes(id));
 
     if (hasDuplicates) {
       Toast.show({
@@ -108,10 +89,10 @@ export default function ExerciseForm() {
 
     // Proceed to save slot
     if (isEditing && slotEditIndex !== null) {
-      currentSlots[slotEditIndex] = {...slot};
+      currentSlots[slotEditIndex] = { ...slot };
     } else {
       if (currentSlots.length >= 5) {
-        Toast.show({type: 'error', text1: 'Maximum of 5 slots allowed.'});
+        Toast.show({ type: 'error', text1: 'Maximum of 5 slots allowed.' });
         return;
       }
       currentSlots.push(slot);
@@ -126,16 +107,13 @@ export default function ExerciseForm() {
     muscleId: number,
     field: 'primaryMuscleIds' | 'secondaryMuscleIds',
   ) => {
-    const conflictField =
-      field === 'primaryMuscleIds' ? 'secondaryMuscleIds' : 'primaryMuscleIds';
+    const conflictField = field === 'primaryMuscleIds' ? 'secondaryMuscleIds' : 'primaryMuscleIds';
     const current: number[] = values[field] || [];
     const updated = current.includes(muscleId)
-      ? current.filter(id => id !== muscleId)
+      ? current.filter((id) => id !== muscleId)
       : [...current, muscleId];
 
-    const cleanedOther = (values[conflictField] || []).filter(
-      (id: number) => id !== muscleId,
-    );
+    const cleanedOther = (values[conflictField] || []).filter((id: number) => id !== muscleId);
     setFieldValue(field, updated);
     setFieldValue(conflictField, cleanedOther);
   };
@@ -158,9 +136,7 @@ export default function ExerciseForm() {
             (slot.isRequired ? ' (Required)' : ' (Optional)');
 
           const optionLines = slot.options.map((opt: any) => {
-            const match = sortedSubcategories.find(
-              s => s.id === opt.subcategoryId,
-            );
+            const match = sortedSubcategories.find((s) => s.id === opt.subcategoryId);
             return match
               ? `${match.name} (${match.category?.name || 'Other'})`
               : `#${opt.subcategoryId}`;
@@ -178,26 +154,13 @@ export default function ExerciseForm() {
               />
             ),
             content: isExpanded && (
-              <View style={{marginTop: 8}}>
+              <View style={{ marginTop: 8 }}>
                 {optionLines.map((line: string, i: number) => (
-                  <DetailField
-                    key={i}
-                    label="•"
-                    value={line}
-                    vertical={false}
-                  />
+                  <DetailField key={i} label="•" value={line} vertical={false} />
                 ))}
-                <ButtonRow style={{marginTop: 12}}>
-                  <Button
-                    text="Edit"
-                    fullWidth
-                    onPress={() => openEditSlot(index)}
-                  />
-                  <Button
-                    text="Delete"
-                    fullWidth
-                    onPress={() => deleteSlot(index)}
-                  />
+                <ButtonRow style={{ marginTop: 12 }}>
+                  <Button text="Edit" fullWidth onPress={() => openEditSlot(index)} />
+                  <Button text="Delete" fullWidth onPress={() => deleteSlot(index)} />
                 </ButtonRow>
               </View>
             ),
@@ -253,8 +216,7 @@ export default function ExerciseForm() {
     }
 
     if (activeModal === 'primary' || activeModal === 'secondary') {
-      const fieldName =
-        activeModal === 'primary' ? 'primaryMuscleIds' : 'secondaryMuscleIds';
+      const fieldName = activeModal === 'primary' ? 'primaryMuscleIds' : 'secondaryMuscleIds';
       const selectedMuscleIds = values[fieldName] || [];
 
       if (muscleStep === 'bodyPart') {
@@ -263,7 +225,7 @@ export default function ExerciseForm() {
             <ScrollView>
               <Title text="Select Body Part" />
               <ClickableList
-                items={sortedBodyParts.map(bp => ({
+                items={sortedBodyParts.map((bp) => ({
                   id: bp.id,
                   label: bp.name,
                   onPress: () => {
@@ -285,8 +247,9 @@ export default function ExerciseForm() {
             <ScrollView>
               <Title text="Select Muscles" />
               <ScrollView
-                style={{maxHeight: modalHeight - 200}}
-                contentContainerStyle={{paddingHorizontal: 16}}>
+                style={{ maxHeight: modalHeight - 200 }}
+                contentContainerStyle={{ paddingHorizontal: 16 }}
+              >
                 <ClickableList
                   items={sortedMuscles
                     .filter((m: Muscle) => m.bodyPart.id === selectedBodyPartId)
@@ -327,18 +290,15 @@ export default function ExerciseForm() {
       <FormInput
         label="Video URL"
         value={values.videoUrl || ''}
-        onChangeText={(text: string) =>
-          setFieldValue('videoUrl', text || undefined)
-        }
+        onChangeText={(text: string) => setFieldValue('videoUrl', text || undefined)}
         placeholder="https://youtube.com/..."
       />
 
       <SelectableField
         label="Exercise Type"
         value={
-          sortedExerciseTypes.find(
-            (t: ExerciseType) => t.id === values.exerciseTypeId,
-          )?.name || 'Select Type'
+          sortedExerciseTypes.find((t: ExerciseType) => t.id === values.exerciseTypeId)?.name ||
+          'Select Type'
         }
         onPress={() => setActiveModal('type')}
       />
@@ -346,19 +306,15 @@ export default function ExerciseForm() {
       <SelectableField
         label="Difficulty"
         value={
-          sortedDifficulties.find(
-            (d: ExerciseDifficulty) => d.id === values.difficultyId,
-          )?.level || 'Select Level'
+          sortedDifficulties.find((d: ExerciseDifficulty) => d.id === values.difficultyId)?.level ||
+          'Select Level'
         }
         onPress={() => setActiveModal('difficulty')}
       />
 
       <SelectableField
         label="Primary Muscles"
-        value={
-          primaryMuscles.map((m: Muscle) => m.name).join(', ') ||
-          'Select Muscles'
-        }
+        value={primaryMuscles.map((m: Muscle) => m.name).join(', ') || 'Select Muscles'}
         onPress={() => {
           setActiveModal('primary');
           setMuscleStep('bodyPart');
@@ -368,10 +324,7 @@ export default function ExerciseForm() {
 
       <SelectableField
         label="Secondary Muscles"
-        value={
-          secondaryMuscles.map((m: Muscle) => m.name).join(', ') ||
-          'Select (Optional)'
-        }
+        value={secondaryMuscles.map((m: Muscle) => m.name).join(', ') || 'Select (Optional)'}
         onPress={() => {
           setActiveModal('secondary');
           setMuscleStep('bodyPart');
@@ -385,7 +338,7 @@ export default function ExerciseForm() {
         text="Add Equipment Slot"
         onPress={() => {
           if ((values.equipmentSlots || []).length >= 5) {
-            Toast.show({type: 'error', text1: 'Maximum of 5 slots allowed.'});
+            Toast.show({ type: 'error', text1: 'Maximum of 5 slots allowed.' });
             return;
           }
           setSlotEditIndex(null);
@@ -395,9 +348,7 @@ export default function ExerciseForm() {
 
       {renderSlotList()}
 
-      <ModalWrapper
-        visible={!!activeModal}
-        onClose={() => setActiveModal(null)}>
+      <ModalWrapper visible={!!activeModal} onClose={() => setActiveModal(null)}>
         {renderModalContent()}
       </ModalWrapper>
 
@@ -407,20 +358,13 @@ export default function ExerciseForm() {
         onSave={saveSlot}
         initialSlotIndex={slotEditIndex ?? (values.equipmentSlots?.length || 0)}
         subcategories={sortedSubcategories.filter(
-          sc =>
-            !values.equipmentSlots?.some(
-              (slot: {options: {subcategoryId: number}[]}) =>
-                slot.options.some(
-                  (opt: {subcategoryId: number}) => opt.subcategoryId === sc.id,
-                ),
+          (sc) =>
+            !values.equipmentSlots?.some((slot: { options: { subcategoryId: number }[] }) =>
+              slot.options.some((opt: { subcategoryId: number }) => opt.subcategoryId === sc.id),
             ),
         )}
         subcategoriesFull={sortedSubcategories}
-        initialData={
-          slotEditIndex !== null
-            ? values.equipmentSlots[slotEditIndex]
-            : undefined
-        }
+        initialData={slotEditIndex !== null ? values.equipmentSlots[slotEditIndex] : undefined}
       />
     </>
   );

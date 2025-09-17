@@ -1,15 +1,17 @@
-import React from 'react';
-import {View, Text, TouchableOpacity} from 'react-native';
+import { FontAwesome5 } from '@expo/vector-icons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import {FontAwesome5} from '@expo/vector-icons';
-import SafeAreaHeader from './SafeAreaHeader';
-import {useAuth} from 'features/auth/context/AuthContext';
+import React from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
+
+import { useAuth } from 'features/auth/context/AuthContext';
+import { useTheme } from 'shared/theme/ThemeProvider';
+
 import AvatarDropdown from './AvatarDropdown';
-import {useTheme} from 'shared/theme/ThemeProvider';
+import SafeAreaHeader from './SafeAreaHeader';
 
 const Header = () => {
-  const {user} = useAuth();
-  const {componentStyles, theme} = useTheme();
+  const { user } = useAuth();
+  const { componentStyles, theme } = useTheme();
   const styles = componentStyles.header;
 
   return (
@@ -23,7 +25,11 @@ const Header = () => {
         {user && (
           <View style={styles.right}>
             <TouchableOpacity style={styles.notification}>
-              <MaterialIcons name="notifications-none" size={24} color={theme.colors.textSecondary} />
+              <MaterialIcons
+                name="notifications-none"
+                size={24}
+                color={theme.colors.textSecondary}
+              />
               <View style={styles.dot} />
             </TouchableOpacity>
             <View style={styles.avatar}>

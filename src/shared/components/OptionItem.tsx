@@ -1,7 +1,8 @@
 import React from 'react';
-import {TouchableOpacity, Text} from 'react-native';
-import {useTheme} from 'shared/theme/ThemeProvider';
-import {borderWidth, spacing} from 'shared/theme/tokens';
+import { TouchableOpacity, Text } from 'react-native';
+
+import { useTheme } from 'shared/theme/ThemeProvider';
+import { borderWidth, spacing } from 'shared/theme/tokens';
 
 interface OptionItemProps {
   text: string;
@@ -10,13 +11,8 @@ interface OptionItemProps {
   selected?: boolean;
 }
 
-const OptionItem = ({
-  text,
-  onPress,
-  onLongPress,
-  selected = false,
-}: OptionItemProps) => {
-  const {componentStyles, theme} = useTheme();
+const OptionItem = ({ text, onPress, onLongPress, selected = false }: OptionItemProps) => {
+  const { componentStyles, theme } = useTheme();
   const styles = componentStyles.optionItem;
 
   return (
@@ -24,7 +20,7 @@ const OptionItem = ({
       onPress={onPress}
       onLongPress={onLongPress} // ✅ Pass it through
       delayLongPress={5000}
-      style={[
+      style={
         selected
           ? {
               paddingVertical: spacing.md,
@@ -36,10 +32,10 @@ const OptionItem = ({
               paddingVertical: spacing.md,
               borderBottomColor: theme.colors.divider,
               borderBottomWidth: borderWidth.hairline,
-            },
-      ]}
+            }
+      }
     >
-      <Text style={[styles.text, selected && {fontWeight: 'bold'}]}>{text}</Text>
+      <Text style={[styles.text, selected && { fontWeight: 'bold' }]}>{text}</Text>
     </TouchableOpacity>
   );
 };

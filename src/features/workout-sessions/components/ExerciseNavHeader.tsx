@@ -1,8 +1,9 @@
 import React from 'react';
-import {View, TouchableOpacity, StyleSheet} from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import {useTheme} from 'shared/theme/ThemeProvider';
+
 import Title from 'shared/components/Title';
+import { useTheme } from 'shared/theme/ThemeProvider';
 
 interface ExerciseNavHeaderProps {
   title: string;
@@ -19,30 +20,18 @@ export default function ExerciseNavHeader({
   onPrev,
   onNext,
 }: ExerciseNavHeaderProps) {
-  const {theme} = useTheme();
+  const { theme } = useTheme();
   return (
     <View style={styles.container}>
       <Title text={title} />
       {showPrev && (
-        <TouchableOpacity
-          onPress={onPrev}
-          style={[styles.chevron, styles.left]}>
-          <FontAwesome
-            name="chevron-left"
-            size={20}
-            color={theme.colors.accentStart}
-          />
+        <TouchableOpacity onPress={onPrev} style={[styles.chevron, styles.left]}>
+          <FontAwesome name="chevron-left" size={20} color={theme.colors.accentStart} />
         </TouchableOpacity>
       )}
       {showNext && (
-        <TouchableOpacity
-          onPress={onNext}
-          style={[styles.chevron, styles.right]}>
-          <FontAwesome
-            name="chevron-right"
-            size={20}
-            color={theme.colors.accentStart}
-          />
+        <TouchableOpacity onPress={onNext} style={[styles.chevron, styles.right]}>
+          <FontAwesome name="chevron-right" size={20} color={theme.colors.accentStart} />
         </TouchableOpacity>
       )}
     </View>
@@ -50,15 +39,15 @@ export default function ExerciseNavHeader({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    position: 'relative',
-    marginBottom: 8,
-  },
   chevron: {
     padding: 4,
     position: 'absolute',
     top: 0,
+  },
+  container: {
+    alignItems: 'center',
+    marginBottom: 8,
+    position: 'relative',
   },
   left: {
     left: -20,

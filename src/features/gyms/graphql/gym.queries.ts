@@ -1,5 +1,6 @@
 // features/gyms/graphql/queries/gyms.query.ts
 import { gql } from '@apollo/client';
+
 import { GYM_FRAGMENT } from './gym.fragments';
 
 export const GET_GYMS = gql`

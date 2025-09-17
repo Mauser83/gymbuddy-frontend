@@ -1,14 +1,15 @@
 import React from 'react';
-import {View, Text} from 'react-native';
-import {useTheme} from 'shared/theme/ThemeProvider';
+import { View, Text } from 'react-native';
+
+import { useTheme } from 'shared/theme/ThemeProvider';
 
 interface NoResultsProps {
   message: string;
   icon?: string; // Optional emoji
 }
 
-const NoResults = ({message, icon = '😕'}: NoResultsProps) => {
-  const {componentStyles} = useTheme();
+const NoResults = ({ message, icon = '😕' }: NoResultsProps) => {
+  const { componentStyles } = useTheme();
   const styles = componentStyles.noResults;
 
   return (

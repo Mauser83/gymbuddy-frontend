@@ -1,18 +1,17 @@
+import { useQuery } from '@apollo/client';
+import { format } from 'date-fns';
 import React from 'react';
-import {View, FlatList, TouchableOpacity} from 'react-native';
-import {useQuery} from '@apollo/client';
-import {useNavigate} from 'react-router-native';
-import {format} from 'date-fns';
+import { View, FlatList, TouchableOpacity } from 'react-native';
+import { useNavigate } from 'react-router-native';
 
+import { useAuth } from 'features/auth/context/AuthContext';
+import { GET_WORKOUT_SESSIONS_BY_USER } from 'features/workout-sessions/graphql/userWorkouts.graphql';
+import Card from 'shared/components/Card';
+import ErrorMessage from 'shared/components/ErrorMessage';
+import LoadingSpinner from 'shared/components/LoadingSpinner';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Title from 'shared/components/Title';
-import Card from 'shared/components/Card';
-import LoadingSpinner from 'shared/components/LoadingSpinner';
-import ErrorMessage from 'shared/components/ErrorMessage';
-import {useAuth} from 'features/auth/context/AuthContext';
-import {useTheme} from 'shared/theme/ThemeProvider';
-
-import { GET_WORKOUT_SESSIONS_BY_USER } from 'features/workout-sessions/graphql/userWorkouts.graphql';
+import { useTheme } from 'shared/theme/ThemeProvider';
 
 type WorkoutSessionPreview = {
   id: number;
@@ -31,20 +30,20 @@ type WorkoutSessionPreview = {
 
 const WorkoutSessionHistoryScreen = () => {
   const navigate = useNavigate();
-  const {user} = useAuth();
-  const {componentStyles} = useTheme();
+  const { user } = useAuth();
+  const { componentStyles } = useTheme();
 
-  const {data, loading, error} = useQuery(GET_WORKOUT_SESSIONS_BY_USER, {
-    variables: {userId: user?.id},
+  const { data, loading, error } = useQuery(GET_WORKOUT_SESSIONS_BY_USER, {
+    variables: { userId: user?.id },
     skip: !user?.id,
   });
-  
+
   const handleSessionPress = (sessionId: number) => {
     navigate(`/workout-session/${sessionId}`);
   };
 
-  const renderSessionCard = ({item}: {item: WorkoutSessionPreview}) => {
-    const {id, startedAt, endedAt, workoutPlan, gym} = item;
+  const renderSessionCard = ({ item }: { item: WorkoutSessionPreview }) => {
+    const { id, startedAt, endedAt, workoutPlan, gym } = item;
 
     const parsedStart = startedAt ? new Date(Number(startedAt)) : null;
     const parsedEnd = endedAt ? new Date(Number(endedAt)) : null;
@@ -55,26 +54,17 @@ const WorkoutSessionHistoryScreen = () => {
         : 'Unknown Date';
 
     let duration = 'In Progress';
-    if (
-      parsedStart &&
-      parsedEnd &&
-      !isNaN(parsedStart.getTime()) &&
-      !isNaN(parsedEnd.getTime())
-    ) {
-      const durationMinutes = Math.round(
-        (parsedEnd.getTime() - parsedStart.getTime()) / 60000,
-      );
+    if (parsedStart && parsedEnd && !isNaN(parsedStart.getTime()) && !isNaN(parsedEnd.getTime())) {
+      const durationMinutes = Math.round((parsedEnd.getTime() - parsedStart.getTime()) / 60000);
       duration = durationMinutes <= 180 ? `${durationMinutes} min` : '';
     }
 
     const title = workoutPlan?.name ?? 'Ad-hoc Session';
-    const subtitle = [startDate, gym?.name || 'No Gym', duration]
-      .filter(Boolean)
-      .join(' • ');
+    const subtitle = [startDate, gym?.name || 'No Gym', duration].filter(Boolean).join(' • ');
 
     return (
       <TouchableOpacity onPress={() => handleSessionPress(id)}>
-        <Card title={title} text={subtitle} style={{marginBottom: 12}} />
+        <Card title={title} text={subtitle} style={{ marginBottom: 12 }} />
       </TouchableOpacity>
     );
   };
@@ -89,7 +79,7 @@ const WorkoutSessionHistoryScreen = () => {
       {!loading && !error && (
         <FlatList
           data={data?.workoutSessionsByUser || []}
-          keyExtractor={item => item.id.toString()}
+          keyExtractor={(item) => item.id.toString()}
           renderItem={renderSessionCard}
           ListEmptyComponent={<ErrorMessage message="No sessions found." />}
         />

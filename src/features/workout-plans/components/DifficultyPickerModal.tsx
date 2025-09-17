@@ -1,15 +1,16 @@
 import React from 'react';
-import {ScrollView, View} from 'react-native';
-import Title from 'shared/components/Title';
-import OptionItem from 'shared/components/OptionItem';
+import { ScrollView, View } from 'react-native';
+
 import Button from 'shared/components/Button';
-import {spacing} from 'shared/theme/tokens';
-import {useTheme} from 'shared/theme/ThemeProvider';
+import OptionItem from 'shared/components/OptionItem';
+import Title from 'shared/components/Title';
+import { useTheme } from 'shared/theme/ThemeProvider';
+import { spacing } from 'shared/theme/tokens';
 
 interface DifficultyPickerModalProps {
   visible: boolean;
   selectedId: number | null;
-  levels: {id: number; name: string; key: string}[];
+  levels: { id: number; name: string; key: string }[];
   onSelect: (levelId: number) => void;
   onClose: () => void;
 }
@@ -23,7 +24,7 @@ export default function DifficultyPickerModal({
   onSelect,
   onClose,
 }: DifficultyPickerModalProps) {
-  const {theme} = useTheme();
+  const { theme } = useTheme();
 
   if (!visible) return null;
 
@@ -31,7 +32,7 @@ export default function DifficultyPickerModal({
     <>
       <Title text="Select Planned Difficulty" />
       <ScrollView>
-        {levels.map(level => (
+        {levels.map((level) => (
           <OptionItem
             key={level.id}
             text={level.name}
@@ -40,7 +41,7 @@ export default function DifficultyPickerModal({
           />
         ))}
       </ScrollView>
-      <View style={{marginTop: spacing.md}}>
+      <View style={{ marginTop: spacing.md }}>
         <Button text="Close" onPress={onClose} />
       </View>
     </>

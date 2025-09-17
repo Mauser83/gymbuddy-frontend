@@ -1,4 +1,4 @@
-import {gql} from '@apollo/client';
+import { gql } from '@apollo/client';
 
 // 💪 Muscle Group
 export const CREATE_MUSCLE_GROUP = gql`
@@ -185,10 +185,7 @@ export const CREATE_EXPERIENCE_LEVEL = gql`
 `;
 
 export const UPDATE_EXPERIENCE_LEVEL = gql`
-  mutation UpdateExperienceLevel(
-    $id: Int!
-    $input: UpdateExperienceLevelInput!
-  ) {
+  mutation UpdateExperienceLevel($id: Int!, $input: UpdateExperienceLevelInput!) {
     updateExperienceLevel(id: $id, input: $input) {
       id
       name
@@ -205,9 +202,7 @@ export const DELETE_EXPERIENCE_LEVEL = gql`
 `;
 
 export const UPDATE_TRAINING_METHOD_GOALS = gql`
-  mutation UPDATE_TRAINING_METHOD_GOALS(
-    $input: UpdateTrainingMethodGoalsInput!
-  ) {
+  mutation UPDATE_TRAINING_METHOD_GOALS($input: UpdateTrainingMethodGoalsInput!) {
     updateTrainingMethodGoals(input: $input) {
       id
       name

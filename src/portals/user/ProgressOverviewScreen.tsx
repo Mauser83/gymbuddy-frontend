@@ -1,52 +1,52 @@
-import React, {useEffect, useState} from 'react';
-import {View, Text, ScrollView} from 'react-native';
-import {useQuery} from '@apollo/client';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
+import { useQuery } from '@apollo/client';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, Dimensions } from 'react-native';
+import { BarChart } from 'react-native-chart-kit';
+
+import { useAuth } from 'features/auth/context/AuthContext';
+import { GET_WORKOUT_SESSIONS_BY_USER } from 'features/exercises/graphql/exercise.graphql';
 import Card from 'shared/components/Card';
-import DetailField from 'shared/components/DetailField';
 import ClickableList from 'shared/components/ClickableList';
+import DetailField from 'shared/components/DetailField';
 import NoResults from 'shared/components/NoResults';
-import SelectableField from 'shared/components/SelectableField';
 import OptionModal from 'shared/components/OptionModal';
-import {useTheme} from 'shared/theme/ThemeProvider';
-import {borderRadius, spacing} from 'shared/theme/tokens';
-import {BarChart} from 'react-native-chart-kit';
-import {Dimensions} from 'react-native';
-import {GET_WORKOUT_SESSIONS_BY_USER} from 'features/exercises/graphql/exercise.graphql';
-import {useAuth} from 'features/auth/context/AuthContext';
+import ScreenLayout from 'shared/components/ScreenLayout';
+import SelectableField from 'shared/components/SelectableField';
+import Title from 'shared/components/Title';
+import { useTheme } from 'shared/theme/ThemeProvider';
+import { borderRadius, spacing } from 'shared/theme/tokens';
 
 const TIMEFRAME_OPTIONS = ['Last 7 Days', 'Last 30 Days'];
 
 const ProgressOverviewScreen = () => {
-  const {theme} = useTheme();
+  const { theme } = useTheme();
   const screenWidth = Dimensions.get('window').width;
   const [timeframe, setTimeframe] = useState<'Last 7 Days' | 'Last 30 Days'>('Last 7 Days');
   const [showTimeframeModal, setShowTimeframeModal] = useState(false);
-  const {user} = useAuth();
+  const { user } = useAuth();
   const userId = user?.id;
 
-  const {data, loading} = useQuery(GET_WORKOUT_SESSIONS_BY_USER, {
-    variables: {userId},
+  const { data, loading } = useQuery(GET_WORKOUT_SESSIONS_BY_USER, {
+    variables: { userId },
   });
 
   const [recentWorkouts, setRecentWorkouts] = useState<
-    {id: string; label: string; subLabel: string; onPress: () => void}[]
+    { id: string; label: string; subLabel: string; onPress: () => void }[]
   >([]);
 
   const [chartData, setChartData] = useState<{
     labels: string[];
-    datasets: {data: number[]}[];
+    datasets: { data: number[] }[];
   }>({
     labels: [],
-    datasets: [{data: []}],
+    datasets: [{ data: [] }],
   });
 
   const [workoutStats, setWorkoutStats] = useState<{
     streak: number;
     totalThisWeek: number;
     totalThisMonth: number;
-  }>({streak: 0, totalThisWeek: 0, totalThisMonth: 0});
+  }>({ streak: 0, totalThisWeek: 0, totalThisMonth: 0 });
 
   useEffect(() => {
     if (!data?.workoutSessionsByUser) return;
@@ -55,11 +55,9 @@ const ProgressOverviewScreen = () => {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
 
-    const sorted = [...sessions].sort(
-      (a, b) => Number(b.startedAt) - Number(a.startedAt),
-    );
+    const sorted = [...sessions].sort((a, b) => Number(b.startedAt) - Number(a.startedAt));
 
-    const recent = sorted.slice(0, 5).map(session => {
+    const recent = sorted.slice(0, 5).map((session) => {
       const date = new Date(Number(session.startedAt));
       const durationMs = session.endedAt
         ? Number(session.endedAt) - Number(session.startedAt)
@@ -85,9 +83,9 @@ const ProgressOverviewScreen = () => {
       const date = new Date();
       date.setDate(now.getDate() - i);
       if (timeframe === 'Last 7 Days') {
-        labels.push(date.toLocaleDateString('en-US', {weekday: 'short'}));
+        labels.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
       } else {
-        labels.push(date.toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit'}));
+        labels.push(date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' }));
       }
     }
 
@@ -121,12 +119,14 @@ const ProgressOverviewScreen = () => {
       if (now.getTime() - date.getTime() <= 7 * 24 * 60 * 60 * 1000) totalThisWeek++;
     });
 
-    setWorkoutStats({streak, totalThisWeek, totalThisMonth});
+    setWorkoutStats({ streak, totalThisWeek, totalThisMonth });
     setChartData({
       labels,
-      datasets: [{
-        data: counts,
-      }],
+      datasets: [
+        {
+          data: counts,
+        },
+      ],
     });
   }, [data, timeframe]);
 
@@ -147,15 +147,19 @@ const ProgressOverviewScreen = () => {
           backgroundGradientTo: theme.colors.background,
           color: (opacity = 1) => theme.colors.accentStart,
           labelColor: () => theme.colors.textPrimary,
-          formatYLabel: yValue => parseInt(yValue).toString(),
+          formatYLabel: (yValue) => parseInt(yValue).toString(),
           barPercentage: 0.5,
         }}
-        style={{marginTop: spacing.md, borderRadius: borderRadius.md}}
+        style={{ marginTop: spacing.md, borderRadius: borderRadius.md }}
       />
     );
 
     return timeframe === 'Last 30 Days' ? (
-      <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={{minWidth: chartData.labels.length * 32}}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={true}
+        contentContainerStyle={{ minWidth: chartData.labels.length * 32 }}
+      >
         {chart}
       </ScrollView>
     ) : (
@@ -168,18 +172,9 @@ const ProgressOverviewScreen = () => {
       <Title text="Your Progress" subtitle="Workout stats & trends" />
 
       <Card title="Workout Summary">
-        <DetailField
-          label="Current Streak"
-          value={`${workoutStats.streak} days`}
-        />
-        <DetailField
-          label="This Week"
-          value={`${workoutStats.totalThisWeek} workouts`}
-        />
-        <DetailField
-          label="This Month"
-          value={`${workoutStats.totalThisMonth} workouts`}
-        />
+        <DetailField label="Current Streak" value={`${workoutStats.streak} days`} />
+        <DetailField label="This Week" value={`${workoutStats.totalThisWeek} workouts`} />
+        <DetailField label="This Month" value={`${workoutStats.totalThisMonth} workouts`} />
       </Card>
 
       <Card title="Total Sets Per Day">

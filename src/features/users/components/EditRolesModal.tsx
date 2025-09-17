@@ -1,11 +1,12 @@
-import React, {useState, useEffect} from 'react';
-import {useAuth} from 'features/auth/context/AuthContext';
-import ModalWrapper from 'shared/components/ModalWrapper';
+import React, { useState, useEffect } from 'react';
+
+import { useAuth } from 'features/auth/context/AuthContext';
 import Button from 'shared/components/Button';
-import SelectableField from 'shared/components/SelectableField';
 import ButtonRow from 'shared/components/ButtonRow';
-import Title from 'shared/components/Title';
+import ModalWrapper from 'shared/components/ModalWrapper';
 import OptionItem from 'shared/components/OptionItem';
+import SelectableField from 'shared/components/SelectableField';
+import Title from 'shared/components/Title';
 
 interface EditRolesModalProps {
   visible: boolean;
@@ -27,18 +28,14 @@ export const EditRolesModal = ({
   initialUserRole = 'USER',
   username,
 }: EditRolesModalProps) => {
-  const {user} = useAuth();
+  const { user } = useAuth();
   const currentUserAppRole = user?.appRole;
 
-  const [initialAppRoleState, setInitialAppRoleState] =
-    useState(initialAppRole);
-  const [initialUserRoleState, setInitialUserRoleState] =
-    useState(initialUserRole);
+  const [initialAppRoleState, setInitialAppRoleState] = useState(initialAppRole);
+  const [initialUserRoleState, setInitialUserRoleState] = useState(initialUserRole);
   const [selectedAppRole, setSelectedAppRole] = useState(initialAppRole);
   const [selectedUserRole, setSelectedUserRole] = useState(initialUserRole);
-  const [selectingField, setSelectingField] = useState<
-    'appRole' | 'userRole' | null
-  >(null);
+  const [selectingField, setSelectingField] = useState<'appRole' | 'userRole' | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -71,12 +68,8 @@ export const EditRolesModal = ({
             text={`Edit ${selectingField === 'userRole' ? 'user role' : 'app role'}`}
             subtitle={`for ${username}`}
           />
-          {(selectingField === 'appRole' ? appRoles : userRoles).map(option => (
-            <OptionItem
-              key={option}
-              text={option}
-              onPress={() => handleSelect(option)}
-            />
+          {(selectingField === 'appRole' ? appRoles : userRoles).map((option) => (
+            <OptionItem key={option} text={option} onPress={() => handleSelect(option)} />
           ))}
         </>
       ) : (

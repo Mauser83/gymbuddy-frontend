@@ -1,4 +1,7 @@
-import {EquipmentSubcategory} from '../../equipment/types/equipment.types'; // assuming this exists
+import { useQuery } from '@apollo/client';
+
+import { EquipmentSubcategory } from '../../equipment/types/equipment.types'; // assuming this exists
+import { GET_REFERENCE_DATA } from '../graphql/exerciseReference.graphql';
 import {
   ExerciseType,
   ExerciseDifficulty,
@@ -6,23 +9,20 @@ import {
   Muscle,
   Metric,
 } from '../types/exercise.types';
-import {useQuery} from '@apollo/client';
-import {GET_REFERENCE_DATA} from '../graphql/exerciseReference.graphql';
 
 interface ReferenceDataResponse {
   allExerciseTypes: ExerciseType[];
   allExerciseDifficulties: ExerciseDifficulty[];
-  allBodyParts: (BodyPart & {muscles: Muscle[]})[];
+  allBodyParts: (BodyPart & { muscles: Muscle[] })[];
   equipmentSubcategories: EquipmentSubcategory[]; // ✅ matches updated query
   allMetrics: Metric[]; // ✅ New
 }
 
 export function useReferenceData() {
-  const {data, loading, error, refetch} =
-    useQuery<ReferenceDataResponse>(GET_REFERENCE_DATA);
+  const { data, loading, error, refetch } = useQuery<ReferenceDataResponse>(GET_REFERENCE_DATA);
 
   const bodyParts: BodyPart[] = data?.allBodyParts || [];
-  const muscles: Muscle[] = bodyParts.flatMap(bp => bp.muscles || []);
+  const muscles: Muscle[] = bodyParts.flatMap((bp) => bp.muscles || []);
   const exerciseTypes = data?.allExerciseTypes || [];
   const difficulties = data?.allExerciseDifficulties || [];
   const equipmentSubcategories = data?.equipmentSubcategories || [];

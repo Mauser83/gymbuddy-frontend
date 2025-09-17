@@ -1,5 +1,5 @@
 // WorkoutPlanSummary.tsx
-import {useMetricRegistry} from 'shared/context/MetricRegistry';
+import { useMetricRegistry } from 'shared/context/MetricRegistry';
 
 type TargetMetric = {
   metricId: number;
@@ -14,13 +14,10 @@ type PlanExercise = {
 };
 
 export const useWorkoutPlanSummary = () => {
-  const {metricRegistry, getPlanningRelevantMetricIdsForExercise} =
-    useMetricRegistry();
+  const { metricRegistry, getPlanningRelevantMetricIdsForExercise } = useMetricRegistry();
 
   return (exercise: PlanExercise): string => {
-    const metricIds = getPlanningRelevantMetricIdsForExercise(
-      exercise.exerciseId,
-    );
+    const metricIds = getPlanningRelevantMetricIdsForExercise(exercise.exerciseId);
     const targetMetrics = exercise.targetMetrics;
 
     const parts: string[] = [];
@@ -29,24 +26,22 @@ export const useWorkoutPlanSummary = () => {
       const def = metricRegistry[metricId];
       if (!def) continue;
 
-      const target = targetMetrics.find(m => m.metricId === metricId);
+      const target = targetMetrics.find((m) => m.metricId === metricId);
       if (!target || target.min === '' || target.min === null) continue;
 
       const min = target.min;
       const max = target.max ?? '';
       const isRange = max !== '' && max !== null && max !== min;
 
-      let label = def.name;
-      let unit = def.unit;
+      const label = def.name;
+      const unit = def.unit;
 
       if (label === 'Reps') {
         parts.push(isRange ? `${min}–${max} reps` : `${min} reps`);
       } else if (label === 'RPE') {
         parts.push(`RPE ${min}`);
       } else if (label === 'Rest time') {
-        parts.push(
-          isRange ? `Rest ${min}–${max}${unit}` : `Rest ${min}${unit}`,
-        );
+        parts.push(isRange ? `Rest ${min}–${max}${unit}` : `Rest ${min}${unit}`);
       } else {
         parts.push(isRange ? `${min}–${max} ${unit}` : `${min} ${unit}`);
       }

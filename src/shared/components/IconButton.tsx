@@ -1,7 +1,8 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import {TouchableOpacity, View, StyleSheet} from 'react-native';
-import {LinearGradient} from 'expo-linear-gradient';
-import {useTheme} from 'shared/theme/ThemeProvider';
+import { TouchableOpacity, View, StyleSheet } from 'react-native';
+
+import { useTheme } from 'shared/theme/ThemeProvider';
 
 type IconButtonVariant = 'gradient' | 'solid';
 
@@ -22,7 +23,7 @@ const IconButton = ({
   disabled = false,
   size = 'medium',
 }: IconButtonProps) => {
-  const {theme} = useTheme();
+  const { theme } = useTheme();
 
   const isSmall = size === 'small';
   const wrapperStyle = isSmall ? styles.small : styles.medium;
@@ -35,14 +36,16 @@ const IconButton = ({
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         activeOpacity={disabled ? 1 : 0.8}
-        style={[wrapperStyle, disabled && styles.disabled]}>
+        style={[wrapperStyle, disabled && styles.disabled]}
+      >
         <LinearGradient
           colors={
             disabled
               ? [theme.colors.disabledSurface, theme.colors.disabledSurface]
               : [theme.colors.accentStart, theme.colors.accentEnd]
           }
-          style={wrapperStyle}>
+          style={wrapperStyle}
+        >
           {icon}
         </LinearGradient>
       </TouchableOpacity>
@@ -59,38 +62,36 @@ const IconButton = ({
       style={[
         wrapperStyle,
         {
-          backgroundColor: disabled
-            ? theme.colors.disabledSurface
-            : theme.colors.accentStart,
-          shadowColor:
-            theme.mode === 'light' ? '#000' : theme.colors.accentStart,
+          backgroundColor: disabled ? theme.colors.disabledSurface : theme.colors.accentStart,
+          shadowColor: theme.mode === 'light' ? '#000' : theme.colors.accentStart,
           shadowOpacity: 0.25,
           shadowRadius: 6,
           elevation: 4,
         },
-      ]}>
+      ]}
+    >
       {icon}
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  small: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  medium: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   disabled: {
     opacity: 0.5,
+  },
+  medium: {
+    alignItems: 'center',
+    borderRadius: 22,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  small: {
+    alignItems: 'center',
+    borderRadius: 16,
+    height: 32,
+    justifyContent: 'center',
+    width: 32,
   },
 });
 

@@ -1,35 +1,35 @@
-import React, {useEffect, useState, useMemo, useCallback} from 'react';
-import {View} from 'react-native';
+import { useLazyQuery, useSubscription } from '@apollo/client';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { View } from 'react-native';
+import { useNavigate } from 'react-router-native';
+
 import GymsList from 'features/gyms/components/GymsList';
-import {useLazyQuery, useSubscription} from '@apollo/client';
-import {useNavigate} from 'react-router-native';
-
-import {useAuth} from '../../features/auth/context/AuthContext';
-import {GET_GYMS} from 'features/gyms/graphql/gym.queries';
-import {GYM_APPROVED_SUBSCRIPTION} from '../../features/gyms/graphql/gym.subscriptions';
-import {GYM_FRAGMENT} from '../../features/gyms/graphql/gym.fragments';
-import {Gym} from 'features/gyms/types/gym.types';
-
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Card from 'shared/components/Card';
+import { GET_GYMS } from 'features/gyms/graphql/gym.queries';
+import { Gym } from 'features/gyms/types/gym.types';
 import Button from 'shared/components/Button';
-import NoResults from 'shared/components/NoResults';
+import Card from 'shared/components/Card';
 import LoadingState from 'shared/components/LoadingState';
+import NoResults from 'shared/components/NoResults';
+import ScreenLayout from 'shared/components/ScreenLayout';
 import SearchInput from 'shared/components/SearchInput';
-import {spacing} from 'shared/theme/tokens';
-import {debounce} from 'shared/utils/helpers';
+import { spacing } from 'shared/theme/tokens';
+import { debounce } from 'shared/utils/helpers';
+
+import { useAuth } from '../../features/auth/context/AuthContext';
+import { GYM_FRAGMENT } from '../../features/gyms/graphql/gym.fragments';
+import { GYM_APPROVED_SUBSCRIPTION } from '../../features/gyms/graphql/gym.subscriptions';
 
 const GymsScreen = () => {
-  const {user} = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [fetchGyms, {loading, data}] = useLazyQuery(GET_GYMS, {
+  const [fetchGyms, { loading, data }] = useLazyQuery(GET_GYMS, {
     fetchPolicy: 'cache-and-network',
   });
 
   useSubscription(GYM_APPROVED_SUBSCRIPTION, {
-    onData: ({client, data: subData}) => {
+    onData: ({ client, data: subData }) => {
       const updatedGym = subData.data?.gymApproved;
       if (!updatedGym) return;
       client.writeFragment({
@@ -50,7 +50,7 @@ const GymsScreen = () => {
   const debouncedFetch = useMemo(
     () =>
       debounce((q: string) => {
-        fetchGyms({variables: {search: q || undefined}});
+        fetchGyms({ variables: { search: q || undefined } });
       }, 500),
     [fetchGyms],
   );
@@ -63,10 +63,7 @@ const GymsScreen = () => {
     () => [...(data?.gyms ?? [])].sort((a, b) => a.name.localeCompare(b.name)),
     [data],
   );
-  const handleGymPress = useCallback(
-    (item: Gym) => navigate(`/gyms/${item.id}`),
-    [navigate],
-  );
+  const handleGymPress = useCallback((item: Gym) => navigate(`/gyms/${item.id}`), [navigate]);
 
   return (
     // ScreenLayout is correct with no scroll prop
@@ -78,7 +75,7 @@ const GymsScreen = () => {
         onChange={setSearchQuery}
         onClear={() => setSearchQuery('')}
       />
-      <View style={{position: 'relative', marginVertical: spacing.md}}>
+      <View style={{ position: 'relative', marginVertical: spacing.md }}>
         <Button text="➕ Create New Gym" onPress={() => navigate('/gyms/create')} />
       </View>
       {loading && gyms.length === 0 ? (

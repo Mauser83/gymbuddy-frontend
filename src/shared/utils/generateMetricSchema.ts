@@ -29,7 +29,7 @@ type MetricRegistry = Record<
 
 export function generateMetricSchema(
   metricIds: number[],
-  metricRegistry: MetricRegistry
+  metricRegistry: MetricRegistry,
 ): Yup.ObjectSchema<Record<number, unknown>> {
   const fields: Record<number, Yup.AnySchema> = {};
 

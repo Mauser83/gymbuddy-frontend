@@ -1,25 +1,26 @@
 // Footer.tsx
-import React from 'react';
-import {TouchableOpacity, View, Text} from 'react-native';
+import { useQuery } from '@apollo/client';
 import FontAwesome from '@expo/vector-icons/FontAwesome5';
-import SafeAreaFooter from './SafeAreaFooter';
-import {useAuth} from 'features/auth/context/AuthContext';
-import {useRoleContext} from 'features/auth/context/RoleContext';
-import {useNavigate, useLocation} from 'react-router-native';
+import React from 'react';
+import { TouchableOpacity, View, Text } from 'react-native';
+import { useNavigate, useLocation } from 'react-router-native';
 
-import {useQuery} from '@apollo/client';
-import {GET_PENDING_GYMS} from 'features/gyms/graphql/gym.queries';
-import {useTheme} from 'shared/theme/ThemeProvider';
+import { useAuth } from 'features/auth/context/AuthContext';
+import { useRoleContext } from 'features/auth/context/RoleContext';
+import { GET_PENDING_GYMS } from 'features/gyms/graphql/gym.queries';
+import { useTheme } from 'shared/theme/ThemeProvider';
+
+import SafeAreaFooter from './SafeAreaFooter';
 
 const Footer = () => {
-  const {user} = useAuth();
+  const { user } = useAuth();
   const activeRoleContext = useRoleContext();
   const navigate = useNavigate();
   const location = useLocation();
-  const {theme, componentStyles} = useTheme();
+  const { theme, componentStyles } = useTheme();
   const styles = componentStyles.footer;
 
-  const {data} = useQuery(GET_PENDING_GYMS, {
+  const { data } = useQuery(GET_PENDING_GYMS, {
     skip: !user || activeRoleContext?.role !== 'admin',
     fetchPolicy: 'cache-first',
   });
@@ -42,7 +43,7 @@ const Footer = () => {
   }) => (
     <TouchableOpacity
       onPress={() => navigate(to)}
-      style={[styles.iconWrapper, {alignItems: 'center'}]}
+      style={[styles.iconWrapper, { alignItems: 'center' }]}
     >
       <FontAwesome name={icon} size={24} color={iconColor(to)} />
       {badge !== undefined && badge > 0 && (
@@ -50,7 +51,7 @@ const Footer = () => {
           <Text style={styles.badgeText}>{badge}</Text>
         </View>
       )}
-      <Text style={[styles.iconLabel, {color: iconColor(to)}]}>{label}</Text>
+      <Text style={[styles.iconLabel, { color: iconColor(to) }]}>{label}</Text>
     </TouchableOpacity>
   );
 

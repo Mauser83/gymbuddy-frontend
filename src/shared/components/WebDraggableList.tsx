@@ -1,13 +1,13 @@
 // WebDraggableList.tsx
-import React, {useState} from 'react';
-import {StyleSheet, ScrollView} from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, ScrollView } from 'react-native';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   runOnJS,
   LinearTransition,
 } from 'react-native-reanimated';
-import {GestureDetector, Gesture} from 'react-native-gesture-handler';
 
 type DraggableItem = {
   instanceId: string;
@@ -18,10 +18,7 @@ type Props = {
   data: DraggableItem[];
   onDragEnd: (data: DraggableItem[]) => void;
   keyExtractor?: (item: DraggableItem) => string;
-  renderItem: (params: {
-    item: DraggableItem;
-    index: number;
-  }) => React.ReactElement;
+  renderItem: (params: { item: DraggableItem; index: number }) => React.ReactElement;
   ListHeaderComponent?: React.ReactElement;
   ListFooterComponent?: React.ReactElement;
 };
@@ -74,15 +71,12 @@ function DraggableRow({
   index: number;
   items: DraggableItem[];
   updateOrder: (from: number, to: number) => void;
-  renderItem: (params: {
-    item: DraggableItem;
-    index: number;
-  }) => React.ReactElement;
+  renderItem: (params: { item: DraggableItem; index: number }) => React.ReactElement;
 }) {
   const translateY = useSharedValue(0);
 
   const gesture = Gesture.Pan()
-    .onUpdate(event => {
+    .onUpdate((event) => {
       translateY.value = event.translationY;
     })
     .onEnd(() => {
@@ -99,16 +93,14 @@ function DraggableRow({
     });
 
   const style = useAnimatedStyle(() => ({
-    transform: [{translateY: translateY.value}],
+    transform: [{ translateY: translateY.value }],
     zIndex: translateY.value !== 0 ? 10 : 0,
   }));
 
   return (
     <GestureDetector gesture={gesture}>
-      <Animated.View
-        style={[styles.row, style]}
-        layout={LinearTransition.duration(200)}>
-        {renderItem({item, index})}
+      <Animated.View style={[styles.row, style]} layout={LinearTransition.duration(200)}>
+        {renderItem({ item, index })}
       </Animated.View>
     </GestureDetector>
   );

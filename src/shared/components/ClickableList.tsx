@@ -1,9 +1,10 @@
 // components/ClickableList.tsx
 import React from 'react';
-import {View, Text, Pressable, StyleSheet} from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import {useTheme} from 'shared/theme/ThemeProvider';
-import {borderWidth} from 'shared/theme/tokens';
+
+import { useTheme } from 'shared/theme/ThemeProvider';
+import { borderWidth } from 'shared/theme/tokens';
 
 type Item = {
   id: string | number;
@@ -13,7 +14,7 @@ type Item = {
   subLabel?: string;
   rightElement?: React.ReactNode;
   content?: React.ReactNode;
-  selected?: Boolean;
+  selected?: boolean;
   disabled?: boolean; // ✅ new
 };
 
@@ -21,42 +22,37 @@ type Props = {
   items: Item[];
 };
 
-const ClickableList = ({items}: Props) => {
-  const {theme} = useTheme();
+const ClickableList = ({ items }: Props) => {
+  const { theme } = useTheme();
 
   return (
     <View>
-      {items.map(item => (
+      {items.map((item) => (
         <View
           key={item.id}
-          style={[
+          style={
             item.selected && {
               borderWidth: borderWidth.thick,
               borderColor: theme.colors.accentStart,
               borderRadius: 12,
-            },
-          ]}>
+            }
+          }
+        >
           <Pressable
             onPress={item.onPress}
             onLongPress={item.onLongPress}
-            style={[styles.item, item.disabled && {opacity: 0.5}]}
-            disabled={item.disabled || !item.onPress}>
+            style={[styles.item, item.disabled && { opacity: 0.5 }]}
+            disabled={item.disabled || !item.onPress}
+          >
             <View style={styles.row}>
               <View style={styles.textContainer}>
-                {typeof item.label === 'string' ||
-                typeof item.label === 'number' ? (
-                  <Text
-                    style={[styles.label, {color: theme.colors.textPrimary}]}>
+                {typeof item.label === 'string' || typeof item.label === 'number' ? (
+                  <Text style={[styles.label, { color: theme.colors.textPrimary }]}>
                     {item.label}
                   </Text>
                 ) : null}
-                {typeof item.subLabel === 'string' ||
-                typeof item.subLabel === 'number' ? (
-                  <Text
-                    style={[
-                      styles.subLabel,
-                      {color: theme.colors.textSecondary},
-                    ]}>
+                {typeof item.subLabel === 'string' || typeof item.subLabel === 'number' ? (
+                  <Text style={[styles.subLabel, { color: theme.colors.textSecondary }]}>
                     {item.subLabel}
                   </Text>
                 ) : null}
@@ -64,17 +60,11 @@ const ClickableList = ({items}: Props) => {
               {item.rightElement === false
                 ? null
                 : (item.rightElement ?? (
-                    <FontAwesome
-                      name="chevron-right"
-                      size={16}
-                      color={theme.colors.accentStart}
-                    />
+                    <FontAwesome name="chevron-right" size={16} color={theme.colors.accentStart} />
                   ))}
             </View>
           </Pressable>
-          {item.content && (
-            <View style={styles.expandedContent}>{item.content}</View>
-          )}
+          {item.content && <View style={styles.expandedContent}>{item.content}</View>}
         </View>
       ))}
     </View>
@@ -82,32 +72,32 @@ const ClickableList = ({items}: Props) => {
 };
 
 const styles = StyleSheet.create({
-  item: {
-    paddingVertical: 12,
+  expandedContent: {
+    paddingBottom: 8,
     paddingHorizontal: 12,
+  },
+  item: {
     borderRadius: 12,
     marginBottom: 8,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  textContainer: {
-    flex: 1,
-    marginRight: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   label: {
     fontSize: 16,
     fontWeight: '500',
   },
+  row: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
   subLabel: {
     fontSize: 14,
     marginTop: 2,
   },
-  expandedContent: {
-    paddingHorizontal: 12,
-    paddingBottom: 8,
+  textContainer: {
+    flex: 1,
+    marginRight: 8,
   },
 });
 

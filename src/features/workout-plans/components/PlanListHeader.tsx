@@ -1,15 +1,16 @@
+import { FormikProps } from 'formik';
 import React from 'react';
-import {View} from 'react-native';
-import {FormikProps} from 'formik';
-import Title from 'shared/components/Title';
+import { View } from 'react-native';
+
+import Button from 'shared/components/Button';
 import Card from 'shared/components/Card';
 import FormInput from 'shared/components/FormInput';
 import SelectableField from 'shared/components/SelectableField';
-import Button from 'shared/components/Button';
-import {spacing} from 'shared/theme/tokens';
-import {FormValues} from '../types/plan.types';
+import Title from 'shared/components/Title';
+import { spacing } from 'shared/theme/tokens';
 
 import type { ActiveModal } from '../types/modal.types';
+import { FormValues } from '../types/plan.types';
 
 export type PlanListHeaderProps = {
   isEdit: boolean;
@@ -32,7 +33,7 @@ export default function PlanListHeader({
   reorderMode,
   setReorderMode,
 }: PlanListHeaderProps) {
-  const {values, errors, touched, handleChange, handleBlur} = formik;
+  const { values, errors, touched, handleChange, handleBlur } = formik;
   return (
     <>
       <Title
@@ -52,17 +53,16 @@ export default function PlanListHeader({
         <SelectableField
           label="Training Goal"
           value={
-            workoutMeta?.getTrainingGoals?.find((goal: any) => goal.id === values.trainingGoalId)?.name ||
-            'Select Training Goal'
+            workoutMeta?.getTrainingGoals?.find((goal: any) => goal.id === values.trainingGoalId)
+              ?.name || 'Select Training Goal'
           }
           onPress={() => setActiveModal('trainingGoalPicker')}
         />
         <SelectableField
           label="Planned Difficulty"
           value={
-            workoutMeta?.experienceLevels?.find(
-              (l: any) => l.id === values.experienceLevelId,
-            )?.name || 'Select Difficulty'
+            workoutMeta?.experienceLevels?.find((l: any) => l.id === values.experienceLevelId)
+              ?.name || 'Select Difficulty'
           }
           onPress={() => setActiveModal('difficultyPicker')}
         />
@@ -77,9 +77,9 @@ export default function PlanListHeader({
           disabled={!values.trainingGoalId}
         />
       </Card>
-      <View style={{padding: spacing.md}}>
+      <View style={{ padding: spacing.md }}>
         <Title text="Exercises" />
-        <View style={{marginVertical: spacing.sm}}>
+        <View style={{ marginVertical: spacing.sm }}>
           <Button
             text="Create Exercise Group"
             onPress={() => {
@@ -91,7 +91,7 @@ export default function PlanListHeader({
         <Button
           text={reorderMode ? 'Done Reordering' : 'Edit Order'}
           disabled={values.exercises.length < 1}
-          onPress={() => setReorderMode(prev => !prev)}
+          onPress={() => setReorderMode((prev) => !prev)}
         />
       </View>
     </>

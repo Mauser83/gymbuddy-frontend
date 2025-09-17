@@ -1,9 +1,8 @@
 // ExerciseLogSummary.ts
-import {useMetricRegistry} from 'shared/context/MetricRegistry';
+import { useMetricRegistry } from 'shared/context/MetricRegistry';
 
 export const useExerciseLogSummary = () => {
-  const {getMetricIdsForExercise, metricRegistry, exerciseTypeByExerciseId} =
-    useMetricRegistry();
+  const { getMetricIdsForExercise, metricRegistry, exerciseTypeByExerciseId } = useMetricRegistry();
 
   return (log: {
     setNumber: number;
@@ -17,9 +16,7 @@ export const useExerciseLogSummary = () => {
 
     // Only apply the "strength" formatting if the type is known to be strength-based
     if (exerciseTypeId === 1) {
-      const metricMap = Object.fromEntries(
-        metricIds.map(id => [metricRegistry[id]?.name, id]),
-      );
+      const metricMap = Object.fromEntries(metricIds.map((id) => [metricRegistry[id]?.name, id]));
 
       const weight = Number(metrics[metricMap['Weight']]);
       const reps = Number(metrics[metricMap['Reps']]);
@@ -31,14 +28,12 @@ export const useExerciseLogSummary = () => {
       const rpeText = !isNaN(rpe) ? `RPE ${rpe}` : '';
 
       const summary = [parts.join(' '), rpeText].filter(Boolean).join(', ');
-      return summary
-        ? `Set ${log.setNumber}: ${summary}`
-        : `Set ${log.setNumber}`;
+      return summary ? `Set ${log.setNumber}: ${summary}` : `Set ${log.setNumber}`;
     }
 
     // Generic fallback for other types
     const values = metricIds
-      .map(id => {
+      .map((id) => {
         const val = metrics[id];
         const metric = metricRegistry[id];
         if (val == null || !metric) return null;

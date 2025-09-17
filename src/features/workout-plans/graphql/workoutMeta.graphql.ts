@@ -1,4 +1,4 @@
-import {gql} from '@apollo/client';
+import { gql } from '@apollo/client';
 
 export const GET_WORKOUT_PLAN_META = gql`
   query GetWorkoutPlanMetaData {

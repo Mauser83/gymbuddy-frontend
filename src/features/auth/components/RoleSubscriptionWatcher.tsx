@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
 import { useSubscription } from '@apollo/client';
-import { USER_ROLE_UPDATED } from '../graphql/auth.subscriptions';
-import { useAuth } from '../../../features/auth/context/AuthContext';
+import React, { useEffect } from 'react';
 import Toast from 'react-native-toast-message';
+
+import { useAuth } from '../../../features/auth/context/AuthContext';
+import { USER_ROLE_UPDATED } from '../graphql/auth.subscriptions';
 
 const RoleSubscriptionWatcher: React.FC = () => {
   const { user, logout } = useAuth();

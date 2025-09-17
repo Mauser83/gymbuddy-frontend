@@ -1,7 +1,7 @@
 // app.config.js
 import 'dotenv/config';
 
-export default ({config}) => {
+export default ({ config }) => {
   const env = (process.env.APP_ENV ?? 'production').toLowerCase();
   const isCvDev = env === 'cvdev';
 
@@ -24,9 +24,7 @@ export default ({config}) => {
     ios: {
       ...(config.ios ?? {}),
       // <-- NEW: separate bundle id so it installs side-by-side
-      bundleIdentifier: isCvDev
-        ? 'com.mauser83.gymbuddy.dev'
-        : 'com.mauser83.gymbuddy',
+      bundleIdentifier: isCvDev ? 'com.mauser83.gymbuddy.dev' : 'com.mauser83.gymbuddy',
       infoPlist: {
         ...(config.ios?.infoPlist ?? {}),
         ITSAppUsesNonExemptEncryption: false,
@@ -43,7 +41,7 @@ export default ({config}) => {
     extra: {
       ...(config.extra ?? {}),
       eas: {
-        projectId: projectId // The projectId is now set here, correctly
+        projectId: projectId, // The projectId is now set here, correctly
       },
       stage: env,
       apiUrl: isCvDev ? process.env.API_DEV_URL : process.env.API_URL,

@@ -1,7 +1,8 @@
 import React from 'react';
-import ScreenLayout from './ScreenLayout';
+
 import Card from './Card';
 import NoResults from './NoResults';
+import ScreenLayout from './ScreenLayout';
 
 const AccessDenied = () => (
   <ScreenLayout variant="centered">

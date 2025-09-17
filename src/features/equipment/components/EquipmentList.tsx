@@ -1,16 +1,17 @@
-import React, {useState} from 'react';
-import {FlatList} from 'react-native';
-import ClickableList from 'shared/components/ClickableList';
-import Card from 'shared/components/Card';
+import React, { useState } from 'react';
+import { FlatList } from 'react-native';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+
+import { Equipment } from 'features/equipment/types/equipment.types';
 import Button from 'shared/components/Button';
 import ButtonRow from 'shared/components/ButtonRow';
+import Card from 'shared/components/Card';
+import ClickableList from 'shared/components/ClickableList';
 import DividerWithLabel from 'shared/components/DividerWithLabel';
-import SearchInput from 'shared/components/SearchInput';
 import NoResults from 'shared/components/NoResults';
-import {spacing} from 'shared/theme/tokens';
-import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import {Equipment} from 'features/equipment/types/equipment.types';
-import {useTheme} from 'shared/theme/ThemeProvider';
+import SearchInput from 'shared/components/SearchInput';
+import { useTheme } from 'shared/theme/ThemeProvider';
+import { spacing } from 'shared/theme/tokens';
 
 interface EquipmentListProps {
   equipments: Equipment[];
@@ -20,21 +21,21 @@ interface EquipmentListProps {
 }
 
 const EquipmentList = React.memo(
-  ({equipments, onEdit, onDelete, onExercisePress}: EquipmentListProps) => {
+  ({ equipments, onEdit, onDelete, onExercisePress }: EquipmentListProps) => {
     const [expandedId, setExpandedId] = useState<number | null>(null);
     const [exerciseSearch, setExerciseSearch] = useState('');
-    const {theme} = useTheme();
+    const { theme } = useTheme();
 
-    const renderItem = ({item}: {item: Equipment}) => {
+    const renderItem = ({ item }: { item: Equipment }) => {
       const isExpanded = expandedId === item.id;
       const filteredExercises = isExpanded
-        ? (item.compatibleExercises?.filter(ex =>
+        ? (item.compatibleExercises?.filter((ex) =>
             ex.name.toLowerCase().includes(exerciseSearch.toLowerCase()),
           ) ?? [])
         : [];
 
       return (
-        <Card variant="glass" style={{marginBottom: spacing.md}}>
+        <Card variant="glass" style={{ marginBottom: spacing.md }}>
           <ClickableList
             items={[
               {
@@ -43,7 +44,7 @@ const EquipmentList = React.memo(
                 subLabel: `${item.brand} • ${item.compatibleExercises?.length ?? 0} exercises`,
                 selected: isExpanded,
                 onPress: () => {
-                  setExpandedId(prev => (prev === item.id ? null : item.id));
+                  setExpandedId((prev) => (prev === item.id ? null : item.id));
                   setExerciseSearch('');
                 },
                 rightElement: (
@@ -68,7 +69,7 @@ const EquipmentList = React.memo(
                     />
                     {filteredExercises.length > 0 ? (
                       <ClickableList
-                        items={filteredExercises.map(ex => ({
+                        items={filteredExercises.map((ex) => ({
                           id: ex.id,
                           label: ex.name,
                           onPress: () => onExercisePress(ex.id),
@@ -90,7 +91,7 @@ const EquipmentList = React.memo(
       <FlatList
         data={equipments}
         renderItem={renderItem}
-        keyExtractor={item => item.id.toString()}
+        keyExtractor={(item) => item.id.toString()}
         ListEmptyComponent={<NoResults message="No equipment found." />}
       />
     );

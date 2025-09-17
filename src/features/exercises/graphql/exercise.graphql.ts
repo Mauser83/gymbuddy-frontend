@@ -1,4 +1,4 @@
-import {gql} from '@apollo/client';
+import { gql } from '@apollo/client';
 
 export const EXERCISE_FIELDS = gql`
   fragment ExerciseFields on Exercise {

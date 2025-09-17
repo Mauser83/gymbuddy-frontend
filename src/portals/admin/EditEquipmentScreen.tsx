@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-native';
 
+import { useEquipment } from 'features/equipment/hooks/useEquipment';
+import { EquipmentCategory } from 'features/equipment/types/equipment.types';
 import ScreenLayout from 'shared/components/ScreenLayout';
 import Title from 'shared/components/Title';
 
-import { useEquipment } from 'features/equipment/hooks/useEquipment';
 import EquipmentForm from '../../features/equipment/components/EquipmentForm';
-import { EquipmentCategory } from 'features/equipment/types/equipment.types';
 
 export default function EditEquipmentScreen() {
   const { id } = useParams();
@@ -49,7 +49,7 @@ export default function EditEquipmentScreen() {
 
   const handleSubmit = async (
     values: typeof initialValues,
-    { setSubmitting }: { setSubmitting: (val: boolean) => void }
+    { setSubmitting }: { setSubmitting: (val: boolean) => void },
   ) => {
     try {
       await updateEquipment({
@@ -73,15 +73,15 @@ export default function EditEquipmentScreen() {
   return (
     <ScreenLayout scroll>
       <Title text="Edit Equipment" />
-        <EquipmentForm
-          initialValues={initialValues}
-          onSubmit={handleSubmit}
-          categories={categories}
-          submitLabel="Update"
-          submitting={false}
-          cancelLabel="Cancel"
-          onCancel={() => navigate('/equipment')}
-        />
+      <EquipmentForm
+        initialValues={initialValues}
+        onSubmit={handleSubmit}
+        categories={categories}
+        submitLabel="Update"
+        submitting={false}
+        cancelLabel="Cancel"
+        onCancel={() => navigate('/equipment')}
+      />
     </ScreenLayout>
   );
 }

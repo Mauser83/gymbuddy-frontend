@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+.expo/
+android/
+ios/
+coverage/
+*.log
+docs/

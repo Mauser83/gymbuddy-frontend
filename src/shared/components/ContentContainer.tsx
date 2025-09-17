@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, ViewStyle, Platform } from 'react-native';
+
 import { useTheme } from 'shared/theme/ThemeProvider';
 
 interface Props {
@@ -21,9 +22,7 @@ const ContentContainer = ({ children, style }: Props) => {
 
   return (
     <View style={{ backgroundColor: theme.colors.background, flex: 1 }}>
-      <View style={[baseStyle, style]}>
-        {children}
-      </View>
+      <View style={[baseStyle, style]}>{children}</View>
     </View>
   );
 };

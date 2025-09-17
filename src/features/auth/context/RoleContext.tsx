@@ -1,7 +1,8 @@
-import React, {createContext, useContext, useEffect, useState} from 'react';
-import {useAuth} from './AuthContext';
-import {storage} from '../utils/storage';
 import * as jwt_decode from 'jwt-decode';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+
+import { useAuth } from './AuthContext';
+import { storage } from '../utils/storage';
 
 export type Role = 'user' | 'gym-manager' | 'trainer' | 'admin';
 export type AppScopeRole = 'admin' | 'moderator';
@@ -36,8 +37,8 @@ const parseClaims = (token: string | null) => {
   }
 };
 
-export const RoleProvider: React.FC<{children: React.ReactNode}> = ({children}) => {
-  const {user, accessToken} = useAuth();
+export const RoleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, accessToken } = useAuth();
   const [activeRole, setActiveRole] = useState<RoleContextState | null>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -69,9 +70,7 @@ export const RoleProvider: React.FC<{children: React.ReactNode}> = ({children}) 
 
   useEffect(() => {
     const claims = parseClaims(accessToken);
-    setActiveRole(prev =>
-      prev ? {...prev, ...claims} : prev,
-    );
+    setActiveRole((prev) => (prev ? { ...prev, ...claims } : prev));
   }, [accessToken]);
 
   const handleSetRole = (ctx: RoleContextState) => setActiveRole(ctx);
@@ -81,7 +80,7 @@ export const RoleProvider: React.FC<{children: React.ReactNode}> = ({children}) 
   };
 
   return (
-    <RoleContext.Provider value={{activeRole, setActiveRole: handleSetRole, clearRole, loaded}}>
+    <RoleContext.Provider value={{ activeRole, setActiveRole: handleSetRole, clearRole, loaded }}>
       {children}
     </RoleContext.Provider>
   );
@@ -95,6 +94,6 @@ export const useRole = () => {
 
 // Convenience hook that returns only the active role context state
 export const useRoleContext = () => {
-  const {activeRole} = useRole();
+  const { activeRole } = useRole();
   return activeRole;
 };

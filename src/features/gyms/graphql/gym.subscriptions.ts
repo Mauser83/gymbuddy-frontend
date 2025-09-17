@@ -1,5 +1,6 @@
-import {gql} from '@apollo/client';
-import {GYM_FRAGMENT} from './gym.fragments';
+import { gql } from '@apollo/client';
+
+import { GYM_FRAGMENT } from './gym.fragments';
 
 export const GYM_APPROVED_SUBSCRIPTION = gql`
   subscription OnGymApproved {

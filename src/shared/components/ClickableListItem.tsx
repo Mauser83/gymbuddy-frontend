@@ -1,8 +1,8 @@
 import React from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import {useTheme} from 'shared/theme/ThemeProvider';
-import { Pressable } from 'react-native';
+
+import { useTheme } from 'shared/theme/ThemeProvider';
 
 interface Props {
   label: string;
@@ -10,7 +10,7 @@ interface Props {
   onLongPress?: () => void;
   subLabel?: string;
   rightElement?: React.ReactNode;
-  selected?: Boolean;
+  selected?: boolean;
   disabled?: boolean; // ✅ new
 }
 
@@ -21,38 +21,30 @@ export default function ClickableListItem({
   subLabel,
   rightElement,
   selected,
-  disabled
+  disabled,
 }: Props) {
-  const {theme} = useTheme();
+  const { theme } = useTheme();
 
   return (
     <Pressable
       onPress={onPress}
       onLongPress={onLongPress}
-      style={[styles.item, disabled && {opacity: 0.5}]}
-      disabled={disabled || !onPress}>
+      style={[styles.item, disabled && { opacity: 0.5 }]}
+      disabled={disabled || !onPress}
+    >
       <View style={styles.row}>
         <View style={styles.textContainer}>
           {typeof label === 'string' || typeof label === 'number' ? (
-            <Text style={[styles.label, {color: theme.colors.textPrimary}]}>
-              {label}
-            </Text>
+            <Text style={[styles.label, { color: theme.colors.textPrimary }]}>{label}</Text>
           ) : null}
           {typeof subLabel === 'string' || typeof subLabel === 'number' ? (
-            <Text
-              style={[styles.subLabel, {color: theme.colors.textSecondary}]}>
-              {subLabel}
-            </Text>
+            <Text style={[styles.subLabel, { color: theme.colors.textSecondary }]}>{subLabel}</Text>
           ) : null}
         </View>
         {rightElement === false
           ? null
           : (rightElement ?? (
-              <FontAwesome
-                name="chevron-right"
-                size={16}
-                color={theme.colors.accentStart}
-              />
+              <FontAwesome name="chevron-right" size={16} color={theme.colors.accentStart} />
             ))}
       </View>
     </Pressable>
@@ -60,27 +52,27 @@ export default function ClickableListItem({
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-    item: {
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+  item: {
     borderRadius: 12,
     marginBottom: 8,
-  },
-  textContainer: {
-    flex: 1,
-    marginRight: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   label: {
     fontSize: 16,
     fontWeight: '500',
   },
+  row: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
   subLabel: {
     fontSize: 14,
     marginTop: 2,
+  },
+  textContainer: {
+    flex: 1,
+    marginRight: 8,
   },
 });

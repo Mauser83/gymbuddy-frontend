@@ -1,6 +1,7 @@
 import React from 'react';
-import {Navigate, useParams} from 'react-router-native';
-import {useRole, Role} from 'features/auth/context/RoleContext';
+import { Navigate, useParams } from 'react-router-native';
+
+import { useRole, Role } from 'features/auth/context/RoleContext';
 
 interface RequireRoleProps {
   roles: Role[];
@@ -8,8 +9,8 @@ interface RequireRoleProps {
   checkGymId?: boolean;
 }
 
-const RequireRole = ({roles, children, checkGymId}: RequireRoleProps) => {
-  const {activeRole} = useRole();
+const RequireRole = ({ roles, children, checkGymId }: RequireRoleProps) => {
+  const { activeRole } = useRole();
   const params = useParams();
 
   if (!activeRole || !roles.includes(activeRole.role)) {

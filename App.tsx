@@ -1,34 +1,32 @@
 import React from 'react';
 import 'react-native-reanimated';
-import {ActivityIndicator, StatusBar} from 'react-native';
-import {useFonts} from 'expo-font';
-import {Host} from 'react-native-portalize';
-import {
-  ThemeProvider as CustomThemeProvider,
-  useTheme,
-} from './src/shared/theme/ThemeProvider';
-import {AuthProvider, useAuth} from './src/features/auth/context/AuthContext';
-import {RoleProvider} from './src/features/auth/context/RoleContext';
+import { ActivityIndicator, StatusBar } from 'react-native';
+import { useFonts } from 'expo-font';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Host } from 'react-native-portalize';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NativeRouter } from 'react-router-native';
+
 import RoleSubscriptionWatcher from 'features/auth/components/RoleSubscriptionWatcher';
-import {SafeAreaProvider} from 'react-native-safe-area-context';
-import {NativeRouter} from 'react-router-native';
-import {ApolloProvider} from '@apollo/client';
-import AppRoutes from './src/routes/AppRoutes';
+import ContentContainer from 'shared/components/ContentContainer';
+import LoadingState from 'shared/components/LoadingState';
 import StatusBarManager from 'shared/components/StatusBarManager';
 import ToastContainer from 'shared/components/ToastContainer';
-import {useApolloClient} from './src/services/apollo/hooks/useApolloClient'; // adjust path if needed
-import LoadingState from 'shared/components/LoadingState';
-import ContentContainer from 'shared/components/ContentContainer';
-import {GestureHandlerRootView} from 'react-native-gesture-handler';
+
+import { AuthProvider, useAuth } from './src/features/auth/context/AuthContext';
+import { RoleProvider } from './src/features/auth/context/RoleContext';
+import AppRoutes from './src/routes/AppRoutes';
+import { useApolloClient } from './src/services/apollo/hooks/useApolloClient'; // adjust path if needed
+import { ThemeProvider as CustomThemeProvider, useTheme } from './src/shared/theme/ThemeProvider';
+
+import { ApolloProvider } from '@apollo/client';
 
 const AppContent = () => {
-  const {sessionLoaded, isAuthenticated} = useAuth();
+  const { sessionLoaded, isAuthenticated } = useAuth();
   const client = useApolloClient();
-  const {theme} = useTheme();
+  const { theme } = useTheme();
 
-  StatusBar.setBarStyle(
-    theme.mode === 'dark' ? 'light-content' : 'dark-content',
-  );
+  StatusBar.setBarStyle(theme.mode === 'dark' ? 'light-content' : 'dark-content');
 
   if (!sessionLoaded || !client) {
     return (
@@ -63,13 +61,11 @@ const App = () => {
   });
 
   if (!fontsLoaded) {
-    return (
-      <ActivityIndicator size="large" color="#f97316" style={{marginTop: 50}} />
-    );
+    return <ActivityIndicator size="large" color="#f97316" style={{ marginTop: 50 }} />;
   }
 
   return (
-    <GestureHandlerRootView style={{flex: 1}}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
         <RoleProvider>
           <CustomThemeProvider>

@@ -1,11 +1,12 @@
-import React, {useState, useMemo, useEffect, useCallback} from 'react';
-import {useLazyQuery} from '@apollo/client';
+import { useLazyQuery } from '@apollo/client';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 
-import Title from 'shared/components/Title';
 import SearchInput from 'shared/components/SearchInput';
-import {GET_GYMS} from '../graphql/userWorkouts.graphql';
-import {debounce} from 'shared/utils/helpers';
+import Title from 'shared/components/Title';
+import { debounce } from 'shared/utils/helpers';
+
 import GymList from './GymList';
+import { GET_GYMS } from '../graphql/userWorkouts.graphql';
 
 export interface Gym {
   id: number;
@@ -20,13 +21,10 @@ interface GymPickerModalProps {
   onSelect: (gym: Gym) => void;
 }
 
-export default function GymPickerModal({
-  onClose,
-  onSelect,
-}: GymPickerModalProps) {
+export default function GymPickerModal({ onClose, onSelect }: GymPickerModalProps) {
   const [search, setSearch] = useState('');
 
-  const [fetchGyms, {data, loading}] = useLazyQuery(GET_GYMS);
+  const [fetchGyms, { data, loading }] = useLazyQuery(GET_GYMS);
 
   useEffect(() => {
     fetchGyms();
@@ -35,7 +33,7 @@ export default function GymPickerModal({
   const debouncedFetch = useMemo(
     () =>
       debounce((q: string) => {
-        fetchGyms({variables: {search: q || undefined}});
+        fetchGyms({ variables: { search: q || undefined } });
       }, 500),
     [fetchGyms],
   );

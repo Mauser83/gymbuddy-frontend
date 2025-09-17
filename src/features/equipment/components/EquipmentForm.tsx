@@ -1,21 +1,17 @@
-import React, {useState} from 'react';
-import {View, ScrollView, Dimensions} from 'react-native';
-import {Formik} from 'formik';
+import { Formik } from 'formik';
+import React, { useState } from 'react';
+import { View, ScrollView, Dimensions } from 'react-native';
 import * as Yup from 'yup';
 
-import FormInput from 'shared/components/FormInput';
-import SelectableField from 'shared/components/SelectableField';
+import { EquipmentCategory, EquipmentSubcategory } from 'features/equipment/types/equipment.types';
 import Button from 'shared/components/Button';
 import ButtonRow from 'shared/components/ButtonRow';
-import ModalWrapper from 'shared/components/ModalWrapper';
 import ClickableList from 'shared/components/ClickableList';
-import Title from 'shared/components/Title';
 import DividerWithLabel from 'shared/components/DividerWithLabel';
-
-import {
-  EquipmentCategory,
-  EquipmentSubcategory,
-} from 'features/equipment/types/equipment.types';
+import FormInput from 'shared/components/FormInput';
+import ModalWrapper from 'shared/components/ModalWrapper';
+import SelectableField from 'shared/components/SelectableField';
+import Title from 'shared/components/Title';
 
 const screenHeight = Dimensions.get('window').height;
 const modalHeight = screenHeight * 0.8;
@@ -49,19 +45,18 @@ export default function EquipmentForm({
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
     initialValues.categoryId || null,
   );
-  const [activeModal, setActiveModal] = useState<
-    null | 'category' | 'subcategory'
-  >(null);
+  const [activeModal, setActiveModal] = useState<null | 'category' | 'subcategory'>(null);
 
   const subcategories: EquipmentSubcategory[] =
-    categories.find(cat => cat.id === selectedCategoryId)?.subcategories ?? [];
+    categories.find((cat) => cat.id === selectedCategoryId)?.subcategories ?? [];
 
   return (
     <Formik
       initialValues={initialValues}
       validationSchema={EquipmentSchema}
       onSubmit={onSubmit}
-      enableReinitialize>
+      enableReinitialize
+    >
       {({
         values,
         errors,
@@ -78,11 +73,7 @@ export default function EquipmentForm({
             value={values.name}
             onChangeText={handleChange('name')}
             onBlur={() => setFieldTouched('name', true)}
-            error={
-              touched.name && typeof errors.name === 'string'
-                ? errors.name
-                : undefined
-            }
+            error={touched.name && typeof errors.name === 'string' ? errors.name : undefined}
           />
 
           <FormInput
@@ -102,11 +93,7 @@ export default function EquipmentForm({
             value={values.brand}
             onChangeText={handleChange('brand')}
             onBlur={() => setFieldTouched('brand', true)}
-            error={
-              touched.brand && typeof errors.brand === 'string'
-                ? errors.brand
-                : undefined
-            }
+            error={touched.brand && typeof errors.brand === 'string' ? errors.brand : undefined}
           />
 
           <FormInput
@@ -123,17 +110,14 @@ export default function EquipmentForm({
 
           <SelectableField
             label="Category"
-            value={
-              categories.find(c => c.id === values.categoryId)?.name ||
-              'Select Category'
-            }
+            value={categories.find((c) => c.id === values.categoryId)?.name || 'Select Category'}
             onPress={() => setActiveModal('category')}
           />
 
           <SelectableField
             label="Subcategory"
             value={
-              subcategories.find(sc => sc.id === values.subcategoryId)?.name ||
+              subcategories.find((sc) => sc.id === values.subcategoryId)?.name ||
               'Select Subcategory'
             }
             onPress={() => setActiveModal('subcategory')}
@@ -141,37 +125,27 @@ export default function EquipmentForm({
           />
 
           <ButtonRow>
-            {onCancel && (
-              <Button
-                text={cancelLabel || 'Cancel'}
-                fullWidth
-                onPress={onCancel}
-              />
-            )}
+            {onCancel && <Button text={cancelLabel || 'Cancel'} fullWidth onPress={onCancel} />}
             <Button
               text={submitLabel}
               onPress={handleSubmit}
-              disabled={
-                submitting ||
-                (submitLabel.toLowerCase().includes('update') && !dirty)
-              }
+              disabled={submitting || (submitLabel.toLowerCase().includes('update') && !dirty)}
               fullWidth
             />
           </ButtonRow>
 
-          <ModalWrapper
-            visible={!!activeModal}
-            onClose={() => setActiveModal(null)}>
+          <ModalWrapper visible={!!activeModal} onClose={() => setActiveModal(null)}>
             {activeModal === 'category' && (
               <>
-                <View style={{padding: 16}}>
+                <View style={{ padding: 16 }}>
                   <Title text="Select Category" />
                 </View>
                 <ScrollView
-                  style={{maxHeight: modalHeight - 200}}
-                  contentContainerStyle={{paddingHorizontal: 16}}>
+                  style={{ maxHeight: modalHeight - 200 }}
+                  contentContainerStyle={{ paddingHorizontal: 16 }}
+                >
                   <ClickableList
-                    items={categories.map(cat => ({
+                    items={categories.map((cat) => ({
                       id: cat.id,
                       label: cat.name,
                       onPress: () => {
@@ -184,31 +158,27 @@ export default function EquipmentForm({
                   />
                 </ScrollView>
                 <DividerWithLabel label="OR" />
-                <View style={{padding: 16}}>
-                  <Button
-                    text="Back"
-                    fullWidth
-                    onPress={() => setActiveModal(null)}
-                  />
+                <View style={{ padding: 16 }}>
+                  <Button text="Back" fullWidth onPress={() => setActiveModal(null)} />
                 </View>
               </>
             )}
 
             {activeModal === 'subcategory' && (
               <>
-                <View style={{padding: 16}}>
+                <View style={{ padding: 16 }}>
                   <Title
                     text={`Select Subcategory for ${
-                      categories.find(cat => cat.id === selectedCategoryId)
-                        ?.name || ''
+                      categories.find((cat) => cat.id === selectedCategoryId)?.name || ''
                     }`}
                   />
                 </View>
                 <ScrollView
-                  style={{maxHeight: modalHeight - 200}}
-                  contentContainerStyle={{paddingHorizontal: 16}}>
+                  style={{ maxHeight: modalHeight - 200 }}
+                  contentContainerStyle={{ paddingHorizontal: 16 }}
+                >
                   <ClickableList
-                    items={subcategories.map(sc => ({
+                    items={subcategories.map((sc) => ({
                       id: sc.id,
                       label: sc.name,
                       onPress: () => {
@@ -219,12 +189,8 @@ export default function EquipmentForm({
                   />
                 </ScrollView>
                 <DividerWithLabel label="OR" />
-                <View style={{padding: 16}}>
-                  <Button
-                    text="Back"
-                    fullWidth
-                    onPress={() => setActiveModal(null)}
-                  />
+                <View style={{ padding: 16 }}>
+                  <Button text="Back" fullWidth onPress={() => setActiveModal(null)} />
                 </View>
               </>
             )}

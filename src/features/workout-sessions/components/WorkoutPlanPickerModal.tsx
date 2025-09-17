@@ -1,12 +1,12 @@
-import React, {useState, useMemo, useEffect, useCallback} from 'react';
-import {useLazyQuery} from '@apollo/client';
+import { useLazyQuery } from '@apollo/client';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 
-import Title from 'shared/components/Title';
 import SearchInput from 'shared/components/SearchInput';
-import WorkoutPlanList from './WorkoutPlanList';
+import Title from 'shared/components/Title';
+import { debounce } from 'shared/utils/helpers';
 
-import {GET_WORKOUT_PLANS} from '../graphql/userWorkouts.graphql';
-import {debounce} from 'shared/utils/helpers';
+import WorkoutPlanList from './WorkoutPlanList';
+import { GET_WORKOUT_PLANS } from '../graphql/userWorkouts.graphql';
 
 export interface WorkoutPlan {
   id: number;
@@ -19,13 +19,10 @@ interface WorkoutPlanPickerModalProps {
   onSelect: (plan: WorkoutPlan) => void;
 }
 
-export default function WorkoutPlanPickerModal({
-  onClose,
-  onSelect,
-}: WorkoutPlanPickerModalProps) {
+export default function WorkoutPlanPickerModal({ onClose, onSelect }: WorkoutPlanPickerModalProps) {
   const [search, setSearch] = useState('');
 
-  const [fetchPlans, {data, loading}] = useLazyQuery(GET_WORKOUT_PLANS);
+  const [fetchPlans, { data, loading }] = useLazyQuery(GET_WORKOUT_PLANS);
 
   useEffect(() => {
     fetchPlans();
@@ -34,7 +31,7 @@ export default function WorkoutPlanPickerModal({
   const debouncedFetch = useMemo(
     () =>
       debounce((q: string) => {
-        fetchPlans({variables: {search: q || undefined}});
+        fetchPlans({ variables: { search: q || undefined } });
       }, 500),
     [fetchPlans],
   );

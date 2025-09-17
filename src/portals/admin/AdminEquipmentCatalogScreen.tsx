@@ -1,15 +1,6 @@
-import React, {useState, useMemo} from 'react';
-import {ScrollView, View} from 'react-native';
-import {useQuery, useMutation} from '@apollo/client';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-import Card from 'shared/components/Card';
-import FormInput from 'shared/components/FormInput';
-import Button from 'shared/components/Button';
-import ClickableList from 'shared/components/ClickableList';
-import ButtonRow from 'shared/components/ButtonRow';
-
-import {useTheme} from 'shared/theme/ThemeProvider';
+import { useQuery, useMutation } from '@apollo/client';
+import React, { useState, useMemo } from 'react';
+import { ScrollView, View } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 import {
@@ -21,13 +12,17 @@ import {
   UPDATE_SUBCATEGORY,
   DELETE_SUBCATEGORY,
 } from 'features/equipment/graphql/equipment.graphql';
-
-import {
-  EquipmentCategory,
-  EquipmentSubcategory,
-} from 'features/equipment/types/equipment.types';
+import { EquipmentCategory, EquipmentSubcategory } from 'features/equipment/types/equipment.types';
+import Button from 'shared/components/Button';
+import ButtonRow from 'shared/components/ButtonRow';
+import Card from 'shared/components/Card';
+import ClickableList from 'shared/components/ClickableList';
+import FormInput from 'shared/components/FormInput';
 import LoadingState from 'shared/components/LoadingState';
 import NoResults from 'shared/components/NoResults';
+import ScreenLayout from 'shared/components/ScreenLayout';
+import Title from 'shared/components/Title';
+import { useTheme } from 'shared/theme/ThemeProvider';
 
 function slugify(text: string) {
   return text
@@ -39,13 +34,10 @@ function slugify(text: string) {
 }
 
 export default function AdminEquipmentCatalogScreen() {
-  const {theme} = useTheme();
-  const {data, refetch, loading, error} = useQuery(GET_EQUIPMENT_CATEGORIES);
+  const { theme } = useTheme();
+  const { data, refetch, loading, error } = useQuery(GET_EQUIPMENT_CATEGORIES);
   const categories = useMemo(
-    () =>
-      [...(data?.equipmentCategories ?? [])].sort((a, b) =>
-        a.name.localeCompare(b.name),
-      ),
+    () => [...(data?.equipmentCategories ?? [])].sort((a, b) => a.name.localeCompare(b.name)),
     [data],
   );
 
@@ -55,10 +47,10 @@ export default function AdminEquipmentCatalogScreen() {
   const [expandedCatId, setExpandedCatId] = useState<number | null>(null);
   const [expandedSubId, setExpandedSubId] = useState<number | null>(null);
   const [categoryEdits, setCategoryEdits] = useState<
-    Record<number, {name: string; slug: string}>
+    Record<number, { name: string; slug: string }>
   >({});
   const [subcategoryEdits, setSubcategoryEdits] = useState<
-    Record<number, {name: string; slug: string}>
+    Record<number, { name: string; slug: string }>
   >({});
 
   const [createCategory] = useMutation(CREATE_CATEGORY);
@@ -68,13 +60,11 @@ export default function AdminEquipmentCatalogScreen() {
   const [updateSubcategory] = useMutation(UPDATE_SUBCATEGORY);
   const [deleteSubcategory] = useMutation(DELETE_SUBCATEGORY);
 
-  const selectedCategory = categories.find(
-    (cat: EquipmentCategory) => cat.id === selectedCatId,
-  );
+  const selectedCategory = categories.find((cat: EquipmentCategory) => cat.id === selectedCatId);
 
   const handleCreateCategory = async () => {
     await createCategory({
-      variables: {input: {name: newCatName, slug: slugify(newCatName)}},
+      variables: { input: { name: newCatName, slug: slugify(newCatName) } },
     });
     setNewCatName('');
     refetch();
@@ -95,120 +85,106 @@ export default function AdminEquipmentCatalogScreen() {
     refetch();
   };
 
-  const categoryItems = categories.map(
-    (cat: EquipmentCategory) => ({
-      id: cat.id,
-      label: cat.name,
-      subLabel: cat.slug,
-      selected: expandedCatId === cat.id,
-      rightElement:
-        expandedCatId === cat.id ? (
-          <FontAwesome
-            name="chevron-down"
-            size={16}
-            color={theme.colors.accentStart}
-          />
-        ) : null,
-      onPress: () => {
-        setExpandedCatId(prev => (prev === cat.id ? null : cat.id));
-        setCategoryEdits(prev => ({
-          ...prev,
-          [cat.id]: {name: cat.name, slug: cat.slug},
-        }));
-        setSelectedCatId(cat.id);
-      },
-      content: expandedCatId === cat.id && (
-        <>
-          <FormInput
-            label="Name"
-            value={categoryEdits[cat.id]?.name || ''}
-            onChangeText={val =>
-              setCategoryEdits(prev => ({
-                ...prev,
-                [cat.id]: {name: val, slug: slugify(val)},
-              }))
+  const categoryItems = categories.map((cat: EquipmentCategory) => ({
+    id: cat.id,
+    label: cat.name,
+    subLabel: cat.slug,
+    selected: expandedCatId === cat.id,
+    rightElement:
+      expandedCatId === cat.id ? (
+        <FontAwesome name="chevron-down" size={16} color={theme.colors.accentStart} />
+      ) : null,
+    onPress: () => {
+      setExpandedCatId((prev) => (prev === cat.id ? null : cat.id));
+      setCategoryEdits((prev) => ({
+        ...prev,
+        [cat.id]: { name: cat.name, slug: cat.slug },
+      }));
+      setSelectedCatId(cat.id);
+    },
+    content: expandedCatId === cat.id && (
+      <>
+        <FormInput
+          label="Name"
+          value={categoryEdits[cat.id]?.name || ''}
+          onChangeText={(val) =>
+            setCategoryEdits((prev) => ({
+              ...prev,
+              [cat.id]: { name: val, slug: slugify(val) },
+            }))
+          }
+        />
+        <ButtonRow>
+          <Button
+            text="Update"
+            fullWidth
+            onPress={() =>
+              updateCategory({
+                variables: { id: cat.id, input: categoryEdits[cat.id] },
+              }).then(refetch)
             }
           />
-          <ButtonRow>
-            <Button
-              text="Update"
-              fullWidth
-              onPress={() =>
-                updateCategory({
-                  variables: {id: cat.id, input: categoryEdits[cat.id]},
-                }).then(refetch)
-              }
-            />
-            <Button
-              text="Delete"
-              fullWidth
-              onPress={() =>
-                deleteCategory({variables: {id: cat.id}}).then(refetch)
-              }
-            />
-          </ButtonRow>
-        </>
-      ),
-    }),
-  );
+          <Button
+            text="Delete"
+            fullWidth
+            onPress={() => deleteCategory({ variables: { id: cat.id } }).then(refetch)}
+          />
+        </ButtonRow>
+      </>
+    ),
+  }));
 
   const subcategoryItems =
     selectedCategory?.subcategories
       .slice()
       .sort((a: EquipmentSubcategory, b: EquipmentSubcategory) => a.name.localeCompare(b.name))
       .map((sub: EquipmentSubcategory) => ({
-      id: sub.id,
-      label: sub.name,
-      subLabel: sub.slug,
-      selected: expandedSubId === sub.id,
-      rightElement:
-        expandedSubId === sub.id ? (
-          <FontAwesome
-            name="chevron-down"
-            size={16}
-            color={theme.colors.accentStart}
-          />
-        ) : null,
-      onPress: () => {
-        setExpandedSubId(prev => (prev === sub.id ? null : sub.id));
-        setSubcategoryEdits(prev => ({
-          ...prev,
-          [sub.id]: {name: sub.name, slug: sub.slug},
-        }));
-      },
-      content: expandedSubId === sub.id && (
-        <>
-          <FormInput
-            label="Name"
-            value={subcategoryEdits[sub.id]?.name || ''}
-            onChangeText={val =>
-              setSubcategoryEdits(prev => ({
-                ...prev,
-                [sub.id]: {name: val, slug: slugify(val)},
-              }))
-            }
-          />
-          <ButtonRow>
-            <Button
-              text="Update"
-              fullWidth
-              onPress={() =>
-                updateSubcategory({
-                  variables: {id: sub.id, input: subcategoryEdits[sub.id]},
-                }).then(refetch)
+        id: sub.id,
+        label: sub.name,
+        subLabel: sub.slug,
+        selected: expandedSubId === sub.id,
+        rightElement:
+          expandedSubId === sub.id ? (
+            <FontAwesome name="chevron-down" size={16} color={theme.colors.accentStart} />
+          ) : null,
+        onPress: () => {
+          setExpandedSubId((prev) => (prev === sub.id ? null : sub.id));
+          setSubcategoryEdits((prev) => ({
+            ...prev,
+            [sub.id]: { name: sub.name, slug: sub.slug },
+          }));
+        },
+        content: expandedSubId === sub.id && (
+          <>
+            <FormInput
+              label="Name"
+              value={subcategoryEdits[sub.id]?.name || ''}
+              onChangeText={(val) =>
+                setSubcategoryEdits((prev) => ({
+                  ...prev,
+                  [sub.id]: { name: val, slug: slugify(val) },
+                }))
               }
             />
-            <Button
-              text="Delete"
-              fullWidth
-              onPress={() =>
-                deleteSubcategory({variables: {id: sub.id}}).then(refetch)
-              }
-            />
-          </ButtonRow>
-        </>
-      ),
-    })) || [];
+            <ButtonRow>
+              <Button
+                text="Update"
+                fullWidth
+                onPress={() =>
+                  updateSubcategory({
+                    variables: { id: sub.id, input: subcategoryEdits[sub.id] },
+                  }).then(refetch)
+                }
+              />
+              <Button
+                text="Delete"
+                fullWidth
+                onPress={() => deleteSubcategory({ variables: { id: sub.id } }).then(refetch)}
+              />
+            </ButtonRow>
+          </>
+        ),
+      })) || [];
 
   if (loading)
     return (
@@ -232,17 +208,9 @@ export default function AdminEquipmentCatalogScreen() {
 
       <Card>
         <Title text="Categories" />
-        <FormInput
-          label="Category Name"
-          value={newCatName}
-          onChangeText={setNewCatName}
-        />
-        <Button
-          text="Create Category"
-          onPress={handleCreateCategory}
-          fullWidth
-        />
-        <View style={{paddingTop: 8}}>
+        <FormInput label="Category Name" value={newCatName} onChangeText={setNewCatName} />
+        <Button text="Create Category" onPress={handleCreateCategory} fullWidth />
+        <View style={{ paddingTop: 8 }}>
           <ClickableList items={categoryItems} />
         </View>
       </Card>
@@ -251,36 +219,23 @@ export default function AdminEquipmentCatalogScreen() {
         <>
           <Card>
             <Title text={`Subcategories for ${selectedCategory?.name}`} />
-            <FormInput
-              label="Subcategory Name"
-              value={newSubName}
-              onChangeText={setNewSubName}
-            />
-            <Button
-              text="Create Subcategory"
-              onPress={handleCreateSubcategory}
-              fullWidth
-            />
-            <View style={{paddingTop: 8}}>
+            <FormInput label="Subcategory Name" value={newSubName} onChangeText={setNewSubName} />
+            <Button text="Create Subcategory" onPress={handleCreateSubcategory} fullWidth />
+            <View style={{ paddingTop: 8 }}>
               <ClickableList items={subcategoryItems} />
             </View>
           </Card>
         </>
       ) : (
         <Card>
-          <Title text="Subcategories" subtitle='Select a category to manage subcategories'/>
+          <Title text="Subcategories" subtitle="Select a category to manage subcategories" />
           <FormInput
             label="Subcategory Name"
             editable={false}
             value={newSubName}
             onChangeText={setNewSubName}
           />
-          <Button
-            text="Create Subcategory"
-            disabled
-            onPress={handleCreateSubcategory}
-            fullWidth
-          />
+          <Button text="Create Subcategory" disabled onPress={handleCreateSubcategory} fullWidth />
         </Card>
       )}
     </ScreenLayout>

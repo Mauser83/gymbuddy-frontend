@@ -1,16 +1,16 @@
-import React, {useState} from 'react';
-import {useAuth} from 'features/auth/context/AuthContext';
+import React, { useState } from 'react';
 
-import ScreenLayout from 'shared/components/ScreenLayout';
+import { useAuth } from 'features/auth/context/AuthContext';
 import Card from 'shared/components/Card';
 import DetailField from 'shared/components/DetailField';
-import RolePill from 'shared/components/RolePill';
-import RolePillExpandable from 'shared/components/RolePillExpandable';
 import GymRoleEntry from 'shared/components/GymRoleEntry';
 import NoResults from 'shared/components/NoResults';
+import RolePill from 'shared/components/RolePill';
+import RolePillExpandable from 'shared/components/RolePillExpandable';
+import ScreenLayout from 'shared/components/ScreenLayout';
 
 const ProfileScreen = () => {
-  const {user} = useAuth();
+  const { user } = useAuth();
   const [gymRolesExpanded, setGymRolesExpanded] = useState(false);
 
   if (!user) {
@@ -35,23 +35,19 @@ const ProfileScreen = () => {
         <RolePill type="user" role={user.userRole} />
 
         {user.gymManagementRoles && user.gymManagementRoles?.length > 0 && (
-            <>
-              <RolePillExpandable
-                type="gym"
-                expanded={gymRolesExpanded}
-                onToggle={() => setGymRolesExpanded(!gymRolesExpanded)}
-                count={user.gymManagementRoles.length}
-              />
-              {gymRolesExpanded &&
-                user.gymManagementRoles.map((gr, idx) => (
-                  <GymRoleEntry
-                    key={idx}
-                    gymName={gr.gym.name}
-                    role={gr.role}
-                  />
-                ))}
-            </>
-          )}
+          <>
+            <RolePillExpandable
+              type="gym"
+              expanded={gymRolesExpanded}
+              onToggle={() => setGymRolesExpanded(!gymRolesExpanded)}
+              count={user.gymManagementRoles.length}
+            />
+            {gymRolesExpanded &&
+              user.gymManagementRoles.map((gr, idx) => (
+                <GymRoleEntry key={idx} gymName={gr.gym.name} role={gr.role} />
+              ))}
+          </>
+        )}
 
         <DetailField
           label="📅 Joined:"

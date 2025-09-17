@@ -1,18 +1,19 @@
-import React, {useMemo, useState, useEffect, useCallback} from 'react';
-import {View, Text, TouchableOpacity} from 'react-native';
-import {useParams, useNavigate} from 'react-router-native';
-import {useQuery, useMutation} from '@apollo/client';
-import {Formik} from 'formik';
+import { useQuery, useMutation } from '@apollo/client';
+import { Formik } from 'formik';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import { useParams, useNavigate } from 'react-router-native';
 import * as Yup from 'yup';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-import Card from 'shared/components/Card';
-import Button from 'shared/components/Button';
-import DetailField from 'shared/components/DetailField';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
-import FormInput from 'shared/components/FormInput';
+
+import { useAuth } from 'features/auth/context/AuthContext';
+import { GET_WORKOUT_SESSIONS_BY_USER } from 'features/exercises/graphql/exercise.graphql';
+import ExerciseCarousel from 'features/workout-sessions/components/ExerciseCarousel';
+import ExerciseNavHeader from 'features/workout-sessions/components/ExerciseNavHeader';
 import ExercisePickerModal from 'features/workout-sessions/components/ExercisePickerModal';
 import MultiSlotEquipmentPickerModal from 'features/workout-sessions/components/MultiSlotEquipmentPickerModal';
+import PlanTargetChecklist from 'features/workout-sessions/components/PlanTargetChecklist';
+import ProgressChecklist from 'features/workout-sessions/components/ProgressChecklist';
 import {
   GET_WORKOUT_SESSION,
   GET_EXERCISES_AVAILABLE_AT_GYM,
@@ -27,51 +28,48 @@ import {
   WorkoutSessionData,
   ExerciseLog,
 } from 'features/workout-sessions/types/userWorkouts.types';
-import SelectableField from 'shared/components/SelectableField';
-import {useTheme} from 'shared/theme/ThemeProvider';
-import PlanTargetChecklist from 'features/workout-sessions/components/PlanTargetChecklist';
-import ProgressChecklist from 'features/workout-sessions/components/ProgressChecklist';
-import ExerciseCarousel from 'features/workout-sessions/components/ExerciseCarousel';
-import MetricInputGroup from 'shared/components/MetricInputGroup';
-import SetInputRow from 'shared/components/SetInputRow';
-import ExerciseNavHeader from 'features/workout-sessions/components/ExerciseNavHeader';
-import {useMetricRegistry} from 'shared/context/MetricRegistry';
-import {generateMetricSchema} from 'shared/utils/generateMetricSchema';
-import {useExerciseLogSummary} from 'shared/hooks/ExerciseLogSummary';
-import {formatPlanMetrics} from 'shared/utils/formatPlanMetrics';
-import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import Button from 'shared/components/Button';
 import ButtonRow from 'shared/components/ButtonRow';
-import {useAuth} from 'features/auth/context/AuthContext';
-import {GET_WORKOUT_SESSIONS_BY_USER} from 'features/exercises/graphql/exercise.graphql';
+import Card from 'shared/components/Card';
+import DetailField from 'shared/components/DetailField';
+import DividerWithLabel from 'shared/components/DividerWithLabel';
+import FormInput from 'shared/components/FormInput';
+import MetricInputGroup from 'shared/components/MetricInputGroup';
+import ScreenLayout from 'shared/components/ScreenLayout';
+import SelectableField from 'shared/components/SelectableField';
+import SetInputRow from 'shared/components/SetInputRow';
+import Title from 'shared/components/Title';
+import { useMetricRegistry } from 'shared/context/MetricRegistry';
+import { useExerciseLogSummary } from 'shared/hooks/ExerciseLogSummary';
+import { useTheme } from 'shared/theme/ThemeProvider';
+import { formatPlanMetrics } from 'shared/utils/formatPlanMetrics';
+import { generateMetricSchema } from 'shared/utils/generateMetricSchema';
 
 export default function ActiveWorkoutSessionScreen() {
-  const {sessionId} = useParams<{sessionId: string}>();
+  const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const {theme} = useTheme();
-  const {
-    metricRegistry,
-    getMetricIdsForExercise,
-    createDefaultMetricsForExercise,
-  } = useMetricRegistry();
+  const { theme } = useTheme();
+  const { metricRegistry, getMetricIdsForExercise, createDefaultMetricsForExercise } =
+    useMetricRegistry();
 
   const formatSummary = useExerciseLogSummary();
 
-  const {user} = useAuth();
-  const {data: historyData} = useQuery(GET_WORKOUT_SESSIONS_BY_USER, {
-    variables: {userId: user?.id},
+  const { user } = useAuth();
+  const { data: historyData } = useQuery(GET_WORKOUT_SESSIONS_BY_USER, {
+    variables: { userId: user?.id },
     skip: !user?.id,
   });
 
   const weightMetricId = useMemo(
-    () => Object.values(metricRegistry).find(m => m.name === 'Weight')?.id,
+    () => Object.values(metricRegistry).find((m) => m.name === 'Weight')?.id,
     [metricRegistry],
   );
   const repsMetricId = useMemo(
-    () => Object.values(metricRegistry).find(m => m.name === 'Reps')?.id,
+    () => Object.values(metricRegistry).find((m) => m.name === 'Reps')?.id,
     [metricRegistry],
   );
   const rpeMetricId = useMemo(
-    () => Object.values(metricRegistry).find(m => m.name === 'RPE')?.id,
+    () => Object.values(metricRegistry).find((m) => m.name === 'RPE')?.id,
     [metricRegistry],
   );
 
@@ -80,10 +78,7 @@ export default function ActiveWorkoutSessionScreen() {
     historyData?.workoutSessionsByUser?.forEach((s: any) => {
       s.exerciseLogs?.forEach((log: any) => {
         const exId = log.exerciseId;
-        if (
-          !map[exId] ||
-          Number(log.createdAt ?? 0) > Number(map[exId].createdAt ?? 0)
-        ) {
+        if (!map[exId] || Number(log.createdAt ?? 0) > Number(map[exId].createdAt ?? 0)) {
           map[exId] = log;
         }
       });
@@ -104,19 +99,16 @@ export default function ActiveWorkoutSessionScreen() {
       const last = lastLogsByExerciseId[exerciseId];
       if (!last) return undefined;
       const lastWeight = Number(last.metrics?.[weightMetricId]);
-      const lastReps =
-        repsMetricId != null ? Number(last.metrics?.[repsMetricId]) : undefined;
+      const lastReps = repsMetricId != null ? Number(last.metrics?.[repsMetricId]) : undefined;
       const round5 = (val: number | undefined) =>
         val == null ? undefined : Math.floor(val / 5) * 5;
       if (!lastWeight || !lastReps) return round5(lastWeight);
       const oneRm = lastWeight * (1 + lastReps / 30);
       const targetReps = Number(
-        planMetrics.find(m => m.metricId === repsMetricId)?.min ?? lastReps,
+        planMetrics.find((m) => m.metricId === repsMetricId)?.min ?? lastReps,
       );
       let weight = oneRm / (1 + targetReps / 30);
-      const targetRpe = Number(
-        planMetrics.find(m => m.metricId === rpeMetricId)?.min ?? 10,
-      );
+      const targetRpe = Number(planMetrics.find((m) => m.metricId === rpeMetricId)?.min ?? 10);
       const rir = 10 - targetRpe;
       if (!isNaN(rir)) {
         weight *= 1 - rir * 0.03;
@@ -125,7 +117,7 @@ export default function ActiveWorkoutSessionScreen() {
     },
     [lastLogsByExerciseId, weightMetricId, repsMetricId, rpeMetricId],
   );
-  
+
   const [exercisePickerVisible, setExercisePickerVisible] = useState(false);
   const [equipmentPickerVisible, setEquipmentPickerVisible] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState<any>(null);
@@ -133,14 +125,9 @@ export default function ActiveWorkoutSessionScreen() {
   const [editingLogId, setEditingLogId] = useState<number | null>(null);
   const [expandedSetId, setExpandedSetId] = useState<number | null>(null);
   const [carouselIndex, setCarouselIndex] = useState(0);
-  const [defaultSelectedEquipmentIds, setDefaultSelectedEquipmentIds] =
-    useState<number[]>([]);
-  const [nextSetPlacement, setNextSetPlacement] = useState<
-    'addSet' | 'addExercise' | null
-  >(null);
-  const [groupAlternationIndex, setGroupAlternationIndex] = useState<
-    Record<string, number>
-  >({});
+  const [defaultSelectedEquipmentIds, setDefaultSelectedEquipmentIds] = useState<number[]>([]);
+  const [nextSetPlacement, setNextSetPlacement] = useState<'addSet' | 'addExercise' | null>(null);
+  const [groupAlternationIndex, setGroupAlternationIndex] = useState<Record<string, number>>({});
   const [draftSet, setDraftSet] = useState<{
     exerciseId: number;
     groupKey: string;
@@ -152,8 +139,8 @@ export default function ActiveWorkoutSessionScreen() {
     equipmentIds: number[];
   } | null>(null);
 
-  const {data} = useQuery<WorkoutSessionData>(GET_WORKOUT_SESSION, {
-    variables: {id: Number(sessionId)},
+  const { data } = useQuery<WorkoutSessionData>(GET_WORKOUT_SESSION, {
+    variables: { id: Number(sessionId) },
     skip: !sessionId,
   });
 
@@ -163,19 +150,19 @@ export default function ActiveWorkoutSessionScreen() {
     () =>
       new Set<number>(
         session?.workoutPlan?.groups
-          ?.filter(g => g.trainingMethod?.shouldAlternate)
-          .map(g => g.id) ?? [],
+          ?.filter((g) => g.trainingMethod?.shouldAlternate)
+          .map((g) => g.id) ?? [],
       ),
     [session],
   );
 
-  const {data: exercisesData} = useQuery(GET_EXERCISES_AVAILABLE_AT_GYM, {
-    variables: {gymId: session?.gym?.id},
+  const { data: exercisesData } = useQuery(GET_EXERCISES_AVAILABLE_AT_GYM, {
+    variables: { gymId: session?.gym?.id },
     skip: !session?.gym?.id,
   });
 
-  const {data: equipmentData} = useQuery(GET_GYM_EQUIPMENT, {
-    variables: {gymId: session?.gym?.id},
+  const { data: equipmentData } = useQuery(GET_GYM_EQUIPMENT, {
+    variables: { gymId: session?.gym?.id },
     skip: !session?.gym?.id,
   });
 
@@ -200,15 +187,14 @@ export default function ActiveWorkoutSessionScreen() {
   }, [session]);
 
   const planInstances = useMemo(() => {
-    const list: {key: string; planEx: any; isAlternating: boolean}[] = [];
+    const list: { key: string; planEx: any; isAlternating: boolean }[] = [];
     const counts: Record<number, number> = {};
 
-    session?.workoutPlan?.exercises?.forEach(planEx => {
+    session?.workoutPlan?.exercises?.forEach((planEx) => {
       const idx = counts[planEx.exercise.id] ?? 0;
       counts[planEx.exercise.id] = idx + 1;
       const isAlternating =
-        planEx.trainingMethod?.shouldAlternate ??
-        alternatingGroups.has(planEx.groupId ?? -1);
+        planEx.trainingMethod?.shouldAlternate ?? alternatingGroups.has(planEx.groupId ?? -1);
       list.push({
         key: `${planEx.exercise.id}-${idx}`,
         planEx,
@@ -220,12 +206,7 @@ export default function ActiveWorkoutSessionScreen() {
   }, [session, alternatingGroups]);
 
   const planExerciseIds = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          session?.workoutPlan?.exercises?.map(pe => pe.exercise.id) ?? [],
-        ),
-      ),
+    () => Array.from(new Set(session?.workoutPlan?.exercises?.map((pe) => pe.exercise.id) ?? [])),
     [session],
   );
 
@@ -253,7 +234,7 @@ export default function ActiveWorkoutSessionScreen() {
     for (const log of sorted) {
       const instanceKey = log.instanceKey ?? `${log.exerciseId}`;
       if (!map.has(instanceKey)) {
-        const planInfo = planInstances.find(p => p.key === instanceKey);
+        const planInfo = planInstances.find((p) => p.key === instanceKey);
         const isAlternating = planInfo?.isAlternating ?? false;
         const groupingKey =
           isAlternating && planInfo?.planEx.groupId != null
@@ -269,12 +250,12 @@ export default function ActiveWorkoutSessionScreen() {
         });
       }
       const group = map.get(instanceKey)!;
-      log.equipmentIds?.forEach(id => group.equipmentIds.add(id));
+      log.equipmentIds?.forEach((id) => group.equipmentIds.add(id));
       group.logs.push(log);
     }
 
     if (draftSet && !map.has(draftSet.instanceKey)) {
-      const planInfo = planInstances.find(p => p.key === draftSet.instanceKey);
+      const planInfo = planInstances.find((p) => p.key === draftSet.instanceKey);
       const isAlternating = planInfo?.isAlternating ?? false;
       const groupingKey =
         isAlternating && planInfo?.planEx.groupId != null
@@ -290,7 +271,7 @@ export default function ActiveWorkoutSessionScreen() {
       });
     }
 
-    return Array.from(map.values()).map(group => {
+    return Array.from(map.values()).map((group) => {
       const exercise = exercisesData?.exercisesAvailableAtGym.find(
         (ex: any) => ex.id === group.exerciseId,
       );
@@ -307,20 +288,20 @@ export default function ActiveWorkoutSessionScreen() {
   const carouselGroups = useMemo(() => {
     const map = new Map<string, any[]>();
     const order: string[] = [];
-    groupedLogs.forEach(g => {
+    groupedLogs.forEach((g) => {
       if (!map.has(g.groupKey)) {
         map.set(g.groupKey, [] as any);
         order.push(g.groupKey);
       }
       map.get(g.groupKey)!.push(g);
     });
-    return order.map(key => ({groupKey: key, exercises: map.get(key)!}));
+    return order.map((key) => ({ groupKey: key, exercises: map.get(key)! }));
   }, [groupedLogs]);
 
   useEffect(() => {
     const currentGroup = carouselGroups[carouselIndex];
     if (currentGroup?.exercises?.[0]?.isAlternating) {
-      setGroupAlternationIndex(prev => ({
+      setGroupAlternationIndex((prev) => ({
         ...prev,
         [currentGroup.groupKey]: 0,
       }));
@@ -329,7 +310,7 @@ export default function ActiveWorkoutSessionScreen() {
 
   const initialValues = useMemo(() => {
     const values: Record<number, any> = {};
-    logs.forEach(log => {
+    logs.forEach((log) => {
       values[log.id] = {
         metrics: log.metrics ?? {}, // this holds dynamic metric values
         notes: log.notes ?? '',
@@ -339,10 +320,7 @@ export default function ActiveWorkoutSessionScreen() {
     return values;
   }, [logs]);
 
-  const allLogs = useMemo(
-    () => (draftSet ? [...logs] : logs),
-    [logs, draftSet],
-  );
+  const allLogs = useMemo(() => (draftSet ? [...logs] : logs), [logs, draftSet]);
 
   const nextSet = useMemo(() => {
     const handledAltGroups = new Set<number>();
@@ -359,14 +337,14 @@ export default function ActiveWorkoutSessionScreen() {
         handledAltGroups.add(instance.planEx.groupId);
 
         const groupInstances = planInstances.filter(
-          p => p.planEx.groupId === instance.planEx.groupId,
+          (p) => p.planEx.groupId === instance.planEx.groupId,
         );
 
         let target: typeof instance | null = null;
         let minLogged = Infinity;
 
         for (const gi of groupInstances) {
-          const giLogged = allLogs.filter(l => l.instanceKey === gi.key).length;
+          const giLogged = allLogs.filter((l) => l.instanceKey === gi.key).length;
           if (giLogged < (gi.planEx.targetSets ?? 1) && giLogged < minLogged) {
             minLogged = giLogged;
             target = gi;
@@ -374,8 +352,8 @@ export default function ActiveWorkoutSessionScreen() {
         }
 
         if (target) {
-          const cIndex = carouselGroups.findIndex(g =>
-            g.exercises.some(e => e.key === target!.key),
+          const cIndex = carouselGroups.findIndex((g) =>
+            g.exercises.some((e) => e.key === target!.key),
           );
 
           if (cIndex !== -1) {
@@ -400,14 +378,12 @@ export default function ActiveWorkoutSessionScreen() {
         continue;
       }
 
-      const logsForInstance = allLogs.filter(
-        l => l.instanceKey === instance.key,
-      );
+      const logsForInstance = allLogs.filter((l) => l.instanceKey === instance.key);
       const loggedSets = logsForInstance.length;
 
       if (loggedSets < (instance.planEx.targetSets ?? 1)) {
-        const cIndex = carouselGroups.findIndex(g =>
-          g.exercises.some(e => e.key === instance.key),
+        const cIndex = carouselGroups.findIndex((g) =>
+          g.exercises.some((e) => e.key === instance.key),
         );
 
         if (cIndex !== -1) {
@@ -437,26 +413,23 @@ export default function ActiveWorkoutSessionScreen() {
     if (!exercisesData || !equipmentData || !session?.gym?.id) return [];
 
     const allEquipment = equipmentData.gymEquipmentByGymId ?? [];
-    const usedExerciseIds = new Set(logs.map(log => log.exerciseId));
+    const usedExerciseIds = new Set(logs.map((log) => log.exerciseId));
 
-    return (exercisesData.exercisesAvailableAtGym ?? []).filter(
-      (exercise: any) => {
-        const requiredSubcategories =
-          exercise.equipmentSlots?.flatMap(
-            (slot: any) =>
-              slot.options?.map((opt: any) => opt.subcategory.id) ?? [],
-          ) ?? [];
+    return (exercisesData.exercisesAvailableAtGym ?? []).filter((exercise: any) => {
+      const requiredSubcategories =
+        exercise.equipmentSlots?.flatMap(
+          (slot: any) => slot.options?.map((opt: any) => opt.subcategory.id) ?? [],
+        ) ?? [];
 
-        return requiredSubcategories.some((subId: number) =>
-          allEquipment.some((eq: any) => eq.equipment.subcategory.id === subId),
-        );
-      },
-    );
+      return requiredSubcategories.some((subId: number) =>
+        allEquipment.some((eq: any) => eq.equipment.subcategory.id === subId),
+      );
+    });
   }, [logs, exercisesData, equipmentData, session]);
 
   return (
     <ScreenLayout scroll>
-      <View style={{gap: 16}}>
+      <View style={{ gap: 16 }}>
         {session && (
           <Card
             title={`Active Workout in ${session.gym?.name ?? 'Unknown Gym'}`}
@@ -466,7 +439,7 @@ export default function ActiveWorkoutSessionScreen() {
 
         {session?.workoutPlan?.exercises?.length ? (
           <PlanTargetChecklist
-            planExercises={session?.workoutPlan?.exercises.map(ex => ({
+            planExercises={session?.workoutPlan?.exercises.map((ex) => ({
               exerciseId: ex.exercise.id,
               name: ex.exercise.name,
               targetSets: ex.targetSets,
@@ -480,15 +453,12 @@ export default function ActiveWorkoutSessionScreen() {
                   }
                 : undefined,
               isAlternating:
-                ex.trainingMethod?.shouldAlternate ??
-                alternatingGroups.has(ex.groupId ?? -1),
+                ex.trainingMethod?.shouldAlternate ?? alternatingGroups.has(ex.groupId ?? -1),
             }))}
             groups={session?.workoutPlan?.groups ?? []}
             exerciseLogs={logs}
             onSelect={(key, _exerciseId) => {
-              const cIdx = carouselGroups.findIndex(g =>
-                g.exercises.some(e => e.key === key),
-              );
+              const cIdx = carouselGroups.findIndex((g) => g.exercises.some((e) => e.key === key));
               if (cIdx !== -1) setCarouselIndex(cIdx);
             }}
           />
@@ -497,9 +467,7 @@ export default function ActiveWorkoutSessionScreen() {
             exerciseLogs={logs}
             exerciseNames={exerciseNameMap}
             onSelect={(key, _exerciseId) => {
-              const cIdx = carouselGroups.findIndex(g =>
-                g.exercises.some(e => e.key === key),
-              );
+              const cIdx = carouselGroups.findIndex((g) => g.exercises.some((e) => e.key === key));
               if (cIdx !== -1) setCarouselIndex(cIdx);
             }}
           />
@@ -509,10 +477,8 @@ export default function ActiveWorkoutSessionScreen() {
           validationSchema={Yup.object(
             Object.entries(initialValues).reduce(
               (acc, [logId]) => {
-                const log = logs.find(l => l.id === Number(logId));
-                const metricIds = log
-                  ? getMetricIdsForExercise(log.exerciseId)
-                  : [];
+                const log = logs.find((l) => l.id === Number(logId));
+                const metricIds = log ? getMetricIdsForExercise(log.exerciseId) : [];
                 acc[logId] = Yup.object().shape({
                   metrics: generateMetricSchema(metricIds, metricRegistry),
                   notes: Yup.string().nullable(),
@@ -524,7 +490,8 @@ export default function ActiveWorkoutSessionScreen() {
             ),
           )}
           enableReinitialize
-          onSubmit={values => console.log('Submit logs:', values)}>
+          onSubmit={(values) => console.log('Submit logs:', values)}
+        >
           {({
             values,
             handleChange,
@@ -540,13 +507,12 @@ export default function ActiveWorkoutSessionScreen() {
               const allErrors = await validateForm();
               const setErrors = allErrors[expandedSetId];
               if (!setErrors || Object.keys(setErrors).length === 0) {
-                const log = logs.find(l => l.id === expandedSetId);
+                const log = logs.find((l) => l.id === expandedSetId);
                 if (!log) return false;
 
                 const updatedMetrics = values[expandedSetId]?.metrics ?? {};
                 const updatedNotes = values[expandedSetId]?.notes ?? '';
-                const updatedEquipmentIds =
-                  values[expandedSetId]?.equipmentIds ?? [];
+                const updatedEquipmentIds = values[expandedSetId]?.equipmentIds ?? [];
 
                 const arraysEqual = (a: number[], b: number[]) => {
                   if (a.length !== b.length) return false;
@@ -556,8 +522,7 @@ export default function ActiveWorkoutSessionScreen() {
                 };
 
                 const hasChanges =
-                  JSON.stringify(log.metrics ?? {}) !==
-                    JSON.stringify(updatedMetrics) ||
+                  JSON.stringify(log.metrics ?? {}) !== JSON.stringify(updatedMetrics) ||
                   (log.notes ?? '') !== updatedNotes ||
                   !arraysEqual(log.equipmentIds ?? [], updatedEquipmentIds);
 
@@ -577,13 +542,11 @@ export default function ActiveWorkoutSessionScreen() {
                   isAutoFilled: log.isAutoFilled,
                 };
 
-                const {data} = await updateExerciseLog({
-                  variables: {id: log.id, input},
+                const { data } = await updateExerciseLog({
+                  variables: { id: log.id, input },
                 });
                 const saved = data.updateExerciseLog;
-                setLogs(prev =>
-                  prev.map(l => (l.id === expandedSetId ? {...saved} : l)),
-                );
+                setLogs((prev) => prev.map((l) => (l.id === expandedSetId ? { ...saved } : l)));
                 return true;
               } else {
                 setTouched({
@@ -603,24 +566,23 @@ export default function ActiveWorkoutSessionScreen() {
             return (
               <>
                 {nextSet && (
-                  <View style={{marginBottom: 8}}>
+                  <View style={{ marginBottom: 8 }}>
                     {nextSet.carouselIndex != null &&
                     nextSet.carouselIndex >= 0 &&
                     carouselIndex !== nextSet.carouselIndex ? (
-                      <TouchableOpacity
-                        onPress={() => setCarouselIndex(nextSet.carouselIndex)}>
-                        <View
-                          style={{flexDirection: 'row', alignItems: 'center'}}>
-                          <Text style={{color: theme.colors.textPrimary}}>
+                      <TouchableOpacity onPress={() => setCarouselIndex(nextSet.carouselIndex)}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Text style={{ color: theme.colors.textPrimary }}>
                             Follow the plan:{' '}
                             <Text
                               style={{
                                 fontWeight: 'bold',
                                 color: theme.colors.accentStart,
-                              }}>
+                              }}
+                            >
                               {nextSet.name}
                             </Text>{' '}
-                            <Text style={{color: theme.colors.accentStart}}>
+                            <Text style={{ color: theme.colors.accentStart }}>
                               ({nextSet.completed}/{nextSet.total} sets)
                             </Text>
                           </Text>
@@ -628,42 +590,34 @@ export default function ActiveWorkoutSessionScreen() {
                             name="chevron-right"
                             size={16}
                             color={theme.colors.accentStart}
-                            style={{marginLeft: 6}}
+                            style={{ marginLeft: 6 }}
                           />
                         </View>
                       </TouchableOpacity>
                     ) : (
                       <View>
                         {nextSetPlacement === 'addExercise' && (
-                          <Text style={{marginBottom: 4}}>
-                            <Text style={{color: theme.colors.textPrimary}}>
-                              Next:{' '}
-                            </Text>
-                            <Text style={{color: theme.colors.accentStart}}>
-                              {nextSet.name}
-                            </Text>
+                          <Text style={{ marginBottom: 4 }}>
+                            <Text style={{ color: theme.colors.textPrimary }}>Next: </Text>
+                            <Text style={{ color: theme.colors.accentStart }}>{nextSet.name}</Text>
                           </Text>
                         )}
                         <Text>
-                          <Text style={{color: theme.colors.textPrimary}}>
-                            Next:{' '}
-                          </Text>
+                          <Text style={{ color: theme.colors.textPrimary }}>Next: </Text>
                           <Text
                             style={{
                               fontWeight: 'bold',
                               color: theme.colors.accentStart,
-                            }}>
+                            }}
+                          >
                             {nextSet.name}
                           </Text>
-                          <Text style={{color: theme.colors.textPrimary}}>
+                          <Text style={{ color: theme.colors.textPrimary }}>
                             {' '}
                             – Set {nextSet.currentSetIndex + 1}:{' '}
                           </Text>
-                          <Text style={{color: theme.colors.accentStart}}>
-                            {formatPlanMetrics(
-                              nextSet.targetMetrics,
-                              metricRegistry,
-                            )}
+                          <Text style={{ color: theme.colors.accentStart }}>
+                            {formatPlanMetrics(nextSet.targetMetrics, metricRegistry)}
                           </Text>
                         </Text>
                       </View>
@@ -671,25 +625,20 @@ export default function ActiveWorkoutSessionScreen() {
                   </View>
                 )}
 
-                <ExerciseCarousel
-                  index={carouselIndex}
-                  onIndexChange={setCarouselIndex}>
+                <ExerciseCarousel index={carouselIndex} onIndexChange={setCarouselIndex}>
                   {carouselGroups.map((cGroup, i) => {
                     const activeExerciseKeyForGroup =
-                      cGroup.exercises[0].isAlternating &&
-                      cGroup.exercises.length > 1
-                        ? cGroup.exercises[
-                            groupAlternationIndex[cGroup.groupKey] ?? 0
-                          ]?.key
+                      cGroup.exercises[0].isAlternating && cGroup.exercises.length > 1
+                        ? cGroup.exercises[groupAlternationIndex[cGroup.groupKey] ?? 0]?.key
                         : undefined;
 
                     return (
-                      <Card key={cGroup.groupKey} style={{marginVertical: 8}}>
+                      <Card key={cGroup.groupKey} style={{ marginVertical: 8 }}>
                         <ExerciseNavHeader
                           title={
                             cGroup.exercises.length > 1
                               ? (session?.workoutPlan?.groups.find(
-                                  g => `group-${g.id}` === cGroup.groupKey,
+                                  (g) => `group-${g.id}` === cGroup.groupKey,
                                 )?.trainingMethod?.name ?? 'Group')
                               : cGroup.exercises[0].name
                           }
@@ -698,19 +647,18 @@ export default function ActiveWorkoutSessionScreen() {
                           onPrev={() => setCarouselIndex(i - 1)}
                           onNext={() => setCarouselIndex(i + 1)}
                         />
-                        {cGroup.exercises.length === 1 &&
-                          cGroup.exercises[0].isAlternating && (
-                            <Text
-                              style={{
-                                marginTop: 8,
-                                color: theme.colors.accentStart,
-                              }}>
-                              Add more exercises to this group to enable
-                              alternation.
-                            </Text>
-                          )}
-                        {cGroup.exercises.map(exItem => (
-                          <View key={exItem.key} style={{marginTop: 8}}>
+                        {cGroup.exercises.length === 1 && cGroup.exercises[0].isAlternating && (
+                          <Text
+                            style={{
+                              marginTop: 8,
+                              color: theme.colors.accentStart,
+                            }}
+                          >
+                            Add more exercises to this group to enable alternation.
+                          </Text>
+                        )}
+                        {cGroup.exercises.map((exItem) => (
+                          <View key={exItem.key} style={{ marginTop: 8 }}>
                             {cGroup.exercises.length > 1 && (
                               <Text
                                 style={{
@@ -722,7 +670,8 @@ export default function ActiveWorkoutSessionScreen() {
                                       : 'transparent',
                                   padding: 4,
                                   borderRadius: 4,
-                                }}>
+                                }}
+                              >
                                 {exItem.name}
                               </Text>
                             )}
@@ -730,24 +679,21 @@ export default function ActiveWorkoutSessionScreen() {
                               const isExpanded = expandedSetId === log.id;
 
                               return (
-                                <View key={log.id} style={{marginTop: 8}}>
+                                <View key={log.id} style={{ marginTop: 8 }}>
                                   <View
                                     style={
                                       isExpanded
                                         ? {
                                             borderWidth: 2,
-                                            borderColor:
-                                              theme.colors.accentStart,
+                                            borderColor: theme.colors.accentStart,
                                             borderRadius: 12,
                                             margin: -8,
                                             marginBottom: 8,
                                           }
                                         : undefined
-                                    }>
-                                    <View
-                                      style={
-                                        isExpanded ? {padding: 8} : undefined
-                                      }>
+                                    }
+                                  >
+                                    <View style={isExpanded ? { padding: 8 } : undefined}>
                                       <SelectableField
                                         value={
                                           isExpanded
@@ -757,11 +703,10 @@ export default function ActiveWorkoutSessionScreen() {
                                         expanded={isExpanded}
                                         onPress={async () => {
                                           if (expandedSetId) {
-                                            const didSave =
-                                              await saveExpandedSetIfValid();
+                                            const didSave = await saveExpandedSetIfValid();
                                             if (!didSave) return;
                                           }
-                                          setExpandedSetId(prev =>
+                                          setExpandedSetId((prev) =>
                                             prev === log.id ? null : log.id,
                                           );
                                         }}
@@ -773,21 +718,18 @@ export default function ActiveWorkoutSessionScreen() {
                                               flexDirection: 'row',
                                               alignItems: 'flex-end',
                                               gap: 12,
-                                            }}>
-                                            <View style={{flex: 1}}>
+                                            }}
+                                          >
+                                            <View style={{ flex: 1 }}>
                                               <DetailField
                                                 label="Equipment"
                                                 value={(log.equipmentIds ?? [])
                                                   .map((id: number) => {
                                                     const match =
                                                       equipmentData?.gymEquipmentByGymId.find(
-                                                        (entry: any) =>
-                                                          entry.id === id,
+                                                        (entry: any) => entry.id === id,
                                                       );
-                                                    return (
-                                                      match?.equipment?.name ??
-                                                      `#${id}`
-                                                    );
+                                                    return match?.equipment?.name ?? `#${id}`;
                                                   })
                                                   .join('\n')}
                                               />
@@ -800,15 +742,14 @@ export default function ActiveWorkoutSessionScreen() {
                                                       marginBottom: 12,
                                                     }
                                                   : undefined
-                                              }>
+                                              }
+                                            >
                                               <Button
                                                 text="Edit"
                                                 onPress={() => {
                                                   const exercise =
                                                     exercisesData?.exercisesAvailableAtGym.find(
-                                                      (ex: any) =>
-                                                        ex.id ===
-                                                        log.exerciseId,
+                                                      (ex: any) => ex.id === log.exerciseId,
                                                     );
                                                   if (!exercise) return;
                                                   setSelectedExercise(exercise);
@@ -816,47 +757,32 @@ export default function ActiveWorkoutSessionScreen() {
                                                   setDefaultSelectedEquipmentIds(
                                                     log.equipmentIds ?? [],
                                                   );
-                                                  setEquipmentPickerVisible(
-                                                    true,
-                                                  );
+                                                  setEquipmentPickerVisible(true);
                                                 }}
                                               />
                                             </View>
                                           </View>
                                           <SetInputRow
-                                            metricIds={getMetricIdsForExercise(
-                                              log.exerciseId,
-                                            )}
-                                            values={
-                                              values[log.id]?.metrics ?? {}
-                                            }
+                                            metricIds={getMetricIdsForExercise(log.exerciseId)}
+                                            values={values[log.id]?.metrics ?? {}}
                                             onChange={(metricId, val) =>
-                                              setFieldValue(
-                                                `${log.id}.metrics.${metricId}`,
-                                                val,
-                                              )
+                                              setFieldValue(`${log.id}.metrics.${metricId}`, val)
                                             }
                                           />
                                           <FormInput
                                             label="Notes"
                                             value={values[log.id]?.notes ?? ''}
-                                            onChangeText={handleChange(
-                                              `${log.id}.notes`,
-                                            )}
-                                            onBlur={() =>
-                                              handleBlur(`${log.id}.notes`)
-                                            }
+                                            onChangeText={handleChange(`${log.id}.notes`)}
+                                            onBlur={() => handleBlur(`${log.id}.notes`)}
                                           />
                                           <Button
                                             text="Delete Set"
                                             onPress={async () => {
                                               await deleteExerciseLog({
-                                                variables: {id: log.id},
+                                                variables: { id: log.id },
                                               });
-                                              setLogs(prev =>
-                                                prev.filter(
-                                                  l => l.id !== log.id,
-                                                ),
+                                              setLogs((prev) =>
+                                                prev.filter((l) => l.id !== log.id),
                                               );
                                               setExpandedSetId(null);
                                             }}
@@ -868,152 +794,117 @@ export default function ActiveWorkoutSessionScreen() {
                                 </View>
                               );
                             })}
-                            {draftSet &&
-                              draftSet.instanceKey === exItem.key && (
-                                <View key="draft" style={{marginTop: 8}}>
-                                  <View
-                                    style={
-                                      expandedSetId === -1
-                                        ? {
-                                            borderWidth: 2,
-                                            borderColor:
-                                              theme.colors.accentStart,
-                                            borderRadius: 12,
-                                            margin: -8,
-                                            marginBottom: 8,
-                                          }
-                                        : undefined
-                                    }>
-                                    <View
-                                      style={
-                                        expandedSetId === -1
-                                          ? {padding: 8}
-                                          : undefined
-                                      }>
-                                      <SelectableField
-                                        value={
-                                          expandedSetId === -1
-                                            ? `Set ${draftSet.setNumber}: Editing...`
-                                            : `Set ${draftSet.setNumber}: New (unsaved)`
+                            {draftSet && draftSet.instanceKey === exItem.key && (
+                              <View key="draft" style={{ marginTop: 8 }}>
+                                <View
+                                  style={
+                                    expandedSetId === -1
+                                      ? {
+                                          borderWidth: 2,
+                                          borderColor: theme.colors.accentStart,
+                                          borderRadius: 12,
+                                          margin: -8,
+                                          marginBottom: 8,
                                         }
-                                        expanded={expandedSetId === -1}
-                                        onPress={async () => {
-                                          if (
-                                            expandedSetId &&
-                                            expandedSetId !== -1
-                                          ) {
-                                            const didSave =
-                                              await saveExpandedSetIfValid();
-                                            if (!didSave) return;
-                                          }
-                                          setExpandedSetId(prev =>
-                                            prev === -1 ? null : -1,
-                                          );
-                                        }}
-                                      />
-                                      {expandedSetId === -1 && (
-                                        <>
-                                          <SetInputRow
-                                            metricIds={getMetricIdsForExercise(
-                                              draftSet.exerciseId,
-                                            )}
-                                            values={draftSet.metrics}
-                                            onChange={(metricId, val) =>
-                                              setDraftSet(
-                                                prev =>
-                                                  prev && {
-                                                    ...prev,
-                                                    metrics: {
-                                                      ...prev.metrics,
-                                                      [metricId]: val,
-                                                    },
+                                      : undefined
+                                  }
+                                >
+                                  <View style={expandedSetId === -1 ? { padding: 8 } : undefined}>
+                                    <SelectableField
+                                      value={
+                                        expandedSetId === -1
+                                          ? `Set ${draftSet.setNumber}: Editing...`
+                                          : `Set ${draftSet.setNumber}: New (unsaved)`
+                                      }
+                                      expanded={expandedSetId === -1}
+                                      onPress={async () => {
+                                        if (expandedSetId && expandedSetId !== -1) {
+                                          const didSave = await saveExpandedSetIfValid();
+                                          if (!didSave) return;
+                                        }
+                                        setExpandedSetId((prev) => (prev === -1 ? null : -1));
+                                      }}
+                                    />
+                                    {expandedSetId === -1 && (
+                                      <>
+                                        <SetInputRow
+                                          metricIds={getMetricIdsForExercise(draftSet.exerciseId)}
+                                          values={draftSet.metrics}
+                                          onChange={(metricId, val) =>
+                                            setDraftSet(
+                                              (prev) =>
+                                                prev && {
+                                                  ...prev,
+                                                  metrics: {
+                                                    ...prev.metrics,
+                                                    [metricId]: val,
                                                   },
-                                              )
-                                            }
+                                                },
+                                            )
+                                          }
+                                        />
+                                        <FormInput
+                                          label="Notes"
+                                          value={draftSet.notes}
+                                          onChangeText={(val) =>
+                                            setDraftSet((prev) => prev && { ...prev, notes: val })
+                                          }
+                                        />
+                                        <ButtonRow>
+                                          <Button
+                                            text="Save Set"
+                                            fullWidth
+                                            onPress={async () => {
+                                              if (!draftSet) return;
+                                              const input = {
+                                                workoutSessionId: Number(sessionId),
+                                                exerciseId: draftSet.exerciseId,
+                                                setNumber: draftSet.setNumber,
+                                                metrics: draftSet.metrics,
+                                                notes: draftSet.notes,
+                                                equipmentIds: draftSet.equipmentIds,
+                                                carouselOrder: draftSet.carouselOrder,
+                                                groupKey: draftSet.groupKey,
+                                                instanceKey: draftSet.instanceKey,
+                                                completedAt: null,
+                                                isAutoFilled: false,
+                                              } as any;
+                                              const { data } = await createExerciseLog({
+                                                variables: { input },
+                                              });
+                                              const savedLog = data.createExerciseLog;
+                                              setLogs((prev) => {
+                                                const logsForInstance = prev.filter(
+                                                  (l) => l.instanceKey === draftSet.instanceKey,
+                                                );
+                                                const insertionIndex = logsForInstance.length
+                                                  ? prev.findIndex(
+                                                      (l) => l.id === logsForInstance.at(-1)!.id,
+                                                    ) + 1
+                                                  : prev.length;
+                                                const newLogs = [...prev];
+                                                newLogs.splice(insertionIndex, 0, savedLog);
+                                                return newLogs;
+                                              });
+                                              setDraftSet(null);
+                                              setExpandedSetId(null);
+                                            }}
                                           />
-                                          <FormInput
-                                            label="Notes"
-                                            value={draftSet.notes}
-                                            onChangeText={val =>
-                                              setDraftSet(
-                                                prev =>
-                                                  prev && {...prev, notes: val},
-                                              )
-                                            }
+                                          <Button
+                                            text="Discard"
+                                            fullWidth
+                                            onPress={() => {
+                                              setDraftSet(null);
+                                              setExpandedSetId(null);
+                                            }}
                                           />
-                                          <ButtonRow>
-                                            <Button
-                                              text="Save Set"
-                                              fullWidth
-                                              onPress={async () => {
-                                                if (!draftSet) return;
-                                                const input = {
-                                                  workoutSessionId:
-                                                    Number(sessionId),
-                                                  exerciseId:
-                                                    draftSet.exerciseId,
-                                                  setNumber: draftSet.setNumber,
-                                                  metrics: draftSet.metrics,
-                                                  notes: draftSet.notes,
-                                                  equipmentIds:
-                                                    draftSet.equipmentIds,
-                                                  carouselOrder:
-                                                    draftSet.carouselOrder,
-                                                  groupKey: draftSet.groupKey,
-                                                  instanceKey:
-                                                    draftSet.instanceKey,
-                                                  completedAt: null,
-                                                  isAutoFilled: false,
-                                                } as any;
-                                                const {data} =
-                                                  await createExerciseLog({
-                                                    variables: {input},
-                                                  });
-                                                const savedLog =
-                                                  data.createExerciseLog;
-                                                setLogs(prev => {
-                                                  const logsForInstance =
-                                                    prev.filter(
-                                                      l =>
-                                                        l.instanceKey ===
-                                                        draftSet.instanceKey,
-                                                    );
-                                                  const insertionIndex =
-                                                    logsForInstance.length
-                                                      ? prev.findIndex(
-                                                          l =>
-                                                            l.id ===
-                                                            logsForInstance.at(
-                                                              -1,
-                                                            )!.id,
-                                                        ) + 1
-                                                      : prev.length;
-                                                  const newLogs = [...prev];
-                                                  newLogs.splice(
-                                                    insertionIndex,
-                                                    0,
-                                                    savedLog,
-                                                  );
-                                                  return newLogs;
-                                                });
-                                                setDraftSet(null);
-                                                setExpandedSetId(null);
-                                              }}
-                                            />
-                                            <Button
-                                              text="Discard"
-                                              fullWidth
-                                              onPress={() => {
-                                                setDraftSet(null);
-                                                setExpandedSetId(null);
-                                              }}                                            />
-                                          </ButtonRow>
-                                        </>
-                                      )}
-                                    </View>
+                                        </ButtonRow>
+                                      </>
+                                    )}
                                   </View>
                                 </View>
-                              )}
+                              </View>
+                            )}
                             <Button
                               text="Add Set"
                               onPress={async () => {
@@ -1022,43 +913,29 @@ export default function ActiveWorkoutSessionScreen() {
 
                                 const target = exItem;
 
-                                let metrics = createDefaultMetricsForExercise(
-                                  target.exerciseId,
-                                );
-                                                                const planInfo = planInstances.find(
-                                  p => p.key === target.key,
-                                );
+                                const metrics = createDefaultMetricsForExercise(target.exerciseId);
+                                const planInfo = planInstances.find((p) => p.key === target.key);
                                 if (planInfo?.planEx?.targetMetrics) {
                                   planInfo.planEx.targetMetrics.forEach((tm: any) => {
                                     const val =
-                                      typeof tm.min === 'string'
-                                        ? Number(tm.min)
-                                        : tm.min ?? 0;
+                                      typeof tm.min === 'string' ? Number(tm.min) : (tm.min ?? 0);
                                     metrics[tm.metricId] = val;
                                   });
                                   const suggested = suggestWeight(
                                     target.exerciseId,
                                     planInfo.planEx.targetMetrics,
                                   );
-                                  if (
-                                    suggested != null &&
-                                    weightMetricId != null
-                                  ) {
+                                  if (suggested != null && weightMetricId != null) {
                                     metrics[weightMetricId] = suggested;
                                   }
                                 }
                                 const newDraft = {
                                   exerciseId: target.exerciseId,
-                                  setNumber:
-                                    (target.logs.at(-1)?.setNumber ?? 0) + 1,
+                                  setNumber: (target.logs.at(-1)?.setNumber ?? 0) + 1,
                                   metrics,
                                   notes: '',
-                                  equipmentIds: [
-                                    ...(target.logs.at(-1)?.equipmentIds ?? []),
-                                  ],
-                                  carouselOrder:
-                                    target.logs[0]?.carouselOrder ??
-                                    carouselIndex + 1,
+                                  equipmentIds: [...(target.logs.at(-1)?.equipmentIds ?? [])],
+                                  carouselOrder: target.logs[0]?.carouselOrder ?? carouselIndex + 1,
                                   groupKey: target.groupKey,
                                   instanceKey: target.key,
                                 };
@@ -1091,7 +968,7 @@ export default function ActiveWorkoutSessionScreen() {
                     if (logs.length === 0) {
                       try {
                         await deleteWorkoutSession({
-                          variables: {id: Number(sessionId)},
+                          variables: { id: Number(sessionId) },
                         });
                         navigate('/user');
                       } catch (err) {
@@ -1107,7 +984,7 @@ export default function ActiveWorkoutSessionScreen() {
                       await updateWorkoutSession({
                         variables: {
                           id: Number(sessionId),
-                          input: {endedAt: new Date().toISOString()},
+                          input: { endedAt: new Date().toISOString() },
                         },
                       });
                       navigate('/user');
@@ -1127,7 +1004,7 @@ export default function ActiveWorkoutSessionScreen() {
         exercises={availableExercises}
         planExerciseIds={planExerciseIds}
         onClose={() => setExercisePickerVisible(false)}
-        onSelect={exercise => {
+        onSelect={(exercise) => {
           setSelectedExercise(exercise);
           setExercisePickerVisible(false);
           setEquipmentPickerVisible(true);
@@ -1140,20 +1017,16 @@ export default function ActiveWorkoutSessionScreen() {
           selectedExercise?.equipmentSlots?.map((slot: any) => {
             const subcategory = slot.options[0]?.subcategory;
             return {
-              subcategoryIds: slot.options.map(
-                (opt: any) => opt.subcategory.id,
-              ),
+              subcategoryIds: slot.options.map((opt: any) => opt.subcategory.id),
               subcategoryName: subcategory?.name ?? 'Equipment',
             };
           }) ?? []
         }
-        equipment={(equipmentData?.gymEquipmentByGymId ?? []).map(
-          (entry: any) => ({
-            id: entry.id,
-            name: entry.equipment.name,
-            subcategoryId: entry.equipment.subcategory.id,
-          }),
-        )}
+        equipment={(equipmentData?.gymEquipmentByGymId ?? []).map((entry: any) => ({
+          id: entry.id,
+          name: entry.equipment.name,
+          subcategoryId: entry.equipment.subcategory.id,
+        }))}
         defaultSelectedEquipmentIds={defaultSelectedEquipmentIds}
         onClose={() => {
           setSelectedExercise(null);
@@ -1161,18 +1034,14 @@ export default function ActiveWorkoutSessionScreen() {
         }}
         onSelect={async (equipmentIds: number[]) => {
           if (editingLogId != null) {
-            setLogs(prev =>
-              prev.map(log =>
-                log.id === editingLogId ? {...log, equipmentIds} : log,
-              ),
+            setLogs((prev) =>
+              prev.map((log) => (log.id === editingLogId ? { ...log, equipmentIds } : log)),
             );
             setEditingLogId(null);
           } else {
-            let metrics = createDefaultMetricsForExercise(
-              selectedExercise.id,
-            );
+            const metrics = createDefaultMetricsForExercise(selectedExercise.id);
             const existingCount = groupedLogs.filter(
-              g => g.exerciseId === selectedExercise.id,
+              (g) => g.exerciseId === selectedExercise.id,
             ).length;
             const planKey = `${selectedExercise.id}-${existingCount}`;
             const currentGroup = carouselGroups[carouselIndex];
@@ -1182,27 +1051,18 @@ export default function ActiveWorkoutSessionScreen() {
               currentGroup.exercises[0].isAlternating;
 
             const carouselOrder = joinAlternatingGroup
-              ? (currentGroup.exercises[0].logs[0]?.carouselOrder ??
-                carouselIndex + 1)
+              ? (currentGroup.exercises[0].logs[0]?.carouselOrder ?? carouselIndex + 1)
               : groupedLogs.length + 1;
 
-            const groupKey = joinAlternatingGroup
-              ? currentGroup.groupKey
-              : planKey;
+            const groupKey = joinAlternatingGroup ? currentGroup.groupKey : planKey;
 
-                        const planInfo = planInstances.find(p => p.key === planKey);
+            const planInfo = planInstances.find((p) => p.key === planKey);
             if (planInfo?.planEx?.targetMetrics) {
               planInfo.planEx.targetMetrics.forEach((tm: any) => {
-                const val =
-                  typeof tm.min === 'string'
-                    ? Number(tm.min)
-                    : tm.min ?? 0;
+                const val = typeof tm.min === 'string' ? Number(tm.min) : (tm.min ?? 0);
                 metrics[tm.metricId] = val;
               });
-              const suggested = suggestWeight(
-                selectedExercise.id,
-                planInfo.planEx.targetMetrics,
-              );
+              const suggested = suggestWeight(selectedExercise.id, planInfo.planEx.targetMetrics);
               if (suggested != null && weightMetricId != null) {
                 metrics[weightMetricId] = suggested;
               }
@@ -1219,9 +1079,7 @@ export default function ActiveWorkoutSessionScreen() {
               instanceKey: planKey,
             };
 
-            const newIndex = joinAlternatingGroup
-              ? carouselIndex
-              : carouselGroups.length;
+            const newIndex = joinAlternatingGroup ? carouselIndex : carouselGroups.length;
             setCarouselIndex(newIndex);
             setDraftSet(newDraft);
             setExpandedSetId(-1);

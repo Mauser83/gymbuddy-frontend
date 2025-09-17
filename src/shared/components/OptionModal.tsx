@@ -1,8 +1,10 @@
 import React from 'react';
-import ModalWrapper from './ModalWrapper';
+import { Text, View } from 'react-native';
+
 import OptionItem from 'shared/components/OptionItem';
-import {Text, View} from 'react-native';
-import {spacing} from 'shared/theme/tokens';
+import { spacing } from 'shared/theme/tokens';
+
+import ModalWrapper from './ModalWrapper';
 
 interface OptionModalProps {
   visible: boolean;
@@ -23,9 +25,9 @@ const OptionModal: React.FC<OptionModalProps> = ({
 }) => {
   return (
     <ModalWrapper visible={visible} onClose={onClose}>
-      <View style={{padding: spacing.md}}>
-        <Text style={{fontSize: 18, fontWeight: 'bold', marginBottom: spacing.md}}>{title}</Text>
-        {options.map(option => (
+      <View style={{ padding: spacing.md }}>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: spacing.md }}>{title}</Text>
+        {options.map((option) => (
           <OptionItem
             key={option}
             text={option}

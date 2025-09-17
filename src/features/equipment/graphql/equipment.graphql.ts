@@ -1,5 +1,5 @@
 // equipment.graphql.ts
-import {gql} from '@apollo/client';
+import { gql } from '@apollo/client';
 
 export const GET_ALL_EQUIPMENTS = gql`
   query GetAllEquipments($search: String) {
@@ -138,10 +138,7 @@ export const DELETE_CATEGORY = gql`
 `;
 
 export const UPDATE_SUBCATEGORY = gql`
-  mutation UpdateSubcategory(
-    $id: Int!
-    $input: UpdateEquipmentSubcategoryInput!
-  ) {
+  mutation UpdateSubcategory($id: Int!, $input: UpdateEquipmentSubcategoryInput!) {
     updateEquipmentSubcategory(id: $id, input: $input) {
       id
       name

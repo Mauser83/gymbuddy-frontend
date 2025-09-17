@@ -10,7 +10,7 @@ export const generateId = (): string => {
  */
 export const debounce = <F extends (...args: any[]) => any>(
   func: F,
-  delay: number
+  delay: number,
 ): ((...args: Parameters<F>) => void) => {
   let timeoutId: ReturnType<typeof setTimeout>;
   return (...args: Parameters<F>) => {
@@ -30,5 +30,5 @@ export const isEmpty = (obj: object): boolean => {
  * Async sleep function
  */
 export const sleep = (ms: number): Promise<void> => {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 };

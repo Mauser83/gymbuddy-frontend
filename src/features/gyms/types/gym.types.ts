@@ -1,4 +1,4 @@
-import { Equipment } from "features/equipment/types/equipment.types";
+import { Equipment } from 'features/equipment/types/equipment.types';
 
 export interface Gym {
   id: number;
@@ -51,7 +51,7 @@ export interface Trainer {
 }
 
 export interface GymRole {
-  role: "GYM_ADMIN" | "GYM_MODERATOR";
+  role: 'GYM_ADMIN' | 'GYM_MODERATOR';
   user: {
     id: number;
     username: string;

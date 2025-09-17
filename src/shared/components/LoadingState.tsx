@@ -1,6 +1,7 @@
 import React from 'react';
-import {View, Text, ActivityIndicator, ViewStyle, TextStyle} from 'react-native';
-import {useTheme} from 'shared/theme/ThemeProvider';
+import { View, Text, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+
+import { useTheme } from 'shared/theme/ThemeProvider';
 
 interface LoadingStateProps {
   text?: string;
@@ -15,17 +16,13 @@ const LoadingState = ({
   style,
   textStyle,
 }: LoadingStateProps) => {
-  const {theme, componentStyles} = useTheme();
+  const { theme, componentStyles } = useTheme();
   const styles = componentStyles.loadingState;
 
   return (
     <View style={[styles.container, style]}>
       <Text style={[styles.text, textStyle]}>{text}</Text>
-      <ActivityIndicator
-        size={size}
-        color={theme.colors.accentStart}
-        style={styles.spinner}
-      />
+      <ActivityIndicator size={size} color={theme.colors.accentStart} style={styles.spinner} />
     </View>
   );
 };

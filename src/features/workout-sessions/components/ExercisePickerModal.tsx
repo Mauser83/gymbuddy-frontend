@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ScrollView } from 'react-native';
 
-import ModalWrapper from '../../../shared/components/ModalWrapper';
-import Title from 'shared/components/Title';
-import SearchInput from 'shared/components/SearchInput';
 import ClickableListItem from 'shared/components/ClickableListItem';
-import NoResults from 'shared/components/NoResults';
 import DividerWithLabel from 'shared/components/DividerWithLabel';
+import NoResults from 'shared/components/NoResults';
+import SearchInput from 'shared/components/SearchInput';
+import Title from 'shared/components/Title';
+
+import ModalWrapper from '../../../shared/components/ModalWrapper';
 
 interface Exercise {
   id: number;
@@ -41,12 +42,12 @@ export default function ExercisePickerModal({
 
   const planIds = useMemo(() => new Set(planExerciseIds ?? []), [planExerciseIds]);
 
-  const {planExercises, otherExercises} = useMemo(() => {
+  const { planExercises, otherExercises } = useMemo(() => {
     const lower = debouncedSearch.toLowerCase().trim();
     const plan: Exercise[] = [];
     const others: Exercise[] = [];
 
-    exercises.forEach(ex => {
+    exercises.forEach((ex) => {
       if (!ex.name.toLowerCase().includes(lower)) return;
       if (planIds.has(ex.id)) plan.push(ex);
       else others.push(ex);
@@ -55,7 +56,7 @@ export default function ExercisePickerModal({
     plan.sort((a, b) => a.name.localeCompare(b.name));
     others.sort((a, b) => a.name.localeCompare(b.name));
 
-    return {planExercises: plan, otherExercises: others};
+    return { planExercises: plan, otherExercises: others };
   }, [exercises, debouncedSearch, planIds]);
 
   const hasPlan = planIds.size > 0;
@@ -79,7 +80,7 @@ export default function ExercisePickerModal({
             {planExercises.length > 0 && (
               <>
                 <DividerWithLabel label="In workout plan" />
-                {planExercises.map(ex => (
+                {planExercises.map((ex) => (
                   <ClickableListItem
                     key={ex.id}
                     label={ex.name}
@@ -94,7 +95,7 @@ export default function ExercisePickerModal({
             {otherExercises.length > 0 && (
               <>
                 <DividerWithLabel label="Other exercises" />
-                {otherExercises.map(ex => (
+                {otherExercises.map((ex) => (
                   <ClickableListItem
                     key={ex.id}
                     label={ex.name}
@@ -108,7 +109,7 @@ export default function ExercisePickerModal({
             )}
           </>
         ) : (
-          otherExercises.map(ex => (
+          otherExercises.map((ex) => (
             <ClickableListItem
               key={ex.id}
               label={ex.name}

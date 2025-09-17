@@ -1,22 +1,19 @@
-import React, {useEffect, useState} from 'react';
-import {useNavigate, useParams} from 'react-router-native';
-import {Formik} from 'formik';
+import { Formik } from 'formik';
+import React, { useEffect, useState } from 'react';
+import Toast from 'react-native-toast-message';
+import { useNavigate, useParams } from 'react-router-native';
 import * as Yup from 'yup';
 
-import {useExercise} from '../../features/exercises/hooks/useExercise';
-import {
-  UpdateExerciseInput,
-  Exercise,
-} from '../../features/exercises/types/exercise.types';
-
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-import Button from 'shared/components/Button';
-import LoadingState from 'shared/components/LoadingState';
 import ExerciseForm from 'features/exercises/components/ExerciseForm';
-import Toast from 'react-native-toast-message';
+import Button from 'shared/components/Button';
 import ButtonRow from 'shared/components/ButtonRow';
 import DividerWithLabel from 'shared/components/DividerWithLabel';
+import LoadingState from 'shared/components/LoadingState';
+import ScreenLayout from 'shared/components/ScreenLayout';
+import Title from 'shared/components/Title';
+
+import { useExercise } from '../../features/exercises/hooks/useExercise';
+import { UpdateExerciseInput, Exercise } from '../../features/exercises/types/exercise.types';
 
 const ExerciseSchema = Yup.object().shape({
   name: Yup.string().required('Name is required'),
@@ -24,9 +21,7 @@ const ExerciseSchema = Yup.object().shape({
   videoUrl: Yup.string().url('Must be a valid video URL'),
   difficultyId: Yup.number().nullable(),
   exerciseTypeId: Yup.number().nullable(),
-  primaryMuscleIds: Yup.array()
-    .of(Yup.number())
-    .min(1, 'Select at least one primary muscle'),
+  primaryMuscleIds: Yup.array().of(Yup.number()).min(1, 'Select at least one primary muscle'),
   secondaryMuscleIds: Yup.array().of(Yup.number()),
   equipmentSlots: Yup.array().of(
     Yup.object({
@@ -45,14 +40,12 @@ const ExerciseSchema = Yup.object().shape({
 });
 
 export default function EditExerciseScreen() {
-  const {id} = useParams<{id: string}>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const {getMyExercises, updateExercise} = useExercise();
-  const [formValues, setFormValues] = useState<UpdateExerciseInput | null>(
-    null,
-  );
+  const { getMyExercises, updateExercise } = useExercise();
+  const [formValues, setFormValues] = useState<UpdateExerciseInput | null>(null);
 
-  const {data, loading} = getMyExercises();
+  const { data, loading } = getMyExercises();
 
   useEffect(() => {
     if (!id) {
@@ -61,9 +54,7 @@ export default function EditExerciseScreen() {
     }
 
     if (data) {
-      const exercise = data.getExercises.find(
-        (e: Exercise) => e.id === Number(id),
-      );
+      const exercise = data.getExercises.find((e: Exercise) => e.id === Number(id));
       if (!exercise) return;
 
       setFormValues({
@@ -72,14 +63,14 @@ export default function EditExerciseScreen() {
         videoUrl: exercise.videoUrl ?? '',
         difficultyId: exercise.difficulty?.id,
         exerciseTypeId: exercise.exerciseType?.id,
-        primaryMuscleIds: exercise.primaryMuscles?.map(m => m.id) ?? [],
-        secondaryMuscleIds: exercise.secondaryMuscles?.map(m => m.id) ?? [],
+        primaryMuscleIds: exercise.primaryMuscles?.map((m) => m.id) ?? [],
+        secondaryMuscleIds: exercise.secondaryMuscles?.map((m) => m.id) ?? [],
         equipmentSlots:
-          exercise.equipmentSlots?.map(slot => ({
+          exercise.equipmentSlots?.map((slot) => ({
             slotIndex: slot.slotIndex,
             isRequired: slot.isRequired,
             comment: slot.comment,
-            options: slot.options.map(opt => ({
+            options: slot.options.map((opt) => ({
               subcategoryId: opt.subcategory.id,
               name: opt.subcategory.name,
             })),
@@ -96,9 +87,7 @@ export default function EditExerciseScreen() {
     );
   }
 
-  const exercise = data?.getExercises.find(
-    (e: Exercise) => e.id === Number(id),
-  );
+  const exercise = data?.getExercises.find((e: Exercise) => e.id === Number(id));
   if (!exercise) {
     return (
       <ScreenLayout variant="centered">
@@ -109,7 +98,7 @@ export default function EditExerciseScreen() {
 
   const handleSubmit = async (
     values: UpdateExerciseInput,
-    {setSubmitting}: {setSubmitting: (val: boolean) => void},
+    { setSubmitting }: { setSubmitting: (val: boolean) => void },
   ) => {
     try {
       const payload = {
@@ -121,13 +110,13 @@ export default function EditExerciseScreen() {
         })),
       };
       await updateExercise({
-        variables: {id: Number(id), input: payload},
+        variables: { id: Number(id), input: payload },
       });
-      Toast.show({type: 'success', text1: 'Exercise updated!'});
+      Toast.show({ type: 'success', text1: 'Exercise updated!' });
       navigate('/exercise');
     } catch (err) {
       console.error('Error updating exercise', err);
-      Toast.show({type: 'error', text1: 'Failed to update exercise'});
+      Toast.show({ type: 'error', text1: 'Failed to update exercise' });
     } finally {
       setSubmitting(false);
     }
@@ -136,28 +125,16 @@ export default function EditExerciseScreen() {
   return (
     <ScreenLayout scroll>
       <Title text="Edit Exercise" />
-      <Formik
-        initialValues={formValues}
-        validationSchema={ExerciseSchema}
-        onSubmit={handleSubmit}>
-        {({handleSubmit, isSubmitting, errors, values}) => (
+      <Formik initialValues={formValues} validationSchema={ExerciseSchema} onSubmit={handleSubmit}>
+        {({ handleSubmit, isSubmitting, errors, values }) => (
           <>
             <ExerciseForm />
             {/* Submit / Cancel – main form actions */}
             <DividerWithLabel label="Continue with" />
 
             <ButtonRow>
-              <Button
-                text="Cancel"
-                fullWidth
-                onPress={() => navigate('/exercise')}
-              />
-              <Button
-                text="Update"
-                fullWidth
-                onPress={handleSubmit}
-                disabled={isSubmitting}
-              />
+              <Button text="Cancel" fullWidth onPress={() => navigate('/exercise')} />
+              <Button text="Update" fullWidth onPress={handleSubmit} disabled={isSubmitting} />
             </ButtonRow>
           </>
         )}

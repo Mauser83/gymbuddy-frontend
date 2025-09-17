@@ -1,20 +1,12 @@
-import React, {useState, useMemo} from 'react';
-import {ScrollView, View, TouchableOpacity, Switch} from 'react-native';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-import Card from 'shared/components/Card';
-import FormInput from 'shared/components/FormInput';
-import Button from 'shared/components/Button';
-import ClickableList from 'shared/components/ClickableList';
-import ButtonRow from 'shared/components/ButtonRow';
+import { useQuery, useMutation } from '@apollo/client';
+import React, { useState, useMemo } from 'react';
+import { ScrollView, View, TouchableOpacity, Switch } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import {useTheme} from 'shared/theme/ThemeProvider';
-import {spacing} from 'shared/theme/tokens';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
-import SelectableField from 'shared/components/SelectableField';
+
+import EditMuscleGroupModal from 'features/exercises/components/EditMuscleGroupModal';
 import DifficultyPickerModal from 'features/workout-plans/components/DifficultyPickerModal';
 import TrainingGoalPickerModal from 'features/workout-plans/components/TrainingGoalPickerModal';
-import EditMuscleGroupModal from 'features/exercises/components/EditMuscleGroupModal';
+import { GET_WORKOUT_PLAN_META } from 'features/workout-plans/graphql/workoutMeta.graphql';
 import {
   CREATE_TRAINING_GOAL,
   UPDATE_TRAINING_GOAL,
@@ -33,11 +25,20 @@ import {
   UPDATE_EXPERIENCE_LEVEL,
   DELETE_EXPERIENCE_LEVEL,
 } from 'features/workout-plans/graphql/workoutReferences';
-import {useQuery, useMutation} from '@apollo/client';
-import {GET_WORKOUT_PLAN_META} from 'features/workout-plans/graphql/workoutMeta.graphql';
+import Button from 'shared/components/Button';
+import ButtonRow from 'shared/components/ButtonRow';
+import Card from 'shared/components/Card';
+import ClickableList from 'shared/components/ClickableList';
+import DividerWithLabel from 'shared/components/DividerWithLabel';
+import FormInput from 'shared/components/FormInput';
 import ModalWrapper from 'shared/components/ModalWrapper';
 import OptionItem from 'shared/components/OptionItem';
-import {useMetricRegistry} from 'shared/context/MetricRegistry';
+import ScreenLayout from 'shared/components/ScreenLayout';
+import SelectableField from 'shared/components/SelectableField';
+import Title from 'shared/components/Title';
+import { useMetricRegistry } from 'shared/context/MetricRegistry';
+import { useTheme } from 'shared/theme/ThemeProvider';
+import { spacing } from 'shared/theme/tokens';
 
 const METRIC_IDS = {
   REPS: 1,
@@ -51,7 +52,7 @@ const METRIC_IDS = {
 interface MuscleGroup {
   id: number;
   name: string;
-  bodyParts: {id: number; name: string}[];
+  bodyParts: { id: number; name: string }[];
 }
 
 interface TrainingMethod {
@@ -59,7 +60,7 @@ interface TrainingMethod {
   name: string;
   slug: string;
   description?: string;
-  trainingGoals?: {id: number; name: string}[]; // ← Add this
+  trainingGoals?: { id: number; name: string }[]; // ← Add this
   minGroupSize?: number; // ✅ Add this
   maxGroupSize?: number; // ✅ Add this
   shouldAlternate?: boolean; // ✅ NEW
@@ -74,7 +75,7 @@ export interface IntensityPreset {
   id: number;
   trainingGoalId: number;
   experienceLevelId: number;
-  experienceLevel: {id: number; name: string; key: string; isDefault: boolean};
+  experienceLevel: { id: number; name: string; key: string; isDefault: boolean };
   metricDefaults: IntensityMetricDefault[];
 }
 
@@ -99,18 +100,13 @@ export interface IntensityPresetEdit extends IntensityPresetInput {
 }
 
 export default function AdminWorkoutPlanCatalogScreen() {
-  const {theme} = useTheme();
+  const { theme } = useTheme();
   const [mode, setMode] = useState<
-    | 'trainingGoal'
-    | 'experienceLevel'
-    | 'preset'
-    | 'muscleGroup'
-    | 'trainingMethod'
-    | null
+    'trainingGoal' | 'experienceLevel' | 'preset' | 'muscleGroup' | 'trainingMethod' | null
   >(null);
 
-  const {data, refetch} = useQuery(GET_WORKOUT_PLAN_META);
-  const {metricRegistry} = useMetricRegistry();
+  const { data, refetch } = useQuery(GET_WORKOUT_PLAN_META);
+  const { metricRegistry } = useMetricRegistry();
 
   const [newValue, setNewValue] = useState('');
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -119,15 +115,13 @@ export default function AdminWorkoutPlanCatalogScreen() {
     trainingGoalId: 0,
     experienceLevelId: 0,
     metricDefaults: [
-      {metricId: METRIC_IDS.REPS, defaultMin: 10, defaultMax: undefined},
-      {metricId: METRIC_IDS.RPE, defaultMin: 8, defaultMax: undefined},
-      {metricId: METRIC_IDS.REST, defaultMin: 60, defaultMax: undefined},
-      {metricId: METRIC_IDS.SETS, defaultMin: 3, defaultMax: undefined},
+      { metricId: METRIC_IDS.REPS, defaultMin: 10, defaultMax: undefined },
+      { metricId: METRIC_IDS.RPE, defaultMin: 8, defaultMax: undefined },
+      { metricId: METRIC_IDS.REST, defaultMin: 60, defaultMax: undefined },
+      { metricId: METRIC_IDS.SETS, defaultMin: 3, defaultMax: undefined },
     ],
   });
-  const [presetEdits, setPresetEdits] = useState<
-    Record<number, IntensityPresetEdit>
-  >({});
+  const [presetEdits, setPresetEdits] = useState<Record<number, IntensityPresetEdit>>({});
   const [expandedPresetId, setExpandedPresetId] = useState<number | null>(null);
   const [pickerState, setPickerState] = useState<
     'trainingGoal' | 'experienceLevel' | 'editMuscleGroup' | null
@@ -137,22 +131,17 @@ export default function AdminWorkoutPlanCatalogScreen() {
   const [newGroupValue, setNewGroupValue] = useState('');
   const [expandedGroupId, setExpandedGroupId] = useState<number | null>(null);
   const [groupEdits, setGroupEdits] = useState<Record<number, string>>({});
-  const [editMuscleGroupTarget, setEditMuscleGroupTarget] =
-    useState<MuscleGroup | null>(null);
+  const [editMuscleGroupTarget, setEditMuscleGroupTarget] = useState<MuscleGroup | null>(null);
   const [newMethodValue, setNewMethodValue] = useState('');
   const [expandedMethodId, setExpandedMethodId] = useState<number | null>(null);
-  const [methodEdits, setMethodEdits] = useState<
-    Record<number, Partial<TrainingMethod>>
-  >({});
+  const [methodEdits, setMethodEdits] = useState<Record<number, Partial<TrainingMethod>>>({});
 
   const [newLevel, setNewLevel] = useState({
     name: '',
     key: '',
     isDefault: false,
   });
-  const [levelEdits, setLevelEdits] = useState<
-    Record<number, Partial<ExperienceLevel>>
-  >({});
+  const [levelEdits, setLevelEdits] = useState<Record<number, Partial<ExperienceLevel>>>({});
   const [expandedLevelId, setExpandedLevelId] = useState<number | null>(null);
 
   const [createTrainingGoal] = useMutation(CREATE_TRAINING_GOAL);
@@ -175,17 +164,11 @@ export default function AdminWorkoutPlanCatalogScreen() {
   const trainingGoals = data?.getTrainingGoals || [];
   const presets = data?.getIntensityPresets || [];
   const muscleGroups = useMemo(
-    () =>
-      [...(data?.getMuscleGroups || [])].sort((a, b) =>
-        a.name.localeCompare(b.name),
-      ),
+    () => [...(data?.getMuscleGroups || [])].sort((a, b) => a.name.localeCompare(b.name)),
     [data],
   );
   const trainingMethods = useMemo(
-    () =>
-      [...(data?.getTrainingMethods || [])].sort((a, b) =>
-        a.name.localeCompare(b.name),
-      ),
+    () => [...(data?.getTrainingMethods || [])].sort((a, b) => a.name.localeCompare(b.name)),
     [data],
   );
   const experienceLevels = data?.experienceLevels || [];
@@ -212,12 +195,12 @@ export default function AdminWorkoutPlanCatalogScreen() {
       await updateTrainingGoal({
         variables: {
           id,
-          input: {name: value, slug: value.toLowerCase().replace(/\s+/g, '-')},
+          input: { name: value, slug: value.toLowerCase().replace(/\s+/g, '-') },
         },
       });
       setExpandedId(null);
-      setEdits(prev => {
-        const updated = {...prev};
+      setEdits((prev) => {
+        const updated = { ...prev };
         delete updated[id];
         return updated;
       });
@@ -229,7 +212,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
 
   const handleDelete = async (id: number) => {
     try {
-      await deleteTrainingGoal({variables: {id}});
+      await deleteTrainingGoal({ variables: { id } });
       await refetch();
     } catch (err) {
       console.error('Delete error:', err);
@@ -238,15 +221,15 @@ export default function AdminWorkoutPlanCatalogScreen() {
 
   const handleCreatePreset = async () => {
     try {
-      await createPreset({variables: {input: newPreset}});
+      await createPreset({ variables: { input: newPreset } });
       setNewPreset({
         trainingGoalId: 0,
         experienceLevelId: 0,
         metricDefaults: [
-          {metricId: METRIC_IDS.REPS, defaultMin: 10, defaultMax: undefined},
-          {metricId: METRIC_IDS.RPE, defaultMin: 8, defaultMax: undefined},
-          {metricId: METRIC_IDS.REST, defaultMin: 60, defaultMax: undefined},
-          {metricId: METRIC_IDS.SETS, defaultMin: 3, defaultMax: undefined},
+          { metricId: METRIC_IDS.REPS, defaultMin: 10, defaultMax: undefined },
+          { metricId: METRIC_IDS.RPE, defaultMin: 8, defaultMax: undefined },
+          { metricId: METRIC_IDS.REST, defaultMin: 60, defaultMax: undefined },
+          { metricId: METRIC_IDS.SETS, defaultMin: 3, defaultMax: undefined },
         ],
       });
       await refetch();
@@ -257,10 +240,10 @@ export default function AdminWorkoutPlanCatalogScreen() {
 
   const handleUpdatePreset = async (id: number) => {
     try {
-      await updatePreset({variables: {id, input: presetEdits[id]}});
+      await updatePreset({ variables: { id, input: presetEdits[id] } });
       setExpandedPresetId(null);
-      setPresetEdits(prev => {
-        const updated = {...prev};
+      setPresetEdits((prev) => {
+        const updated = { ...prev };
         delete updated[id];
         return updated;
       });
@@ -272,7 +255,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
 
   const handleDeletePreset = async (id: number) => {
     try {
-      await deletePreset({variables: {id}});
+      await deletePreset({ variables: { id } });
       await refetch();
     } catch (err) {
       console.error('Delete preset error:', err);
@@ -310,8 +293,8 @@ export default function AdminWorkoutPlanCatalogScreen() {
         },
       });
       setExpandedGroupId(null);
-      setGroupEdits(prev => {
-        const updated = {...prev};
+      setGroupEdits((prev) => {
+        const updated = { ...prev };
         delete updated[id];
         return updated;
       });
@@ -323,7 +306,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
 
   const handleDeleteGroup = async (id: number) => {
     try {
-      await deleteMuscleGroup({variables: {id}});
+      await deleteMuscleGroup({ variables: { id } });
       await refetch();
     } catch (err) {
       console.error('Error deleting muscle group:', err);
@@ -332,8 +315,8 @@ export default function AdminWorkoutPlanCatalogScreen() {
 
   const handleCreateLevel = async () => {
     try {
-      await createLevel({variables: {input: newLevel}});
-      setNewLevel({name: '', key: '', isDefault: false});
+      await createLevel({ variables: { input: newLevel } });
+      setNewLevel({ name: '', key: '', isDefault: false });
       await refetch();
     } catch (err) {
       console.error('Error creating level:', err);
@@ -342,10 +325,10 @@ export default function AdminWorkoutPlanCatalogScreen() {
 
   const handleUpdateLevel = async (id: number) => {
     try {
-      await updateLevel({variables: {id, input: levelEdits[id]}});
+      await updateLevel({ variables: { id, input: levelEdits[id] } });
       setExpandedLevelId(null);
-      setLevelEdits(prev => {
-        const updated = {...prev};
+      setLevelEdits((prev) => {
+        const updated = { ...prev };
         delete updated[id];
         return updated;
       });
@@ -357,7 +340,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
 
   const handleDeleteLevel = async (id: number) => {
     try {
-      await deleteLevel({variables: {id}});
+      await deleteLevel({ variables: { id } });
       await refetch();
     } catch (err) {
       console.error('Error deleting level:', err);
@@ -405,24 +388,18 @@ export default function AdminWorkoutPlanCatalogScreen() {
         id,
         input: {
           name: methodEdits[id]?.name || '',
-          slug: (methodEdits[id]?.name || '')
-            .toLowerCase()
-            .replace(/\s+/g, '-'),
+          slug: (methodEdits[id]?.name || '').toLowerCase().replace(/\s+/g, '-'),
           minGroupSize:
-            methodEdits[id]?.minGroupSize === undefined
-              ? null
-              : methodEdits[id]?.minGroupSize,
+            methodEdits[id]?.minGroupSize === undefined ? null : methodEdits[id]?.minGroupSize,
           maxGroupSize:
-            methodEdits[id]?.maxGroupSize === undefined
-              ? null
-              : methodEdits[id]?.maxGroupSize,
+            methodEdits[id]?.maxGroupSize === undefined ? null : methodEdits[id]?.maxGroupSize,
           shouldAlternate: methodEdits[id]?.shouldAlternate ?? false,
         },
       },
     });
     setExpandedMethodId(null);
-    setMethodEdits(prev => {
-      const updated = {...prev};
+    setMethodEdits((prev) => {
+      const updated = { ...prev };
       delete updated[id];
       return updated;
     });
@@ -430,38 +407,37 @@ export default function AdminWorkoutPlanCatalogScreen() {
   };
 
   const handleDeleteMethod = async (id: number) => {
-    await deleteMethod({variables: {id}});
+    await deleteMethod({ variables: { id } });
     await refetch();
   };
 
-  const catalogSections: {key: typeof mode; label: string; sublabel: string}[] =
-    [
-      {
-        key: 'trainingGoal',
-        label: 'Training Goals',
-        sublabel: 'Click to manage training goals',
-      },
-      {
-        key: 'experienceLevel',
-        label: 'Experience Levels',
-        sublabel: 'Click to manage experience levels',
-      },
-      {
-        key: 'preset',
-        label: 'Intensity Presets',
-        sublabel: 'Click to manage intensity presets',
-      },
-      {
-        key: 'muscleGroup',
-        label: 'Muscle Groups',
-        sublabel: 'Click to manage muscle groups',
-      },
-      {
-        key: 'trainingMethod',
-        label: 'Training Methods',
-        sublabel: 'Click to manage training methods',
-      },
-    ];
+  const catalogSections: { key: typeof mode; label: string; sublabel: string }[] = [
+    {
+      key: 'trainingGoal',
+      label: 'Training Goals',
+      sublabel: 'Click to manage training goals',
+    },
+    {
+      key: 'experienceLevel',
+      label: 'Experience Levels',
+      sublabel: 'Click to manage experience levels',
+    },
+    {
+      key: 'preset',
+      label: 'Intensity Presets',
+      sublabel: 'Click to manage intensity presets',
+    },
+    {
+      key: 'muscleGroup',
+      label: 'Muscle Groups',
+      sublabel: 'Click to manage muscle groups',
+    },
+    {
+      key: 'trainingMethod',
+      label: 'Training Methods',
+      sublabel: 'Click to manage training methods',
+    },
+  ];
 
   return (
     <ScreenLayout scroll>
@@ -475,16 +451,12 @@ export default function AdminWorkoutPlanCatalogScreen() {
             <TouchableOpacity onPress={() => setMode(null)}>
               <Title text="Training Goals" />
             </TouchableOpacity>
-            <FormInput
-              label="New Training Goal"
-              value={newValue}
-              onChangeText={setNewValue}
-            />
+            <FormInput label="New Training Goal" value={newValue} onChangeText={setNewValue} />
             <ButtonRow>
               <Button text="Create" fullWidth onPress={handleCreate} />
             </ButtonRow>
             <ClickableList
-              items={trainingGoals.map((goal: {id: number; name: string}) => {
+              items={trainingGoals.map((goal: { id: number; name: string }) => {
                 const isExpanded = expandedId === goal.id;
                 const currentEditValue = edits[goal.id] ?? goal.name;
 
@@ -493,42 +465,29 @@ export default function AdminWorkoutPlanCatalogScreen() {
                   label: goal.name,
                   selected: isExpanded,
                   rightElement: isExpanded ? (
-                    <FontAwesome
-                      name="chevron-down"
-                      size={16}
-                      color={theme.colors.accentStart}
-                    />
+                    <FontAwesome name="chevron-down" size={16} color={theme.colors.accentStart} />
                   ) : null,
                   onPress: () => {
-                    setExpandedId(prev => (prev === goal.id ? null : goal.id));
-                    setEdits(prev => ({...prev, [goal.id]: goal.name}));
+                    setExpandedId((prev) => (prev === goal.id ? null : goal.id));
+                    setEdits((prev) => ({ ...prev, [goal.id]: goal.name }));
                   },
                   content: isExpanded ? (
-                    <View style={{gap: spacing.sm}}>
+                    <View style={{ gap: spacing.sm }}>
                       <FormInput
                         label="Edit Name"
                         value={currentEditValue}
-                        onChangeText={text =>
-                          setEdits(prev => ({...prev, [goal.id]: text}))
-                        }
+                        onChangeText={(text) => setEdits((prev) => ({ ...prev, [goal.id]: text }))}
                       />
                       <ButtonRow>
                         <Button
                           text="Update"
                           fullWidth
-                          onPress={() =>
-                            handleUpdate(goal.id, currentEditValue)
-                          }
+                          onPress={() => handleUpdate(goal.id, currentEditValue)}
                           disabled={
-                            currentEditValue.trim() === '' ||
-                            currentEditValue === goal.name
+                            currentEditValue.trim() === '' || currentEditValue === goal.name
                           }
                         />
-                        <Button
-                          text="Delete"
-                          fullWidth
-                          onPress={() => handleDelete(goal.id)}
-                        />
+                        <Button text="Delete" fullWidth onPress={() => handleDelete(goal.id)} />
                       </ButtonRow>
                     </View>
                   ) : undefined,
@@ -539,15 +498,12 @@ export default function AdminWorkoutPlanCatalogScreen() {
         ) : (
           <TouchableOpacity onPress={() => setMode('trainingGoal')}>
             <Card>
-              <Title
-                text="Training Goals"
-                subtitle="Click to manage training goals"
-              />
+              <Title text="Training Goals" subtitle="Click to manage training goals" />
             </Card>
           </TouchableOpacity>
         )}
       </View>
-      
+
       <View>
         {mode === 'experienceLevel' ? (
           <Card>
@@ -560,22 +516,18 @@ export default function AdminWorkoutPlanCatalogScreen() {
                   <FormInput
                     label="Name"
                     value={newLevel.name}
-                    onChangeText={text =>
-                      setNewLevel(p => ({...p, name: text}))
-                    }
+                    onChangeText={(text) => setNewLevel((p) => ({ ...p, name: text }))}
                   />
                   <FormInput
                     label="Key"
                     value={newLevel.key}
-                    onChangeText={text => setNewLevel(p => ({...p, key: text}))}
+                    onChangeText={(text) => setNewLevel((p) => ({ ...p, key: text }))}
                   />
-                  <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Title subtitle="Default" />
                     <Switch
                       value={newLevel.isDefault}
-                      onValueChange={val =>
-                        setNewLevel(p => ({...p, isDefault: val}))
-                      }
+                      onValueChange={(val) => setNewLevel((p) => ({ ...p, isDefault: val }))}
                       trackColor={{
                         true: theme.colors.accentStart,
                         false: 'grey',
@@ -584,11 +536,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
                     />
                   </View>
                   <ButtonRow>
-                    <Button
-                      text="Create"
-                      fullWidth
-                      onPress={handleCreateLevel}
-                    />
+                    <Button text="Create" fullWidth onPress={handleCreateLevel} />
                   </ButtonRow>
                   <ClickableList
                     items={experienceLevels.map((level: ExperienceLevel) => {
@@ -599,30 +547,28 @@ export default function AdminWorkoutPlanCatalogScreen() {
                         label: level.name,
                         selected: isExpanded,
                         onPress: () => {
-                          setExpandedLevelId(prev =>
-                            prev === level.id ? null : level.id,
-                          );
-                          setLevelEdits(prev => ({...prev, [level.id]: level}));
+                          setExpandedLevelId((prev) => (prev === level.id ? null : level.id));
+                          setLevelEdits((prev) => ({ ...prev, [level.id]: level }));
                         },
                         content: isExpanded ? (
-                          <View style={{gap: spacing.sm}}>
+                          <View style={{ gap: spacing.sm }}>
                             <FormInput
                               label="Name"
                               value={edit.name ?? ''}
-                              onChangeText={text =>
-                                setLevelEdits(p => ({
+                              onChangeText={(text) =>
+                                setLevelEdits((p) => ({
                                   ...p,
-                                  [level.id]: {...edit, name: text},
+                                  [level.id]: { ...edit, name: text },
                                 }))
                               }
                             />
                             <FormInput
                               label="Key"
                               value={edit.key ?? ''}
-                              onChangeText={text =>
-                                setLevelEdits(p => ({
+                              onChangeText={(text) =>
+                                setLevelEdits((p) => ({
                                   ...p,
-                                  [level.id]: {...edit, key: text},
+                                  [level.id]: { ...edit, key: text },
                                 }))
                               }
                             />
@@ -630,7 +576,8 @@ export default function AdminWorkoutPlanCatalogScreen() {
                               style={{
                                 flexDirection: 'row',
                                 alignItems: 'center',
-                              }}>
+                              }}
+                            >
                               <Title subtitle="Default" />
                               <Switch
                                 value={!!edit.isDefault}
@@ -639,10 +586,10 @@ export default function AdminWorkoutPlanCatalogScreen() {
                                   false: 'grey',
                                 }}
                                 thumbColor={theme.colors.accentEnd}
-                                onValueChange={val =>
-                                  setLevelEdits(p => ({
+                                onValueChange={(val) =>
+                                  setLevelEdits((p) => ({
                                     ...p,
-                                    [level.id]: {...edit, isDefault: val},
+                                    [level.id]: { ...edit, isDefault: val },
                                   }))
                                 }
                               />
@@ -668,10 +615,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
               ) : (
                 <TouchableOpacity onPress={() => setMode('experienceLevel')}>
                   <Card>
-                    <Title
-                      text="Experience Levels"
-                      subtitle="Click to manage experience levels"
-                    />
+                    <Title text="Experience Levels" subtitle="Click to manage experience levels" />
                   </Card>
                 </TouchableOpacity>
               )}
@@ -680,10 +624,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
         ) : (
           <TouchableOpacity onPress={() => setMode('experienceLevel')}>
             <Card>
-              <Title
-                text="Experience Levels"
-                subtitle="Click to manage experience levels"
-              />
+              <Title text="Experience Levels" subtitle="Click to manage experience levels" />
             </Card>
           </TouchableOpacity>
         )}
@@ -700,7 +641,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
                 const isExpanded = expandedPresetId === preset.id;
                 const edit = presetEdits[preset.id] || preset;
                 const goal = trainingGoals.find(
-                  (g: {id: number}) => g.id === edit.trainingGoalId,
+                  (g: { id: number }) => g.id === edit.trainingGoalId,
                 );
 
                 return {
@@ -708,20 +649,14 @@ export default function AdminWorkoutPlanCatalogScreen() {
                   label: `${goal?.name || 'Goal'} – ${edit.experienceLevel?.name || ''}`,
                   selected: isExpanded,
                   rightElement: isExpanded ? (
-                    <FontAwesome
-                      name="chevron-down"
-                      size={16}
-                      color={theme.colors.accentStart}
-                    />
+                    <FontAwesome name="chevron-down" size={16} color={theme.colors.accentStart} />
                   ) : null,
                   onPress: () => {
-                    setExpandedPresetId(prev =>
-                      prev === preset.id ? null : preset.id,
-                    );
-                    setPresetEdits(prev => ({...prev, [preset.id]: preset}));
+                    setExpandedPresetId((prev) => (prev === preset.id ? null : preset.id));
+                    setPresetEdits((prev) => ({ ...prev, [preset.id]: preset }));
                   },
                   content: isExpanded ? (
-                    <View style={{gap: spacing.sm}}>
+                    <View style={{ gap: spacing.sm }}>
                       <SelectableField
                         label="Training Goal"
                         value={goal?.name || 'Select Training Goal'}
@@ -732,82 +667,63 @@ export default function AdminWorkoutPlanCatalogScreen() {
                       />
                       <SelectableField
                         label="Experience Level"
-                        value={
-                          edit.experienceLevel?.name ||
-                          'Select Experience Level'
-                        }
+                        value={edit.experienceLevel?.name || 'Select Experience Level'}
                         onPress={() => {
                           setEditingPresetId(preset.id);
                           setPickerState('experienceLevel');
                         }}
                       />
-                      {edit.metricDefaults.map(
-                        (m: IntensityMetricDefault, idx: number) => (
-                          <View
-                            key={m.metricId}
-                            style={{flexDirection: 'row', gap: spacing.sm}}>
-                            <View style={{flex: 1}}>
-                              <FormInput
-                                label={
-                                  metricRegistry[m.metricId]?.unit
-                                    ? `${metricRegistry[m.metricId]?.name} (${metricRegistry[m.metricId]?.unit})`
-                                    : metricRegistry[m.metricId]?.name ||
-                                      `Metric ID ${m.metricId}`
-                                }
-                                value={String(m.defaultMin)}
-                                keyboardType="numeric"
-                                onChangeText={v =>
-                                  setPresetEdits(p => ({
-                                    ...p,
-                                    [preset.id]: {
-                                      ...edit,
-                                      metricDefaults: edit.metricDefaults.map(
-                                        (
-                                          md: IntensityMetricDefault,
-                                          i: number,
-                                        ) =>
-                                          i === idx
-                                            ? {...md, defaultMin: Number(v)}
-                                            : md,
-                                      ),
-                                    },
-                                  }))
-                                }
-                              />
-                            </View>
-                            <View style={{flex: 1}}>
-                              <FormInput
-                                label="Max (optional)"
-                                value={String(m.defaultMax ?? '')}
-                                keyboardType="numeric"
-                                onChangeText={v =>
-                                  setPresetEdits(p => ({
-                                    ...p,
-                                    [preset.id]: {
-                                      ...edit,
-                                      metricDefaults: edit.metricDefaults.map(
-                                        (
-                                          md: IntensityMetricDefault,
-                                          i: number,
-                                        ) =>
-                                          i === idx
-                                            ? {
-                                                ...md,
-                                                defaultMax:
-                                                  v !== ''
-                                                    ? Number(v)
-                                                    : undefined,
-                                              }
-                                            : md,
-                                      ),
-                                    },
-                                  }))
-                                }
-                              />
-                            </View>
+                      {edit.metricDefaults.map((m: IntensityMetricDefault, idx: number) => (
+                        <View key={m.metricId} style={{ flexDirection: 'row', gap: spacing.sm }}>
+                          <View style={{ flex: 1 }}>
+                            <FormInput
+                              label={
+                                metricRegistry[m.metricId]?.unit
+                                  ? `${metricRegistry[m.metricId]?.name} (${metricRegistry[m.metricId]?.unit})`
+                                  : metricRegistry[m.metricId]?.name || `Metric ID ${m.metricId}`
+                              }
+                              value={String(m.defaultMin)}
+                              keyboardType="numeric"
+                              onChangeText={(v) =>
+                                setPresetEdits((p) => ({
+                                  ...p,
+                                  [preset.id]: {
+                                    ...edit,
+                                    metricDefaults: edit.metricDefaults.map(
+                                      (md: IntensityMetricDefault, i: number) =>
+                                        i === idx ? { ...md, defaultMin: Number(v) } : md,
+                                    ),
+                                  },
+                                }))
+                              }
+                            />
                           </View>
-                        ),
-                      )}
+                          <View style={{ flex: 1 }}>
+                            <FormInput
+                              label="Max (optional)"
+                              value={String(m.defaultMax ?? '')}
+                              keyboardType="numeric"
+                              onChangeText={(v) =>
+                                setPresetEdits((p) => ({
+                                  ...p,
+                                  [preset.id]: {
+                                    ...edit,
+                                    metricDefaults: edit.metricDefaults.map(
+                                      (md: IntensityMetricDefault, i: number) =>
+                                        i === idx
+                                          ? {
+                                              ...md,
+                                              defaultMax: v !== '' ? Number(v) : undefined,
+                                            }
+                                          : md,
+                                    ),
+                                  },
+                                }))
+                              }
+                            />
+                          </View>
+                        </View>
+                      ))}
                       <ButtonRow>
                         <Button
                           text="Update"
@@ -829,9 +745,8 @@ export default function AdminWorkoutPlanCatalogScreen() {
             <SelectableField
               label="Training Goal"
               value={
-                trainingGoals.find(
-                  (g: {id: number}) => g.id === newPreset.trainingGoalId,
-                )?.name || 'Select Training Goal'
+                trainingGoals.find((g: { id: number }) => g.id === newPreset.trainingGoalId)
+                  ?.name || 'Select Training Goal'
               }
               onPress={() => {
                 setEditingPresetId(null);
@@ -851,36 +766,33 @@ export default function AdminWorkoutPlanCatalogScreen() {
               }}
             />
             {newPreset.metricDefaults.map((m, idx) => (
-              <View
-                key={m.metricId}
-                style={{flexDirection: 'row', gap: spacing.sm}}>
-                <View style={{flex: 1}}>
+              <View key={m.metricId} style={{ flexDirection: 'row', gap: spacing.sm }}>
+                <View style={{ flex: 1 }}>
                   <FormInput
                     label={
                       metricRegistry[m.metricId]?.unit
                         ? `${metricRegistry[m.metricId]?.name} (${metricRegistry[m.metricId]?.unit})`
-                        : metricRegistry[m.metricId]?.name ||
-                          `Metric ID ${m.metricId}`
+                        : metricRegistry[m.metricId]?.name || `Metric ID ${m.metricId}`
                     }
                     value={String(m.defaultMin)}
                     keyboardType="numeric"
-                    onChangeText={v =>
-                      setNewPreset(p => ({
+                    onChangeText={(v) =>
+                      setNewPreset((p) => ({
                         ...p,
                         metricDefaults: p.metricDefaults.map((md, i) =>
-                          i === idx ? {...md, defaultMin: Number(v)} : md,
+                          i === idx ? { ...md, defaultMin: Number(v) } : md,
                         ),
                       }))
                     }
                   />
                 </View>
-                <View style={{flex: 1}}>
+                <View style={{ flex: 1 }}>
                   <FormInput
                     label="Max (optional)"
                     value={String(m.defaultMax ?? '')}
                     keyboardType="numeric"
-                    onChangeText={v =>
-                      setNewPreset(p => ({
+                    onChangeText={(v) =>
+                      setNewPreset((p) => ({
                         ...p,
                         metricDefaults: p.metricDefaults.map(
                           (md: IntensityMetricDefault, i: number) =>
@@ -904,10 +816,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
         ) : (
           <TouchableOpacity onPress={() => setMode('preset')}>
             <Card>
-              <Title
-                text="Intensity Presets"
-                subtitle="Click to manage intensity presets"
-              />
+              <Title text="Intensity Presets" subtitle="Click to manage intensity presets" />
             </Card>
           </TouchableOpacity>
         )}
@@ -936,10 +845,8 @@ export default function AdminWorkoutPlanCatalogScreen() {
                   label: group.name,
                   selected: isExpanded,
                   onPress: () => {
-                    setExpandedGroupId(prev =>
-                      prev === group.id ? null : group.id,
-                    );
-                    setGroupEdits(prev => ({...prev, [group.id]: group.name}));
+                    setExpandedGroupId((prev) => (prev === group.id ? null : group.id));
+                    setGroupEdits((prev) => ({ ...prev, [group.id]: group.name }));
                   },
                   onLongPress: () => {
                     setEditMuscleGroupTarget({
@@ -954,8 +861,8 @@ export default function AdminWorkoutPlanCatalogScreen() {
                       <FormInput
                         label="Edit Name"
                         value={groupEdits[group.id] || ''}
-                        onChangeText={text =>
-                          setGroupEdits(prev => ({...prev, [group.id]: text}))
+                        onChangeText={(text) =>
+                          setGroupEdits((prev) => ({ ...prev, [group.id]: text }))
                         }
                       />
                       <ButtonRow>
@@ -963,10 +870,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
                           text="Update"
                           fullWidth
                           onPress={() => handleUpdateGroup(group.id)}
-                          disabled={
-                            !groupEdits[group.id] ||
-                            groupEdits[group.id] === group.name
-                          }
+                          disabled={!groupEdits[group.id] || groupEdits[group.id] === group.name}
                         />
                         <Button
                           text="Delete"
@@ -983,10 +887,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
         ) : (
           <TouchableOpacity onPress={() => setMode('muscleGroup')}>
             <Card>
-              <Title
-                text="Muscle Groups"
-                subtitle="Click to manage muscle groups"
-              />
+              <Title text="Muscle Groups" subtitle="Click to manage muscle groups" />
             </Card>
           </TouchableOpacity>
         )}
@@ -1015,10 +916,8 @@ export default function AdminWorkoutPlanCatalogScreen() {
                     label: method.name,
                     selected: isExpanded,
                     onPress: () => {
-                      setExpandedMethodId(prev =>
-                        prev === method.id ? null : method.id,
-                      );
-                      setMethodEdits(prev => ({
+                      setExpandedMethodId((prev) => (prev === method.id ? null : method.id));
+                      setMethodEdits((prev) => ({
                         ...prev,
                         [method.id]: {
                           name: method.name,
@@ -1029,12 +928,12 @@ export default function AdminWorkoutPlanCatalogScreen() {
                       }));
                     },
                     content: isExpanded ? (
-                      <View style={{gap: spacing.sm}}>
+                      <View style={{ gap: spacing.sm }}>
                         <FormInput
                           label="Edit Name"
                           value={methodEdits[method.id]?.name ?? method.name}
-                          onChangeText={text =>
-                            setMethodEdits(prev => ({
+                          onChangeText={(text) =>
+                            setMethodEdits((prev) => ({
                               ...prev,
                               [method.id]: {
                                 ...prev[method.id],
@@ -1043,40 +942,34 @@ export default function AdminWorkoutPlanCatalogScreen() {
                             }))
                           }
                         />
-                        <View style={{flexDirection: 'row', gap: 12}}>
-                          <View style={{flex: 1}}>
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                          <View style={{ flex: 1 }}>
                             <FormInput
                               label="Min Group Size"
                               keyboardType="numeric"
-                              value={String(
-                                methodEdits[method.id]?.minGroupSize ?? '',
-                              )}
-                              onChangeText={v =>
-                                setMethodEdits(prev => ({
+                              value={String(methodEdits[method.id]?.minGroupSize ?? '')}
+                              onChangeText={(v) =>
+                                setMethodEdits((prev) => ({
                                   ...prev,
                                   [method.id]: {
                                     ...prev[method.id],
-                                    minGroupSize:
-                                      v === '' ? undefined : Number(v),
+                                    minGroupSize: v === '' ? undefined : Number(v),
                                   },
                                 }))
                               }
                             />
                           </View>
-                          <View style={{flex: 1}}>
+                          <View style={{ flex: 1 }}>
                             <FormInput
                               label="Max Group Size"
                               keyboardType="numeric"
-                              value={String(
-                                methodEdits[method.id]?.maxGroupSize ?? '',
-                              )}
-                              onChangeText={v =>
-                                setMethodEdits(prev => ({
+                              value={String(methodEdits[method.id]?.maxGroupSize ?? '')}
+                              onChangeText={(v) =>
+                                setMethodEdits((prev) => ({
                                   ...prev,
                                   [method.id]: {
                                     ...prev[method.id],
-                                    maxGroupSize:
-                                      v === '' ? undefined : Number(v),
+                                    maxGroupSize: v === '' ? undefined : Number(v),
                                   },
                                 }))
                               }
@@ -1088,7 +981,8 @@ export default function AdminWorkoutPlanCatalogScreen() {
                             flexDirection: 'row',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                          }}>
+                          }}
+                        >
                           <Title subtitle="Alternate Exercises in Group" />
                           <Switch
                             value={!!methodEdits[method.id]?.shouldAlternate}
@@ -1097,8 +991,8 @@ export default function AdminWorkoutPlanCatalogScreen() {
                               false: 'grey',
                             }}
                             thumbColor={theme.colors.accentEnd}
-                            onValueChange={value =>
-                              setMethodEdits(prev => ({
+                            onValueChange={(value) =>
+                              setMethodEdits((prev) => ({
                                 ...prev,
                                 [method.id]: {
                                   ...prev[method.id],
@@ -1108,47 +1002,38 @@ export default function AdminWorkoutPlanCatalogScreen() {
                             }
                           />
                         </View>
-                        <Title
-                          text="Linked Training Goals"
-                          subtitle="Tap to toggle"
-                        />
-                        {trainingGoals.map(
-                          (goal: {id: number; name: string}) => {
-                            const isLinked = method.trainingGoals?.some(
-                              (g: {id: number}) => g.id === goal.id,
-                            );
-                            return (
-                              <OptionItem
-                                key={goal.id}
-                                text={goal.name}
-                                selected={isLinked}
-                                onPress={() => {
-                                  const current =
-                                    method.trainingGoals?.map(g => g.id) || [];
-                                  const next = isLinked
-                                    ? current.filter(id => id !== goal.id)
-                                    : [...current, goal.id];
+                        <Title text="Linked Training Goals" subtitle="Tap to toggle" />
+                        {trainingGoals.map((goal: { id: number; name: string }) => {
+                          const isLinked = method.trainingGoals?.some(
+                            (g: { id: number }) => g.id === goal.id,
+                          );
+                          return (
+                            <OptionItem
+                              key={goal.id}
+                              text={goal.name}
+                              selected={isLinked}
+                              onPress={() => {
+                                const current = method.trainingGoals?.map((g) => g.id) || [];
+                                const next = isLinked
+                                  ? current.filter((id) => id !== goal.id)
+                                  : [...current, goal.id];
 
-                                  updateMethodGoals({
-                                    variables: {
-                                      input: {
-                                        methodId: method.id,
-                                        goalIds: next,
-                                      },
+                                updateMethodGoals({
+                                  variables: {
+                                    input: {
+                                      methodId: method.id,
+                                      goalIds: next,
                                     },
-                                  })
-                                    .then(() => refetch())
-                                    .catch(err =>
-                                      console.error(
-                                        'Failed to update training method goals',
-                                        err,
-                                      ),
-                                    );
-                                }}
-                              />
-                            );
-                          },
-                        )}
+                                  },
+                                })
+                                  .then(() => refetch())
+                                  .catch((err) =>
+                                    console.error('Failed to update training method goals', err),
+                                  );
+                              }}
+                            />
+                          );
+                        })}
 
                         <ButtonRow>
                           <Button
@@ -1172,18 +1057,13 @@ export default function AdminWorkoutPlanCatalogScreen() {
         ) : (
           <TouchableOpacity onPress={() => setMode('trainingMethod')}>
             <Card>
-              <Title
-                text="Training Methods"
-                subtitle="Click to manage training methods"
-              />
+              <Title text="Training Methods" subtitle="Click to manage training methods" />
             </Card>
           </TouchableOpacity>
         )}
       </View>
 
-      <ModalWrapper
-        visible={!!pickerState}
-        onClose={() => setPickerState(null)}>
+      <ModalWrapper visible={!!pickerState} onClose={() => setPickerState(null)}>
         {pickerState === 'trainingGoal' && (
           <TrainingGoalPickerModal
             visible
@@ -1193,9 +1073,9 @@ export default function AdminWorkoutPlanCatalogScreen() {
                 ? newPreset.trainingGoalId
                 : presetEdits[editingPresetId]?.trainingGoalId
             }
-            onSelect={id => {
+            onSelect={(id) => {
               if (editingPresetId !== null) {
-                setPresetEdits(prev => ({
+                setPresetEdits((prev) => ({
                   ...prev,
                   [editingPresetId]: {
                     ...prev[editingPresetId],
@@ -1203,7 +1083,7 @@ export default function AdminWorkoutPlanCatalogScreen() {
                   },
                 }));
               } else {
-                setNewPreset(prev => ({...prev, trainingGoalId: id}));
+                setNewPreset((prev) => ({ ...prev, trainingGoalId: id }));
               }
               setPickerState(null);
             }}
@@ -1220,21 +1100,20 @@ export default function AdminWorkoutPlanCatalogScreen() {
                 : (presetEdits[editingPresetId]?.experienceLevelId ?? null)
             }
             levels={data?.experienceLevels ?? []}
-            onSelect={levelId => {
+            onSelect={(levelId) => {
               if (editingPresetId !== null) {
-                setPresetEdits(prev => ({
+                setPresetEdits((prev) => ({
                   ...prev,
                   [editingPresetId]: {
                     ...prev[editingPresetId],
                     experienceLevelId: levelId,
                     experienceLevel:
-                      data?.experienceLevels.find(
-                        (l: ExperienceLevel) => l.id === levelId,
-                      ) ?? prev[editingPresetId].experienceLevel,
+                      data?.experienceLevels.find((l: ExperienceLevel) => l.id === levelId) ??
+                      prev[editingPresetId].experienceLevel,
                   },
                 }));
               } else {
-                setNewPreset(prev => ({...prev, experienceLevelId: levelId}));
+                setNewPreset((prev) => ({ ...prev, experienceLevelId: levelId }));
               }
               setPickerState(null);
             }}

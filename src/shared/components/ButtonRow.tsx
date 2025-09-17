@@ -1,13 +1,13 @@
 import React from 'react';
-import {View, ViewProps} from 'react-native';
+import { View, ViewProps } from 'react-native';
+
 import { spacing } from '../theme/tokens';
 
 interface ButtonRowProps extends ViewProps {
   children: React.ReactNode;
 }
 
-const ButtonRow = ({children, style, ...rest}: ButtonRowProps) => {
-
+const ButtonRow = ({ children, style, ...rest }: ButtonRowProps) => {
   return (
     <View
       style={[
@@ -20,7 +20,8 @@ const ButtonRow = ({children, style, ...rest}: ButtonRowProps) => {
         },
         style,
       ]}
-      {...rest}>
+      {...rest}
+    >
       {children}
     </View>
   );
