@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ScrollView } from 'react-native';
 
-import ClickableListItem from 'shared/components/ClickableListItem';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
-import NoResults from 'shared/components/NoResults';
-import SearchInput from 'shared/components/SearchInput';
-import Title from 'shared/components/Title';
-
-import ModalWrapper from '../../../shared/components/ModalWrapper';
+import ClickableListItem from 'src/shared/components/ClickableListItem';
+import DividerWithLabel from 'src/shared/components/DividerWithLabel';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import NoResults from 'src/shared/components/NoResults';
+import SearchInput from 'src/shared/components/SearchInput';
+import Title from 'src/shared/components/Title';
 
 interface Exercise {
   id: number;

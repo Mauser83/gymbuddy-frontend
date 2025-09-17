@@ -2,7 +2,7 @@ import React, { ReactNode } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTheme } from 'shared/theme/ThemeProvider';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 interface SafeAreaFooterProps {
   children: ReactNode;

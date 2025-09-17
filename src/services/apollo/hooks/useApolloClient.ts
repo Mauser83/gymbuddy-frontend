@@ -1,7 +1,7 @@
 import { ApolloClient } from '@apollo/client';
 import { useMemo } from 'react';
 
-import { useAuth } from 'features/auth/context/AuthContext';
+import { useAuth } from 'src/features/auth/context/AuthContext';
 
 import createApolloClient from '../apolloClient';
 

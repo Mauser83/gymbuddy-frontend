@@ -3,17 +3,16 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { View, Alert } from 'react-native';
 import { useNavigate } from 'react-router-native';
 
-import { useAuth } from 'features/auth/context/AuthContext';
-import AdminExerciseList from 'features/exercises/components/AdminExerciseList';
-import Button from 'shared/components/Button';
-import LoadingState from 'shared/components/LoadingState';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import SearchInput from 'shared/components/SearchInput';
-import { spacing } from 'shared/theme/tokens';
-import { debounce } from 'shared/utils/helpers';
-
-import { GET_EXERCISES, DELETE_EXERCISE } from '../../features/exercises/graphql/exercise.graphql';
-import { Exercise } from '../../features/exercises/types/exercise.types';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import AdminExerciseList from 'src/features/exercises/components/AdminExerciseList';
+import { GET_EXERCISES, DELETE_EXERCISE } from 'src/features/exercises/graphql/exercise.graphql';
+import { Exercise } from 'src/features/exercises/types/exercise.types';
+import Button from 'src/shared/components/Button';
+import LoadingState from 'src/shared/components/LoadingState';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import SearchInput from 'src/shared/components/SearchInput';
+import { spacing } from 'src/shared/theme/tokens';
+import { debounce } from 'src/shared/utils/helpers';
 
 export default function ExerciseListScreen() {
   const { user } = useAuth();

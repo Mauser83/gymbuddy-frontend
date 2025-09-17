@@ -1,25 +1,25 @@
-import React from 'react';
 import 'react-native-reanimated';
-import { ActivityIndicator, StatusBar } from 'react-native';
+import { ApolloProvider } from '@apollo/client';
 import { useFonts } from 'expo-font';
+import React from 'react';
+import { ActivityIndicator, StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Host } from 'react-native-portalize';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NativeRouter } from 'react-router-native';
 
-import RoleSubscriptionWatcher from 'features/auth/components/RoleSubscriptionWatcher';
-import ContentContainer from 'shared/components/ContentContainer';
-import LoadingState from 'shared/components/LoadingState';
-import StatusBarManager from 'shared/components/StatusBarManager';
-import ToastContainer from 'shared/components/ToastContainer';
-
+import BebasNeue from './src/assets/fonts/BebasNeue-Regular.ttf';
+import Inter from './src/assets/fonts/Inter-VariableFont.ttf';
+import RoleSubscriptionWatcher from './src/features/auth/components/RoleSubscriptionWatcher';
 import { AuthProvider, useAuth } from './src/features/auth/context/AuthContext';
 import { RoleProvider } from './src/features/auth/context/RoleContext';
 import AppRoutes from './src/routes/AppRoutes';
-import { useApolloClient } from './src/services/apollo/hooks/useApolloClient'; // adjust path if needed
+import { useApolloClient } from './src/services/apollo/hooks/useApolloClient';
+import ContentContainer from './src/shared/components/ContentContainer';
+import LoadingState from './src/shared/components/LoadingState';
+import StatusBarManager from './src/shared/components/StatusBarManager';
+import ToastContainer from './src/shared/components/ToastContainer';
 import { ThemeProvider as CustomThemeProvider, useTheme } from './src/shared/theme/ThemeProvider';
-
-import { ApolloProvider } from '@apollo/client';
 
 const AppContent = () => {
   const { sessionLoaded, isAuthenticated } = useAuth();
@@ -56,8 +56,8 @@ const AppContent = () => {
 
 const App = () => {
   const [fontsLoaded] = useFonts({
-    BebasNeue: require('./src/assets/fonts/BebasNeue-Regular.ttf'),
-    Inter: require('./src/assets/fonts/Inter-VariableFont.ttf'),
+    BebasNeue,
+    Inter,
   });
 
   if (!fontsLoaded) {

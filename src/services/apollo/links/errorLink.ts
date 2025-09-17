@@ -2,8 +2,8 @@ import { Observable } from '@apollo/client';
 import { onError } from '@apollo/client/link/error';
 import Toast from 'react-native-toast-message';
 
-import { triggerLogout } from 'features/auth/utils/logoutTrigger'; // ✅ use this
-import { getAccessToken } from 'features/auth/utils/tokenStorage';
+import { triggerLogout } from 'src/features/auth/utils/logoutTrigger'; // ✅ use this
+import { getAccessToken } from 'src/features/auth/utils/tokenStorage';
 
 import { refreshAccessToken } from '../tokenManager';
 

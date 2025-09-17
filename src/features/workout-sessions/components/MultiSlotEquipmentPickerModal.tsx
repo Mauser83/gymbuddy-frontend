@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View } from 'react-native';
 
-import Button from 'shared/components/Button';
-import ClickableList from 'shared/components/ClickableList';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import NoResults from 'shared/components/NoResults';
-import Title from 'shared/components/Title';
-import { spacing } from 'shared/theme/tokens';
+import Button from 'src/shared/components/Button';
+import ClickableList from 'src/shared/components/ClickableList';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import NoResults from 'src/shared/components/NoResults';
+import Title from 'src/shared/components/Title';
+import { spacing } from 'src/shared/theme/tokens';
 
 interface EquipmentOption {
   id: number;

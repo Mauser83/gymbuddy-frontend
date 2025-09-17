@@ -3,18 +3,18 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Dimensions } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
 
-import { useAuth } from 'features/auth/context/AuthContext';
-import { GET_WORKOUT_SESSIONS_BY_USER } from 'features/exercises/graphql/exercise.graphql';
-import Card from 'shared/components/Card';
-import ClickableList from 'shared/components/ClickableList';
-import DetailField from 'shared/components/DetailField';
-import NoResults from 'shared/components/NoResults';
-import OptionModal from 'shared/components/OptionModal';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import SelectableField from 'shared/components/SelectableField';
-import Title from 'shared/components/Title';
-import { useTheme } from 'shared/theme/ThemeProvider';
-import { borderRadius, spacing } from 'shared/theme/tokens';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import { GET_WORKOUT_SESSIONS_BY_USER } from 'src/features/exercises/graphql/exercise.graphql';
+import Card from 'src/shared/components/Card';
+import ClickableList from 'src/shared/components/ClickableList';
+import DetailField from 'src/shared/components/DetailField';
+import NoResults from 'src/shared/components/NoResults';
+import OptionModal from 'src/shared/components/OptionModal';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import SelectableField from 'src/shared/components/SelectableField';
+import Title from 'src/shared/components/Title';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { borderRadius, spacing } from 'src/shared/theme/tokens';
 
 const TIMEFRAME_OPTIONS = ['Last 7 Days', 'Last 30 Days'];
 

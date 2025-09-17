@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from '@apollo/client';
 
-import { AssignEquipmentToGymInput, GymEquipment } from 'features/gyms/types/gym.types';
+import { AssignEquipmentToGymInput, GymEquipment } from 'src/features/gyms/types/gym.types';
 
 import {
   GET_GYM_EQUIPMENT,

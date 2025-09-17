@@ -12,25 +12,61 @@ const webStorage: WebStorage | null =
   isWeb && typeof globalThis !== 'undefined' && 'localStorage' in globalThis
     ? (globalThis as unknown as { localStorage: WebStorage }).localStorage
     : null;
-// Dynamically require AsyncStorage only on native platforms to avoid bundling
-// the module on web, where it leads to runtime errors.
-const AsyncStorage: AsyncStorageStatic | null = isWeb
-  ? null
-  : // eslint-disable-next-line @typescript-eslint/no-var-requires
-    require('@react-native-async-storage/async-storage').default;
+let asyncStoragePromise: Promise<AsyncStorageStatic> | null = null;
+
+const getAsyncStorage = async (): Promise<AsyncStorageStatic | null> => {
+  if (isWeb) {
+    return null;
+  }
+
+  if (!asyncStoragePromise) {
+    asyncStoragePromise = import('@react-native-async-storage/async-storage').then(
+      (module) => module.default as AsyncStorageStatic,
+    );
+  }
+
+  return asyncStoragePromise;
+};
 
 export const storage = {
-  getItem: async (key: string): Promise<string | null> =>
-    isWeb ? Promise.resolve(webStorage?.getItem(key) ?? null) : AsyncStorage!.getItem(key),
+  getItem: async (key: string): Promise<string | null> => {
+    if (isWeb) {
+      return webStorage?.getItem(key) ?? null;
+    }
 
-  setItem: async (key: string, value: string): Promise<void> =>
-    isWeb ? Promise.resolve(webStorage?.setItem(key, value)) : AsyncStorage!.setItem(key, value),
+    const asyncStorage = await getAsyncStorage();
+    return asyncStorage?.getItem(key) ?? null;
+  },
 
-  removeItem: async (key: string): Promise<void> =>
-    isWeb ? Promise.resolve(webStorage?.removeItem(key)) : AsyncStorage!.removeItem(key),
+  setItem: async (key: string, value: string): Promise<void> => {
+    if (isWeb) {
+      webStorage?.setItem(key, value);
+      return;
+    }
 
-  multiRemove: async (keys: string[]): Promise<void> =>
-    isWeb
-      ? Promise.resolve(webStorage ? keys.forEach((key) => webStorage.removeItem(key)) : undefined)
-      : AsyncStorage!.multiRemove(keys),
+    const asyncStorage = await getAsyncStorage();
+    await asyncStorage?.setItem(key, value);
+  },
+
+  removeItem: async (key: string): Promise<void> => {
+    if (isWeb) {
+      webStorage?.removeItem(key);
+      return;
+    }
+
+    const asyncStorage = await getAsyncStorage();
+    await asyncStorage?.removeItem(key);
+  },
+
+  multiRemove: async (keys: string[]): Promise<void> => {
+    if (isWeb) {
+      if (webStorage) {
+        keys.forEach((key) => webStorage.removeItem(key));
+      }
+      return;
+    }
+
+    const asyncStorage = await getAsyncStorage();
+    await asyncStorage?.multiRemove(keys);
+  },
 };

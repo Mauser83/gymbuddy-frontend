@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from '@apollo/client';
+import { useMutation, useQuery } from '@apollo/client';
 
 import {
   GET_MY_EXERCISES,
@@ -8,9 +8,9 @@ import {
 } from '../graphql/exercise.graphql';
 import { CreateExerciseInput, UpdateExerciseInput, Exercise } from '../types/exercise.types';
 
-export function useExercise() {
-  const getMyExercises = () => useQuery<{ getExercises: Exercise[] }>(GET_MY_EXERCISES);
+export const useMyExercisesQuery = () => useQuery<{ getExercises: Exercise[] }>(GET_MY_EXERCISES);
 
+export function useExerciseMutations() {
   const [createExercise] = useMutation<
     { createExercise: Exercise },
     { input: CreateExerciseInput }
@@ -24,7 +24,6 @@ export function useExercise() {
   );
 
   return {
-    getMyExercises,
     createExercise,
     updateExercise,
     deleteExercise,

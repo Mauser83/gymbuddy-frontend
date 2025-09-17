@@ -1,8 +1,8 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 
-import OptionItem from 'shared/components/OptionItem';
-import { spacing } from 'shared/theme/tokens';
+import OptionItem from 'src/shared/components/OptionItem';
+import { spacing } from 'src/shared/theme/tokens';
 
 import ModalWrapper from './ModalWrapper';
 

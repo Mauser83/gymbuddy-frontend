@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import ClickableList from 'shared/components/ClickableList';
-import FormInput from 'shared/components/FormInput';
-import Title from 'shared/components/Title';
-import { spacing } from 'shared/theme/tokens';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import ClickableList from 'src/shared/components/ClickableList';
+import FormInput from 'src/shared/components/FormInput';
+import Title from 'src/shared/components/Title';
+import { spacing } from 'src/shared/theme/tokens';
 
 interface BodyPart {
   id: number;

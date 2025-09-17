@@ -4,14 +4,14 @@ import { View, StyleSheet } from 'react-native'; // Import StyleSheet
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import * as Yup from 'yup';
 
-import { useAuthService } from 'features/auth/hooks/useAuthService';
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import Card from 'shared/components/Card';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
-import FormError from 'shared/components/FormError';
-import FormInput from 'shared/components/FormInput';
-import ScreenLayout from 'shared/components/ScreenLayout';
+import { useAuthService } from 'src/features/auth/hooks/useAuthService';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import Card from 'src/shared/components/Card';
+import DividerWithLabel from 'src/shared/components/DividerWithLabel';
+import FormError from 'src/shared/components/FormError';
+import FormInput from 'src/shared/components/FormInput';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
 
 // Validation Schema
 const LoginSchema = Yup.object().shape({

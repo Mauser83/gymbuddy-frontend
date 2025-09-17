@@ -4,22 +4,21 @@ import React from 'react';
 import { View } from 'react-native';
 import { useParams, useNavigate } from 'react-router-native';
 
-import Button from 'shared/components/Button';
-import Card from 'shared/components/Card';
-import DetailField from 'shared/components/DetailField';
-import ErrorMessage from 'shared/components/ErrorMessage';
-import ExerciseGroupCard from 'shared/components/ExerciseGroupCard';
-import LoadingSpinner from 'shared/components/LoadingSpinner';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-import { useMetricRegistry } from 'shared/context/MetricRegistry';
-import { useExerciseLogSummary } from 'shared/hooks/ExerciseLogSummary';
-import { spacing } from 'shared/theme/tokens';
-
 import {
   DELETE_WORKOUT_SESSION,
   GET_WORKOUT_SESSION_DETAIL,
-} from '../../features/workout-sessions/graphql/userWorkouts.graphql';
+} from 'src/features/workout-sessions/graphql/userWorkouts.graphql';
+import Button from 'src/shared/components/Button';
+import Card from 'src/shared/components/Card';
+import DetailField from 'src/shared/components/DetailField';
+import ErrorMessage from 'src/shared/components/ErrorMessage';
+import ExerciseGroupCard from 'src/shared/components/ExerciseGroupCard';
+import LoadingSpinner from 'src/shared/components/LoadingSpinner';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
+import { useMetricRegistry } from 'src/shared/context/MetricRegistry';
+import { useExerciseLogSummary } from 'src/shared/hooks/ExerciseLogSummary';
+import { spacing } from 'src/shared/theme/tokens';
 
 // ... (Your type definitions remain the same)
 type Muscle = {

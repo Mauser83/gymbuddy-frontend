@@ -3,19 +3,19 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { View } from 'react-native';
 import { useNavigate } from 'react-router-native';
 
-import EquipmentList from 'features/equipment/components/EquipmentList';
-import Button from 'shared/components/Button';
-import LoadingState from 'shared/components/LoadingState';
-import SearchInput from 'shared/components/SearchInput';
-import { spacing } from 'shared/theme/tokens';
-import { debounce } from 'shared/utils/helpers';
-
-import { useAuth } from '../../features/auth/context/AuthContext';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import EquipmentList from 'src/features/equipment/components/EquipmentList';
 import {
   GET_ALL_EQUIPMENTS,
   DELETE_EQUIPMENT,
-} from '../../features/equipment/graphql/equipment.graphql';
-import { Equipment } from '../../features/equipment/types/equipment.types';
+} from 'src/features/equipment/graphql/equipment.graphql';
+import { Equipment } from 'src/features/equipment/types/equipment.types';
+import Button from 'src/shared/components/Button';
+import LoadingState from 'src/shared/components/LoadingState';
+import SearchInput from 'src/shared/components/SearchInput';
+import { spacing } from 'src/shared/theme/tokens';
+import { debounce } from 'src/shared/utils/helpers';
+
 import ScreenLayout from '../../shared/components/ScreenLayout';
 
 const GlobalEquipmentListScreen = () => {

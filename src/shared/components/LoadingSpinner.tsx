@@ -1,7 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, ViewStyle } from 'react-native';
 
-import { useTheme } from 'shared/theme/ThemeProvider';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 interface LoadingSpinnerProps {
   size?: 'small' | 'large';

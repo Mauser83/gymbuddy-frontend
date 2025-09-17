@@ -2,18 +2,17 @@ import { useQuery, useSubscription } from '@apollo/client';
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-native';
 
-import { useAuth } from 'features/auth/context/AuthContext';
-import { GET_GYM_BY_ID } from 'features/gyms/graphql/gym.queries';
-import { Gym } from 'features/gyms/types/gym.types';
-import Card from 'shared/components/Card';
-import DetailField from 'shared/components/DetailField';
-import ErrorMessage from 'shared/components/ErrorMessage';
-import LoadingState from 'shared/components/LoadingState';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-
-import { GYM_FRAGMENT } from '../../features/gyms/graphql/gym.fragments';
-import { GYM_APPROVED_SUBSCRIPTION } from '../../features/gyms/graphql/gym.subscriptions';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import { GYM_FRAGMENT } from 'src/features/gyms/graphql/gym.fragments';
+import { GET_GYM_BY_ID } from 'src/features/gyms/graphql/gym.queries';
+import { GYM_APPROVED_SUBSCRIPTION } from 'src/features/gyms/graphql/gym.subscriptions';
+import { Gym } from 'src/features/gyms/types/gym.types';
+import Card from 'src/shared/components/Card';
+import DetailField from 'src/shared/components/DetailField';
+import ErrorMessage from 'src/shared/components/ErrorMessage';
+import LoadingState from 'src/shared/components/LoadingState';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
 
 const GymDetailScreen = () => {
   const { gymId: idParam } = useParams<{ gymId: string }>();

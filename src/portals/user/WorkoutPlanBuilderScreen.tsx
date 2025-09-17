@@ -34,35 +34,34 @@ import Animated, {
 import { useNavigate, useLocation } from 'react-router-native';
 import * as Yup from 'yup';
 
-import Button from 'shared/components/Button';
-import Card from 'shared/components/Card';
-import ExerciseGroupCard from 'shared/components/ExerciseGroupCard';
-import FormInput from 'shared/components/FormInput';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import SelectableField from 'shared/components/SelectableField';
-import TargetMetricInputGroup from 'shared/components/TargetMetricInputGroup';
-import Title from 'shared/components/Title';
-import ToastContainer from 'shared/components/ToastContainer';
-import { useMetricRegistry } from 'shared/context/MetricRegistry';
-import { MeasuredDraggableItem } from 'shared/dragAndDrop/MeasureDraggableItem';
-import { useWorkoutPlanSummary } from 'shared/hooks/WorkoutPlanSummary';
-import { useTheme } from 'shared/theme/ThemeProvider';
-import { spacing } from 'shared/theme/tokens';
-
-import DifficultyPickerModal from '../../features/workout-plans/components/DifficultyPickerModal';
-import MuscleGroupPickerModal from '../../features/workout-plans/components/MuscleGroupPickerModal';
-import SelectExerciseModal from '../../features/workout-plans/components/SelectExerciseModal';
-import TrainingGoalPickerModal from '../../features/workout-plans/components/TrainingGoalPickerModal';
-import TrainingMethodPicker from '../../features/workout-plans/components/TrainingMethodPicker';
+import DifficultyPickerModal from 'src/features/workout-plans/components/DifficultyPickerModal';
+import MuscleGroupPickerModal from 'src/features/workout-plans/components/MuscleGroupPickerModal';
+import SelectExerciseModal from 'src/features/workout-plans/components/SelectExerciseModal';
+import TrainingGoalPickerModal from 'src/features/workout-plans/components/TrainingGoalPickerModal';
+import TrainingMethodPicker from 'src/features/workout-plans/components/TrainingMethodPicker';
 import {
   GET_WORKOUT_PLAN_META,
   GET_EXERCISES_BASIC,
-} from '../../features/workout-plans/graphql/workoutMeta.graphql';
+} from 'src/features/workout-plans/graphql/workoutMeta.graphql';
 import {
   CREATE_WORKOUT_PLAN,
   UPDATE_WORKOUT_PLAN,
-} from '../../features/workout-plans/graphql/workoutReferences';
+} from 'src/features/workout-plans/graphql/workoutReferences';
+import Button from 'src/shared/components/Button';
+import Card from 'src/shared/components/Card';
+import ExerciseGroupCard from 'src/shared/components/ExerciseGroupCard';
+import FormInput from 'src/shared/components/FormInput';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import SelectableField from 'src/shared/components/SelectableField';
+import TargetMetricInputGroup from 'src/shared/components/TargetMetricInputGroup';
+import Title from 'src/shared/components/Title';
+import ToastContainer from 'src/shared/components/ToastContainer';
+import { useMetricRegistry } from 'src/shared/context/MetricRegistry';
+import { MeasuredDraggableItem } from 'src/shared/dragAndDrop/MeasureDraggableItem';
+import { useWorkoutPlanSummary } from 'src/shared/hooks/WorkoutPlanSummary';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing } from 'src/shared/theme/tokens';
 
 // IMPORTS FOR THE CUSTOM DRAG-AND-DROP
 

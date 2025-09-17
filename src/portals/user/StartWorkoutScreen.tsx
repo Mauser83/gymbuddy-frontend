@@ -4,20 +4,20 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-native';
 import * as Yup from 'yup';
 
-import { useAuth } from 'features/auth/context/AuthContext';
-import { Gym } from 'features/gyms/types/gym.types';
-import GymPickerModal from 'features/workout-sessions/components/GymPickerModal';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import { Gym } from 'src/features/gyms/types/gym.types';
+import GymPickerModal from 'src/features/workout-sessions/components/GymPickerModal';
 import WorkoutPlanPickerModal, {
   WorkoutPlan,
-} from 'features/workout-sessions/components/WorkoutPlanPickerModal';
-import { CREATE_WORKOUT_SESSION } from 'features/workout-sessions/graphql/userWorkouts.graphql';
-import Button from 'shared/components/Button';
-import FormError from 'shared/components/FormError';
-import LoadingState from 'shared/components/LoadingState';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import SelectableField from 'shared/components/SelectableField';
-import Title from 'shared/components/Title';
+} from 'src/features/workout-sessions/components/WorkoutPlanPickerModal';
+import { CREATE_WORKOUT_SESSION } from 'src/features/workout-sessions/graphql/userWorkouts.graphql';
+import Button from 'src/shared/components/Button';
+import FormError from 'src/shared/components/FormError';
+import LoadingState from 'src/shared/components/LoadingState';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import SelectableField from 'src/shared/components/SelectableField';
+import Title from 'src/shared/components/Title';
 
 const validationSchema = Yup.object().shape({
   gym: Yup.object().required('Please select a gym'),

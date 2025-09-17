@@ -8,7 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 
-import { spacing } from 'shared/theme/tokens';
+import { spacing } from 'src/shared/theme/tokens';
 
 interface ExerciseCarouselProps {
   children: React.ReactNode[];

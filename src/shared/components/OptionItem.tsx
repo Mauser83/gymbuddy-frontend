@@ -1,8 +1,8 @@
 import React from 'react';
 import { TouchableOpacity, Text } from 'react-native';
 
-import { useTheme } from 'shared/theme/ThemeProvider';
-import { borderWidth, spacing } from 'shared/theme/tokens';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { borderWidth, spacing } from 'src/shared/theme/tokens';
 
 interface OptionItemProps {
   text: string;

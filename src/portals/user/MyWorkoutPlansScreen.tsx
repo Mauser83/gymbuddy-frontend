@@ -3,12 +3,12 @@ import React from 'react';
 import { View, Pressable, FlatList, SectionList, Text } from 'react-native';
 import { useNavigate } from 'react-router-native';
 
-import Button from 'shared/components/Button';
-
 import {
   GET_MY_WORKOUT_PLANS,
   GET_SHARED_WORKOUT_PLANS,
-} from '../../features/workout-sessions/graphql/userWorkouts.graphql';
+} from 'src/features/workout-sessions/graphql/userWorkouts.graphql';
+import Button from 'src/shared/components/Button';
+
 import Card from '../../shared/components/Card';
 import LoadingState from '../../shared/components/LoadingState';
 import NoResults from '../../shared/components/NoResults';

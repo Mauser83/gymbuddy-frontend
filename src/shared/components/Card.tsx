@@ -3,8 +3,8 @@ import React from 'react';
 import { View, Text, ViewStyle, StyleProp } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
-import { useTheme } from 'shared/theme/ThemeProvider';
-import { spacing } from 'shared/theme/tokens';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing } from 'src/shared/theme/tokens';
 
 type CardVariant = 'glass' | 'solid' | 'elevated' | 'feature' | 'user';
 

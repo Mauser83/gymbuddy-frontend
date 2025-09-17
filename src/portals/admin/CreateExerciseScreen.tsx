@@ -4,15 +4,14 @@ import Toast from 'react-native-toast-message';
 import { useNavigate } from 'react-router-native';
 import * as Yup from 'yup';
 
-import ExerciseForm from 'features/exercises/components/ExerciseForm';
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-
-import { useExercise } from '../../features/exercises/hooks/useExercise';
-import { CreateExerciseInput } from '../../features/exercises/types/exercise.types';
+import ExerciseForm from 'src/features/exercises/components/ExerciseForm';
+import { useExerciseMutations } from 'src/features/exercises/hooks/useExercise';
+import { CreateExerciseInput } from 'src/features/exercises/types/exercise.types';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import DividerWithLabel from 'src/shared/components/DividerWithLabel';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
 
 const ExerciseSchema = Yup.object().shape({
   name: Yup.string().required('Name is required'),
@@ -50,7 +49,7 @@ const initialValues: CreateExerciseInput = {
 
 export default function CreateExerciseScreen() {
   const navigate = useNavigate();
-  const { createExercise } = useExercise();
+  const { createExercise } = useExerciseMutations();
 
   const handleSubmit = async (
     values: CreateExerciseInput,

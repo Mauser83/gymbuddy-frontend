@@ -1,8 +1,8 @@
 import React from 'react';
 import { Text } from 'react-native';
 
-import { useTheme } from 'shared/theme/ThemeProvider';
-import { fontSizes, fontWeights, spacing } from 'shared/theme/tokens';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { fontSizes, fontWeights, spacing } from 'src/shared/theme/tokens';
 
 interface FormErrorProps {
   message: string;

@@ -3,18 +3,17 @@ import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { useParams, useNavigate } from 'react-router-native';
 
-import { GET_GYM_BY_ID } from 'features/gyms/graphql/gym.queries';
-import { GymRole } from 'features/gyms/types/gym.types';
-import Button from 'shared/components/Button';
-import Card from 'shared/components/Card';
-import DetailField from 'shared/components/DetailField';
-import LoadingState from 'shared/components/LoadingState';
-import NoResults from 'shared/components/NoResults';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-import { spacing } from 'shared/theme/tokens';
-
-import { useAuth } from '../../features/auth/context/AuthContext';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import { GET_GYM_BY_ID } from 'src/features/gyms/graphql/gym.queries';
+import { GymRole } from 'src/features/gyms/types/gym.types';
+import Button from 'src/shared/components/Button';
+import Card from 'src/shared/components/Card';
+import DetailField from 'src/shared/components/DetailField';
+import LoadingState from 'src/shared/components/LoadingState';
+import NoResults from 'src/shared/components/NoResults';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
+import { spacing } from 'src/shared/theme/tokens';
 
 const GymManagementScreen = () => {
   const { gymId: idParam } = useParams();

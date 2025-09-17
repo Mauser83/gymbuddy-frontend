@@ -39,6 +39,7 @@ module.exports = {
     // RN: turn off the two noisiest rules for existing apps
     'react-native/no-raw-text': 'off',
     'react-native/no-inline-styles': 'off',
+    'react-native/no-color-literals': 'off',
 
     // Import order is nice, but start with a warning (autofix available)
     'import/order': [

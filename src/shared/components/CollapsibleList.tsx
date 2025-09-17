@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 
-import { useTheme } from 'shared/theme/ThemeProvider';
-import { spacing } from 'shared/theme/tokens';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing } from 'src/shared/theme/tokens';
 
 interface CollapsibleListProps {
   title: React.ReactNode;

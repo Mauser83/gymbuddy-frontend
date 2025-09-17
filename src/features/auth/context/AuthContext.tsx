@@ -2,10 +2,10 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-native';
 
-import { registerLogoutCallback } from 'features/auth/utils/logoutTrigger'; // adjust path if needed
-import type { User } from 'features/users/types/user';
+import { registerLogoutCallback } from 'src/features/auth/utils/logoutTrigger'; // adjust path if needed
+import type { User } from 'src/features/users/types/user';
+import { refreshAccessToken } from 'src/services/apollo/tokenManager';
 
-import { refreshAccessToken } from '../../../services/apollo/tokenManager';
 import type { AuthContextType } from '../types/auth';
 import { isTokenExpired } from '../utils/isTokenExpired';
 import { storage } from '../utils/storage';

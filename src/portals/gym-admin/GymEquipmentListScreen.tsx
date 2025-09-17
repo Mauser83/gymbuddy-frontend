@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-native';
 
-import AddEquipmentToGymModal from 'features/gyms/components/AddEquipmentToGymModal';
-import { useGymEquipment } from 'features/gyms/hooks/useGymEquipment';
-import { GymEquipment } from 'features/gyms/types/gym.types'; // ✅ Use correct type
-import Button from 'shared/components/Button';
-import ClickableList from 'shared/components/ClickableList';
-import LoadingState from 'shared/components/LoadingState';
-import NoResults from 'shared/components/NoResults';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
+import AddEquipmentToGymModal from 'src/features/gyms/components/AddEquipmentToGymModal';
+import { useGymEquipment } from 'src/features/gyms/hooks/useGymEquipment';
+import { GymEquipment } from 'src/features/gyms/types/gym.types'; // ✅ Use correct type
+import Button from 'src/shared/components/Button';
+import ClickableList from 'src/shared/components/ClickableList';
+import LoadingState from 'src/shared/components/LoadingState';
+import NoResults from 'src/shared/components/NoResults';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
 
 export default function GymEquipmentListScreen() {
   const { gymId } = useParams<{ gymId: string }>();

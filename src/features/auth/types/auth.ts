@@ -1,4 +1,4 @@
-import { User } from 'features/users/types/user';
+import { User } from 'src/features/users/types/user';
 
 export interface AuthContextType {
   isAuthenticated: boolean;

@@ -1,15 +1,15 @@
 import { useLazyQuery, useMutation } from '@apollo/client';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
-import { GET_ALL_EQUIPMENTS } from 'features/equipment/graphql/equipment.graphql';
-import { Equipment } from 'features/equipment/types/equipment.types';
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import FormInput from 'shared/components/FormInput';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import SearchInput from 'shared/components/SearchInput';
-import Title from 'shared/components/Title';
-import { debounce } from 'shared/utils/helpers';
+import { GET_ALL_EQUIPMENTS } from 'src/features/equipment/graphql/equipment.graphql';
+import { Equipment } from 'src/features/equipment/types/equipment.types';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import FormInput from 'src/shared/components/FormInput';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import SearchInput from 'src/shared/components/SearchInput';
+import Title from 'src/shared/components/Title';
+import { debounce } from 'src/shared/utils/helpers';
 
 import EquipmentPickerList from './EquipmentPickerList';
 import { ASSIGN_EQUIPMENT_TO_GYM } from '../graphql/gymEquipment';

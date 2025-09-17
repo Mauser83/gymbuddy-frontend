@@ -4,14 +4,14 @@ import React from 'react';
 import { View, FlatList, TouchableOpacity } from 'react-native';
 import { useNavigate } from 'react-router-native';
 
-import { useAuth } from 'features/auth/context/AuthContext';
-import { GET_WORKOUT_SESSIONS_BY_USER } from 'features/workout-sessions/graphql/userWorkouts.graphql';
-import Card from 'shared/components/Card';
-import ErrorMessage from 'shared/components/ErrorMessage';
-import LoadingSpinner from 'shared/components/LoadingSpinner';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-import { useTheme } from 'shared/theme/ThemeProvider';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import { GET_WORKOUT_SESSIONS_BY_USER } from 'src/features/workout-sessions/graphql/userWorkouts.graphql';
+import Card from 'src/shared/components/Card';
+import ErrorMessage from 'src/shared/components/ErrorMessage';
+import LoadingSpinner from 'src/shared/components/LoadingSpinner';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 type WorkoutSessionPreview = {
   id: number;

@@ -4,8 +4,8 @@ import { Portal } from 'react-native-portalize';
 import Animated, { SlideInRight, SlideOutRight } from 'react-native-reanimated';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
-import { useTheme } from 'shared/theme/ThemeProvider';
-import { borderWidth, spacing } from 'shared/theme/tokens';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { borderWidth, spacing } from 'src/shared/theme/tokens';
 
 import { useExerciseLogSummary } from './ExerciseLogSummary';
 import { ExerciseLog } from '../types/userWorkouts.types';

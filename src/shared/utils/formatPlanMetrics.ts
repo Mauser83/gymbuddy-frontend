@@ -1,4 +1,4 @@
-import { MetricDefinition } from 'shared/context/MetricRegistry';
+import { MetricDefinition } from 'src/shared/context/MetricRegistry';
 
 export function formatPlanMetrics(
   metrics: { metricId: number; min: number | string; max?: number | string | null }[],

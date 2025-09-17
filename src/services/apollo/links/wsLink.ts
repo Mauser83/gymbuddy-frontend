@@ -1,7 +1,7 @@
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
 
-import { getAccessToken } from 'features/auth/utils/tokenStorage';
+import { getAccessToken } from 'src/features/auth/utils/tokenStorage';
 
 import { setWsClient } from '../tokenManager';
 

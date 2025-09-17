@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 
-import { useAuth } from 'features/auth/context/AuthContext';
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import OptionItem from 'shared/components/OptionItem';
-import SelectableField from 'shared/components/SelectableField';
-import Title from 'shared/components/Title';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import OptionItem from 'src/shared/components/OptionItem';
+import SelectableField from 'src/shared/components/SelectableField';
+import Title from 'src/shared/components/Title';
 
 interface EditRolesModalProps {
   visible: boolean;

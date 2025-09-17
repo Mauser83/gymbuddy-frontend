@@ -13,8 +13,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 
-import { useTheme } from 'shared/theme/ThemeProvider';
-import { borderRadius, spacing } from 'shared/theme/tokens';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { borderRadius, spacing } from 'src/shared/theme/tokens';
 
 type ExerciseGroupCardProps = {
   label: string;

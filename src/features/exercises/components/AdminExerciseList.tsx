@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
+import React, { memo, useState } from 'react';
 import { FlatList } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
-import { Exercise } from 'features/exercises/types/exercise.types';
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import Card from 'shared/components/Card';
-import ClickableList from 'shared/components/ClickableList';
-import NoResults from 'shared/components/NoResults';
-import { useTheme } from 'shared/theme/ThemeProvider';
-import { spacing } from 'shared/theme/tokens';
+import { Exercise } from 'src/features/exercises/types/exercise.types';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import Card from 'src/shared/components/Card';
+import ClickableList from 'src/shared/components/ClickableList';
+import NoResults from 'src/shared/components/NoResults';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing } from 'src/shared/theme/tokens';
 
 type Props = {
   exercises: Exercise[];
@@ -17,7 +17,7 @@ type Props = {
   onDelete: (id: number) => void;
 };
 
-const AdminExerciseList = React.memo(({ exercises, onEdit, onDelete }: Props) => {
+const AdminExerciseListComponent: React.FC<Props> = ({ exercises, onEdit, onDelete }) => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const { theme } = useTheme();
 
@@ -62,6 +62,9 @@ const AdminExerciseList = React.memo(({ exercises, onEdit, onDelete }: Props) =>
       showsVerticalScrollIndicator={false}
     />
   );
-});
+};
+
+const AdminExerciseList = memo(AdminExerciseListComponent);
+AdminExerciseList.displayName = 'AdminExerciseList';
 
 export default AdminExerciseList;

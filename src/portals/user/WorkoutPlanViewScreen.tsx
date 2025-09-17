@@ -3,20 +3,19 @@ import React from 'react';
 import { View, Alert } from 'react-native';
 import { useParams, useNavigate } from 'react-router-native';
 
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import Card from 'shared/components/Card';
-import DetailField from 'shared/components/DetailField';
-import ErrorMessage from 'shared/components/ErrorMessage';
-import ExerciseGroupCard from 'shared/components/ExerciseGroupCard';
-import LoadingState from 'shared/components/LoadingState';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-import { useWorkoutPlanSummary } from 'shared/hooks/WorkoutPlanSummary';
-import { spacing } from 'shared/theme/tokens';
-
-import { GET_WORKOUT_PLAN_BY_ID } from '../../features/workout-plans/graphql/workoutMeta.graphql';
-import { DELETE_WORKOUT_PLAN } from '../../features/workout-plans/graphql/workoutReferences';
+import { GET_WORKOUT_PLAN_BY_ID } from 'src/features/workout-plans/graphql/workoutMeta.graphql';
+import { DELETE_WORKOUT_PLAN } from 'src/features/workout-plans/graphql/workoutReferences';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import Card from 'src/shared/components/Card';
+import DetailField from 'src/shared/components/DetailField';
+import ErrorMessage from 'src/shared/components/ErrorMessage';
+import ExerciseGroupCard from 'src/shared/components/ExerciseGroupCard';
+import LoadingState from 'src/shared/components/LoadingState';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
+import { useWorkoutPlanSummary } from 'src/shared/hooks/WorkoutPlanSummary';
+import { spacing } from 'src/shared/theme/tokens';
 
 export default function WorkoutPlanViewScreen() {
   const { id } = useParams();

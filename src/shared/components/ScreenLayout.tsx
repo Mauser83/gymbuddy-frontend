@@ -13,7 +13,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 
-import { useTheme } from 'shared/theme/ThemeProvider';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 interface ScreenLayoutProps {
   children: React.ReactNode;

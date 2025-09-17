@@ -2,9 +2,9 @@ import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, Pressable, Animated, Platform, Dimensions, ScrollView } from 'react-native';
 import { Portal } from 'react-native-portalize';
 
-import Button from 'shared/components/Button';
-import { useTheme } from 'shared/theme/ThemeProvider';
-import { spacing } from 'shared/theme/tokens';
+import Button from 'src/shared/components/Button';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing } from 'src/shared/theme/tokens';
 
 export type NamedFilterOptions = {
   label: string;

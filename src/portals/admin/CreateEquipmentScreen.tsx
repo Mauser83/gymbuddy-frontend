@@ -1,20 +1,22 @@
 import React, { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-native';
 
-import { useAuth } from 'features/auth/context/AuthContext';
-import { useEquipment } from 'features/equipment/hooks/useEquipment';
-import { EquipmentCategory } from 'features/equipment/types/equipment.types';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-
-import EquipmentForm from '../../features/equipment/components/EquipmentForm';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import EquipmentForm from 'src/features/equipment/components/EquipmentForm';
+import {
+  useEquipmentCategoriesQuery,
+  useEquipmentMutations,
+} from 'src/features/equipment/hooks/useEquipment';
+import { EquipmentCategory } from 'src/features/equipment/types/equipment.types';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
 
 export default function CreateEquipmentScreen() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { getCategories, createEquipment } = useEquipment();
-  const { data: categoryData } = getCategories();
+  const { createEquipment } = useEquipmentMutations();
+  const { data: categoryData } = useEquipmentCategoriesQuery();
   const categories = useMemo(
     () =>
       (categoryData?.equipmentCategories ?? [])

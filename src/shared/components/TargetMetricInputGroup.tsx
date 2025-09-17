@@ -15,9 +15,9 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 
-import FormInput from 'shared/components/FormInput';
-import { useMetricRegistry } from 'shared/context/MetricRegistry';
-import { useTheme } from 'shared/theme/ThemeProvider';
+import FormInput from 'src/shared/components/FormInput';
+import { useMetricRegistry } from 'src/shared/context/MetricRegistry';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 interface TargetMetric {
   metricId: number;

@@ -7,19 +7,19 @@ import { FlatList, Alert, View, Text } from 'react-native';
 import { useNavigate } from 'react-router-native';
 import * as Yup from 'yup';
 
-import { useAuth } from 'features/auth/context/AuthContext';
+import { useAuth } from 'src/features/auth/context/AuthContext';
 import AddressAutocompleteInput, {
   AddressDetails,
-} from 'features/gyms/components/AddressAutocompleteInput';
-import { CREATE_GYM_MUTATION } from 'features/gyms/graphql/gym.mutations';
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import Card from 'shared/components/Card';
-import DetailField from 'shared/components/DetailField';
-import FormInput from 'shared/components/FormInput';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import { useTheme } from 'shared/theme/ThemeProvider';
-import { spacing, fontSizes } from 'shared/theme/tokens';
+} from 'src/features/gyms/components/AddressAutocompleteInput';
+import { CREATE_GYM_MUTATION } from 'src/features/gyms/graphql/gym.mutations';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import Card from 'src/shared/components/Card';
+import DetailField from 'src/shared/components/DetailField';
+import FormInput from 'src/shared/components/FormInput';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing, fontSizes } from 'src/shared/theme/tokens';
 
 countries.registerLocale(enLocale);
 

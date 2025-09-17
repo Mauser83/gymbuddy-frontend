@@ -3,21 +3,20 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { View } from 'react-native';
 import { useNavigate } from 'react-router-native';
 
-import GymsList from 'features/gyms/components/GymsList';
-import { GET_GYMS } from 'features/gyms/graphql/gym.queries';
-import { Gym } from 'features/gyms/types/gym.types';
-import Button from 'shared/components/Button';
-import Card from 'shared/components/Card';
-import LoadingState from 'shared/components/LoadingState';
-import NoResults from 'shared/components/NoResults';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import SearchInput from 'shared/components/SearchInput';
-import { spacing } from 'shared/theme/tokens';
-import { debounce } from 'shared/utils/helpers';
-
-import { useAuth } from '../../features/auth/context/AuthContext';
-import { GYM_FRAGMENT } from '../../features/gyms/graphql/gym.fragments';
-import { GYM_APPROVED_SUBSCRIPTION } from '../../features/gyms/graphql/gym.subscriptions';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import GymsList from 'src/features/gyms/components/GymsList';
+import { GYM_FRAGMENT } from 'src/features/gyms/graphql/gym.fragments';
+import { GET_GYMS } from 'src/features/gyms/graphql/gym.queries';
+import { GYM_APPROVED_SUBSCRIPTION } from 'src/features/gyms/graphql/gym.subscriptions';
+import { Gym } from 'src/features/gyms/types/gym.types';
+import Button from 'src/shared/components/Button';
+import Card from 'src/shared/components/Card';
+import LoadingState from 'src/shared/components/LoadingState';
+import NoResults from 'src/shared/components/NoResults';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import SearchInput from 'src/shared/components/SearchInput';
+import { spacing } from 'src/shared/theme/tokens';
+import { debounce } from 'src/shared/utils/helpers';
 
 const GymsScreen = () => {
   const { user } = useAuth();

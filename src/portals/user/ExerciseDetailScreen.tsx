@@ -3,20 +3,20 @@ import React from 'react';
 import { ScrollView, View, Image } from 'react-native';
 import { useParams } from 'react-router-native';
 
-import { GET_EXERCISE_DETAIL } from 'features/exercises/graphql/exercise.graphql';
+import { GET_EXERCISE_DETAIL } from 'src/features/exercises/graphql/exercise.graphql';
 import {
   ExerciseEquipmentSlot,
   ExerciseEquipmentOption,
   Muscle,
-} from 'features/exercises/types/exercise.types';
-import Button from 'shared/components/Button';
-import Card from 'shared/components/Card';
-import DetailField from 'shared/components/DetailField';
-import LoadingState from 'shared/components/LoadingState';
-import NoResults from 'shared/components/NoResults';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-import { spacing } from 'shared/theme/tokens';
+} from 'src/features/exercises/types/exercise.types';
+import Button from 'src/shared/components/Button';
+import Card from 'src/shared/components/Card';
+import DetailField from 'src/shared/components/DetailField';
+import LoadingState from 'src/shared/components/LoadingState';
+import NoResults from 'src/shared/components/NoResults';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
+import { spacing } from 'src/shared/theme/tokens';
 
 export default function ExerciseDetailScreen() {
   const { exerciseId } = useParams<{ exerciseId: string }>();

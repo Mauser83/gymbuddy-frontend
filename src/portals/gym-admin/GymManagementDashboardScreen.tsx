@@ -2,15 +2,14 @@ import React, { useEffect, useMemo } from 'react';
 import { View } from 'react-native';
 import { useNavigate } from 'react-router-native';
 
-import { GymRole } from 'features/gyms/types/gym.types';
-import Card from 'shared/components/Card';
-import ClickableList from 'shared/components/ClickableList';
-import NoResults from 'shared/components/NoResults';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-import { spacing } from 'shared/theme/tokens';
-
-import { useAuth } from '../../features/auth/context/AuthContext';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import { GymRole } from 'src/features/gyms/types/gym.types';
+import Card from 'src/shared/components/Card';
+import ClickableList from 'src/shared/components/ClickableList';
+import NoResults from 'src/shared/components/NoResults';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
+import { spacing } from 'src/shared/theme/tokens';
 
 const GymAdminDashboard = () => {
   const { user } = useAuth();

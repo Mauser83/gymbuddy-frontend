@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import NoResults from 'shared/components/NoResults';
-import OptionItem from 'shared/components/OptionItem';
-import SearchInput from 'shared/components/SearchInput';
-import Title from 'shared/components/Title';
-import { spacing } from 'shared/theme/tokens';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import NoResults from 'src/shared/components/NoResults';
+import OptionItem from 'src/shared/components/OptionItem';
+import SearchInput from 'src/shared/components/SearchInput';
+import Title from 'src/shared/components/Title';
+import { spacing } from 'src/shared/theme/tokens';
 
 type Exercise = {
   id: number;

@@ -3,8 +3,8 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
-import { useTheme } from 'shared/theme/ThemeProvider';
-import { borderWidth } from 'shared/theme/tokens';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { borderWidth } from 'src/shared/theme/tokens';
 
 type Item = {
   id: string | number;

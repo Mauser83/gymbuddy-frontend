@@ -11,18 +11,21 @@ import {
   DELETE_CATEGORY,
   UPDATE_SUBCATEGORY,
   DELETE_SUBCATEGORY,
-} from 'features/equipment/graphql/equipment.graphql';
-import { EquipmentCategory, EquipmentSubcategory } from 'features/equipment/types/equipment.types';
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import Card from 'shared/components/Card';
-import ClickableList from 'shared/components/ClickableList';
-import FormInput from 'shared/components/FormInput';
-import LoadingState from 'shared/components/LoadingState';
-import NoResults from 'shared/components/NoResults';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-import { useTheme } from 'shared/theme/ThemeProvider';
+} from 'src/features/equipment/graphql/equipment.graphql';
+import {
+  EquipmentCategory,
+  EquipmentSubcategory,
+} from 'src/features/equipment/types/equipment.types';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import Card from 'src/shared/components/Card';
+import ClickableList from 'src/shared/components/ClickableList';
+import FormInput from 'src/shared/components/FormInput';
+import LoadingState from 'src/shared/components/LoadingState';
+import NoResults from 'src/shared/components/NoResults';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 function slugify(text: string) {
   return text

@@ -3,15 +3,18 @@ import React, { useState } from 'react';
 import { View, ScrollView, Dimensions } from 'react-native';
 import * as Yup from 'yup';
 
-import { EquipmentCategory, EquipmentSubcategory } from 'features/equipment/types/equipment.types';
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import ClickableList from 'shared/components/ClickableList';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
-import FormInput from 'shared/components/FormInput';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import SelectableField from 'shared/components/SelectableField';
-import Title from 'shared/components/Title';
+import {
+  EquipmentCategory,
+  EquipmentSubcategory,
+} from 'src/features/equipment/types/equipment.types';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import ClickableList from 'src/shared/components/ClickableList';
+import DividerWithLabel from 'src/shared/components/DividerWithLabel';
+import FormInput from 'src/shared/components/FormInput';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import SelectableField from 'src/shared/components/SelectableField';
+import Title from 'src/shared/components/Title';
 
 const screenHeight = Dimensions.get('window').height;
 const modalHeight = screenHeight * 0.8;

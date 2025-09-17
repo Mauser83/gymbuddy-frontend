@@ -3,8 +3,8 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 
-import { useAuth } from 'features/auth/context/AuthContext';
-import { useTheme } from 'shared/theme/ThemeProvider';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 import AvatarDropdown from './AvatarDropdown';
 import SafeAreaHeader from './SafeAreaHeader';

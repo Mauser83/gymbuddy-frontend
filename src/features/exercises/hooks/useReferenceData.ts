@@ -1,6 +1,7 @@
 import { useQuery } from '@apollo/client';
 
-import { EquipmentSubcategory } from '../../equipment/types/equipment.types'; // assuming this exists
+import { EquipmentSubcategory } from 'src/features/equipment/types/equipment.types'; // assuming this exists
+
 import { GET_REFERENCE_DATA } from '../graphql/exerciseReference.graphql';
 import {
   ExerciseType,

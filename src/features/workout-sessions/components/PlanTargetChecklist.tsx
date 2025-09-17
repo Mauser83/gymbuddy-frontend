@@ -4,11 +4,11 @@ import { Portal } from 'react-native-portalize';
 import Animated, { SlideInRight, SlideOutRight } from 'react-native-reanimated';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
-import { useMetricRegistry } from 'shared/context/MetricRegistry';
-import { useTheme } from 'shared/theme/ThemeProvider';
-import { borderRadius, borderWidth, spacing } from 'shared/theme/tokens';
+import ExerciseGroupCard from 'src/shared/components/ExerciseGroupCard';
+import { useMetricRegistry } from 'src/shared/context/MetricRegistry';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { borderRadius, borderWidth, spacing } from 'src/shared/theme/tokens';
 
-import ExerciseGroupCard from '../../../shared/components/ExerciseGroupCard';
 import { ExerciseLog } from '../types/userWorkouts.types';
 
 const HEADER_HEIGHT = 61;

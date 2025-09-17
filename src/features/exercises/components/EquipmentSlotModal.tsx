@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { ScrollView, Switch, View, TouchableOpacity } from 'react-native';
 import Toast from 'react-native-toast-message';
 
-import { EquipmentSubcategory } from 'features/equipment/types/equipment.types';
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import ClickableList from 'shared/components/ClickableList';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
-import FormInput from 'shared/components/FormInput';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import SearchInput from 'shared/components/SearchInput';
-import Title from 'shared/components/Title';
+import { EquipmentSubcategory } from 'src/features/equipment/types/equipment.types';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import ClickableList from 'src/shared/components/ClickableList';
+import DividerWithLabel from 'src/shared/components/DividerWithLabel';
+import FormInput from 'src/shared/components/FormInput';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import SearchInput from 'src/shared/components/SearchInput';
+import Title from 'src/shared/components/Title';
 
 interface EquipmentSlotModalProps {
   visible: boolean;

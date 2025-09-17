@@ -1,17 +1,17 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { FlatList, TouchableOpacity } from 'react-native';
 
-import { Gym } from 'features/gyms/types/gym.types';
-import Card from 'shared/components/Card';
-import DetailField from 'shared/components/DetailField';
-import { spacing } from 'shared/theme/tokens';
+import { Gym } from 'src/features/gyms/types/gym.types';
+import Card from 'src/shared/components/Card';
+import DetailField from 'src/shared/components/DetailField';
+import { spacing } from 'src/shared/theme/tokens';
 
 interface GymsListProps {
   gyms: Gym[];
   onGymPress: (gym: Gym) => void;
 }
 
-const GymsList = React.memo(({ gyms, onGymPress }: GymsListProps) => (
+const GymsListComponent: React.FC<GymsListProps> = ({ gyms, onGymPress }) => (
   <FlatList
     data={gyms}
     keyExtractor={(item) => item.id.toString()}
@@ -25,6 +25,9 @@ const GymsList = React.memo(({ gyms, onGymPress }: GymsListProps) => (
       </TouchableOpacity>
     )}
   />
-));
+);
+
+const GymsList = memo(GymsListComponent);
+GymsList.displayName = 'GymsList';
 
 export default GymsList;

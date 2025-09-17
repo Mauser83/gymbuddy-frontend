@@ -2,14 +2,14 @@ import { useQuery } from '@apollo/client';
 import React from 'react';
 import { useParams } from 'react-router-native';
 
-import { GET_EQUIPMENT_BY_ID } from 'features/equipment/graphql/equipment.graphql';
-import { ExerciseLite } from 'features/equipment/types/equipment.types';
-import CollapsibleList from 'shared/components/CollapsibleList';
-import DetailField from 'shared/components/DetailField';
-import LoadingState from 'shared/components/LoadingState';
-import NoResults from 'shared/components/NoResults';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
+import { GET_EQUIPMENT_BY_ID } from 'src/features/equipment/graphql/equipment.graphql';
+import { ExerciseLite } from 'src/features/equipment/types/equipment.types';
+import CollapsibleList from 'src/shared/components/CollapsibleList';
+import DetailField from 'src/shared/components/DetailField';
+import LoadingState from 'src/shared/components/LoadingState';
+import NoResults from 'src/shared/components/NoResults';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
 
 export default function EquipmentDetailScreen() {
   const { id } = useParams<{ id: string }>();

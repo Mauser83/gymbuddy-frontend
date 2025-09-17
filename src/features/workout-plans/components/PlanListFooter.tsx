@@ -1,8 +1,8 @@
 import React from 'react';
 import { View } from 'react-native';
 
-import Button from 'shared/components/Button';
-import { spacing } from 'shared/theme/tokens';
+import Button from 'src/shared/components/Button';
+import { spacing } from 'src/shared/theme/tokens';
 
 import type { ActiveModal } from '../types/modal.types';
 

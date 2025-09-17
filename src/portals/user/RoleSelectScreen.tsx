@@ -1,12 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-native';
 
-import { useAuth } from 'features/auth/context/AuthContext';
-import { useRole, RoleContextState } from 'features/auth/context/RoleContext';
-import { getDefaultRouteForRole } from 'routes/guards';
-import OptionItem from 'shared/components/OptionItem';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import { useRole, RoleContextState } from 'src/features/auth/context/RoleContext';
+import { getDefaultRouteForRole } from 'src/routes/guards';
+import OptionItem from 'src/shared/components/OptionItem';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
 
 const RoleSelectScreen = () => {
   const { user } = useAuth();

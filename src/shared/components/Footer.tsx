@@ -5,10 +5,10 @@ import React from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
 import { useNavigate, useLocation } from 'react-router-native';
 
-import { useAuth } from 'features/auth/context/AuthContext';
-import { useRoleContext } from 'features/auth/context/RoleContext';
-import { GET_PENDING_GYMS } from 'features/gyms/graphql/gym.queries';
-import { useTheme } from 'shared/theme/ThemeProvider';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import { useRoleContext } from 'src/features/auth/context/RoleContext';
+import { GET_PENDING_GYMS } from 'src/features/gyms/graphql/gym.queries';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 import SafeAreaFooter from './SafeAreaFooter';
 

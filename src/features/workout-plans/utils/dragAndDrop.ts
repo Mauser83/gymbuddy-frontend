@@ -1,4 +1,4 @@
-import { ExerciseFormEntry, ExerciseGroup } from '../../../features/workout-plans/types/plan.types';
+import { ExerciseFormEntry, ExerciseGroup } from 'src/features/workout-plans/types/plan.types';
 
 /**
  * Calculate the next available order index given current exercises and groups.

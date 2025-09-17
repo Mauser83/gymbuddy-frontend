@@ -1,4 +1,4 @@
-import { MetricDefinition } from 'shared/context/MetricRegistry';
+import { MetricDefinition } from 'src/shared/context/MetricRegistry';
 
 export function formatMetrics(
   metrics: Record<number, number | string>,

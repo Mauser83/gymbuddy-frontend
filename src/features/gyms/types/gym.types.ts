@@ -1,4 +1,4 @@
-import { Equipment } from 'features/equipment/types/equipment.types';
+import { Equipment } from 'src/features/equipment/types/equipment.types';
 
 export interface Gym {
   id: number;

@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { TouchableOpacity, View, StyleSheet } from 'react-native';
 
-import { useTheme } from 'shared/theme/ThemeProvider';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 type IconButtonVariant = 'gradient' | 'solid';
 

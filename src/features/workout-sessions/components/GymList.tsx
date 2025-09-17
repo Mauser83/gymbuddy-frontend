@@ -1,8 +1,8 @@
 import React from 'react';
 import { ScrollView } from 'react-native';
 
-import ClickableListItem from 'shared/components/ClickableListItem';
-import NoResults from 'shared/components/NoResults';
+import ClickableListItem from 'src/shared/components/ClickableListItem';
+import NoResults from 'src/shared/components/NoResults';
 
 import { Gym } from './GymPickerModal';
 

@@ -8,7 +8,7 @@ import {
   StyleProp,
 } from 'react-native';
 
-import { useTheme } from 'shared/theme/ThemeProvider';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 interface ModalWrapperProps {
   visible: boolean;

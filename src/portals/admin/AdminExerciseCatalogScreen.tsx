@@ -2,27 +2,27 @@ import FontAwesome from '@expo/vector-icons/FontAwesome5';
 import React, { useState } from 'react';
 import { ScrollView, View, TouchableOpacity, Text } from 'react-native';
 
-import { useReferenceData } from 'features/exercises/hooks/useReferenceData';
+import { useReferenceData } from 'src/features/exercises/hooks/useReferenceData';
 import {
   useReferenceManagement,
   CreateMetricInput,
   OrderedMetric,
-} from 'features/exercises/hooks/useReferenceManagement';
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import Card from 'shared/components/Card';
-import ClickableList from 'shared/components/ClickableList';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
-import FormInput from 'shared/components/FormInput';
-import IconButton from 'shared/components/IconButton';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import NoResults from 'shared/components/NoResults';
-import OptionItem from 'shared/components/OptionItem';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import SelectableField from 'shared/components/SelectableField';
-import Title from 'shared/components/Title';
-import { useTheme } from 'shared/theme/ThemeProvider';
-import { spacing } from 'shared/theme/tokens';
+} from 'src/features/exercises/hooks/useReferenceManagement';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import Card from 'src/shared/components/Card';
+import ClickableList from 'src/shared/components/ClickableList';
+import DividerWithLabel from 'src/shared/components/DividerWithLabel';
+import FormInput from 'src/shared/components/FormInput';
+import IconButton from 'src/shared/components/IconButton';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import NoResults from 'src/shared/components/NoResults';
+import OptionItem from 'src/shared/components/OptionItem';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import SelectableField from 'src/shared/components/SelectableField';
+import Title from 'src/shared/components/Title';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing } from 'src/shared/theme/tokens';
 
 export default function AdminExerciseCatalogScreen() {
   const { theme } = useTheme();

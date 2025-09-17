@@ -1,6 +1,6 @@
 import { setContext } from '@apollo/client/link/context';
 
-import { getAccessToken } from 'features/auth/utils/tokenStorage';
+import { getAccessToken } from 'src/features/auth/utils/tokenStorage';
 
 // Always read the latest access token from storage so that refreshed tokens
 // are used for subsequent requests without recreating the Apollo client.

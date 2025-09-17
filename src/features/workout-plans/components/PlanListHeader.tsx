@@ -2,12 +2,12 @@ import { FormikProps } from 'formik';
 import React from 'react';
 import { View } from 'react-native';
 
-import Button from 'shared/components/Button';
-import Card from 'shared/components/Card';
-import FormInput from 'shared/components/FormInput';
-import SelectableField from 'shared/components/SelectableField';
-import Title from 'shared/components/Title';
-import { spacing } from 'shared/theme/tokens';
+import Button from 'src/shared/components/Button';
+import Card from 'src/shared/components/Card';
+import FormInput from 'src/shared/components/FormInput';
+import SelectableField from 'src/shared/components/SelectableField';
+import Title from 'src/shared/components/Title';
+import { spacing } from 'src/shared/theme/tokens';
 
 import type { ActiveModal } from '../types/modal.types';
 import { FormValues } from '../types/plan.types';

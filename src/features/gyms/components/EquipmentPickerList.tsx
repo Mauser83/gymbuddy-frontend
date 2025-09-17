@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { ScrollView, Text } from 'react-native';
 
-import { Equipment } from 'features/equipment/types/equipment.types';
-import ClickableList from 'shared/components/ClickableList';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
-import LoadingState from 'shared/components/LoadingState';
-import NoResults from 'shared/components/NoResults';
+import { Equipment } from 'src/features/equipment/types/equipment.types';
+import ClickableList from 'src/shared/components/ClickableList';
+import DividerWithLabel from 'src/shared/components/DividerWithLabel';
+import LoadingState from 'src/shared/components/LoadingState';
+import NoResults from 'src/shared/components/NoResults';
 
 interface EquipmentPickerListProps {
   available: Equipment[];
@@ -14,37 +14,43 @@ interface EquipmentPickerListProps {
   onSelect: (equipment: Equipment) => void;
 }
 
-const EquipmentPickerList = React.memo(
-  ({ available, assigned, loading, onSelect }: EquipmentPickerListProps) => {
-    const toListItem = (item: Equipment, isAssigned: boolean) => ({
-      id: item.id,
-      label: item.name,
-      subLabel: `${item.brand}`,
-      disabled: isAssigned,
-      onPress: isAssigned ? undefined : () => onSelect(item),
-      rightElement: isAssigned ? <Text style={{ color: 'gray' }}>✓ Added</Text> : undefined,
-    });
+const EquipmentPickerListComponent: React.FC<EquipmentPickerListProps> = ({
+  available,
+  assigned,
+  loading,
+  onSelect,
+}) => {
+  const toListItem = (item: Equipment, isAssigned: boolean) => ({
+    id: item.id,
+    label: item.name,
+    subLabel: `${item.brand}`,
+    disabled: isAssigned,
+    onPress: isAssigned ? undefined : () => onSelect(item),
+    rightElement: isAssigned ? <Text style={{ color: 'gray' }}>✓ Added</Text> : undefined,
+  });
 
-    return (
-      <ScrollView style={{ height: 500 }}>
-        {loading && available.length === 0 && assigned.length === 0 ? (
-          <LoadingState text="Loading catalog..." />
-        ) : available.length === 0 && assigned.length === 0 ? (
-          <NoResults message="No equipment found in catalog." />
-        ) : (
-          <>
-            <ClickableList items={available.map((item) => toListItem(item, false))} />
-            {assigned.length > 0 && (
-              <>
-                <DividerWithLabel label="Already Added" />
-                <ClickableList items={assigned.map((item) => toListItem(item, true))} />
-              </>
-            )}
-          </>
-        )}
-      </ScrollView>
-    );
-  },
-);
+  return (
+    <ScrollView style={{ height: 500 }}>
+      {loading && available.length === 0 && assigned.length === 0 ? (
+        <LoadingState text="Loading catalog..." />
+      ) : available.length === 0 && assigned.length === 0 ? (
+        <NoResults message="No equipment found in catalog." />
+      ) : (
+        <>
+          <ClickableList items={available.map((item) => toListItem(item, false))} />
+          {assigned.length > 0 && (
+            <>
+              <DividerWithLabel label="Already Added" />
+              <ClickableList items={assigned.map((item) => toListItem(item, true))} />
+            </>
+          )}
+        </>
+      )}
+    </ScrollView>
+  );
+};
+
+const EquipmentPickerList = memo(EquipmentPickerListComponent);
+EquipmentPickerList.displayName = 'EquipmentPickerList';
 
 export default EquipmentPickerList;

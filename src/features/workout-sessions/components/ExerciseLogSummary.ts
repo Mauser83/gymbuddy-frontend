@@ -1,5 +1,5 @@
 // ✅ Make this a utility instead of a component
-import { useMetricRegistry } from 'shared/context/MetricRegistry';
+import { useMetricRegistry } from 'src/shared/context/MetricRegistry';
 
 export const useExerciseLogSummary = () => {
   const { getMetricIdsForExercise, metricRegistry, exerciseTypeByExerciseId } = useMetricRegistry();

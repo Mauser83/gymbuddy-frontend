@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
 
-import { useTheme } from 'shared/theme/ThemeProvider';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 interface LoadingStateProps {
   text?: string;

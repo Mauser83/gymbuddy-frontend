@@ -3,14 +3,14 @@ import { ApolloClient } from '@apollo/client';
 import { createClient, Client } from 'graphql-ws';
 import Toast from 'react-native-toast-message';
 
-import { REFRESH_TOKEN_MUTATION } from 'features/auth/graphql/auth.mutations';
-import { triggerLogout } from 'features/auth/utils/logoutTrigger'; // ✅ use this
+import { REFRESH_TOKEN_MUTATION } from 'src/features/auth/graphql/auth.mutations';
+import { triggerLogout } from 'src/features/auth/utils/logoutTrigger'; // ✅ use this
 import {
   getAccessToken,
   setAccessToken,
   getRefreshToken,
   setRefreshToken,
-} from 'features/auth/utils/tokenStorage';
+} from 'src/features/auth/utils/tokenStorage';
 
 import { rawClient } from './rawClient';
 import { API_BASE_URL } from '../../config/env';

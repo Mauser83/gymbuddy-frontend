@@ -1,4 +1,4 @@
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { View } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
 
@@ -26,7 +26,7 @@ export type MeasuredDraggableItemProps = {
   simultaneousHandlers?: any;
 };
 
-export const MeasuredDraggableItem = React.forwardRef<
+export const MeasuredDraggableItem = forwardRef<
   { measure: () => void },
   MeasuredDraggableItemProps
 >(
@@ -108,3 +108,5 @@ export const MeasuredDraggableItem = React.forwardRef<
     );
   },
 );
+
+MeasuredDraggableItem.displayName = 'MeasuredDraggableItem';

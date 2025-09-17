@@ -4,8 +4,8 @@ import { Portal } from 'react-native-portalize';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigate } from 'react-router-native';
 
-import { useAuth } from 'features/auth/context/AuthContext';
-import { useTheme } from 'shared/theme/ThemeProvider';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 const AvatarDropdown = () => {
   const insets = useSafeAreaInsets();

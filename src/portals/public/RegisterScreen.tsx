@@ -3,12 +3,12 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native'; // Import StyleSheet
 import * as Yup from 'yup';
 
-import { useAuthService } from 'features/auth/hooks/useAuthService';
-import Button from 'shared/components/Button';
-import Card from 'shared/components/Card';
-import FormError from 'shared/components/FormError';
-import FormInput from 'shared/components/FormInput';
-import ScreenLayout from 'shared/components/ScreenLayout';
+import { useAuthService } from 'src/features/auth/hooks/useAuthService';
+import Button from 'src/shared/components/Button';
+import Card from 'src/shared/components/Card';
+import FormError from 'src/shared/components/FormError';
+import FormInput from 'src/shared/components/FormInput';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
 
 // Validation Schema
 const RegisterSchema = Yup.object().shape({

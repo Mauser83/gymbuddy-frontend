@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, ViewStyle, Platform } from 'react-native';
 
-import { useTheme } from 'shared/theme/ThemeProvider';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 interface Props {
   children: React.ReactNode;

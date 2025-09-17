@@ -12,8 +12,8 @@
 import React from 'react';
 import { View } from 'react-native';
 
-import FormInput from 'shared/components/FormInput';
-import { useMetricRegistry } from 'shared/context/MetricRegistry';
+import FormInput from 'src/shared/components/FormInput';
+import { useMetricRegistry } from 'src/shared/context/MetricRegistry';
 
 interface MetricInputGroupProps {
   metricIds: number[];

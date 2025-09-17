@@ -3,17 +3,16 @@ import React from 'react';
 import { View } from 'react-native';
 import { useNavigate } from 'react-router-native';
 
-import { GYM_FRAGMENT } from 'features/gyms/graphql/gym.fragments';
-import { GET_PENDING_GYMS } from 'features/gyms/graphql/gym.queries';
-import Button from 'shared/components/Button';
-import Card from 'shared/components/Card';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-
+import { GYM_FRAGMENT } from 'src/features/gyms/graphql/gym.fragments';
+import { GET_PENDING_GYMS } from 'src/features/gyms/graphql/gym.queries';
 import {
   GYM_CREATED_SUBSCRIPTION,
   GYM_APPROVED_SUBSCRIPTION,
-} from '../../features/gyms/graphql/gym.subscriptions';
+} from 'src/features/gyms/graphql/gym.subscriptions';
+import Button from 'src/shared/components/Button';
+import Card from 'src/shared/components/Card';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
 
 const AppDashboardScreen = () => {
   const navigate = useNavigate();

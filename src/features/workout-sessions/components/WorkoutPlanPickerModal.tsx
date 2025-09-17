@@ -1,9 +1,9 @@
 import { useLazyQuery } from '@apollo/client';
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 
-import SearchInput from 'shared/components/SearchInput';
-import Title from 'shared/components/Title';
-import { debounce } from 'shared/utils/helpers';
+import SearchInput from 'src/shared/components/SearchInput';
+import Title from 'src/shared/components/Title';
+import { debounce } from 'src/shared/utils/helpers';
 
 import WorkoutPlanList from './WorkoutPlanList';
 import { GET_WORKOUT_PLANS } from '../graphql/userWorkouts.graphql';

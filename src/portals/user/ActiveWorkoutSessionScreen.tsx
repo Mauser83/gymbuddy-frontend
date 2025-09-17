@@ -6,14 +6,14 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { useParams, useNavigate } from 'react-router-native';
 import * as Yup from 'yup';
 
-import { useAuth } from 'features/auth/context/AuthContext';
-import { GET_WORKOUT_SESSIONS_BY_USER } from 'features/exercises/graphql/exercise.graphql';
-import ExerciseCarousel from 'features/workout-sessions/components/ExerciseCarousel';
-import ExerciseNavHeader from 'features/workout-sessions/components/ExerciseNavHeader';
-import ExercisePickerModal from 'features/workout-sessions/components/ExercisePickerModal';
-import MultiSlotEquipmentPickerModal from 'features/workout-sessions/components/MultiSlotEquipmentPickerModal';
-import PlanTargetChecklist from 'features/workout-sessions/components/PlanTargetChecklist';
-import ProgressChecklist from 'features/workout-sessions/components/ProgressChecklist';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import { GET_WORKOUT_SESSIONS_BY_USER } from 'src/features/exercises/graphql/exercise.graphql';
+import ExerciseCarousel from 'src/features/workout-sessions/components/ExerciseCarousel';
+import ExerciseNavHeader from 'src/features/workout-sessions/components/ExerciseNavHeader';
+import ExercisePickerModal from 'src/features/workout-sessions/components/ExercisePickerModal';
+import MultiSlotEquipmentPickerModal from 'src/features/workout-sessions/components/MultiSlotEquipmentPickerModal';
+import PlanTargetChecklist from 'src/features/workout-sessions/components/PlanTargetChecklist';
+import ProgressChecklist from 'src/features/workout-sessions/components/ProgressChecklist';
 import {
   GET_WORKOUT_SESSION,
   GET_EXERCISES_AVAILABLE_AT_GYM,
@@ -23,27 +23,27 @@ import {
   DELETE_EXERCISE_LOG,
   UPDATE_WORKOUT_SESSION,
   DELETE_WORKOUT_SESSION,
-} from 'features/workout-sessions/graphql/userWorkouts.graphql';
+} from 'src/features/workout-sessions/graphql/userWorkouts.graphql';
 import {
   WorkoutSessionData,
   ExerciseLog,
-} from 'features/workout-sessions/types/userWorkouts.types';
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import Card from 'shared/components/Card';
-import DetailField from 'shared/components/DetailField';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
-import FormInput from 'shared/components/FormInput';
-import MetricInputGroup from 'shared/components/MetricInputGroup';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import SelectableField from 'shared/components/SelectableField';
-import SetInputRow from 'shared/components/SetInputRow';
-import Title from 'shared/components/Title';
-import { useMetricRegistry } from 'shared/context/MetricRegistry';
-import { useExerciseLogSummary } from 'shared/hooks/ExerciseLogSummary';
-import { useTheme } from 'shared/theme/ThemeProvider';
-import { formatPlanMetrics } from 'shared/utils/formatPlanMetrics';
-import { generateMetricSchema } from 'shared/utils/generateMetricSchema';
+} from 'src/features/workout-sessions/types/userWorkouts.types';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import Card from 'src/shared/components/Card';
+import DetailField from 'src/shared/components/DetailField';
+import DividerWithLabel from 'src/shared/components/DividerWithLabel';
+import FormInput from 'src/shared/components/FormInput';
+import MetricInputGroup from 'src/shared/components/MetricInputGroup';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import SelectableField from 'src/shared/components/SelectableField';
+import SetInputRow from 'src/shared/components/SetInputRow';
+import Title from 'src/shared/components/Title';
+import { useMetricRegistry } from 'src/shared/context/MetricRegistry';
+import { useExerciseLogSummary } from 'src/shared/hooks/ExerciseLogSummary';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { formatPlanMetrics } from 'src/shared/utils/formatPlanMetrics';
+import { generateMetricSchema } from 'src/shared/utils/generateMetricSchema';
 
 export default function ActiveWorkoutSessionScreen() {
   const { sessionId } = useParams<{ sessionId: string }>();

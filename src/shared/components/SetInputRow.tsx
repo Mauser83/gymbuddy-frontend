@@ -12,8 +12,8 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 
-import { useMetricRegistry } from 'shared/context/MetricRegistry';
-import { useTheme } from 'shared/theme/ThemeProvider';
+import { useMetricRegistry } from 'src/shared/context/MetricRegistry';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 interface BottomSheetPickerProps {
   visible: boolean;

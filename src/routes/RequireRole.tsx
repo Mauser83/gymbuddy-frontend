@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, useParams } from 'react-router-native';
 
-import { useRole, Role } from 'features/auth/context/RoleContext';
+import { useRole, Role } from 'src/features/auth/context/RoleContext';
 
 interface RequireRoleProps {
   roles: Role[];

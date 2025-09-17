@@ -2,11 +2,11 @@
 import { useMutation } from '@apollo/client';
 import { useNavigate } from 'react-router-native';
 
-import { triggerLogout } from 'features/auth/utils/logoutTrigger'; // ✅ use this
-import { storage } from 'features/auth/utils/storage';
-import { GymRole } from 'features/gyms/types/gym.types';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import { triggerLogout } from 'src/features/auth/utils/logoutTrigger'; // ✅ use this
+import { storage } from 'src/features/auth/utils/storage';
+import { GymRole } from 'src/features/gyms/types/gym.types';
 
-import { useAuth } from '../../../features/auth/context/AuthContext';
 import { LOGIN_MUTATION, REGISTER_MUTATION } from '../graphql/auth.mutations';
 
 export const useAuthService = () => {

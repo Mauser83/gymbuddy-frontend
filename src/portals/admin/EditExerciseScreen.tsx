@@ -4,16 +4,18 @@ import Toast from 'react-native-toast-message';
 import { useNavigate, useParams } from 'react-router-native';
 import * as Yup from 'yup';
 
-import ExerciseForm from 'features/exercises/components/ExerciseForm';
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
-import LoadingState from 'shared/components/LoadingState';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-
-import { useExercise } from '../../features/exercises/hooks/useExercise';
-import { UpdateExerciseInput, Exercise } from '../../features/exercises/types/exercise.types';
+import ExerciseForm from 'src/features/exercises/components/ExerciseForm';
+import {
+  useExerciseMutations,
+  useMyExercisesQuery,
+} from 'src/features/exercises/hooks/useExercise';
+import { UpdateExerciseInput, Exercise } from 'src/features/exercises/types/exercise.types';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import DividerWithLabel from 'src/shared/components/DividerWithLabel';
+import LoadingState from 'src/shared/components/LoadingState';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
 
 const ExerciseSchema = Yup.object().shape({
   name: Yup.string().required('Name is required'),
@@ -42,10 +44,9 @@ const ExerciseSchema = Yup.object().shape({
 export default function EditExerciseScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getMyExercises, updateExercise } = useExercise();
+  const { updateExercise } = useExerciseMutations();
+  const { data, loading } = useMyExercisesQuery();
   const [formValues, setFormValues] = useState<UpdateExerciseInput | null>(null);
-
-  const { data, loading } = getMyExercises();
 
   useEffect(() => {
     if (!id) {

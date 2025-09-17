@@ -1,5 +1,5 @@
 // WorkoutPlanSummary.tsx
-import { useMetricRegistry } from 'shared/context/MetricRegistry';
+import { useMetricRegistry } from 'src/shared/context/MetricRegistry';
 
 type TargetMetric = {
   metricId: number;

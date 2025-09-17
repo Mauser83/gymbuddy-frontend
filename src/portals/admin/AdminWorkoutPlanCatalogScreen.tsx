@@ -3,10 +3,10 @@ import React, { useState, useMemo } from 'react';
 import { ScrollView, View, TouchableOpacity, Switch } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
-import EditMuscleGroupModal from 'features/exercises/components/EditMuscleGroupModal';
-import DifficultyPickerModal from 'features/workout-plans/components/DifficultyPickerModal';
-import TrainingGoalPickerModal from 'features/workout-plans/components/TrainingGoalPickerModal';
-import { GET_WORKOUT_PLAN_META } from 'features/workout-plans/graphql/workoutMeta.graphql';
+import EditMuscleGroupModal from 'src/features/exercises/components/EditMuscleGroupModal';
+import DifficultyPickerModal from 'src/features/workout-plans/components/DifficultyPickerModal';
+import TrainingGoalPickerModal from 'src/features/workout-plans/components/TrainingGoalPickerModal';
+import { GET_WORKOUT_PLAN_META } from 'src/features/workout-plans/graphql/workoutMeta.graphql';
 import {
   CREATE_TRAINING_GOAL,
   UPDATE_TRAINING_GOAL,
@@ -24,21 +24,21 @@ import {
   CREATE_EXPERIENCE_LEVEL,
   UPDATE_EXPERIENCE_LEVEL,
   DELETE_EXPERIENCE_LEVEL,
-} from 'features/workout-plans/graphql/workoutReferences';
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import Card from 'shared/components/Card';
-import ClickableList from 'shared/components/ClickableList';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
-import FormInput from 'shared/components/FormInput';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import OptionItem from 'shared/components/OptionItem';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import SelectableField from 'shared/components/SelectableField';
-import Title from 'shared/components/Title';
-import { useMetricRegistry } from 'shared/context/MetricRegistry';
-import { useTheme } from 'shared/theme/ThemeProvider';
-import { spacing } from 'shared/theme/tokens';
+} from 'src/features/workout-plans/graphql/workoutReferences';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import Card from 'src/shared/components/Card';
+import ClickableList from 'src/shared/components/ClickableList';
+import DividerWithLabel from 'src/shared/components/DividerWithLabel';
+import FormInput from 'src/shared/components/FormInput';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import OptionItem from 'src/shared/components/OptionItem';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import SelectableField from 'src/shared/components/SelectableField';
+import Title from 'src/shared/components/Title';
+import { useMetricRegistry } from 'src/shared/context/MetricRegistry';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing } from 'src/shared/theme/tokens';
 
 const METRIC_IDS = {
   REPS: 1,

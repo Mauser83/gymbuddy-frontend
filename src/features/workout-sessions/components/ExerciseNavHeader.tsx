@@ -2,8 +2,8 @@ import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
-import Title from 'shared/components/Title';
-import { useTheme } from 'shared/theme/ThemeProvider';
+import Title from 'src/shared/components/Title';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 interface ExerciseNavHeaderProps {
   title: string;

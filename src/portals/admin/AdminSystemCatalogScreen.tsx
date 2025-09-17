@@ -2,9 +2,9 @@ import React from 'react';
 import { TouchableOpacity, View } from 'react-native';
 import { useNavigate } from 'react-router-native';
 
-import Card from 'shared/components/Card';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
+import Card from 'src/shared/components/Card';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
 
 const AdminSystemCatalogScreen = () => {
   const navigate = useNavigate();

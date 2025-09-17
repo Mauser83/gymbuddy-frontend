@@ -7,21 +7,21 @@ import {
   CREATE_METRIC,
   UPDATE_METRIC,
   DELETE_METRIC,
-} from 'features/exercises/graphql/exerciseReference.graphql';
-import { CreateMetricInput } from 'features/exercises/hooks/useReferenceManagement';
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import ClickableList from 'shared/components/ClickableList';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
-import FormInput from 'shared/components/FormInput';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import OptionItem from 'shared/components/OptionItem';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import SelectableField from 'shared/components/SelectableField';
-import Title from 'shared/components/Title';
-import { GET_ALL_METRICS_AND_EXERCISE_TYPES } from 'shared/graphql/metrics.graphql';
-import { useTheme } from 'shared/theme/ThemeProvider';
-import { spacing } from 'shared/theme/tokens';
+} from 'src/features/exercises/graphql/exerciseReference.graphql';
+import { CreateMetricInput } from 'src/features/exercises/hooks/useReferenceManagement';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import ClickableList from 'src/shared/components/ClickableList';
+import DividerWithLabel from 'src/shared/components/DividerWithLabel';
+import FormInput from 'src/shared/components/FormInput';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import OptionItem from 'src/shared/components/OptionItem';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import SelectableField from 'src/shared/components/SelectableField';
+import Title from 'src/shared/components/Title';
+import { GET_ALL_METRICS_AND_EXERCISE_TYPES } from 'src/shared/graphql/metrics.graphql';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing } from 'src/shared/theme/tokens';
 
 const INPUT_TYPES = ['number', 'decimal', 'time', 'text'];
 

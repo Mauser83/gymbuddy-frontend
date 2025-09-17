@@ -3,13 +3,12 @@ import React from 'react';
 import { View, Pressable } from 'react-native';
 import { useNavigate } from 'react-router-native';
 
-import Card from 'shared/components/Card';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-import { spacing } from 'shared/theme/tokens';
-
-import { useAuth } from '../../features/auth/context/AuthContext';
-import { GET_ACTIVE_WORKOUT_SESSION } from '../../features/workout-sessions/graphql/userWorkouts.graphql';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import { GET_ACTIVE_WORKOUT_SESSION } from 'src/features/workout-sessions/graphql/userWorkouts.graphql';
+import Card from 'src/shared/components/Card';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
+import { spacing } from 'src/shared/theme/tokens';
 
 export default function UserDashboardScreen() {
   const { user } = useAuth();

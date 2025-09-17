@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from '@apollo/client';
+import { useMutation, useQuery } from '@apollo/client';
 
 import {
   GET_ALL_EQUIPMENTS,
@@ -13,7 +13,8 @@ import {
   DELETE_CATEGORY,
   UPDATE_SUBCATEGORY,
   DELETE_SUBCATEGORY,
-} from '../../../features/equipment/graphql/equipment.graphql';
+} from 'src/features/equipment/graphql/equipment.graphql';
+
 import {
   CreateEquipmentInput,
   UpdateEquipmentInput,
@@ -23,14 +24,20 @@ import {
   UpdateEquipmentSubcategoryInput,
 } from '../types/equipment.types';
 
-export function useEquipment() {
-  const getAllEquipments = (search?: string) =>
-    useQuery(GET_ALL_EQUIPMENTS, {
-      variables: { search },
-    });
+export const useAllEquipmentsQuery = (search?: string) =>
+  useQuery(GET_ALL_EQUIPMENTS, {
+    variables: { search },
+  });
 
-  const getEquipmentById = (id: number) => useQuery(GET_EQUIPMENT_BY_ID, { variables: { id } });
+export const useEquipmentByIdQuery = (id: number | null | undefined) =>
+  useQuery(GET_EQUIPMENT_BY_ID, {
+    variables: { id: id ?? 0 },
+    skip: id == null,
+  });
 
+export const useEquipmentCategoriesQuery = () => useQuery(GET_EQUIPMENT_CATEGORIES);
+
+export function useEquipmentMutations() {
   const [createEquipment] = useMutation<{ createEquipment: any }, { input: CreateEquipmentInput }>(
     CREATE_EQUIPMENT,
   );
@@ -41,8 +48,6 @@ export function useEquipment() {
   const [deleteEquipment] = useMutation<{ deleteEquipment: boolean }, { id: number }>(
     DELETE_EQUIPMENT,
   );
-
-  const getCategories = () => useQuery(GET_EQUIPMENT_CATEGORIES);
 
   const [createCategory] = useMutation<
     { createEquipmentCategory: any },
@@ -69,16 +74,13 @@ export function useEquipment() {
   );
 
   return {
-    getAllEquipments,
-    getEquipmentById,
     createEquipment,
     updateEquipment,
     deleteEquipment,
-    getCategories,
     createCategory,
-    createSubcategory,
     updateCategory,
     deleteCategory,
+    createSubcategory,
     updateSubcategory,
     deleteSubcategory,
   };

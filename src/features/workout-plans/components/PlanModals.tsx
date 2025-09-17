@@ -1,7 +1,7 @@
 import React from 'react';
 
-import ModalWrapper from 'shared/components/ModalWrapper';
-import { generateId } from 'shared/utils/helpers';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import { generateId } from 'src/shared/utils/helpers';
 
 import DifficultyPickerModal from './DifficultyPickerModal';
 import MuscleGroupPickerModal from './MuscleGroupPickerModal';

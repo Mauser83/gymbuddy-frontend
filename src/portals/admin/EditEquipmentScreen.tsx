@@ -1,20 +1,24 @@
 import React, { useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-native';
 
-import { useEquipment } from 'features/equipment/hooks/useEquipment';
-import { EquipmentCategory } from 'features/equipment/types/equipment.types';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-
-import EquipmentForm from '../../features/equipment/components/EquipmentForm';
+import EquipmentForm from 'src/features/equipment/components/EquipmentForm';
+import {
+  useEquipmentByIdQuery,
+  useEquipmentCategoriesQuery,
+  useEquipmentMutations,
+} from 'src/features/equipment/hooks/useEquipment';
+import { EquipmentCategory } from 'src/features/equipment/types/equipment.types';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
 
 export default function EditEquipmentScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { getEquipmentById, getCategories, updateEquipment } = useEquipment();
-  const { data: equipmentData, loading: loadingEquipment } = getEquipmentById(Number(id));
-  const { data: categoryData } = getCategories();
+  const { updateEquipment } = useEquipmentMutations();
+  const equipmentId = id ? Number(id) : null;
+  const { data: equipmentData, loading: loadingEquipment } = useEquipmentByIdQuery(equipmentId);
+  const { data: categoryData } = useEquipmentCategoriesQuery();
   const categories = useMemo(
     () =>
       (categoryData?.equipmentCategories ?? [])

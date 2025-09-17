@@ -4,18 +4,18 @@ import { ScrollView, View, Dimensions } from 'react-native';
 import Toast from 'react-native-toast-message';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import ClickableList from 'shared/components/ClickableList';
-import DetailField from 'shared/components/DetailField';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
-import FormInput from 'shared/components/FormInput';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import SelectableField from 'shared/components/SelectableField';
-import Title from 'shared/components/Title';
-import { useTheme } from 'shared/theme/ThemeProvider';
+import EquipmentSlotModal from 'src/features/exercises/components/EquipmentSlotModal';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import ClickableList from 'src/shared/components/ClickableList';
+import DetailField from 'src/shared/components/DetailField';
+import DividerWithLabel from 'src/shared/components/DividerWithLabel';
+import FormInput from 'src/shared/components/FormInput';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import SelectableField from 'src/shared/components/SelectableField';
+import Title from 'src/shared/components/Title';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
-import EquipmentSlotModal from '../../../features/exercises/components/EquipmentSlotModal';
 import { useReferenceData } from '../hooks/useReferenceData';
 import { ExerciseType, ExerciseDifficulty, Muscle } from '../types/exercise.types';
 

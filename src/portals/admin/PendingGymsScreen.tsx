@@ -2,17 +2,16 @@ import { useQuery, useMutation } from '@apollo/client';
 import React from 'react';
 import { Alert, FlatList, View } from 'react-native';
 
-import { GET_PENDING_GYMS } from 'features/gyms/graphql/gym.queries';
-import Button from 'shared/components/Button';
-import Card from 'shared/components/Card';
-import DetailField from 'shared/components/DetailField';
-import LoadingState from 'shared/components/LoadingState';
-import NoResults from 'shared/components/NoResults';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-import { spacing } from 'shared/theme/tokens';
-
-import { APPROVE_GYM } from '../../features/gyms/graphql/gym.mutations';
+import { APPROVE_GYM } from 'src/features/gyms/graphql/gym.mutations';
+import { GET_PENDING_GYMS } from 'src/features/gyms/graphql/gym.queries';
+import Button from 'src/shared/components/Button';
+import Card from 'src/shared/components/Card';
+import DetailField from 'src/shared/components/DetailField';
+import LoadingState from 'src/shared/components/LoadingState';
+import NoResults from 'src/shared/components/NoResults';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
+import { spacing } from 'src/shared/theme/tokens';
 
 const PendingGymsScreen = () => {
   const { data, loading, refetch } = useQuery(GET_PENDING_GYMS, {

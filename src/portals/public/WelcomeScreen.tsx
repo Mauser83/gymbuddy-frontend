@@ -1,10 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-native';
 
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import Card from 'shared/components/Card';
-import ScreenLayout from 'shared/components/ScreenLayout';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import Card from 'src/shared/components/Card';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
 
 const WelcomeScreen = () => {
   const navigate = useNavigate();

@@ -2,20 +2,19 @@ import { useLazyQuery, useSubscription } from '@apollo/client';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-native';
 
-import UsersList from 'features/users/components/UsersList';
-import { USER_UPDATED_SUBSCRIPTION } from 'features/users/graphql/user.subscriptions';
-import { User } from 'features/users/types/user';
-import Card from 'shared/components/Card';
-import FormError from 'shared/components/FormError';
-import LoadingState from 'shared/components/LoadingState';
-import NoResults from 'shared/components/NoResults';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import SearchInput from 'shared/components/SearchInput';
-import { debounce } from 'shared/utils/helpers';
-
-import { useAuth } from '../../features/auth/context/AuthContext';
-import { USER_FRAGMENT } from '../../features/users/graphql/user.fragments';
-import { GET_USERS } from '../../features/users/graphql/user.queries';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import UsersList from 'src/features/users/components/UsersList';
+import { USER_FRAGMENT } from 'src/features/users/graphql/user.fragments';
+import { GET_USERS } from 'src/features/users/graphql/user.queries';
+import { USER_UPDATED_SUBSCRIPTION } from 'src/features/users/graphql/user.subscriptions';
+import { User } from 'src/features/users/types/user';
+import Card from 'src/shared/components/Card';
+import FormError from 'src/shared/components/FormError';
+import LoadingState from 'src/shared/components/LoadingState';
+import NoResults from 'src/shared/components/NoResults';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import SearchInput from 'src/shared/components/SearchInput';
+import { debounce } from 'src/shared/utils/helpers';
 
 const UsersScreen = () => {
   const { user } = useAuth();

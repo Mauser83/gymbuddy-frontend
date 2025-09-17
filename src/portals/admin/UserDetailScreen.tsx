@@ -4,22 +4,21 @@ import { View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useParams, useNavigate } from 'react-router-native';
 
-import { useAuth } from 'features/auth/context/AuthContext';
-import { EditRolesModal } from 'features/users/components/EditRolesModal';
-import Button from 'shared/components/Button';
-import Card from 'shared/components/Card';
-import DetailField from 'shared/components/DetailField';
-import ErrorMessage from 'shared/components/ErrorMessage';
-import GymRoleEntry from 'shared/components/GymRoleEntry';
-import LoadingState from 'shared/components/LoadingState';
-import NoResults from 'shared/components/NoResults';
-import RolePill from 'shared/components/RolePill';
-import RolePillExpandable from 'shared/components/RolePillExpandable';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import { formatDate } from 'shared/utils';
-
-import { UPDATE_USER_ROLES } from '../../features/users/graphql/user.mutations';
-import { GET_USER_BY_ID } from '../../features/users/graphql/user.queries';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import { EditRolesModal } from 'src/features/users/components/EditRolesModal';
+import { UPDATE_USER_ROLES } from 'src/features/users/graphql/user.mutations';
+import { GET_USER_BY_ID } from 'src/features/users/graphql/user.queries';
+import Button from 'src/shared/components/Button';
+import Card from 'src/shared/components/Card';
+import DetailField from 'src/shared/components/DetailField';
+import ErrorMessage from 'src/shared/components/ErrorMessage';
+import GymRoleEntry from 'src/shared/components/GymRoleEntry';
+import LoadingState from 'src/shared/components/LoadingState';
+import NoResults from 'src/shared/components/NoResults';
+import RolePill from 'src/shared/components/RolePill';
+import RolePillExpandable from 'src/shared/components/RolePillExpandable';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import { formatDate } from 'src/shared/utils';
 
 const UserDetailScreen = () => {
   const { id: idParam } = useParams<{ id: string }>();

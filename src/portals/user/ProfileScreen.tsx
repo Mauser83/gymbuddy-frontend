@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 
-import { useAuth } from 'features/auth/context/AuthContext';
-import Card from 'shared/components/Card';
-import DetailField from 'shared/components/DetailField';
-import GymRoleEntry from 'shared/components/GymRoleEntry';
-import NoResults from 'shared/components/NoResults';
-import RolePill from 'shared/components/RolePill';
-import RolePillExpandable from 'shared/components/RolePillExpandable';
-import ScreenLayout from 'shared/components/ScreenLayout';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import Card from 'src/shared/components/Card';
+import DetailField from 'src/shared/components/DetailField';
+import GymRoleEntry from 'src/shared/components/GymRoleEntry';
+import NoResults from 'src/shared/components/NoResults';
+import RolePill from 'src/shared/components/RolePill';
+import RolePillExpandable from 'src/shared/components/RolePillExpandable';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
 
 const ProfileScreen = () => {
   const { user } = useAuth();

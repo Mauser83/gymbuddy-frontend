@@ -1,18 +1,18 @@
 import { useLazyQuery, useQuery } from '@apollo/client';
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { memo, useState, useCallback, useMemo, useEffect } from 'react';
 import { View } from 'react-native';
 import { useNavigate } from 'react-router-native';
 
-import ExerciseList from 'features/exercises/components/ExerciseList';
-import { GET_EXERCISES } from 'features/exercises/graphql/exercise.graphql';
-import { Exercise } from 'features/exercises/types/exercise.types';
-import { GET_FILTER_OPTIONS } from 'features/workout-sessions/graphql/userWorkouts.graphql';
-import FilterPanel, { NamedFilterOptions } from 'shared/components/FilterPanel';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import SearchInput from 'shared/components/SearchInput';
-import Title from 'shared/components/Title';
-import { spacing } from 'shared/theme/tokens';
-import { debounce } from 'shared/utils/helpers';
+import ExerciseList from 'src/features/exercises/components/ExerciseList';
+import { GET_EXERCISES } from 'src/features/exercises/graphql/exercise.graphql';
+import { Exercise } from 'src/features/exercises/types/exercise.types';
+import { GET_FILTER_OPTIONS } from 'src/features/workout-sessions/graphql/userWorkouts.graphql';
+import FilterPanel, { NamedFilterOptions } from 'src/shared/components/FilterPanel';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import SearchInput from 'src/shared/components/SearchInput';
+import Title from 'src/shared/components/Title';
+import { spacing } from 'src/shared/theme/tokens';
+import { debounce } from 'src/shared/utils/helpers';
 
 // --- Step 1: Define the Props interface for the header ---
 interface MemoizedListHeaderProps {
@@ -24,30 +24,29 @@ interface MemoizedListHeaderProps {
 }
 
 // --- Step 2: Create a memoized header component with defined props ---
-const MemoizedListHeader = React.memo(
-  ({
-    filterData,
-    filterOptions,
-    onFilterChange,
-    search,
-    onSearchChange,
-  }: MemoizedListHeaderProps) => {
-    return (
-      <>
-        <Title text="Exercise Library" />
-        {filterData && <FilterPanel options={filterOptions} onChangeFilters={onFilterChange} />}
-        <View style={{ marginTop: spacing.lg }}>
-          <SearchInput
-            value={search}
-            onChange={onSearchChange}
-            placeholder="Search exercises"
-            onClear={() => onSearchChange('')}
-          />
-        </View>
-      </>
-    );
-  },
+const MemoizedListHeaderComponent: React.FC<MemoizedListHeaderProps> = ({
+  filterData,
+  filterOptions,
+  onFilterChange,
+  search,
+  onSearchChange,
+}) => (
+  <>
+    <Title text="Exercise Library" />
+    {filterData && <FilterPanel options={filterOptions} onChangeFilters={onFilterChange} />}
+    <View style={{ marginTop: spacing.lg }}>
+      <SearchInput
+        value={search}
+        onChange={onSearchChange}
+        placeholder="Search exercises"
+        onClear={() => onSearchChange('')}
+      />
+    </View>
+  </>
 );
+
+const MemoizedListHeader = memo(MemoizedListHeaderComponent);
+MemoizedListHeader.displayName = 'ExerciseLibraryHeader';
 
 export default function ExerciseLibraryScreen() {
   const [search, setSearch] = useState('');
