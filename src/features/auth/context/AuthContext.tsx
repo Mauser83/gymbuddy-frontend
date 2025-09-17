@@ -69,7 +69,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
     setRefreshToken(refreshToken);
     setUser(user);
     setIsAuthenticated(true);
-    await new Promise(res => setTimeout(res, 50));
+    await new Promise<void>(resolve => {
+      setTimeout(() => resolve(), 50);
+    });
     setLoginInProgress(false);
   };
 

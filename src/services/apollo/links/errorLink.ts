@@ -113,13 +113,18 @@ export const errorLink = onError(
       const status = err.statusCode || 0;
 
       const isAuthFailure = status === 401 || status === 403;
+      const isNavigatorOffline =
+        typeof globalThis !== 'undefined' &&
+        'navigator' in globalThis &&
+        ((globalThis as unknown as {navigator: {onLine?: boolean}}).navigator
+          .onLine === false);
       const isConnectionIssue =
         msg.includes('failed to fetch') ||
         msg.includes('network request failed') ||
         msg.includes('connection refused') ||
         msg.includes('socket closed') ||
         msg.includes('timeout') ||
-        !navigator.onLine;
+        isNavigatorOffline;
 
       if (isConnectionIssue) {
         // console.log('errorLink: network connection issue, triggering logout');
