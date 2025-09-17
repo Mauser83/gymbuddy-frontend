@@ -1,14 +1,15 @@
-import {useEffect, useState} from 'react';
-import {useListTaxonomy} from 'features/cv/hooks/useTaxonomies';
+import { useEffect, useState } from 'react';
+
+import { useListTaxonomy } from 'src/features/cv/hooks/useTaxonomies';
 
 export function useTagNameMaps() {
-  const {rows: angles} = useListTaxonomy('angle');
-  const {rows: heights} = useListTaxonomy('height');
-  const {rows: distances} = useListTaxonomy('distance');
-  const {rows: lightings} = useListTaxonomy('lighting');
-  const {rows: mirrors} = useListTaxonomy('mirror');
-  const {rows: splits} = useListTaxonomy('split');
-  const {rows: sources} = useListTaxonomy('source');
+  const { rows: angles } = useListTaxonomy('angle');
+  const { rows: heights } = useListTaxonomy('height');
+  const { rows: distances } = useListTaxonomy('distance');
+  const { rows: lightings } = useListTaxonomy('lighting');
+  const { rows: mirrors } = useListTaxonomy('mirror');
+  const { rows: splits } = useListTaxonomy('split');
+  const { rows: sources } = useListTaxonomy('source');
 
   const [maps, setMaps] = useState({
     angle: new Map<number, string>(),
@@ -21,8 +22,8 @@ export function useTagNameMaps() {
   });
 
   useEffect(() => {
-    const m = (arr?: {id: number; name: string}[]) =>
-      new Map((arr ?? []).map(a => [a.id, a.name]));
+    const m = (arr?: { id: number; name: string }[]) =>
+      new Map((arr ?? []).map((a) => [a.id, a.name]));
     setMaps({
       angle: m(angles),
       height: m(heights),

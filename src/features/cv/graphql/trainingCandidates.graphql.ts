@@ -1,10 +1,6 @@
-import {gql} from '@apollo/client';
+import { gql } from '@apollo/client';
 
-export type TrainingCandidateStatus =
-  | 'PENDING'
-  | 'QUARANTINED'
-  | 'APPROVED'
-  | 'REJECTED';
+export type TrainingCandidateStatus = 'PENDING' | 'QUARANTINED' | 'APPROVED' | 'REJECTED';
 
 export interface ListTrainingCandidatesInput {
   gymId: number;
@@ -26,7 +22,7 @@ export interface TrainingCandidateRow {
   status: TrainingCandidateStatus;
   safetyReasons?: string[];
   capturedAt?: string;
-  uploader?: {id: string; username?: string};
+  uploader?: { id: string; username?: string };
   hash?: string;
   processedAt?: string;
 }
@@ -50,7 +46,11 @@ export const LIST_TRAINING_CANDIDATES = gql`
         status
         safetyReasons
         capturedAt
-        uploader { id username __typename }
+        uploader {
+          id
+          username
+          __typename
+        }
         hash
         processedAt
         __typename

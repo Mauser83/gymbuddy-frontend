@@ -50,7 +50,10 @@ declare module 'expo-image-picker' {
     cameraType?: 'front' | 'back';
   }
 
-  export function useCameraPermissions(): [PermissionResponse | null, () => Promise<PermissionResponse>];
+  export function useCameraPermissions(): [
+    PermissionResponse | null,
+    () => Promise<PermissionResponse>,
+  ];
   export function requestMediaLibraryPermissionsAsync(): Promise<PermissionResponse>;
   export function requestCameraPermissionsAsync(): Promise<PermissionResponse>;
   export function launchImageLibraryAsync(

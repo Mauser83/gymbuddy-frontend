@@ -1,16 +1,17 @@
+import { Formik } from 'formik';
 import React from 'react';
-import {View, StyleSheet} from 'react-native'; // Import StyleSheet
+import { View, StyleSheet } from 'react-native'; // Import StyleSheet
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import {Formik} from 'formik';
 import * as Yup from 'yup';
-import { useAuthService } from 'features/auth/hooks/useAuthService';
-import Card from 'shared/components/Card';
-import Button from 'shared/components/Button';
-import FormInput from 'shared/components/FormInput';
-import FormError from 'shared/components/FormError';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import ButtonRow from 'shared/components/ButtonRow';
+
+import { useAuthService } from 'src/features/auth/hooks/useAuthService';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import Card from 'src/shared/components/Card';
+import DividerWithLabel from 'src/shared/components/DividerWithLabel';
+import FormError from 'src/shared/components/FormError';
+import FormInput from 'src/shared/components/FormInput';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
 
 // Validation Schema
 const LoginSchema = Yup.object().shape({
@@ -19,10 +20,9 @@ const LoginSchema = Yup.object().shape({
 });
 
 const LoginScreen = () => {
-  const {login, loginLoading, loginError} = useAuthService();
+  const { login, loginLoading, loginError } = useAuthService();
 
-  const errorMessage =
-    loginError?.graphQLErrors?.map(e => e.message).join(', ') || null;
+  const errorMessage = loginError?.graphQLErrors?.map((e) => e.message).join(', ') || null;
 
   return (
     <ScreenLayout scroll variant="centered">
@@ -31,17 +31,11 @@ const LoginScreen = () => {
       {errorMessage && <FormError message={errorMessage} />}
 
       <Formik
-        initialValues={{email: '', password: ''}}
+        initialValues={{ email: '', password: '' }}
         validationSchema={LoginSchema}
-        onSubmit={login}>
-        {({
-          handleChange,
-          handleSubmit,
-          values,
-          errors,
-          touched,
-          setFieldTouched,
-        }) => (
+        onSubmit={login}
+      >
+        {({ handleChange, handleSubmit, values, errors, touched, setFieldTouched }) => (
           // --- FIX APPLIED HERE ---
           // This View now stretches to fill the parent container's width
           <View style={styles.formContainer}>
@@ -68,7 +62,7 @@ const LoginScreen = () => {
               onSubmitEditing={() => handleSubmit()}
             />
 
-            <View style={{marginTop: 16}}>
+            <View style={{ marginTop: 16 }}>
               <Button
                 text={loginLoading ? 'Logging in...' : 'Login'}
                 onPress={handleSubmit as any}
@@ -101,10 +95,9 @@ const LoginScreen = () => {
 };
 
 const styles = StyleSheet.create({
-    formContainer: {
-        width: '100%',
-    }
-})
+  formContainer: {
+    width: '100%',
+  },
+});
 
 export default LoginScreen;
-

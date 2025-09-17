@@ -1,7 +1,8 @@
-import React, {useState} from 'react';
-import {View, Text, TouchableOpacity} from 'react-native';
-import {useTheme} from 'shared/theme/ThemeProvider';
-import {spacing} from 'shared/theme/tokens';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
+
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing } from 'src/shared/theme/tokens';
 
 interface CollapsibleListProps {
   title: React.ReactNode;
@@ -9,25 +10,17 @@ interface CollapsibleListProps {
   initiallyExpanded?: boolean;
 }
 
-const CollapsibleList = ({
-  title,
-  items,
-  initiallyExpanded = false,
-}: CollapsibleListProps) => {
-  const {componentStyles} = useTheme();
+const CollapsibleList = ({ title, items, initiallyExpanded = false }: CollapsibleListProps) => {
+  const { componentStyles } = useTheme();
   const styles = componentStyles.collapsibleList;
   const [expanded, setExpanded] = useState(initiallyExpanded);
 
-  const toggle = () => setExpanded(prev => !prev);
+  const toggle = () => setExpanded((prev) => !prev);
 
   return (
     <View style={styles.container}>
       <View style={styles.title}>
-        {typeof title === 'string' ? (
-          <Text style={styles.title}>{title}</Text>
-        ) : (
-          title
-        )}
+        {typeof title === 'string' ? <Text style={styles.title}>{title}</Text> : title}
       </View>
 
       {!expanded ? (
@@ -45,7 +38,7 @@ const CollapsibleList = ({
                 {item}
               </Text>
             ) : (
-              <View key={idx} style={{marginBottom: spacing.xs}}>
+              <View key={idx} style={{ marginBottom: spacing.xs }}>
                 {item}
               </View>
             ),

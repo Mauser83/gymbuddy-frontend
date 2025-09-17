@@ -1,4 +1,4 @@
-import React, {useState, useMemo, useCallback, useEffect} from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,33 +12,31 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Button from 'shared/components/Button';
-import LoadingState from 'shared/components/LoadingState';
-import SelectableField from 'shared/components/SelectableField';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import {useTheme} from 'shared/theme/ThemeProvider';
-import {useAuth} from 'features/auth/context/AuthContext';
-import {useCandidateImages} from 'features/cv/hooks/useCandidateImages';
-import {useImageUrls} from 'features/cv/hooks/useImageUrls';
-import {useApproveGymImage} from 'features/cv/hooks/useApproveGymImage';
-import {useRejectGymImage} from 'features/cv/hooks/useRejectGymImage';
-import {usePromoteGymImageToGlobal} from 'features/cv/hooks/usePromoteGymImageToGlobal';
-import {useTagNameMaps} from 'features/cv/hooks/useTagNameMaps';
-import GymPickerModal, {
-  Gym,
-} from 'features/workout-sessions/components/GymPickerModal';
-import EquipmentPickerModal from 'features/gyms/components/EquipmentPickerModal';
-import {Equipment} from 'features/equipment/types/equipment.types';
-import NoResults from 'shared/components/NoResults';
+
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import { useApproveGymImage } from 'src/features/cv/hooks/useApproveGymImage';
+import { useCandidateImages } from 'src/features/cv/hooks/useCandidateImages';
+import { useImageUrls } from 'src/features/cv/hooks/useImageUrls';
+import { usePromoteGymImageToGlobal } from 'src/features/cv/hooks/usePromoteGymImageToGlobal';
+import { useRejectGymImage } from 'src/features/cv/hooks/useRejectGymImage';
+import { useTagNameMaps } from 'src/features/cv/hooks/useTagNameMaps';
+import { Equipment } from 'src/features/equipment/types/equipment.types';
+import EquipmentPickerModal from 'src/features/gyms/components/EquipmentPickerModal';
+import GymPickerModal, { Gym } from 'src/features/workout-sessions/components/GymPickerModal';
+import Button from 'src/shared/components/Button';
+import LoadingState from 'src/shared/components/LoadingState';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import NoResults from 'src/shared/components/NoResults';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import SelectableField from 'src/shared/components/SelectableField';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 const STATUS_OPTIONS = ['CANDIDATE', 'APPROVED', 'REJECTED', 'QUARANTINED'] as const;
 const SAFETY_OPTIONS = ['ALL', 'PENDING', 'COMPLETE', 'FAILED'] as const;
 
 const isCandidateLike = (s?: string) => s === 'PENDING'; // UI “CANDIDATE” = DB PENDING
 
-const formatDate = (iso?: string) =>
-  iso ? new Date(iso).toLocaleString() : '';
+const formatDate = (iso?: string) => (iso ? new Date(iso).toLocaleString() : '');
 
 type Row = {
   id: string;
@@ -49,7 +47,7 @@ type Row = {
   sha256: string;
   status: string;
   approvedAt?: string;
-  approvedBy?: {id: string; username?: string};
+  approvedBy?: { id: string; username?: string };
   createdAt?: string;
   tags?: {
     angleId?: number;
@@ -75,7 +73,7 @@ const Chip = ({
   text: string;
   tone?: 'default' | 'success' | 'warning';
 }) => {
-  const {theme} = useTheme();
+  const { theme } = useTheme();
   const colorMap: Record<string, string> = {
     success: (theme.colors as any).success ?? '#22c55e',
     warning: (theme.colors as any).warning ?? '#eab308',
@@ -89,28 +87,26 @@ const Chip = ({
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 999,
-      }}>
-      <Text style={{color: '#fff', fontSize: 12}}>{text}</Text>
+      }}
+    >
+      <Text style={{ color: '#fff', fontSize: 12 }}>{text}</Text>
     </View>
   );
 };
 
 const ImageManagementScreen = () => {
-  const {theme} = useTheme();
-  const {user} = useAuth();
+  const { theme } = useTheme();
+  const { user } = useAuth();
   const appRole = user?.appRole;
   const isAdmin = appRole === 'ADMIN';
 
   const [equipmentId, setEquipmentId] = useState('');
   const [gymId, setGymId] = useState('');
   const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
-  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(
-    null,
-  );
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [gymModalVisible, setGymModalVisible] = useState(false);
   const [equipmentModalVisible, setEquipmentModalVisible] = useState(false);
-  const [status, setStatus] =
-    useState<(typeof STATUS_OPTIONS)[number]>('CANDIDATE');
+  const [status, setStatus] = useState<(typeof STATUS_OPTIONS)[number]>('CANDIDATE');
   const [safety, setSafety] = useState<(typeof SAFETY_OPTIONS)[number]>('ALL');
   const [flaggedOnly, setFlaggedOnly] = useState(false);
   const [search, setSearch] = useState('');
@@ -122,14 +118,7 @@ const ImageManagementScreen = () => {
   const [errored, setErrored] = useState<Set<string>>(new Set());
   const tagNames = useTagNameMaps();
   const getTagName = (
-    kind:
-      | 'angle'
-      | 'height'
-      | 'distance'
-      | 'lighting'
-      | 'mirror'
-      | 'split'
-      | 'source',
+    kind: 'angle' | 'height' | 'distance' | 'lighting' | 'mirror' | 'split' | 'source',
     id?: number,
   ) => (id != null ? tagNames[kind].get(Number(id)) : undefined);
 
@@ -141,47 +130,40 @@ const ImageManagementScreen = () => {
       search: search || undefined,
       limit,
       safety:
-        safety === 'ALL'
-          ? undefined
-          : {state: safety, flaggedOnly: flaggedOnly || undefined},
+        safety === 'ALL' ? undefined : { state: safety, flaggedOnly: flaggedOnly || undefined },
     }),
     [equipmentId, gymId, status, search, limit, safety, flaggedOnly],
   );
 
-  const {data, loading, error, refetch} = useCandidateImages(filters);
-  const rowsRaw: Row[] = useMemo(
-    () => data?.candidateGlobalImages ?? [],
-    [data],
-  );
+  const { data, loading, error, refetch } = useCandidateImages(filters);
+  const rowsRaw: Row[] = useMemo(() => data?.candidateGlobalImages ?? [], [data]);
   const rows: Row[] = useMemo(
     () =>
-      rowsRaw.filter(r =>
-        status === 'CANDIDATE'
-          ? isCandidateLike(r.status)
-          : r.status === status,
+      rowsRaw.filter((r) =>
+        status === 'CANDIDATE' ? isCandidateLike(r.status) : r.status === status,
       ),
     [rowsRaw, status],
   );
-  const storageKeys = useMemo(() => rows.map(r => r.storageKey), [rows]);
-  const {urlByKey, refresh} = useImageUrls(storageKeys, 600);
+  const storageKeys = useMemo(() => rows.map((r) => r.storageKey), [rows]);
+  const { urlByKey, refresh } = useImageUrls(storageKeys, 600);
 
   useEffect(() => {
-    setErrored(prev => {
+    setErrored((prev) => {
       const next = new Set(prev);
-      storageKeys.forEach(k => {
+      storageKeys.forEach((k) => {
         if (urlByKey.get(k)) next.delete(k);
       });
       return next;
     });
   }, [urlByKey, storageKeys]);
 
-  const {mutate: approveMutate} = useApproveGymImage();
-  const {mutate: rejectMutate} = useRejectGymImage();
-  const {mutate: promoteMutate} = usePromoteGymImageToGlobal();
+  const { mutate: approveMutate } = useApproveGymImage();
+  const { mutate: rejectMutate } = useRejectGymImage();
+  const { mutate: promoteMutate } = usePromoteGymImageToGlobal();
 
   const handleThumbError = useCallback(
     (key: string) => {
-      setErrored(prev => new Set(prev).add(key));
+      setErrored((prev) => new Set(prev).add(key));
       refresh([key]);
     },
     [refresh],
@@ -218,7 +200,7 @@ const ImageManagementScreen = () => {
     async (r: Row, force?: boolean) => {
       try {
         await promoteMutate({
-          variables: {input: {id: r.id, force: !!force}},
+          variables: { input: { id: r.id, force: !!force } },
         });
         setSelected(null);
         refetch();
@@ -239,7 +221,7 @@ const ImageManagementScreen = () => {
     try {
       await rejectMutate({
         variables: {
-          input: {id: rejecting.id, reason: rejectReason || undefined},
+          input: { id: rejecting.id, reason: rejectReason || undefined },
         },
       });
       setRejecting(null);
@@ -251,7 +233,7 @@ const ImageManagementScreen = () => {
   }, [rejectMutate, rejecting, rejectReason, refetch]);
 
   const renderRow = useCallback(
-    ({item}: {item: Row}) => {
+    ({ item }: { item: Row }) => {
       const url = urlByKey.get(item.storageKey);
       const isErrored = errored.has(item.storageKey);
       return (
@@ -263,26 +245,25 @@ const ImageManagementScreen = () => {
                 <View style={styles.thumbCol}>
                   {url ? (
                     <Image
-                      source={{uri: url}}
+                      source={{ uri: url }}
                       style={styles.thumb}
                       onError={() => handleThumbError(item.storageKey)}
                     />
                   ) : (
-                    <View style={[styles.thumb, {backgroundColor: '#333'}]} />
+                    <View style={[styles.thumb, { backgroundColor: '#333' }]} />
                   )}
                   {isErrored && (
                     <Pressable
                       style={styles.retryOverlay}
-                      onPress={() => handleThumbError(item.storageKey)}>
+                      onPress={() => handleThumbError(item.storageKey)}
+                    >
                       <Text style={styles.retryText}>↻</Text>
                     </Pressable>
                   )}
                 </View>
                 <View style={styles.chipsCol}>
                   <Chip
-                    text={
-                      isCandidateLike(item.status) ? 'CANDIDATE' : item.status
-                    }
+                    text={isCandidateLike(item.status) ? 'CANDIDATE' : item.status}
                     tone={item.status === 'QUARANTINED' ? 'warning' : 'default'}
                   />
                   <Chip
@@ -295,32 +276,28 @@ const ImageManagementScreen = () => {
                           : 'default'
                     }
                   />
-                  {(item.status === 'QUARANTINED' ||
-                    item.safety?.state === 'FAILED') &&
-                    (item.safety?.reasons ?? []).map(r => (
+                  {(item.status === 'QUARANTINED' || item.safety?.state === 'FAILED') &&
+                    (item.safety?.reasons ?? []).map((r) => (
                       <Chip key={r} text={r} tone="warning" />
                     ))}
-                  {!!item.dupCount && item.dupCount > 0 && (
-                    <Chip text={`dup×${item.dupCount}`} />
-                  )}
+                  {!!item.dupCount && item.dupCount > 0 && <Chip text={`dup×${item.dupCount}`} />}
                 </View>
               </View>
               <View style={styles.bottomLeft}>
                 {/* tiny id for copy/debug */}
                 <Text
-                  style={[
-                    styles.metaText,
-                    {color: theme.colors.textPrimary, opacity: 0.7},
-                  ]}
+                  style={[styles.metaText, { color: theme.colors.textPrimary, opacity: 0.7 }]}
                   numberOfLines={1}
-                  ellipsizeMode="middle">
+                  ellipsizeMode="middle"
+                >
                   {item.id}
                 </Text>
 
                 {/* main meta line */}
                 <Text
-                  style={[styles.metaText, {color: theme.colors.textPrimary}]}
-                  numberOfLines={1}>
+                  style={[styles.metaText, { color: theme.colors.textPrimary }]}
+                  numberOfLines={1}
+                >
                   {item.gymName ?? `Gym ${item.gymId}`}
                   {item.createdAt ? ` • ${formatDate(item.createdAt)}` : ''}
                 </Text>
@@ -366,7 +343,7 @@ const ImageManagementScreen = () => {
   const list = (
     <FlatList
       data={rows}
-      keyExtractor={r => r.id}
+      keyExtractor={(r) => r.id}
       renderItem={renderRow}
       windowSize={7}
       initialNumToRender={12}
@@ -392,35 +369,39 @@ const ImageManagementScreen = () => {
         placeholder="Search"
         value={search}
         onChangeText={setSearch}
-        style={[styles.input, {color: theme.colors.textPrimary}]}
+        style={[styles.input, { color: theme.colors.textPrimary }]}
       />
       <View style={styles.segmentRow}>
-        {STATUS_OPTIONS.map(s => (
+        {STATUS_OPTIONS.map((s) => (
           <Pressable
             key={s}
             onPress={() => setStatus(s)}
-            style={[styles.segment, status === s && styles.segmentActive]}>
+            style={[styles.segment, status === s && styles.segmentActive]}
+          >
             <Text
               style={{
                 color: status === s ? '#fff' : theme.colors.textPrimary,
                 fontSize: 12,
-              }}>
+              }}
+            >
               {s}
             </Text>
           </Pressable>
         ))}
       </View>
       <View style={styles.segmentRow}>
-        {SAFETY_OPTIONS.map(s => (
+        {SAFETY_OPTIONS.map((s) => (
           <Pressable
             key={s}
             onPress={() => setSafety(s)}
-            style={[styles.segment, safety === s && styles.segmentActive]}>
+            style={[styles.segment, safety === s && styles.segmentActive]}
+          >
             <Text
               style={{
                 color: safety === s ? '#fff' : theme.colors.textPrimary,
                 fontSize: 12,
-              }}>
+              }}
+            >
               {s}
             </Text>
           </Pressable>
@@ -432,13 +413,14 @@ const ImageManagementScreen = () => {
             color: theme.colors.textPrimary,
             fontSize: 12,
             marginRight: 6,
-          }}>
+          }}
+        >
           Flagged only
         </Text>
         <Switch value={flaggedOnly} onValueChange={setFlaggedOnly} />
       </View>
       <Button text="Apply" small onPress={() => refetch()} />
-      {loading && <ActivityIndicator style={{marginLeft: 8}} />}
+      {loading && <ActivityIndicator style={{ marginLeft: 8 }} />}
     </View>
   );
 
@@ -449,7 +431,7 @@ const ImageManagementScreen = () => {
         <LoadingState text="Loading images..." />
       ) : error ? (
         <View style={styles.errorBanner}>
-          <Text style={{color: '#fff', flex: 1}}>Error loading images</Text>
+          <Text style={{ color: '#fff', flex: 1 }}>Error loading images</Text>
           <Button text="Retry" small onPress={() => refetch()} />
         </View>
       ) : rows.length === 0 ? (
@@ -461,32 +443,20 @@ const ImageManagementScreen = () => {
       )}
 
       {selected && (
-        <Modal
-          visible
-          transparent
-          animationType="slide"
-          onRequestClose={() => setSelected(null)}>
+        <Modal visible transparent animationType="slide" onRequestClose={() => setSelected(null)}>
           <View style={styles.modalOverlay}>
-            <View
-              style={[
-                styles.modalContent,
-                {backgroundColor: theme.colors.surface},
-              ]}>
+            <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
               <Image
-                source={{uri: urlByKey.get(selected.storageKey)}}
+                source={{ uri: urlByKey.get(selected.storageKey) }}
                 style={styles.detailImage}
                 onError={() => handleThumbError(selected.storageKey)}
               />
-              <Text
-                style={[styles.modalText, {color: theme.colors.textPrimary}]}>
+              <Text style={[styles.modalText, { color: theme.colors.textPrimary }]}>
                 {selected.gymName ?? `Gym ${selected.gymId}`}
-                {selected.createdAt
-                  ? ` • ${formatDate(selected.createdAt)}`
-                  : ''}
+                {selected.createdAt ? ` • ${formatDate(selected.createdAt)}` : ''}
               </Text>
               {selected.approvedAt && (
-                <Text
-                  style={[styles.modalText, {color: theme.colors.textPrimary}]}>
+                <Text style={[styles.modalText, { color: theme.colors.textPrimary }]}>
                   Approved by {selected.approvedBy?.username ?? 'Unknown'} on{' '}
                   {formatDate(selected.approvedAt)}
                 </Text>
@@ -499,13 +469,12 @@ const ImageManagementScreen = () => {
                   alignItems: 'center',
                   gap: 8,
                   marginTop: 8,
-                }}>
+                }}
+              >
                 <Chip
                   text={selected.safety?.state ?? 'UNKNOWN'}
                   tone={
-                    ['COMPLETED', 'COMPLETE'].includes(
-                      (selected.safety?.state as string) || '',
-                    )
+                    ['COMPLETED', 'COMPLETE'].includes((selected.safety?.state as string) || '')
                       ? 'success'
                       : selected.safety?.state === 'FAILED'
                         ? 'warning'
@@ -513,26 +482,20 @@ const ImageManagementScreen = () => {
                   }
                 />
                 {typeof selected.safety?.score === 'number' && (
-                  <Text
-                    style={[
-                      styles.modalText,
-                      {color: theme.colors.textPrimary},
-                    ]}>
+                  <Text style={[styles.modalText, { color: theme.colors.textPrimary }]}>
                     score: {selected.safety.score.toFixed(2)}
                   </Text>
                 )}
               </View>
               {!!selected.safety?.reasons?.length && (
-                <Text
-                  style={[styles.modalText, {color: theme.colors.textPrimary}]}>
+                <Text style={[styles.modalText, { color: theme.colors.textPrimary }]}>
                   reasons: {selected.safety.reasons.join(', ')}
                 </Text>
               )}
 
               {/* Duplicates */}
               {!!selected.dupCount && selected.dupCount > 0 && (
-                <Text
-                  style={[styles.modalText, {color: theme.colors.textPrimary}]}>
+                <Text style={[styles.modalText, { color: theme.colors.textPrimary }]}>
                   Possible duplicate (sha match)
                 </Text>
               )}
@@ -541,17 +504,14 @@ const ImageManagementScreen = () => {
                   text="Copy SHA"
                   small
                   onPress={() =>
-                    (globalThis as any).navigator?.clipboard?.writeText?.(
-                      selected.sha256,
-                    )
+                    (globalThis as any).navigator?.clipboard?.writeText?.(selected.sha256)
                   }
                 />
               )}
 
               {/* Tag names */}
-              <View style={{marginTop: 8}}>
-                <Text
-                  style={[styles.modalText, {color: theme.colors.textPrimary}]}>
+              <View style={{ marginTop: 8 }}>
+                <Text style={[styles.modalText, { color: theme.colors.textPrimary }]}>
                   {[
                     getTagName('angle', selected.tags?.angleId) &&
                       `angle: ${getTagName('angle', selected.tags?.angleId)}`,
@@ -573,10 +533,10 @@ const ImageManagementScreen = () => {
                 </Text>
               </View>
 
-{isAdmin &&
+              {isAdmin &&
                 selected.status !== 'QUARANTINED' &&
                 selected.safety?.state !== 'COMPLETE' && (
-                  <View style={{marginTop: 8}}>
+                  <View style={{ marginTop: 8 }}>
                     <Button
                       text="Force Approve"
                       small
@@ -588,7 +548,7 @@ const ImageManagementScreen = () => {
               {isAdmin &&
                 selected.status !== 'QUARANTINED' &&
                 selected.safety?.state !== 'COMPLETE' && (
-                  <View style={{marginTop: 8}}>
+                  <View style={{ marginTop: 8 }}>
                     <Button
                       text="Force Promote"
                       small
@@ -606,11 +566,7 @@ const ImageManagementScreen = () => {
                     onPress={() => handleApprove(selected)}
                   />
                 )}
-                <Button
-                  text="Reject"
-                  small
-                  onPress={() => handleReject(selected)}
-                />
+                <Button text="Reject" small onPress={() => handleReject(selected)} />
                 {selected.status !== 'QUARANTINED' && (
                   <Button
                     text="Promote"
@@ -627,45 +583,33 @@ const ImageManagementScreen = () => {
       )}
 
       {rejecting && (
-        <Modal
-          visible
-          transparent
-          animationType="fade"
-          onRequestClose={() => setRejecting(null)}>
+        <Modal visible transparent animationType="fade" onRequestClose={() => setRejecting(null)}>
           <View style={styles.modalOverlay}>
-            <View
-              style={[
-                styles.rejectContent,
-                {backgroundColor: theme.colors.surface},
-              ]}>
-              <Text
-                style={[styles.modalTitle, {color: theme.colors.textPrimary}]}>
+            <View style={[styles.rejectContent, { backgroundColor: theme.colors.surface }]}>
+              <Text style={[styles.modalTitle, { color: theme.colors.textPrimary }]}>
                 Reject Reason
               </Text>
               <TextInput
-                style={[styles.textArea, {color: theme.colors.textPrimary}]}
+                style={[styles.textArea, { color: theme.colors.textPrimary }]}
                 multiline
                 value={rejectReason}
                 onChangeText={setRejectReason}
                 placeholder="Reason"
               />
               <View style={styles.presetsRow}>
-                {['blurry', 'not equipment', 'duplicate'].map(r => (
+                {['blurry', 'not equipment', 'duplicate'].map((r) => (
                   <Pressable
                     key={r}
                     onPress={() => setRejectReason(r)}
-                    style={[styles.segment, styles.presetChip]}>
-                    <Text style={{color: '#fff', fontSize: 12}}>{r}</Text>
+                    style={[styles.segment, styles.presetChip]}
+                  >
+                    <Text style={{ color: '#fff', fontSize: 12 }}>{r}</Text>
                   </Pressable>
                 ))}
               </View>
               <View style={styles.modalButtons}>
                 <Button text="Reject" small onPress={handleRejectConfirm} />
-                <Button
-                  text="Cancel"
-                  small
-                  onPress={() => setRejecting(null)}
-                />
+                <Button text="Cancel" small onPress={() => setRejecting(null)} />
               </View>
             </View>
           </View>
@@ -676,11 +620,12 @@ const ImageManagementScreen = () => {
         onClose={() => {
           setGymModalVisible(false);
           setEquipmentModalVisible(false);
-        }}>
+        }}
+      >
         {gymModalVisible && (
           <GymPickerModal
             onClose={() => setGymModalVisible(false)}
-            onSelect={gym => {
+            onSelect={(gym) => {
               setSelectedGym(gym);
               setGymId(String(gym.id));
               setSelectedEquipment(null);
@@ -693,7 +638,7 @@ const ImageManagementScreen = () => {
           <EquipmentPickerModal
             gymId={selectedGym.id}
             onClose={() => setEquipmentModalVisible(false)}
-            onSelect={ge => {
+            onSelect={(ge) => {
               setSelectedEquipment(ge.equipment);
               setEquipmentId(String(ge.equipment.id));
               setEquipmentModalVisible(false);
@@ -706,162 +651,162 @@ const ImageManagementScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  toolbar: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 6,
-    minWidth: 80,
-  },
-  segmentRow: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  segment: {
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#666',
-  },
-  segmentActive: {
-    backgroundColor: '#666',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-    minHeight: 120,
-  },
-  leftCol: {
-    width: Platform.OS === 'web' ? 240 : 200,
-    marginRight: 12,
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-  },
-  thumbRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  thumbCol: {
-    alignItems: 'flex-start',
-  },
-  thumb: {
-    width: 64,
-    height: 64,
-    borderRadius: 8,
-    backgroundColor: '#eee',
-  },
-  retryOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8,
-  },
-  retryText: {color: '#fff', fontSize: 18},
   bottomLeft: {
+    alignItems: 'flex-start',
     marginTop: 8,
     width: '100%',
+  },
+  buttonCol: {
+    alignItems: 'flex-end',
+    flexDirection: 'column',
+    flexShrink: 0,
+    gap: 8,
+    justifyContent: 'center',
+    marginLeft: 'auto',
+    width: 120,
+  },
+  chipsCol: {
     alignItems: 'flex-start',
+    flexDirection: 'column',
+    gap: 6,
+    justifyContent: 'flex-start',
+    marginLeft: 8,
+  },
+  detailImage: {
+    borderRadius: 8,
+    height: 300,
+    marginBottom: 12,
+    width: '100%',
+  },
+  empty: { alignItems: 'center', marginTop: 40 },
+  errorBanner: {
+    alignItems: 'center',
+    backgroundColor: '#b91c1c',
+    borderRadius: 6,
+    flexDirection: 'row',
+    padding: 8,
+  },
+  flagRow: { alignItems: 'center', flexDirection: 'row', gap: 4 },
+  forceRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
   },
   idText: {
     fontFamily: Platform.OS === 'android' ? 'monospace' : 'Menlo',
     fontSize: 12,
   },
-  shaText: {fontSize: 12},
-  chipsCol: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    justifyContent: 'flex-start',
-    marginLeft: 8,
-    gap: 6,
-  },
-  buttonCol: {
-    flexDirection: 'column',
-    gap: 8,
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    width: 120,
-    flexShrink: 0,
-    marginLeft: 'auto',
-  },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    backgroundColor: '#b91c1c',
-    borderRadius: 6,
-  },
-  empty: {alignItems: 'center', marginTop: 40},
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    width: '100%',
-    borderRadius: 12,
-    padding: 16,
-  },
-  detailImage: {
-    width: '100%',
-    height: 300,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  modalText: {marginBottom: 4},
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginVertical: 12,
-  },
-  forceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  rejectContent: {
-    width: '100%',
-    borderRadius: 12,
-    padding: 16,
-  },
-  modalTitle: {fontSize: 16, fontWeight: '600', marginBottom: 8},
-  textArea: {
-    borderWidth: 1,
+  input: {
     borderColor: '#ccc',
     borderRadius: 6,
-    padding: 8,
-    minHeight: 80,
+    borderWidth: 1,
+    minWidth: 80,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
+  leftCol: {
+    alignItems: 'flex-start',
+    flexDirection: 'column',
+    marginRight: 12,
+    width: Platform.OS === 'web' ? 240 : 200,
+  },
+  metaText: { fontSize: 11, marginTop: 2, opacity: 0.85 },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'space-between',
+    marginVertical: 12,
+  },
+  modalContent: {
+    borderRadius: 12,
+    padding: 16,
+    width: '100%',
+  },
+  modalOverlay: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalText: { marginBottom: 4 },
+  modalTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
+  presetChip: { backgroundColor: '#666' },
   presetsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 4,
     marginVertical: 8,
   },
-  presetChip: {backgroundColor: '#666'},
-  flagRow: {flexDirection: 'row', alignItems: 'center', gap: 4},
-  metaText: {fontSize: 11, opacity: 0.85, marginTop: 2},
+  rejectContent: {
+    borderRadius: 12,
+    padding: 16,
+    width: '100%',
+  },
+  retryOverlay: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 8,
+    bottom: 0,
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  retryText: { color: '#fff', fontSize: 18 },
+  row: {
+    alignItems: 'flex-start',
+    borderBottomColor: '#333',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    minHeight: 120,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+  },
+  segment: {
+    borderColor: '#666',
+    borderRadius: 6,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  segmentActive: {
+    backgroundColor: '#666',
+  },
+  segmentRow: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  shaText: { fontSize: 12 },
+  textArea: {
+    borderColor: '#ccc',
+    borderRadius: 6,
+    borderWidth: 1,
+    minHeight: 80,
+    padding: 8,
+  },
+  thumb: {
+    backgroundColor: '#eee',
+    borderRadius: 8,
+    height: 64,
+    width: 64,
+  },
+  thumbCol: {
+    alignItems: 'flex-start',
+  },
+  thumbRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+  },
+  toolbar: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
 });
 
 export default ImageManagementScreen;

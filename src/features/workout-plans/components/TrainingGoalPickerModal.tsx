@@ -1,13 +1,14 @@
 import React from 'react';
-import {ScrollView, View} from 'react-native';
-import Title from 'shared/components/Title';
-import OptionItem from 'shared/components/OptionItem';
-import Button from 'shared/components/Button';
-import {spacing} from 'shared/theme/tokens';
+import { ScrollView, View } from 'react-native';
+
+import Button from 'src/shared/components/Button';
+import OptionItem from 'src/shared/components/OptionItem';
+import Title from 'src/shared/components/Title';
+import { spacing } from 'src/shared/theme/tokens';
 
 interface Props {
   visible: boolean;
-  trainingGoals: {id: number; name: string}[];
+  trainingGoals: { id: number; name: string }[];
   selectedId?: number;
   onSelect: (id: number) => void;
   onClose: () => void;
@@ -20,7 +21,6 @@ export default function TrainingGoalPickerModal({
   onSelect,
   onClose,
 }: Props) {
-
   return (
     <>
       <Title text="Select Training Goal" />
@@ -28,7 +28,7 @@ export default function TrainingGoalPickerModal({
         {trainingGoals
           .slice()
           .sort((a, b) => a.name.localeCompare(b.name))
-          .map(goal => (
+          .map((goal) => (
             <OptionItem
               key={goal.id}
               text={goal.name}
@@ -38,7 +38,7 @@ export default function TrainingGoalPickerModal({
           ))}
       </ScrollView>
 
-      <View style={{marginTop: spacing.md}}>
+      <View style={{ marginTop: spacing.md }}>
         <Button text="Close" onPress={onClose} />
       </View>
     </>

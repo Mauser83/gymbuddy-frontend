@@ -94,7 +94,7 @@ export interface UpdateExerciseInput {
     slotIndex: number;
     isRequired: boolean;
     comment?: string;
-    options: {subcategoryId: number}[];
+    options: { subcategoryId: number }[];
   }[];
 }
 

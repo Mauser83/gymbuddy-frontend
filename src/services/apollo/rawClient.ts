@@ -1,5 +1,6 @@
-import {ApolloClient, InMemoryCache, HttpLink} from '@apollo/client';
-import {API_BASE_URL} from '../../config/env'; // add if not present
+import { ApolloClient, InMemoryCache, HttpLink } from '@apollo/client';
+
+import { API_BASE_URL } from 'src/config/env'; // add if not present
 const GRAPHQL_URL = `${API_BASE_URL.replace(/\/$/, '')}/graphql`; // <-- append once
 
 export const rawClient = new ApolloClient({

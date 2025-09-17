@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   TextInput,
@@ -8,7 +8,8 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import {API_BASE_URL} from '../../../config/env';
+
+import { API_BASE_URL } from 'src/config/env';
 
 export type AddressDetails = {
   address: string;
@@ -62,13 +63,10 @@ const AddressAutocompleteInput: React.FC<Props> = ({
         const mapped = Array.isArray(json.suggestions)
           ? json.suggestions
               .map((s: any) => ({
-                description:
-                  s.placePrediction?.text?.text ?? s.description ?? '',
+                description: s.placePrediction?.text?.text ?? s.description ?? '',
                 place_id: s.placePrediction?.placeId ?? s.place_id ?? '',
               }))
-              .filter(
-                (s: AutocompletePrediction) => s.description && s.place_id,
-              )
+              .filter((s: AutocompletePrediction) => s.description && s.place_id)
           : [];
         setSuggestions(mapped);
       } catch (error) {
@@ -83,29 +81,17 @@ const AddressAutocompleteInput: React.FC<Props> = ({
   // Updated fetchPlaceDetails function to call the backend proxy
   const fetchPlaceDetails = async (placeId: string) => {
     try {
-      const res = await fetch(
-        `${BACKEND_URL}/api/place-details?place_id=${placeId}`,
-      );
+      const res = await fetch(`${BACKEND_URL}/api/place-details?place_id=${placeId}`);
       const json = await res.json();
 
       const result = json.result ?? json;
       const loc = result.location ?? result.geometry?.location ?? {};
-      const address =
-        result.formattedAddress ??
-        result.formatted_address ??
-        result.name ??
-        '';
+      const address = result.formattedAddress ?? result.formatted_address ?? result.name ?? '';
 
-      const addressComponents =
-        result.addressComponents ?? result.address_components ?? [];
+      const addressComponents = result.addressComponents ?? result.address_components ?? [];
 
-      const getComp = (
-        type: string,
-        field: 'shortText' | 'longText' = 'shortText',
-      ) => {
-        const comp = addressComponents.find((c: any) =>
-          c.types?.includes(type),
-        );
+      const getComp = (type: string, field: 'shortText' | 'longText' = 'shortText') => {
+        const comp = addressComponents.find((c: any) => c.types?.includes(type));
         if (!comp) {
           return '';
         }
@@ -128,8 +114,7 @@ const AddressAutocompleteInput: React.FC<Props> = ({
           stateCode: getComp('administrative_area_level_1'),
           state: getComp('administrative_area_level_1', 'longText'),
           city:
-            getComp('locality', 'longText') ||
-            getComp('administrative_area_level_2', 'longText'),
+            getComp('locality', 'longText') || getComp('administrative_area_level_2', 'longText'),
         });
 
         setSuggestions([]);
@@ -148,7 +133,7 @@ const AddressAutocompleteInput: React.FC<Props> = ({
     <View style={styles.wrapper}>
       <TextInput
         value={value}
-        onChangeText={text => {
+        onChangeText={(text) => {
           onChangeText(text);
           setInputTouched(true);
           onValidAddressSelected?.(false);
@@ -162,10 +147,10 @@ const AddressAutocompleteInput: React.FC<Props> = ({
         <View style={styles.dropdownContainer}>
           <FlatList
             data={suggestions}
-            keyExtractor={item => item.place_id}
+            keyExtractor={(item) => item.place_id}
             style={styles.flatList}
             keyboardShouldPersistTaps="handled"
-            renderItem={({item, index}) => (
+            renderItem={({ item, index }) => (
               <TouchableOpacity
                 onPress={() => {
                   onChangeText(item.description);
@@ -175,8 +160,9 @@ const AddressAutocompleteInput: React.FC<Props> = ({
                 style={[
                   styles.suggestion,
                   index === suggestions.length - 1 && styles.lastSuggestion,
-                ]}>
-                <Text style={{color: '#fff'}}>{item.description}</Text>
+                ]}
+              >
+                <Text style={{ color: '#fff' }}>{item.description}</Text>
               </TouchableOpacity>
             )}
           />
@@ -194,7 +180,7 @@ const shadowStyle = Platform.select({
   },
   ios: {
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
   },
@@ -204,24 +190,12 @@ const shadowStyle = Platform.select({
 });
 
 const styles = StyleSheet.create({
-  wrapper: {
-    width: '100%',
-    marginBottom: 16,
-  },
-  input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    color: '#f9fafb',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
-    borderColor: 'rgba(255, 165, 0, 0.2)',
-  },
   dropdownContainer: {
     backgroundColor: '#111827',
-    borderRadius: 12,
-    marginTop: 8,
-    borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 8,
     maxHeight: 240,
     overflow: 'hidden',
     ...shadowStyle,
@@ -229,16 +203,28 @@ const styles = StyleSheet.create({
   flatList: {
     maxHeight: 240,
   },
-  suggestion: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+  input: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 165, 0, 0.2)',
+    borderRadius: 12,
+    borderWidth: 1,
+    color: '#f9fafb',
+    padding: 14,
   },
   lastSuggestion: {
-    borderBottomWidth: 0,
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
+    borderBottomWidth: 0,
     paddingBottom: 16,
+  },
+  suggestion: {
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  wrapper: {
+    marginBottom: 16,
+    width: '100%',
   },
 });

@@ -1,9 +1,10 @@
 // Card.tsx
 import React from 'react';
-import {View, Text, ViewStyle, StyleProp} from 'react-native';
-import {useTheme} from 'shared/theme/ThemeProvider';
-import {spacing} from 'shared/theme/tokens';
+import { View, Text, ViewStyle, StyleProp } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing } from 'src/shared/theme/tokens';
 
 type CardVariant = 'glass' | 'solid' | 'elevated' | 'feature' | 'user';
 
@@ -26,7 +27,7 @@ const Card = ({
   showChevron,
   style,
 }: CardProps) => {
-  const {theme, componentStyles} = useTheme();
+  const { theme, componentStyles } = useTheme();
   const cardVariant = variant ?? theme.components.card.variant;
   const styles = componentStyles.card;
 
@@ -50,16 +51,15 @@ const Card = ({
           alignItems: 'center',
           justifyContent: 'space-between',
         },
-      ]}>
-      <View style={{flex: 1}}>
+      ]}
+    >
+      <View style={{ flex: 1 }}>
         {children ? (
           <View>{children}</View>
         ) : (
           <>
             <Text style={styles[`${cardVariant}Title`]}>{title}</Text>
-            {text ? (
-              <Text style={styles[`${cardVariant}Text`]}>{text}</Text>
-            ) : null}
+            {text ? <Text style={styles[`${cardVariant}Text`]}>{text}</Text> : null}
           </>
         )}
       </View>
@@ -69,7 +69,7 @@ const Card = ({
           name="chevron-right"
           size={16}
           color={theme.colors.accentStart}
-          style={{marginLeft: spacing.lg, alignSelf: 'center'}}
+          style={{ marginLeft: spacing.lg, alignSelf: 'center' }}
         />
       )}
     </View>

@@ -1,17 +1,19 @@
 // tokenManager.ts
+import { ApolloClient } from '@apollo/client';
+import { createClient, Client } from 'graphql-ws';
+import Toast from 'react-native-toast-message';
+
+import { API_BASE_URL } from 'src/config/env';
+import { REFRESH_TOKEN_MUTATION } from 'src/features/auth/graphql/auth.mutations';
+import { triggerLogout } from 'src/features/auth/utils/logoutTrigger'; // ✅ use this
 import {
   getAccessToken,
   setAccessToken,
   getRefreshToken,
   setRefreshToken,
-} from 'features/auth/utils/tokenStorage';
-import {ApolloClient} from '@apollo/client';
-import {REFRESH_TOKEN_MUTATION} from 'features/auth/graphql/auth.mutations';
-import {triggerLogout} from 'features/auth/utils/logoutTrigger'; // ✅ use this
-import Toast from 'react-native-toast-message';
-import {rawClient} from './rawClient';
-import {createClient, Client} from 'graphql-ws';
-import { API_BASE_URL } from '../../config/env';
+} from 'src/features/auth/utils/tokenStorage';
+
+import { rawClient } from './rawClient';
 
 // 👇 Make sure this matches your WS server
 const GRAPHQL_URL = `${API_BASE_URL.replace(/\/$/, '')}/graphql`;
@@ -44,9 +46,9 @@ export const refreshAccessToken = async (): Promise<string | null> => {
         return null;
       }
 
-      const {data} = await rawClient.mutate({
+      const { data } = await rawClient.mutate({
         mutation: REFRESH_TOKEN_MUTATION,
-        variables: {input: {refreshToken}},
+        variables: { input: { refreshToken } },
         context: {
           headers: {
             Authorization: `Bearer ${refreshToken}`,
@@ -54,7 +56,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
         },
       });
 
-      const {accessToken, refreshToken: newRefresh} = data?.refreshToken || {};
+      const { accessToken, refreshToken: newRefresh } = data?.refreshToken || {};
       if (!accessToken || !newRefresh) {
         console.warn('No tokens returned');
         return null;

@@ -1,48 +1,48 @@
+import { useQuery } from '@apollo/client';
 import React from 'react';
-import {View, Pressable, FlatList, SectionList, Text} from 'react-native';
-import {useNavigate} from 'react-router-native';
-import {useQuery} from '@apollo/client';
-import ScreenLayout from '../../shared/components/ScreenLayout';
-import Title from '../../shared/components/Title';
-import Card from '../../shared/components/Card';
-import LoadingState from '../../shared/components/LoadingState';
-import NoResults from '../../shared/components/NoResults';
-import {spacing} from '../../shared/theme/tokens';
+import { View, Pressable, FlatList, SectionList, Text } from 'react-native';
+import { useNavigate } from 'react-router-native';
+
 import {
   GET_MY_WORKOUT_PLANS,
   GET_SHARED_WORKOUT_PLANS,
-} from '../../features/workout-sessions/graphql/userWorkouts.graphql';
-import Button from 'shared/components/Button';
+} from 'src/features/workout-sessions/graphql/userWorkouts.graphql';
+import Button from 'src/shared/components/Button';
+import Card from 'src/shared/components/Card';
+import LoadingState from 'src/shared/components/LoadingState';
+import NoResults from 'src/shared/components/NoResults';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
+import { spacing } from 'src/shared/theme/tokens';
 
 export default function MyWorkoutPlansScreen() {
   const navigate = useNavigate();
 
-  const {data: myData, loading: loadingMy} = useQuery(GET_MY_WORKOUT_PLANS);
-  const {data: sharedData, loading: loadingShared} = useQuery(
-    GET_SHARED_WORKOUT_PLANS,
-  );
+  const { data: myData, loading: loadingMy } = useQuery(GET_MY_WORKOUT_PLANS);
+  const { data: sharedData, loading: loadingShared } = useQuery(GET_SHARED_WORKOUT_PLANS);
 
   const myPlans = myData?.workoutPlans ?? [];
   const sharedPlans = sharedData?.sharedWorkoutPlans ?? [];
-  
+
   const sections = [
-      { title: 'My Plans', data: myPlans },
-      { title: 'Shared With Me', data: sharedPlans },
+    { title: 'My Plans', data: myPlans },
+    { title: 'Shared With Me', data: sharedPlans },
   ];
 
-  const renderPlan = ({item: plan}: {item: any}) => (
+  const renderPlan = ({ item: plan }: { item: any }) => (
     <Pressable
-        key={plan.id}
-        onPress={() => navigate(`/user/view-plan/${plan.id}`)}
-        style={{marginTop: spacing.md}}>
-        <Card title={plan.name} text={plan.description} showChevron />
+      key={plan.id}
+      onPress={() => navigate(`/user/view-plan/${plan.id}`)}
+      style={{ marginTop: spacing.md }}
+    >
+      <Card title={plan.name} text={plan.description} showChevron />
     </Pressable>
   );
 
-  const renderSectionHeader = ({section: {title, data}}: {section: any}) => (
+  const renderSectionHeader = ({ section: { title, data } }: { section: any }) => (
     <View style={{ marginTop: spacing.lg }}>
-        <Title text={title} />
-        {data.length === 0 && <NoResults message="No plans found in this section." />}
+      <Title text={title} />
+      {data.length === 0 && <NoResults message="No plans found in this section." />}
     </View>
   );
 
@@ -53,7 +53,7 @@ export default function MyWorkoutPlansScreen() {
       </ScreenLayout>
     );
   }
-    
+
   return (
     // Use a non-scrolling layout as SectionList will handle it
     <ScreenLayout>
@@ -63,12 +63,12 @@ export default function MyWorkoutPlansScreen() {
         renderItem={renderPlan}
         renderSectionHeader={renderSectionHeader}
         ListFooterComponent={
-            <View style={{ padding: spacing.md }}>
-                <Button
-                    text="Create New Workout Plan"
-                    onPress={() => navigate('/workoutplan/builder')}
-                />
-            </View>
+          <View style={{ padding: spacing.md }}>
+            <Button
+              text="Create New Workout Plan"
+              onPress={() => navigate('/workoutplan/builder')}
+            />
+          </View>
         }
       />
     </ScreenLayout>

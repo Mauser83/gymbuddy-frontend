@@ -1,15 +1,17 @@
 import React from 'react';
-import {View, Text, Image, Pressable, Platform} from 'react-native';
-import Card from 'shared/components/Card';
-import LoadingState from 'shared/components/LoadingState';
-import {useTheme} from 'shared/theme/ThemeProvider';
-import type {ImageJobGroup, ImageQueueItem, ImageJobType} from '../types';
+import { View, Text, Image, Pressable, Platform } from 'react-native';
+
+import Card from 'src/shared/components/Card';
+import LoadingState from 'src/shared/components/LoadingState';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+
+import type { ImageJobGroup, ImageQueueItem, ImageJobType } from '../types';
 
 type Props = {
   groups: ImageJobGroup[];
   thumbs: Record<string, string>;
   loading: boolean;
-  onOpenRaw: (payload: {url: string; storageKey?: string}) => void;
+  onOpenRaw: (payload: { url: string; storageKey?: string }) => void;
 };
 
 const copy = (text?: string | null) => {
@@ -17,14 +19,8 @@ const copy = (text?: string | null) => {
   (globalThis as any).navigator?.clipboard?.writeText(text);
 };
 
-const StatusChip = ({
-  status,
-  text,
-}: {
-  status: ImageQueueItem['status'];
-  text: string;
-}) => {
-  const {theme} = useTheme();
+const StatusChip = ({ status, text }: { status: ImageQueueItem['status']; text: string }) => {
+  const { theme } = useTheme();
   // Prefer theme tokens; fall back to bright colors if not present
   const GREEN = (theme.colors as any).success ?? '#22c55e';
   const RED = theme.colors.error ?? '#ef4444';
@@ -43,30 +39,25 @@ const StatusChip = ({
         paddingVertical: 4,
         borderRadius: 999,
         backgroundColor: color,
-      }}>
-      <Text style={{color: '#fff', fontWeight: '700'}}>{text}</Text>
+      }}
+    >
+      <Text style={{ color: '#fff', fontWeight: '700' }}>{text}</Text>
     </View>
   );
 };
 
-export default function QueueTable({
-  groups,
-  thumbs,
-  loading,
-  onOpenRaw,
-}: Props) {
-    const {theme} = useTheme();
+export default function QueueTable({ groups, thumbs, loading, onOpenRaw }: Props) {
+  const { theme } = useTheme();
   if (loading) return <LoadingState text="Loading..." />;
 
   return (
     <View>
-      {groups.map(g => {
+      {groups.map((g) => {
         const thumbUrl = g.storageKey ? thumbs[g.storageKey] : undefined;
         const line = (jt: ImageJobType) => {
           const j = g.jobs[jt];
           // If worker left it "pending" but set lastError, visually treat as failed
-          const rawStatus = (j?.status ??
-            'pending') as ImageQueueItem['status'];
+          const rawStatus = (j?.status ?? 'pending') as ImageQueueItem['status'];
           const status: ImageQueueItem['status'] =
             rawStatus !== 'succeeded' && j?.lastError ? 'failed' : rawStatus;
           const label = jt.toUpperCase();
@@ -80,23 +71,24 @@ export default function QueueTable({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 paddingVertical: 6,
-              }}>
-              <View
-                style={{flexDirection: 'row', gap: 8, alignItems: 'center'}}>
+              }}
+            >
+              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
                 <StatusChip status={status} text={label} />
               </View>
-              <View
-                style={{flexDirection: 'row', gap: 8, alignItems: 'center'}}>
-                {showAttempts && <Text style={{color: theme.colors.textPrimary}}>attempts: {j?.attempts}</Text>}
+              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                {showAttempts && (
+                  <Text style={{ color: theme.colors.textPrimary }}>attempts: {j?.attempts}</Text>
+                )}
               </View>
             </View>
           );
         };
 
         return (
-          <Card key={g.key} compact style={{marginBottom: 10, padding: 10}}>
-            <View style={{flexDirection: 'row', gap: 12}}>
-              <View style={{width: 120}}>
+          <Card key={g.key} compact style={{ marginBottom: 10, padding: 10 }}>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ width: 120 }}>
                 {thumbUrl ? (
                   <Pressable
                     onPress={() =>
@@ -105,9 +97,7 @@ export default function QueueTable({
                         storageKey: g.storageKey ?? undefined,
                       })
                     }
-                    {...(Platform.OS === 'web'
-                      ? {role: 'link', tabIndex: 0}
-                      : {})}
+                    {...(Platform.OS === 'web' ? { role: 'link', tabIndex: 0 } : {})}
                     style={{
                       width: 120,
                       height: 120,
@@ -115,10 +105,7 @@ export default function QueueTable({
                       overflow: 'hidden',
                     }}
                   >
-                    <Image
-                      source={{uri: thumbUrl}}
-                      style={{width: '100%', height: '100%'}}
-                    />
+                    <Image source={{ uri: thumbUrl }} style={{ width: '100%', height: '100%' }} />
                   </Pressable>
                 ) : (
                   <View
@@ -129,20 +116,17 @@ export default function QueueTable({
                       backgroundColor: '#222',
                       alignItems: 'center',
                       justifyContent: 'center',
-                    }}>
-                    <Text style={{opacity: 0.6}}>no image</Text>
+                    }}
+                  >
+                    <Text style={{ opacity: 0.6 }}>no image</Text>
                   </View>
                 )}
               </View>
-              <View style={{flex: 1}}>
+              <View style={{ flex: 1 }}>
                 {g.jobs.hash && line('hash')}
-                <View
-                  style={{height: 1, opacity: 0.05, backgroundColor: '#fff'}}
-                />
+                <View style={{ height: 1, opacity: 0.05, backgroundColor: '#fff' }} />
                 {g.jobs.safety && line('safety')}
-                <View
-                  style={{height: 1, opacity: 0.05, backgroundColor: '#fff'}}
-                />
+                <View style={{ height: 1, opacity: 0.05, backgroundColor: '#fff' }} />
                 {g.jobs.embed && line('embed')}
               </View>
             </View>

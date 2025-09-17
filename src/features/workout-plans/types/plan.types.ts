@@ -31,5 +31,5 @@ export type FormValues = {
 };
 
 export type PlanItem =
-  | {type: 'exercise'; data: ExerciseFormEntry}
-  | {type: 'group'; data: ExerciseGroup};
+  | { type: 'exercise'; data: ExerciseFormEntry }
+  | { type: 'group'; data: ExerciseGroup };

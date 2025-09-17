@@ -1,4 +1,4 @@
-import React, {useRef, useEffect} from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   ScrollView,
   View,
@@ -7,7 +7,8 @@ import {
   NativeScrollEvent,
   StyleSheet,
 } from 'react-native';
-import {spacing} from 'shared/theme/tokens';
+
+import { spacing } from 'src/shared/theme/tokens';
 
 interface ExerciseCarouselProps {
   children: React.ReactNode[];
@@ -25,7 +26,7 @@ export default function ExerciseCarousel({
 
   useEffect(() => {
     setTimeout(() => {
-      scrollRef.current?.scrollTo({x: index * width, animated: false});
+      scrollRef.current?.scrollTo({ x: index * width, animated: false });
     }, 0);
   }, [index, width]);
 
@@ -41,9 +42,10 @@ export default function ExerciseCarousel({
       ref={scrollRef}
       showsHorizontalScrollIndicator={false}
       onMomentumScrollEnd={handleScrollEnd}
-      style={styles.scroll}>
+      style={styles.scroll}
+    >
       {React.Children.map(children, (child, i) => (
-        <View style={{width}} key={i}>
+        <View style={{ width }} key={i}>
           {child}
         </View>
       ))}
@@ -52,5 +54,5 @@ export default function ExerciseCarousel({
 }
 
 const styles = StyleSheet.create({
-  scroll: {flexGrow: 0},
+  scroll: { flexGrow: 0 },
 });

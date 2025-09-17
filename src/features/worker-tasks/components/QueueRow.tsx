@@ -1,10 +1,12 @@
-import React, {useState} from 'react';
-import {View, Text, TouchableOpacity} from 'react-native';
-import Button from 'shared/components/Button';
-import {spacing} from 'shared/theme/tokens';
-import {useTheme} from 'shared/theme/ThemeProvider';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
+
+import Button from 'src/shared/components/Button';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing } from 'src/shared/theme/tokens';
+
 import ErrorPanel from './ErrorPanel';
-import type {ImageQueueItem} from '../types';
+import type { ImageQueueItem } from '../types';
 
 interface QueueRowProps {
   item: ImageQueueItem;
@@ -12,8 +14,8 @@ interface QueueRowProps {
   onPreview: (key: string) => void;
 }
 
-const QueueRow = ({item, onRetry, onPreview}: QueueRowProps) => {
-  const {theme} = useTheme();
+const QueueRow = ({ item, onRetry, onPreview }: QueueRowProps) => {
+  const { theme } = useTheme();
   const [expanded, setExpanded] = useState(false);
 
   const statusColor: Record<ImageQueueItem['status'], string> = {
@@ -29,49 +31,48 @@ const QueueRow = ({item, onRetry, onPreview}: QueueRowProps) => {
         borderBottomWidth: 1,
         borderColor: theme.colors.layoutBorder,
         paddingVertical: spacing.sm,
-      }}>
+      }}
+    >
       <View
         style={{
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: spacing.sm,
-        }}>
-        <Text style={{color: statusColor[item.status], flex: 1}}>
+        }}
+      >
+        <Text style={{ color: statusColor[item.status], flex: 1 }}>
           {item.status.toUpperCase()}
         </Text>
-        <Text style={{flex: 1, color: theme.colors.textPrimary}}>{item.jobType.toUpperCase()}</Text>
-        <View style={{flex: 2}}>
+        <Text style={{ flex: 1, color: theme.colors.textPrimary }}>
+          {item.jobType.toUpperCase()}
+        </Text>
+        <View style={{ flex: 2 }}>
           {item.storageKey ? (
             <TouchableOpacity onPress={() => onPreview(item.storageKey!)}>
-              <Text style={{color: theme.colors.accentStart}} numberOfLines={1}>
+              <Text style={{ color: theme.colors.accentStart }} numberOfLines={1}>
                 Preview
               </Text>
             </TouchableOpacity>
           ) : item.imageId ? (
-            <TouchableOpacity
-              onPress={() => console.log('open image', item.imageId)}>
-              <Text style={{color: theme.colors.accentStart}} numberOfLines={1}>
+            <TouchableOpacity onPress={() => console.log('open image', item.imageId)}>
+              <Text style={{ color: theme.colors.accentStart }} numberOfLines={1}>
                 Open
               </Text>
             </TouchableOpacity>
           ) : (
-            <Text style={{color: theme.colors.textSecondary}}>(n/a)</Text>
+            <Text style={{ color: theme.colors.textSecondary }}>(n/a)</Text>
           )}
         </View>
-        <Text style={{width: 40, textAlign: 'center', color: theme.colors.textPrimary}}>{item.attempts}</Text>
+        <Text style={{ width: 40, textAlign: 'center', color: theme.colors.textPrimary }}>
+          {item.attempts}
+        </Text>
         {item.lastError && (
           <TouchableOpacity onPress={() => setExpanded(!expanded)}>
-            <Text style={{color: theme.colors.accentStart}}>
-              {expanded ? 'Hide' : 'Error'}
-            </Text>
+            <Text style={{ color: theme.colors.accentStart }}>{expanded ? 'Hide' : 'Error'}</Text>
           </TouchableOpacity>
         )}
-        <Button
-          text="Retry"
-          onPress={() => onRetry(item)}
-          small
-        />
+        <Button text="Retry" onPress={() => onRetry(item)} small />
       </View>
       {expanded && <ErrorPanel error={item.lastError} />}
     </View>

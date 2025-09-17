@@ -1,21 +1,21 @@
+import { useQuery } from '@apollo/client';
 import React from 'react';
-import {useParams} from 'react-router-native';
-import {useQuery} from '@apollo/client';
-import { GET_EQUIPMENT_BY_ID } from 'features/equipment/graphql/equipment.graphql';
+import { useParams } from 'react-router-native';
 
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-import DetailField from 'shared/components/DetailField';
-import LoadingState from 'shared/components/LoadingState';
-import NoResults from 'shared/components/NoResults';
-import CollapsibleList from 'shared/components/CollapsibleList';
-import { ExerciseLite } from 'features/equipment/types/equipment.types';
+import { GET_EQUIPMENT_BY_ID } from 'src/features/equipment/graphql/equipment.graphql';
+import { ExerciseLite } from 'src/features/equipment/types/equipment.types';
+import CollapsibleList from 'src/shared/components/CollapsibleList';
+import DetailField from 'src/shared/components/DetailField';
+import LoadingState from 'src/shared/components/LoadingState';
+import NoResults from 'src/shared/components/NoResults';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
 
 export default function EquipmentDetailScreen() {
-  const {id} = useParams<{id: string}>();
+  const { id } = useParams<{ id: string }>();
 
-  const {data, loading} = useQuery(GET_EQUIPMENT_BY_ID, {
-    variables: {id: Number(id)},
+  const { data, loading } = useQuery(GET_EQUIPMENT_BY_ID, {
+    variables: { id: Number(id) },
   });
 
   if (loading) return <LoadingState text="Loading equipment details..." />;
@@ -32,14 +32,8 @@ export default function EquipmentDetailScreen() {
       <DetailField label="Subcategory" value={eq.subcategory?.name || '—'} />
       <DetailField label="Brand" value={eq.brand} />
       <DetailField label="Manual URL" value={eq.manualUrl || '—'} />
-      <DetailField
-        label="Created At"
-        value={new Date(eq.createdAt).toLocaleString()}
-      />
-      <DetailField
-        label="Updated At"
-        value={new Date(eq.updatedAt).toLocaleString()}
-      />
+      <DetailField label="Created At" value={new Date(eq.createdAt).toLocaleString()} />
+      <DetailField label="Updated At" value={new Date(eq.updatedAt).toLocaleString()} />
       {eq.compatibleExercises?.length > 0 ? (
         <CollapsibleList
           title={`Compatible Exercises (${eq.compatibleExercises.length})`}
@@ -54,10 +48,7 @@ export default function EquipmentDetailScreen() {
           initiallyExpanded={false}
         />
       ) : (
-        <DetailField
-          label="Compatible Exercises"
-          value="None found for this equipment."
-        />
+        <DetailField label="Compatible Exercises" value="None found for this equipment." />
       )}
     </ScreenLayout>
   );

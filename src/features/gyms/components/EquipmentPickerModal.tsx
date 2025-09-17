@@ -1,14 +1,14 @@
-import React, {useState, useMemo} from 'react';
-import {useQuery} from '@apollo/client';
-import {ScrollView} from 'react-native';
+import { useQuery } from '@apollo/client';
+import React, { useState, useMemo } from 'react';
+import { ScrollView } from 'react-native';
 
-import Title from 'shared/components/Title';
-import SearchInput from 'shared/components/SearchInput';
-import ClickableList from 'shared/components/ClickableList';
-import LoadingState from 'shared/components/LoadingState';
-import NoResults from 'shared/components/NoResults';
-import {GET_GYM_EQUIPMENT} from 'features/gyms/graphql/gymEquipment';
-import {GymEquipment} from 'features/gyms/types/gym.types';
+import { GET_GYM_EQUIPMENT } from 'src/features/gyms/graphql/gymEquipment';
+import { GymEquipment } from 'src/features/gyms/types/gym.types';
+import ClickableList from 'src/shared/components/ClickableList';
+import LoadingState from 'src/shared/components/LoadingState';
+import NoResults from 'src/shared/components/NoResults';
+import SearchInput from 'src/shared/components/SearchInput';
+import Title from 'src/shared/components/Title';
 
 interface EquipmentPickerModalProps {
   gymId: number;
@@ -22,18 +22,12 @@ export default function EquipmentPickerModal({
   onSelect,
 }: EquipmentPickerModalProps) {
   const [search, setSearch] = useState('');
-  const {data, loading} = useQuery(GET_GYM_EQUIPMENT, {variables: {gymId}});
+  const { data, loading } = useQuery(GET_GYM_EQUIPMENT, { variables: { gymId } });
 
-  const equipment = useMemo<GymEquipment[]>(
-    () => data?.getGymEquipment ?? [],
-    [data],
-  );
+  const equipment = useMemo<GymEquipment[]>(() => data?.getGymEquipment ?? [], [data]);
 
   const filtered = useMemo(
-    () =>
-      equipment.filter(ge =>
-        ge.equipment.name.toLowerCase().includes(search.toLowerCase()),
-      ),
+    () => equipment.filter((ge) => ge.equipment.name.toLowerCase().includes(search.toLowerCase())),
     [equipment, search],
   );
 
@@ -51,9 +45,9 @@ export default function EquipmentPickerModal({
       ) : filtered.length === 0 ? (
         <NoResults message="No equipment found" />
       ) : (
-        <ScrollView style={{maxHeight: 500}}>
+        <ScrollView style={{ maxHeight: 500 }}>
           <ClickableList
-            items={filtered.map(ge => ({
+            items={filtered.map((ge) => ({
               id: ge.id,
               label: ge.equipment.name,
               subLabel: ge.equipment.brand,

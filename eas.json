@@ -17,7 +17,7 @@
       "env": {
         "APP_ENV": "production"
       },
-      "ios": {"simulator": false}
+      "ios": { "simulator": false }
     },
     "cvdev": {
       "autoIncrement": true,
@@ -25,7 +25,7 @@
       "env": {
         "APP_ENV": "cvdev"
       },
-      "ios": {"simulator": false}
+      "ios": { "simulator": false }
     }
   },
   "submit": {

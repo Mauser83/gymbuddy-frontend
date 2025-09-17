@@ -1,14 +1,15 @@
-import React, {useState} from 'react';
-import {FlatList} from 'react-native';
-import Card from 'shared/components/Card';
-import ClickableList from 'shared/components/ClickableList';
-import ButtonRow from 'shared/components/ButtonRow';
-import Button from 'shared/components/Button';
-import NoResults from 'shared/components/NoResults';
+import React, { useState } from 'react';
+import { FlatList } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import {spacing} from 'shared/theme/tokens';
-import {useTheme} from 'shared/theme/ThemeProvider';
-import {Exercise} from 'features/exercises/types/exercise.types';
+
+import { Exercise } from 'src/features/exercises/types/exercise.types';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import Card from 'src/shared/components/Card';
+import ClickableList from 'src/shared/components/ClickableList';
+import NoResults from 'src/shared/components/NoResults';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing } from 'src/shared/theme/tokens';
 
 type Props = {
   exercises: Exercise[];
@@ -16,14 +17,14 @@ type Props = {
   onDelete: (id: number) => void;
 };
 
-const AdminExerciseList = React.memo(({exercises, onEdit, onDelete}: Props) => {
+const AdminExerciseList = React.memo(({ exercises, onEdit, onDelete }: Props) => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const {theme} = useTheme();
+  const { theme } = useTheme();
 
-  const renderItem = ({item}: {item: Exercise}) => {
+  const renderItem = ({ item }: { item: Exercise }) => {
     const isExpanded = expandedId === item.id;
     return (
-      <Card variant="glass" style={{marginBottom: spacing.md}}>
+      <Card variant="glass" style={{ marginBottom: spacing.md }}>
         <ClickableList
           items={[
             {
@@ -31,8 +32,7 @@ const AdminExerciseList = React.memo(({exercises, onEdit, onDelete}: Props) => {
               label: item.name,
               subLabel: item.exerciseType?.name || '—',
               selected: isExpanded,
-              onPress: () =>
-                setExpandedId(prev => (prev === item.id ? null : item.id)),
+              onPress: () => setExpandedId((prev) => (prev === item.id ? null : item.id)),
               rightElement: (
                 <FontAwesome
                   name={isExpanded ? 'chevron-down' : 'chevron-right'}
@@ -42,16 +42,8 @@ const AdminExerciseList = React.memo(({exercises, onEdit, onDelete}: Props) => {
               ),
               content: isExpanded ? (
                 <ButtonRow>
-                  <Button
-                    text="Edit"
-                    fullWidth
-                    onPress={() => onEdit(item.id)}
-                  />
-                  <Button
-                    text="Delete"
-                    fullWidth
-                    onPress={() => onDelete(item.id)}
-                  />
+                  <Button text="Edit" fullWidth onPress={() => onEdit(item.id)} />
+                  <Button text="Delete" fullWidth onPress={() => onDelete(item.id)} />
                 </ButtonRow>
               ) : undefined,
             },
@@ -65,7 +57,7 @@ const AdminExerciseList = React.memo(({exercises, onEdit, onDelete}: Props) => {
     <FlatList
       data={exercises}
       renderItem={renderItem}
-      keyExtractor={item => item.id.toString()}
+      keyExtractor={(item) => item.id.toString()}
       ListEmptyComponent={<NoResults message="No exercises found." />}
       showsVerticalScrollIndicator={false}
     />

@@ -1,5 +1,5 @@
-import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 export interface ProcessedImage {
   uri: string;
@@ -23,8 +23,8 @@ export async function preprocessImage(
 
   const result = await ImageManipulator.manipulateAsync(
     uri,
-    [{resize: {width: targetWidth, height: targetHeight}}],
-    {compress: quality, format: ImageManipulator.SaveFormat.JPEG},
+    [{ resize: { width: targetWidth, height: targetHeight } }],
+    { compress: quality, format: ImageManipulator.SaveFormat.JPEG },
   );
   const info = await FileSystem.getInfoAsync(result.uri);
   if (!info.exists) {

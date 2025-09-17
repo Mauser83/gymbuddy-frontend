@@ -1,4 +1,4 @@
-import {gql} from '@apollo/client';
+import { gql } from '@apollo/client';
 
 export const IMAGE_JOBS = gql`
   query ImageJobs($status: ImageJobStatus, $limit: Int) {

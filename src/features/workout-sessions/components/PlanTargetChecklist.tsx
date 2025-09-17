@@ -1,20 +1,15 @@
-import React, {useState, useMemo} from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-  ScrollView,
-} from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, ScrollView } from 'react-native';
+import { Portal } from 'react-native-portalize';
+import Animated, { SlideInRight, SlideOutRight } from 'react-native-reanimated';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import Animated, {SlideInRight, SlideOutRight} from 'react-native-reanimated';
-import {borderRadius, borderWidth, spacing} from 'shared/theme/tokens';
-import {Portal} from 'react-native-portalize';
-import {useTheme} from 'shared/theme/ThemeProvider';
-import {useMetricRegistry} from 'shared/context/MetricRegistry';
-import ExerciseGroupCard from '../../../shared/components/ExerciseGroupCard';
-import {ExerciseLog} from '../types/userWorkouts.types';
+
+import ExerciseGroupCard from 'src/shared/components/ExerciseGroupCard';
+import { useMetricRegistry } from 'src/shared/context/MetricRegistry';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { borderRadius, borderWidth, spacing } from 'src/shared/theme/tokens';
+
+import { ExerciseLog } from '../types/userWorkouts.types';
 
 const HEADER_HEIGHT = 61;
 
@@ -55,14 +50,14 @@ export default function PlanTargetChecklist({
   onSelect,
 }: PlanTargetChecklistProps) {
   const [expanded, setExpanded] = useState(false);
-  const {theme} = useTheme();
+  const { theme } = useTheme();
   const topOffset = HEADER_HEIGHT + spacing.sm;
   const maxHeight = Dimensions.get('window').height - topOffset - spacing.sm;
-  const {metricRegistry} = useMetricRegistry();
+  const { metricRegistry } = useMetricRegistry();
 
   const formatMetrics = (metrics: PlanExercise['targetMetrics']): string => {
     return metrics
-      .map(({metricId, min, max}) => {
+      .map(({ metricId, min, max }) => {
         const name = metricRegistry[metricId]?.name;
         if (!name) return null;
         return max != null && max !== '' && max !== min
@@ -75,37 +70,37 @@ export default function PlanTargetChecklist({
 
   const groupMap: Record<
     number,
-    {id: number; name: string; exercises: PlanExercise[]; order?: number | null}
+    { id: number; name: string; exercises: PlanExercise[]; order?: number | null }
   > = {};
-  groups.forEach(g => {
-    groupMap[g.id] = {...g, name: '', exercises: []};
+  groups.forEach((g) => {
+    groupMap[g.id] = { ...g, name: '', exercises: [] };
   });
 
   const encounteredGroups = new Set<number>();
   const displayList: (
-    | {type: 'exercise'; exercise: PlanExercise}
+    | { type: 'exercise'; exercise: PlanExercise }
     | {
         type: 'group';
-        group: {id: number; name: string; exercises: PlanExercise[]};
+        group: { id: number; name: string; exercises: PlanExercise[] };
       }
-    )[] = [];
+  )[] = [];
 
-  planExercises.forEach(ex => {
+  planExercises.forEach((ex) => {
     if (ex.groupId && groupMap[ex.groupId]) {
       if (!groupMap[ex.groupId].name && ex.trainingMethod) {
         groupMap[ex.groupId].name = ex.trainingMethod.name;
       }
       groupMap[ex.groupId].exercises.push(ex);
       if (!encounteredGroups.has(ex.groupId)) {
-        displayList.push({type: 'group', group: groupMap[ex.groupId]});
+        displayList.push({ type: 'group', group: groupMap[ex.groupId] });
         encounteredGroups.add(ex.groupId);
       }
     } else {
-      displayList.push({type: 'exercise', exercise: ex});
+      displayList.push({ type: 'exercise', exercise: ex });
     }
   });
 
-  type PlanInstance = {planEx: PlanExercise; globalIdx: number; key: string};
+  type PlanInstance = { planEx: PlanExercise; globalIdx: number; key: string };
   const planInstances: PlanInstance[] = [];
   const counts: Record<number, number> = {};
   let globalIdxCounter = 0;
@@ -113,7 +108,7 @@ export default function PlanTargetChecklist({
     if (item.type === 'exercise') {
       const idx = counts[item.exercise.exerciseId] ?? 0;
       counts[item.exercise.exerciseId] = idx + 1;
-        planInstances.push({
+      planInstances.push({
         planEx: item.exercise,
         globalIdx: globalIdxCounter,
         key: `${item.exercise.exerciseId}-${idx}`,
@@ -145,7 +140,7 @@ export default function PlanTargetChecklist({
     return map;
   }, [exerciseLogs]);
 
- return (
+  return (
     <Portal>
       {!expanded && (
         <View
@@ -155,12 +150,14 @@ export default function PlanTargetChecklist({
               top: topOffset,
               borderColor: theme.colors.accentStart,
             },
-          ]}>
+          ]}
+        >
           <TouchableOpacity
             style={styles.collapsedTab}
             onPress={() => setExpanded(true)}
-            activeOpacity={0.9}>
-            {['P', 'L', 'A', 'N'].map(letter => (
+            activeOpacity={0.9}
+          >
+            {['P', 'L', 'A', 'N'].map((letter) => (
               <Text key={letter} style={styles.verticalLetter}>
                 {letter}
               </Text>
@@ -180,20 +177,19 @@ export default function PlanTargetChecklist({
               borderColor: theme.colors.accentStart,
               maxHeight,
             },
-          ]}>
+          ]}
+        >
           <View style={styles.expandedBox}>
             <View style={styles.headerRow}>
               <Text style={styles.headerText}>Plan</Text>
-              <TouchableOpacity
-                onPress={() => setExpanded(false)}
-                style={styles.closeButton}>
+              <TouchableOpacity onPress={() => setExpanded(false)} style={styles.closeButton}>
                 <FontAwesome name="times" size={20} color="#222" />
               </TouchableOpacity>
             </View>
             <ScrollView>
               {(() => {
                 let instanceIdx = 0;
-                return displayList.map(item => {
+                return displayList.map((item) => {
                   if (item.type === 'exercise') {
                     const instance = planInstances[instanceIdx++];
                     const planEx = instance.planEx;
@@ -203,19 +199,17 @@ export default function PlanTargetChecklist({
                       <TouchableOpacity
                         key={`ex-${planEx.exerciseId}-${instance.globalIdx}`}
                         style={styles.exerciseItem}
-                        onPress={() => onSelect?.(itemKey, planEx.exerciseId)}>
-                        <View
-                          style={{flexDirection: 'row', alignItems: 'center'}}>
+                        onPress={() => onSelect?.(itemKey, planEx.exerciseId)}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                           <Text style={styles.name}>{planEx.name}</Text>
                           {completed >= planEx.targetSets ? (
-                            <Text style={{marginLeft: 4, color: 'green'}}>
-                              ✔️
-                            </Text>
+                            <Text style={{ marginLeft: 4, color: 'green' }}>✔️</Text>
                           ) : null}
                         </View>
                         <Text style={styles.details}>
-                          {formatMetrics(planEx.targetMetrics)} ({completed}/
-                          {planEx.targetSets} sets)
+                          {formatMetrics(planEx.targetMetrics)} ({completed}/{planEx.targetSets}{' '}
+                          sets)
                         </Text>
                       </TouchableOpacity>
                     );
@@ -226,8 +220,9 @@ export default function PlanTargetChecklist({
                       label={item.group.name || 'Group'}
                       borderColor={theme.colors.accentStart}
                       textColor={theme.colors.accentStart}
-                      backgroundColor="white">
-                      {item.group.exercises.map(ex => {
+                      backgroundColor="white"
+                    >
+                      {item.group.exercises.map((ex) => {
                         const instance = planInstances[instanceIdx++];
                         const completed = groupedLogs.get(instance.key)?.length ?? 0;
                         const itemKey = instance.key;
@@ -235,22 +230,21 @@ export default function PlanTargetChecklist({
                           <TouchableOpacity
                             key={ex.exerciseId}
                             style={styles.exerciseItem}
-                            onPress={() => onSelect?.(itemKey, ex.exerciseId)}>
+                            onPress={() => onSelect?.(itemKey, ex.exerciseId)}
+                          >
                             <View
                               style={{
                                 flexDirection: 'row',
                                 alignItems: 'center',
-                              }}>
+                              }}
+                            >
                               <Text style={styles.name}>{ex.name}</Text>
                               {completed >= ex.targetSets ? (
-                                <Text style={{marginLeft: 4, color: 'green'}}>
-                                  ✔️
-                                </Text>
+                                <Text style={{ marginLeft: 4, color: 'green' }}>✔️</Text>
                               ) : null}
                             </View>
                             <Text style={styles.details}>
-                              {formatMetrics(ex.targetMetrics)} ({completed}/
-                              {ex.targetSets} sets)
+                              {formatMetrics(ex.targetMetrics)} ({completed}/{ex.targetSets} sets)
                             </Text>
                           </TouchableOpacity>
                         );
@@ -268,73 +262,73 @@ export default function PlanTargetChecklist({
 }
 
 const styles = StyleSheet.create({
-  collapsedWrapper: {
-    position: 'absolute',
-    right: 0,
-    zIndex: 999,
-    alignItems: 'flex-end',
-    borderTopLeftRadius: 10,
-    borderBottomLeftRadius: 10,
-    borderWidth: borderWidth.thick,
-    borderRightWidth: 0,
-  },
-  expandedWrapper: {
-    position: 'absolute',
-    right: 0,
-    zIndex: 999,
-    alignItems: 'flex-end',
-    borderTopLeftRadius: 14,
-    borderBottomLeftRadius: 14,
-    borderWidth: borderWidth.thick,
-    borderRightWidth: 0,
-  },
+  closeButton: { padding: 4 },
   collapsedTab: {
-    backgroundColor: '#f1f1f1',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
     alignItems: 'center',
+    backgroundColor: '#f1f1f1',
+    borderBottomLeftRadius: 8,
+    borderTopLeftRadius: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
-  verticalLetter: {
-    fontWeight: 'bold',
+  collapsedWrapper: {
+    alignItems: 'flex-end',
+    borderBottomLeftRadius: 10,
+    borderRightWidth: 0,
+    borderTopLeftRadius: 10,
+    borderWidth: borderWidth.thick,
+    position: 'absolute',
+    right: 0,
+    zIndex: 999,
+  },
+  details: {
     color: '#444',
     fontSize: 12,
-  },
-  expandedBox: {
-    backgroundColor: 'white',
-    padding: spacing.sm,
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: {width: -2, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 6,
-    maxWidth: 260,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  closeButton: {padding: 4},
-    headerText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#222',
   },
   exerciseItem: {
     marginBottom: spacing.sm,
   },
-  name: {
-    fontWeight: 'bold',
-    fontSize: 14,
-    color: '#222',
+  expandedBox: {
+    backgroundColor: 'white',
+    borderBottomLeftRadius: 12,
+    borderTopLeftRadius: 12,
+    elevation: 6,
+    maxWidth: 260,
+    padding: spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: -2, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
-  details: {
-    fontSize: 12,
+  expandedWrapper: {
+    alignItems: 'flex-end',
+    borderBottomLeftRadius: 14,
+    borderRightWidth: 0,
+    borderTopLeftRadius: 14,
+    borderWidth: borderWidth.thick,
+    position: 'absolute',
+    right: 0,
+    zIndex: 999,
+  },
+  headerRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  headerText: {
+    color: '#222',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  name: {
+    color: '#222',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  verticalLetter: {
     color: '#444',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });

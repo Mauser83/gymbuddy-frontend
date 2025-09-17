@@ -1,16 +1,18 @@
-import React, {useState, useEffect, useMemo, useCallback} from 'react';
-import {useLazyQuery, useMutation} from '@apollo/client';
-import {GET_ALL_EQUIPMENTS} from 'features/equipment/graphql/equipment.graphql';
-import {ASSIGN_EQUIPMENT_TO_GYM} from '../graphql/gymEquipment';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import Title from 'shared/components/Title';
-import SearchInput from 'shared/components/SearchInput';
-import Button from 'shared/components/Button';
-import {Equipment} from 'features/equipment/types/equipment.types';
-import FormInput from 'shared/components/FormInput';
-import ButtonRow from 'shared/components/ButtonRow';
+import { useLazyQuery, useMutation } from '@apollo/client';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+
+import { GET_ALL_EQUIPMENTS } from 'src/features/equipment/graphql/equipment.graphql';
+import { Equipment } from 'src/features/equipment/types/equipment.types';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import FormInput from 'src/shared/components/FormInput';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import SearchInput from 'src/shared/components/SearchInput';
+import Title from 'src/shared/components/Title';
+import { debounce } from 'src/shared/utils/helpers';
+
 import EquipmentPickerList from './EquipmentPickerList';
-import {debounce} from 'shared/utils/helpers';
+import { ASSIGN_EQUIPMENT_TO_GYM } from '../graphql/gymEquipment';
 
 export default function AddEquipmentToGymModal({
   visible,
@@ -25,7 +27,7 @@ export default function AddEquipmentToGymModal({
   assignedEquipmentIds?: number[];
   onAssigned?: () => void; // ✅ new optional callback
 }) {
-  const [fetchEquipments, {data, loading}] = useLazyQuery(GET_ALL_EQUIPMENTS);
+  const [fetchEquipments, { data, loading }] = useLazyQuery(GET_ALL_EQUIPMENTS);
   const [assignEquipment] = useMutation(ASSIGN_EQUIPMENT_TO_GYM);
 
   const [search, setSearch] = useState('');
@@ -40,7 +42,7 @@ export default function AddEquipmentToGymModal({
   const debouncedFetch = useMemo(
     () =>
       debounce((q: string) => {
-        fetchEquipments({variables: {search: q || undefined}});
+        fetchEquipments({ variables: { search: q || undefined } });
       }, 500),
     [fetchEquipments],
   );
@@ -49,11 +51,7 @@ export default function AddEquipmentToGymModal({
     debouncedFetch(search);
   }, [search, debouncedFetch]);
 
-  const handleAssign = async (
-    equipmentId: number,
-    quantity: number,
-    note?: string,
-  ) => {
+  const handleAssign = async (equipmentId: number, quantity: number, note?: string) => {
     try {
       await assignEquipment({
         variables: {
@@ -70,7 +68,7 @@ export default function AddEquipmentToGymModal({
     }
   };
 
-  const {availableItems, assignedItems} = useMemo(() => {
+  const { availableItems, assignedItems } = useMemo(() => {
     const available: Equipment[] = [];
     const assigned: Equipment[] = [];
 
@@ -85,7 +83,7 @@ export default function AddEquipmentToGymModal({
     available.sort((a, b) => a.name.localeCompare(b.name));
     assigned.sort((a, b) => a.name.localeCompare(b.name));
 
-    return {availableItems: available, assignedItems: assigned};
+    return { availableItems: available, assignedItems: assigned };
   }, [data, assignedEquipmentIds]);
 
   const handleSelect = useCallback((item: Equipment) => {
@@ -102,20 +100,12 @@ export default function AddEquipmentToGymModal({
           <FormInput
             label="Quantity"
             value={String(quantity)}
-            onChangeText={val => setQuantity(Number(val))}
+            onChangeText={(val) => setQuantity(Number(val))}
             keyboardType="numeric"
           />
-          <FormInput
-            label="Note (optional)"
-            value={note}
-            onChangeText={setNote}
-          />
+          <FormInput label="Note (optional)" value={note} onChangeText={setNote} />
           <ButtonRow>
-            <Button
-              text="Cancel"
-              onPress={() => setSelectedEquipment(null)}
-              fullWidth
-            />
+            <Button text="Cancel" onPress={() => setSelectedEquipment(null)} fullWidth />
             <Button
               text="Confirm"
               fullWidth

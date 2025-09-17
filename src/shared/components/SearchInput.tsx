@@ -1,6 +1,7 @@
 import React from 'react';
-import {View, TextInput, TouchableOpacity, Text} from 'react-native';
-import {useTheme} from 'shared/theme/ThemeProvider';
+import { View, TextInput, TouchableOpacity, Text } from 'react-native';
+
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 interface SearchInputProps {
   value: string;
@@ -9,13 +10,8 @@ interface SearchInputProps {
   onClear?: () => void;
 }
 
-const SearchInput = ({
-  value,
-  onChange,
-  placeholder = 'Search...',
-  onClear,
-}: SearchInputProps) => {
-  const {theme, componentStyles} = useTheme();
+const SearchInput = ({ value, onChange, placeholder = 'Search...', onClear }: SearchInputProps) => {
+  const { theme, componentStyles } = useTheme();
   const styles = componentStyles.searchInput;
 
   return (

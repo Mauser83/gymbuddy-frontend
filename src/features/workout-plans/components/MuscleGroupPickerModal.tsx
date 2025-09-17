@@ -1,10 +1,11 @@
 import React from 'react';
 import { ScrollView, View } from 'react-native';
-import Title from 'shared/components/Title';
-import OptionItem from 'shared/components/OptionItem';
-import Button from 'shared/components/Button';
-import { spacing } from 'shared/theme/tokens';
-import type { MuscleGroup } from 'features/exercises/components/EditMuscleGroupModal';
+
+import type { MuscleGroup } from 'src/features/exercises/components/EditMuscleGroupModal';
+import Button from 'src/shared/components/Button';
+import OptionItem from 'src/shared/components/OptionItem';
+import Title from 'src/shared/components/Title';
+import { spacing } from 'src/shared/theme/tokens';
 
 interface Props {
   muscleGroups: MuscleGroup[];
@@ -21,14 +22,12 @@ export default function MuscleGroupPickerModal({
   onClose,
   onRefetch,
 }: Props) {
-
   const toggleSelection = (id: number) => {
     const newIds = selectedIds.includes(id)
-      ? selectedIds.filter(i => i !== id)
+      ? selectedIds.filter((i) => i !== id)
       : [...selectedIds, id];
     onChange(newIds);
   };
-
 
   return (
     <>
@@ -37,7 +36,7 @@ export default function MuscleGroupPickerModal({
         {muscleGroups
           .slice()
           .sort((a, b) => a.name.localeCompare(b.name))
-          .map(group => (
+          .map((group) => (
             <OptionItem
               key={group.id}
               text={group.name}

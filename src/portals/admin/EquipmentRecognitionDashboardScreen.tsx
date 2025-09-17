@@ -1,9 +1,10 @@
 import React from 'react';
-import {useNavigate} from 'react-router-native';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Card from 'shared/components/Card';
-import Title from 'shared/components/Title';
-import Button from 'shared/components/Button';
+import { useNavigate } from 'react-router-native';
+
+import Button from 'src/shared/components/Button';
+import Card from 'src/shared/components/Card';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
 
 const EquipmentRecognitionDashboardScreen = () => {
   const navigate = useNavigate();

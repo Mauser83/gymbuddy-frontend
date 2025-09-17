@@ -1,23 +1,25 @@
-import React, {useEffect, useState} from 'react';
-import {FlatList, Alert, View, Text} from 'react-native';
-import {useMutation} from '@apollo/client';
-import {Formik} from 'formik';
-import * as Yup from 'yup';
-import { CREATE_GYM_MUTATION } from 'features/gyms/graphql/gym.mutations';
-import {useNavigate} from 'react-router-native';
-import {useAuth} from 'features/auth/context/AuthContext';
-import AddressAutocompleteInput, {AddressDetails} from 'features/gyms/components/AddressAutocompleteInput';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Card from 'shared/components/Card';
-import FormInput from 'shared/components/FormInput';
-import Button from 'shared/components/Button';
-import {useTheme} from 'shared/theme/ThemeProvider';
-import {spacing, fontSizes} from 'shared/theme/tokens';
-import DetailField from 'shared/components/DetailField';
-
+import { useMutation } from '@apollo/client';
+import { Formik } from 'formik';
 import countries from 'i18n-iso-countries';
 import enLocale from 'i18n-iso-countries/langs/en.json';
-import ButtonRow from 'shared/components/ButtonRow';
+import React, { useEffect, useState } from 'react';
+import { FlatList, Alert, View, Text } from 'react-native';
+import { useNavigate } from 'react-router-native';
+import * as Yup from 'yup';
+
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import AddressAutocompleteInput, {
+  AddressDetails,
+} from 'src/features/gyms/components/AddressAutocompleteInput';
+import { CREATE_GYM_MUTATION } from 'src/features/gyms/graphql/gym.mutations';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import Card from 'src/shared/components/Card';
+import DetailField from 'src/shared/components/DetailField';
+import FormInput from 'src/shared/components/FormInput';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing, fontSizes } from 'src/shared/theme/tokens';
 
 countries.registerLocale(enLocale);
 
@@ -58,9 +60,9 @@ const hiddenFields = [
 
 const GymCreateScreen = () => {
   const navigate = useNavigate();
-  const {user} = useAuth();
-  const {theme} = useTheme();
-  const [createGym, {loading}] = useMutation(CREATE_GYM_MUTATION);
+  const { user } = useAuth();
+  const { theme } = useTheme();
+  const [createGym, { loading }] = useMutation(CREATE_GYM_MUTATION);
   const [step, setStep] = useState(0);
   const [isAddressValid, setIsAddressValid] = useState(false);
   const colors = theme.colors;
@@ -108,12 +110,12 @@ const GymCreateScreen = () => {
 
   const getFormFields = (step: number) => {
     if (step === 0) {
-      return ['name', 'email', 'phone'].map(key => ({
+      return ['name', 'email', 'phone'].map((key) => ({
         key,
         label: labelMap[key],
       }));
     } else if (step === 1) {
-      return ['websiteUrl', 'description', 'imageUrl'].map(key => ({
+      return ['websiteUrl', 'description', 'imageUrl'].map((key) => ({
         key,
         label: labelMap[key],
       }));
@@ -126,7 +128,7 @@ const GymCreateScreen = () => {
       Object.entries(values).filter(([key, val]) => val !== ''),
     );
     try {
-      const {data} = await createGym({variables: {input: cleanedValues}});
+      const { data } = await createGym({ variables: { input: cleanedValues } });
       Alert.alert('✅ Gym Created');
       navigate(`/gym-admin/gyms/${data.createGym.id}`);
     } catch (err: any) {
@@ -139,13 +141,14 @@ const GymCreateScreen = () => {
       <Formik
         initialValues={initialValues}
         validationSchema={stepSchemas[step]}
-        onSubmit={values => {
+        onSubmit={(values) => {
           if (step < 3) {
-            setStep(prev => prev + 1);
+            setStep((prev) => prev + 1);
           } else {
             handleSubmit(values);
           }
-        }}>
+        }}
+      >
         {({
           handleChange,
           handleSubmit,
@@ -159,7 +162,7 @@ const GymCreateScreen = () => {
           return (
             <FlatList
               data={getFormFields(step)}
-              keyExtractor={item => item.key}
+              keyExtractor={(item) => item.key}
               keyboardShouldPersistTaps="handled"
               ListHeaderComponent={
                 <Card
@@ -169,7 +172,7 @@ const GymCreateScreen = () => {
                   compact
                 />
               }
-              renderItem={({item}) => (
+              renderItem={({ item }) => (
                 <View>
                   <FormInput
                     label={item.label}
@@ -195,12 +198,13 @@ const GymCreateScreen = () => {
                           color: colors.textSecondary,
                           marginBottom: spacing.xs,
                           fontSize: fontSizes.lg,
-                        }}>
+                        }}
+                      >
                         Address *
                       </Text>
                       <AddressAutocompleteInput
                         value={values.address}
-                        onChangeText={text => setFieldValue('address', text)}
+                        onChangeText={(text) => setFieldValue('address', text)}
                         onPlaceSelect={(details: AddressDetails) => {
                           const countryName =
                             countries.getName(details.countryCode, 'en', {
@@ -225,7 +229,8 @@ const GymCreateScreen = () => {
                             color: theme.colors.error,
                             marginBottom: spacing.xs,
                             fontSize: fontSizes.sm,
-                          }}>
+                          }}
+                        >
                           {errors.address}
                         </Text>
                       )}
@@ -233,19 +238,15 @@ const GymCreateScreen = () => {
                   )}
 
                   {step === 3 && (
-                    <View style={{gap: 12}}>
+                    <View style={{ gap: 12 }}>
                       {Object.entries(values)
                         .filter(
                           ([key, val]) =>
-                            val?.toString().trim() !== '' &&
-                            !hiddenFields.includes(key),
+                            val?.toString().trim() !== '' && !hiddenFields.includes(key),
                         )
                         .map(([key, val], idx, arr) => (
                           <View key={key}>
-                            <DetailField
-                              label={displayLabelMap[key] || key}
-                              value={val}
-                            />
+                            <DetailField label={displayLabelMap[key] || key} value={val} />
                             {idx < arr.length && (
                               <View
                                 style={{
@@ -262,22 +263,17 @@ const GymCreateScreen = () => {
 
                   <ButtonRow>
                     {step > 0 ? (
-                      <Button
-                        text="Back"
-                        fullWidth
-                        onPress={() => setStep(prev => prev - 1)}
-                      />
+                      <Button text="Back" fullWidth onPress={() => setStep((prev) => prev - 1)} />
                     ) : (
-                      <View style={{flex: 1}} />
+                      <View style={{ flex: 1 }} />
                     )}
                     <Button
                       disabled={
-                        (step === 0 && !values.name.trim()) ||
-                        (step === 2 && !isAddressValid)
+                        (step === 0 && !values.name.trim()) || (step === 2 && !isAddressValid)
                       }
                       fullWidth
                       onPress={() =>
-                        validateForm().then(err => {
+                        validateForm().then((err) => {
                           if (Object.keys(err).length === 0) {
                             handleSubmit();
                           }

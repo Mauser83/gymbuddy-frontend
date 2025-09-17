@@ -1,5 +1,5 @@
 // 📁 shared/graphql/metrics.graphql.ts
-import {gql} from '@apollo/client';
+import { gql } from '@apollo/client';
 
 export const GET_ALL_METRICS_AND_EXERCISE_TYPES = gql`
   query GET_ALL_METRICS_AND_EXERCISE_TYPES {

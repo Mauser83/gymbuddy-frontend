@@ -1,6 +1,8 @@
 import { useQuery } from '@apollo/client';
+
+import { useRoleContext } from 'src/features/auth/context/RoleContext';
+
 import { LATEST_EMBEDDED_IMAGE } from '../graphql/latestEmbeddedImage';
-import { useRoleContext } from 'features/auth/context/RoleContext';
 
 type Scope = 'GLOBAL' | 'GYM' | 'AUTO';
 type Input = { scope: Scope; gymId?: number; equipmentId?: number };

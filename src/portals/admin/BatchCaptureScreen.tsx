@@ -1,38 +1,35 @@
-import React, {useState} from 'react';
-import {View, Text, Image, Pressable, StyleSheet, Platform} from 'react-native';
-import Toast from 'react-native-toast-message';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Card from 'shared/components/Card';
-import Title from 'shared/components/Title';
-import Button from 'shared/components/Button';
-import LoadingState from 'shared/components/LoadingState';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import SelectableField from 'shared/components/SelectableField';
-import OptionItem from 'shared/components/OptionItem';
 import * as ImagePicker from 'expo-image-picker';
-import {useTheme} from 'shared/theme/ThemeProvider';
-import {spacing} from 'shared/theme/tokens';
-import {useNavigate} from 'react-router-native';
-import {preprocessImage} from 'shared/utils';
-import {uploadConfig} from 'config/upload';
+import React, { useState } from 'react';
+import { View, Text, Image, Pressable, StyleSheet, Platform } from 'react-native';
+import Toast from 'react-native-toast-message';
+import { useNavigate } from 'react-router-native';
 
-import GymPickerModal, {
-  Gym,
-} from 'features/workout-sessions/components/GymPickerModal';
-import EquipmentPickerModal from 'features/gyms/components/EquipmentPickerModal';
-import {Equipment} from 'features/equipment/types/equipment.types';
-
-import {
-  useCreateAdminUploadTicket,
-  useFinalizeGymImagesAdmin,
-} from 'features/cv/hooks/useUploadSession';
-import {useAuth} from 'features/auth/context/AuthContext';
+import { uploadConfig } from 'src/config/upload';
+import { useAuth } from 'src/features/auth/context/AuthContext';
 import {
   useApplyTaxonomies,
   useTaxonomyOptions,
   TaxonomyOption,
-} from 'features/cv/hooks/useTagging';
-import AccessDenied from 'shared/components/AccessDenied';
+} from 'src/features/cv/hooks/useTagging';
+import {
+  useCreateAdminUploadTicket,
+  useFinalizeGymImagesAdmin,
+} from 'src/features/cv/hooks/useUploadSession';
+import { Equipment } from 'src/features/equipment/types/equipment.types';
+import EquipmentPickerModal from 'src/features/gyms/components/EquipmentPickerModal';
+import GymPickerModal, { Gym } from 'src/features/workout-sessions/components/GymPickerModal';
+import AccessDenied from 'src/shared/components/AccessDenied';
+import Button from 'src/shared/components/Button';
+import Card from 'src/shared/components/Card';
+import LoadingState from 'src/shared/components/LoadingState';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import OptionItem from 'src/shared/components/OptionItem';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import SelectableField from 'src/shared/components/SelectableField';
+import Title from 'src/shared/components/Title';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing } from 'src/shared/theme/tokens';
+import { preprocessImage } from 'src/shared/utils';
 type TileState =
   | 'EMPTY'
   | 'PUTTING'
@@ -45,14 +42,14 @@ type TileState =
 interface PutItem {
   url: string;
   storageKey: string;
-  requiredHeaders?: {key?: string; name?: string; value: string}[];
+  requiredHeaders?: { key?: string; name?: string; value: string }[];
   expiresAt?: string;
 }
 
 interface UploadTile {
   storageKey?: string;
   url?: string;
-  requiredHeaders?: {key?: string; name?: string; value: string}[];
+  requiredHeaders?: { key?: string; name?: string; value: string }[];
   file?: File;
   previewUri?: string;
   putProgress: number;
@@ -74,21 +71,20 @@ function putWithProgress(
     xhr.open('PUT', item.url);
     xhr.timeout = 120000; // 120s safety
     const headers = item.requiredHeaders || [];
-    headers.forEach((h: {key?: string; name?: string; value: string}) =>
+    headers.forEach((h: { key?: string; name?: string; value: string }) =>
       xhr.setRequestHeader((h.key ?? h.name)!, h.value),
     );
     if (!headers.length) {
       xhr.setRequestHeader('Content-Type', 'image/jpeg');
     }
     xhr.onloadstart = () => console.log('[PUT] start', item.storageKey);
-    xhr.upload.onprogress = e => {
+    xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) {
         onProgress(Math.round((e.loaded / e.total) * 100));
       }
     };
     xhr.onreadystatechange = () => {
-      if (xhr.readyState === 2)
-        console.log('[PUT] headers received', xhr.status);
+      if (xhr.readyState === 2) console.log('[PUT] headers received', xhr.status);
       if (xhr.readyState === 3) console.log('[PUT] loading…');
     };
     xhr.onload = () =>
@@ -120,9 +116,9 @@ const initialForm = {
 };
 
 const BatchCaptureScreen = () => {
-  const {theme} = useTheme();
+  const { theme } = useTheme();
   const navigate = useNavigate();
-  const {user} = useAuth();
+  const { user } = useAuth();
   const isAdmin = user?.appRole === 'ADMIN' || user?.appRole === 'MODERATOR';
   if (!isAdmin) {
     return (
@@ -133,9 +129,7 @@ const BatchCaptureScreen = () => {
   }
   const [form, setForm] = useState(initialForm);
   const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
-  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(
-    null,
-  );
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [gymModalVisible, setGymModalVisible] = useState(false);
   const [equipmentModalVisible, setEquipmentModalVisible] = useState(false);
   const [tiles, setTiles] = useState<UploadTile[]>([]);
@@ -152,24 +146,24 @@ const BatchCaptureScreen = () => {
       setPhase('UPLOADING');
       const keys = await uploadAll();
       await finalizeSession(keys);
-    })().catch(err => {
+    })().catch((err) => {
       console.error(err);
       setPhase('PREPARED');
-      Toast.show({type: 'error', text1: 'Upload failed'});
+      Toast.show({ type: 'error', text1: 'Upload failed' });
     });
   }, [phase]);
   const [uploading, setUploading] = useState(false);
 
-  const [createTicket, {loading: preparing}] = useCreateAdminUploadTicket();
-  const [finalize, {loading: finalizing}] = useFinalizeGymImagesAdmin();
+  const [createTicket, { loading: preparing }] = useCreateAdminUploadTicket();
+  const [finalize, { loading: finalizing }] = useFinalizeGymImagesAdmin();
 
-  const {data: ang} = useTaxonomyOptions('ANGLE');
-  const {data: hgt} = useTaxonomyOptions('HEIGHT');
-  const {data: dst} = useTaxonomyOptions('DISTANCE');
-  const {data: lgt} = useTaxonomyOptions('LIGHTING');
-  const {data: mir} = useTaxonomyOptions('MIRROR');
-  const {data: spl} = useTaxonomyOptions('SPLIT');
-  const {data: src} = useTaxonomyOptions('SOURCE');
+  const { data: ang } = useTaxonomyOptions('ANGLE');
+  const { data: hgt } = useTaxonomyOptions('HEIGHT');
+  const { data: dst } = useTaxonomyOptions('DISTANCE');
+  const { data: lgt } = useTaxonomyOptions('LIGHTING');
+  const { data: mir } = useTaxonomyOptions('MIRROR');
+  const { data: spl } = useTaxonomyOptions('SPLIT');
+  const { data: src } = useTaxonomyOptions('SOURCE');
   const angles = (ang?.taxonomyTypes as TaxonomyOption[]) ?? [];
   const heights = (hgt?.taxonomyTypes as TaxonomyOption[]) ?? [];
   const distances = (dst?.taxonomyTypes as TaxonomyOption[]) ?? [];
@@ -190,14 +184,14 @@ const BatchCaptureScreen = () => {
   }>({
     visible: false,
   });
-  const openDefault = (k: string) => setDefaultOpen({k, visible: true});
-  const closeDefault = () => setDefaultOpen({visible: false});
+  const openDefault = (k: string) => setDefaultOpen({ k, visible: true });
+  const closeDefault = () => setDefaultOpen({ visible: false });
   const DEFAULT_PICKMAP: Record<
     string,
-    {label: string; value?: number; options: TaxonomyOption[]}
+    { label: string; value?: number; options: TaxonomyOption[] }
   > = {
-    split: {label: 'Split', value: defaults.splitId, options: splits},
-    source: {label: 'Source', value: defaults.sourceId, options: sources},
+    split: { label: 'Split', value: defaults.splitId, options: splits },
+    source: { label: 'Source', value: defaults.sourceId, options: sources },
   };
   const currentDefault = defaultOpen.k ? DEFAULT_PICKMAP[defaultOpen.k] : null;
 
@@ -213,21 +207,21 @@ const BatchCaptureScreen = () => {
   ) {
     if (typeof imageId !== 'string' || imageId.length === 0) return;
     await applyTaxonomies({
-      variables: {input: {imageIds: [imageId], ...patch}},
+      variables: { input: { imageIds: [imageId], ...patch } },
     });
   }
 
   async function applyDefaults() {
     const imageIds = tiles
-      .map(t => t.imageId)
+      .map((t) => t.imageId)
       .filter((id): id is string => typeof id === 'string' && id.length > 0);
     if (!imageIds.length) return;
     const patch: any = {};
     if (defaults.splitId) patch.splitId = defaults.splitId;
     if (defaults.sourceId) patch.sourceId = defaults.sourceId;
     if (!Object.keys(patch).length) return;
-    await applyTaxonomies({variables: {input: {imageIds, ...patch}}});
-    Toast.show({type: 'success', text1: 'Applied to all'});
+    await applyTaxonomies({ variables: { input: { imageIds, ...patch } } });
+    Toast.show({ type: 'success', text1: 'Applied to all' });
   }
   // Add images (web)
   const handleAddWeb = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -245,9 +239,9 @@ const BatchCaptureScreen = () => {
           uploadConfig.gymImage.quality,
         );
         console.log('processed size', processed.size);
-        const blob = await fetch(processed.uri).then(r => r.blob());
+        const blob = await fetch(processed.uri).then((r) => r.blob());
         const base = f.name.replace(/\.[^/.]+$/, '');
-        const file = new File([blob], `${base}.jpg`, {type: 'image/jpeg'});
+        const file = new File([blob], `${base}.jpg`, { type: 'image/jpeg' });
         newTiles.push({
           file,
           previewUri: processed.uri,
@@ -259,7 +253,7 @@ const BatchCaptureScreen = () => {
         URL.revokeObjectURL(objectUrl);
       }
     }
-    setTiles(prev => {
+    setTiles((prev) => {
       const next = [...prev, ...newTiles];
       tilesRef.current = next;
       return next;
@@ -268,7 +262,7 @@ const BatchCaptureScreen = () => {
 
   // Add images (native)
   const pickImagesNative = async () => {
-    const {status} = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Toast.show({
         type: 'error',
@@ -293,9 +287,9 @@ const BatchCaptureScreen = () => {
         uploadConfig.gymImage.quality,
       );
       console.log('processed size', processed.size);
-      const blob = await fetch(processed.uri).then(r => r.blob());
+      const blob = await fetch(processed.uri).then((r) => r.blob());
       const base = (asset.fileName || 'upload').replace(/\.[^/.]+$/, '');
-      const file = new File([blob], `${base}.jpg`, {type: 'image/jpeg'});
+      const file = new File([blob], `${base}.jpg`, { type: 'image/jpeg' });
       newTiles.push({
         file,
         previewUri: processed.uri,
@@ -304,7 +298,7 @@ const BatchCaptureScreen = () => {
         state: 'EMPTY' as const,
       });
     }
-    setTiles(prev => {
+    setTiles((prev) => {
       const next = [...prev, ...newTiles];
       tilesRef.current = next;
       return next;
@@ -314,13 +308,13 @@ const BatchCaptureScreen = () => {
   // Prepare session once files are added
   const prepareSession = async () => {
     const pending = tiles
-      .map((t, i) => ({t, i}))
-      .filter(({t}) => t.state === 'EMPTY' && t.file && !t.url);
+      .map((t, i) => ({ t, i }))
+      .filter(({ t }) => t.state === 'EMPTY' && t.file && !t.url);
     if (!pending.length) return;
-    for (const {t, i} of pending) {
+    for (const { t, i } of pending) {
       const mime = resolveMimeType(t.file!);
       const ext = extFromMime(mime);
-      const {data} = await createTicket({
+      const { data } = await createTicket({
         variables: {
           input: {
             gymId: Number(form.gymId),
@@ -333,7 +327,7 @@ const BatchCaptureScreen = () => {
         },
       });
       const item = data.createAdminUploadTicket;
-      setTiles(prev => {
+      setTiles((prev) => {
         const next = [...prev];
         next[i] = {
           ...next[i],
@@ -354,7 +348,7 @@ const BatchCaptureScreen = () => {
     if (!t.file) return;
     const mime = resolveMimeType(t.file);
     const ext = extFromMime(mime);
-    const {data} = await createTicket({
+    const { data } = await createTicket({
       variables: {
         input: {
           gymId: Number(form.gymId),
@@ -367,7 +361,7 @@ const BatchCaptureScreen = () => {
       },
     });
     const item = data.createAdminUploadTicket;
-    setTiles(prev => {
+    setTiles((prev) => {
       const next = [...prev];
       next[index] = {
         ...next[index],
@@ -384,23 +378,19 @@ const BatchCaptureScreen = () => {
   // Upload all pending tiles
   const uploadAll = async (): Promise<string[]> => {
     const pending = tilesRef.current
-      .map((t, i) => ({t, i}))
-      .filter(({t}) => t.url && t.file && t.state === 'EMPTY');
+      .map((t, i) => ({ t, i }))
+      .filter(({ t }) => t.url && t.file && t.state === 'EMPTY');
     if (!pending.length) {
-      const empties = tilesRef.current.filter(
-        t => t.file && !t.url && t.state === 'EMPTY',
-      );
+      const empties = tilesRef.current.filter((t) => t.file && !t.url && t.state === 'EMPTY');
       if (empties.length) {
-        console.warn(
-          '[UPLOAD] found EMPTY tiles without presigns; did prepare run?',
-        );
+        console.warn('[UPLOAD] found EMPTY tiles without presigns; did prepare run?');
       }
       return [];
     }
     const successKeys: string[] = [];
     setUploading(true);
-    for (const {t, i} of pending) {
-      setTiles(prev => {
+    for (const { t, i } of pending) {
+      setTiles((prev) => {
         const next = [...prev];
         next[i] = {
           ...next[i],
@@ -413,28 +403,21 @@ const BatchCaptureScreen = () => {
       });
       const attemptUpload = async () => {
         const current = tilesRef.current[i];
-        if (
-          current.expiresAt &&
-          new Date(current.expiresAt).getTime() <= Date.now()
-        ) {
+        if (current.expiresAt && new Date(current.expiresAt).getTime() <= Date.now()) {
           await refreshTicket(i);
         }
         for (let attempt = 0; attempt < 2; attempt++) {
           try {
             const curr = tilesRef.current[i];
-            const status = await putWithProgress(
-              curr.file!,
-              curr as PutItem,
-              p => {
-                setTiles(prev => {
-                  const next = [...prev];
-                  next[i] = {...next[i], putProgress: p};
-                  tilesRef.current = next;
-                  return next;
-                });
-              },
-            );
-            setTiles(prev => {
+            const status = await putWithProgress(curr.file!, curr as PutItem, (p) => {
+              setTiles((prev) => {
+                const next = [...prev];
+                next[i] = { ...next[i], putProgress: p };
+                tilesRef.current = next;
+                return next;
+              });
+            });
+            setTiles((prev) => {
               const next = [...prev];
               next[i] = {
                 ...next[i],
@@ -475,10 +458,10 @@ const BatchCaptureScreen = () => {
       } catch (err) {
         console.error(err);
         const name = tilesRef.current[i].file?.name ?? 'image';
-        Toast.show({type: 'error', text1: `${name} failed to upload`});
-        setTiles(prev => {
+        Toast.show({ type: 'error', text1: `${name} failed to upload` });
+        setTiles((prev) => {
           const next = [...prev];
-          next[i] = {...next[i], state: 'PUT_ERROR'};
+          next[i] = { ...next[i], state: 'PUT_ERROR' };
           tilesRef.current = next;
           return next;
         });
@@ -493,16 +476,13 @@ const BatchCaptureScreen = () => {
     const allTiles = tilesRef.current;
     const candidates = storageKeysArg
       ? storageKeysArg
-          .map(sk => {
-            const idx = allTiles.findIndex(t => t.storageKey === sk);
-            return {t: allTiles[idx], idx};
+          .map((sk) => {
+            const idx = allTiles.findIndex((t) => t.storageKey === sk);
+            return { t: allTiles[idx], idx };
           })
-          .filter(c => c.idx != null && c.idx >= 0 && c.t)
-      : allTiles
-          .map((t, idx) => ({t, idx}))
-          .filter(({t}) => t.putSucceeded && t.storageKey);
-    const storageKeys =
-      storageKeysArg ?? candidates.map(({t}) => t.storageKey!);
+          .filter((c) => c.idx != null && c.idx >= 0 && c.t)
+      : allTiles.map((t, idx) => ({ t, idx })).filter(({ t }) => t.putSucceeded && t.storageKey);
+    const storageKeys = storageKeysArg ?? candidates.map(({ t }) => t.storageKey!);
     console.log('[FINALIZE]', 'keys', storageKeys.length, storageKeys);
     if (storageKeys.length === 0) {
       Toast.show({
@@ -525,7 +505,7 @@ const BatchCaptureScreen = () => {
       const payload = res.data?.finalizeGymImagesAdmin;
       if (!payload) {
         const msg = res.errors?.[0]?.message ?? 'Failed to finalize images';
-        Toast.show({type: 'error', text1: msg});
+        Toast.show({ type: 'error', text1: msg });
         setPhase('PREPARED');
         return;
       }
@@ -539,7 +519,7 @@ const BatchCaptureScreen = () => {
       }
       // Map storageKey to index for resilience
       const keyMap = new Map<string, number>();
-      candidates.forEach(({t, idx}) => {
+      candidates.forEach(({ t, idx }) => {
         if (t?.storageKey) keyMap.set(t.storageKey, idx);
       });
       const base = tilesRef.current.slice();
@@ -568,7 +548,7 @@ const BatchCaptureScreen = () => {
 
   // Remove tile with cleanup
   const removeTile = (index: number) => {
-    setTiles(prev => {
+    setTiles((prev) => {
       const t = prev[index];
       if (!t) return prev;
       if (Platform.OS === 'web' && t.previewUri?.startsWith('blob:')) {
@@ -584,7 +564,7 @@ const BatchCaptureScreen = () => {
       // If uploaded but not finalized
       if (t.state !== 'FINALIZED') {
         const next = [...prev];
-        next[index] = {...t, state: 'REMOVED'};
+        next[index] = { ...t, state: 'REMOVED' };
         tilesRef.current = next;
         return next;
       }
@@ -596,7 +576,7 @@ const BatchCaptureScreen = () => {
   const retryTile = async (index: number) => {
     const t = tilesRef.current[index];
     if (!t?.file) return;
-    setTiles(prev => {
+    setTiles((prev) => {
       const next = [...prev];
       next[index] = {
         ...next[index],
@@ -614,16 +594,16 @@ const BatchCaptureScreen = () => {
           const status = await putWithProgress(
             tilesRef.current[index].file!,
             tilesRef.current[index] as PutItem,
-            p => {
-              setTiles(prev => {
+            (p) => {
+              setTiles((prev) => {
                 const next = [...prev];
-                next[index] = {...next[index], putProgress: p};
+                next[index] = { ...next[index], putProgress: p };
                 tilesRef.current = next;
                 return next;
               });
             },
           );
-          setTiles(prev => {
+          setTiles((prev) => {
             const next = [...prev];
             next[index] = {
               ...next[index],
@@ -635,13 +615,7 @@ const BatchCaptureScreen = () => {
             tilesRef.current = next;
             return next;
           });
-          console.log(
-            '[PUT] tile',
-            index,
-            tilesRef.current[index].storageKey,
-            'status',
-            status,
-          );
+          console.log('[PUT] tile', index, tilesRef.current[index].storageKey, 'status', status);
           break;
         } catch (err: any) {
           const msg = String(err);
@@ -668,7 +642,7 @@ const BatchCaptureScreen = () => {
         '[FINALIZE] tile count',
         tilesRef.current.length,
         'putSucceeded',
-        tilesRef.current.filter(t => t.putSucceeded).length,
+        tilesRef.current.filter((t) => t.putSucceeded).length,
         'storageKeys',
         sk ? [sk] : [],
       );
@@ -677,9 +651,9 @@ const BatchCaptureScreen = () => {
           type: 'info',
           text1: 'No uploaded photos to finalize yet.',
         });
-        setTiles(prev => {
+        setTiles((prev) => {
           const next = [...prev];
-          next[index] = {...next[index], state: 'PUT_ERROR'};
+          next[index] = { ...next[index], state: 'PUT_ERROR' };
           tilesRef.current = next;
           return next;
         });
@@ -698,17 +672,17 @@ const BatchCaptureScreen = () => {
       if (!payload) {
         const name = tilesRef.current[index].file?.name ?? 'image';
         const msg = res.errors?.[0]?.message ?? `${name} failed to finalize`;
-        Toast.show({type: 'error', text1: msg});
-        setTiles(prev => {
+        Toast.show({ type: 'error', text1: msg });
+        setTiles((prev) => {
           const next = [...prev];
-          next[index] = {...next[index], state: 'PUT_ERROR'};
+          next[index] = { ...next[index], state: 'PUT_ERROR' };
           tilesRef.current = next;
           return next;
         });
         return;
       }
       const img = payload.images?.[0];
-      setTiles(prev => {
+      setTiles((prev) => {
         const next = [...prev];
         next[index] = {
           ...next[index],
@@ -721,28 +695,23 @@ const BatchCaptureScreen = () => {
     } catch (err) {
       console.error(err);
       const name = tilesRef.current[index].file?.name ?? 'image';
-      Toast.show({type: 'error', text1: `${name} failed to upload`});
-      setTiles(prev => {
+      Toast.show({ type: 'error', text1: `${name} failed to upload` });
+      setTiles((prev) => {
         const next = [...prev];
-        next[index] = {...next[index], state: 'PUT_ERROR'};
+        next[index] = { ...next[index], state: 'PUT_ERROR' };
         tilesRef.current = next;
         return next;
       });
     }
   };
 
-  const tilesToShow = tiles.filter(t => t.state !== 'REMOVED');
-  const allDone = tiles.every(
-    t => t.putSucceeded || t.state === 'PUT_ERROR',
-  );
+  const tilesToShow = tiles.filter((t) => t.state !== 'REMOVED');
+  const allDone = tiles.every((t) => t.putSucceeded || t.state === 'PUT_ERROR');
 
   return (
     <ScreenLayout scroll>
       <Card variant="glass">
-        <Title
-          text="Batch Capture"
-          subtitle="Capture equipment images in bulk"
-        />
+        <Title text="Batch Capture" subtitle="Capture equipment images in bulk" />
         <View style={styles.formContainer}>
           <SelectableField
             label="Gym"
@@ -751,16 +720,13 @@ const BatchCaptureScreen = () => {
           />
           <SelectableField
             label="Equipment"
-            value={
-              selectedEquipment ? selectedEquipment.name : 'Select Equipment'
-            }
+            value={selectedEquipment ? selectedEquipment.name : 'Select Equipment'}
             onPress={() => setEquipmentModalVisible(true)}
             disabled={!selectedGym}
           />
         </View>
-        <View style={{marginTop: spacing.md}}>
-          <View
-            style={{flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm}}>
+        <View style={{ marginTop: spacing.md }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
             {tiles.map((t, idx) =>
               t.state === 'REMOVED' ? null : (
                 <ThumbnailTile
@@ -780,26 +746,26 @@ const BatchCaptureScreen = () => {
                     type="file"
                     accept="image/*"
                     multiple
-                    style={{display: 'none'}}
+                    style={{ display: 'none' }}
                     onChange={handleAddWeb}
                   />
                   <Text
                     style={{
                       textAlign: 'center',
                       color: theme.colors.accentStart,
-                    }}>
+                    }}
+                  >
                     ＋ Add image
                   </Text>
                 </label>
               ) : (
-                <Pressable
-                  onPress={pickImagesNative}
-                  style={addTileStyle(theme) as any}>
+                <Pressable onPress={pickImagesNative} style={addTileStyle(theme) as any}>
                   <Text
                     style={{
                       textAlign: 'center',
                       color: theme.colors.accentStart,
-                    }}>
+                    }}
+                  >
                     ＋ Add images
                   </Text>
                 </Pressable>
@@ -847,9 +813,9 @@ const BatchCaptureScreen = () => {
 
         {phase === 'TAGGING' && (
           <>
-            <Card style={{marginTop: spacing.md}} compact>
+            <Card style={{ marginTop: spacing.md }} compact>
               <Title text="Defaults" />
-              <View style={{gap: spacing.sm}}>
+              <View style={{ gap: spacing.sm }}>
                 <SelectableField
                   label="Split"
                   value={labelOf(defaults.splitId, splits) || 'Choose'}
@@ -863,7 +829,7 @@ const BatchCaptureScreen = () => {
                 <Button text="Apply to all" onPress={applyDefaults} />
               </View>
             </Card>
-            <Card title="Tag images" compact style={{marginTop: spacing.md}}>
+            <Card title="Tag images" compact style={{ marginTop: spacing.md }}>
               {tilesToShow.map((t, idx) => (
                 <TagRow
                   key={t.imageId ?? idx}
@@ -873,23 +839,20 @@ const BatchCaptureScreen = () => {
                   distances={distances}
                   lighting={lighting}
                   mirrors={mirrors}
-                  onApply={patch => applySingle(t.imageId!, patch)}
+                  onApply={(patch) => applySingle(t.imageId!, patch)}
                 />
               ))}
             </Card>
             <ModalWrapper visible={defaultOpen.visible} onClose={closeDefault}>
-              <View style={{padding: spacing.md}}>
-                <Title
-                  text={`Choose ${currentDefault?.label}`}
-                  align="center"
-                />
-                {currentDefault?.options.map(o => (
+              <View style={{ padding: spacing.md }}>
+                <Title text={`Choose ${currentDefault?.label}`} align="center" />
+                {currentDefault?.options.map((o) => (
                   <OptionItem
                     key={o.id}
                     text={o.label}
                     onPress={() => {
                       setDefaults(
-                        prev =>
+                        (prev) =>
                           ({
                             ...prev,
                             [`${defaultOpen.k}Id`]: o.id,
@@ -909,18 +872,19 @@ const BatchCaptureScreen = () => {
         onClose={() => {
           setGymModalVisible(false);
           setEquipmentModalVisible(false);
-        }}>
+        }}
+      >
         {gymModalVisible && (
           <GymPickerModal
             onClose={() => setGymModalVisible(false)}
-            onSelect={gym => {
+            onSelect={(gym) => {
               if (tilesRef.current.length) {
                 tilesRef.current = [];
                 setTiles([]);
                 setPhase('SELECT');
               }
               setSelectedGym(gym);
-              setForm(prev => ({
+              setForm((prev) => ({
                 ...prev,
                 gymId: String(gym.id),
                 equipmentId: '',
@@ -934,14 +898,14 @@ const BatchCaptureScreen = () => {
           <EquipmentPickerModal
             gymId={selectedGym.id}
             onClose={() => setEquipmentModalVisible(false)}
-            onSelect={ge => {
+            onSelect={(ge) => {
               if (tilesRef.current.length) {
                 tilesRef.current = [];
                 setTiles([]);
                 setPhase('SELECT');
               }
               setSelectedEquipment(ge.equipment);
-              setForm(prev => ({
+              setForm((prev) => ({
                 ...prev,
                 equipmentId: String(ge.equipment.id),
               }));
@@ -965,7 +929,7 @@ function ThumbnailTile({
   onRetry?: () => void;
   canRemove?: boolean;
 }) {
-  const {theme} = useTheme();
+  const { theme } = useTheme();
   const size = 120;
   return (
     <View
@@ -978,18 +942,17 @@ function ThumbnailTile({
         borderWidth: 1,
         borderColor: theme.colors.accentStart,
         backgroundColor: theme.colors.surface,
-      }}>
+      }}
+    >
       {tile.previewUri ? (
         <Image
-          source={{uri: tile.previewUri}}
-          style={{width: '100%', height: '100%'}}
+          source={{ uri: tile.previewUri }}
+          style={{ width: '100%', height: '100%' }}
           resizeMode="cover"
         />
       ) : (
-        <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
-          <Text style={{color: theme.colors.textSecondary, fontSize: 12}}>
-            No preview
-          </Text>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>No preview</Text>
         </View>
       )}
       {tile.putProgress > 0 && tile.putProgress < 100 && (
@@ -1001,7 +964,8 @@ function ThumbnailTile({
             bottom: 0,
             height: 4,
             backgroundColor: theme.colors.disabledBorder,
-          }}>
+          }}
+        >
           <View
             style={{
               width: `${tile.putProgress}%`,
@@ -1022,10 +986,9 @@ function ThumbnailTile({
             bottom: 0,
             paddingVertical: 4,
             backgroundColor: theme.colors.accentStart,
-          }}>
-          <Text style={{color: 'white', fontSize: 12, textAlign: 'center'}}>
-            Retry
-          </Text>
+          }}
+        >
+          <Text style={{ color: 'white', fontSize: 12, textAlign: 'center' }}>Retry</Text>
         </Pressable>
       )}
       {canRemove && (
@@ -1042,10 +1005,9 @@ function ThumbnailTile({
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: theme.colors.accentStart,
-          }}>
-          <Text style={{color: 'white', fontWeight: '700', lineHeight: 22}}>
-            ×
-          </Text>
+          }}
+        >
+          <Text style={{ color: 'white', fontWeight: '700', lineHeight: 22 }}>×</Text>
         </Pressable>
       )}
     </View>
@@ -1070,9 +1032,8 @@ const styles = StyleSheet.create({
   },
 });
 
-type Opt = {id: number; label: string};
-const labelOf = (id?: number, opts: Opt[] = []) =>
-  opts.find(o => o.id === id)?.label;
+type Opt = { id: number; label: string };
+const labelOf = (id?: number, opts: Opt[] = []) => opts.find((o) => o.id === id)?.label;
 
 function TagRow({
   tile,
@@ -1099,8 +1060,8 @@ function TagRow({
     }>,
   ) => Promise<void>;
 }) {
-  const {theme} = useTheme();
-  const [open, setOpen] = React.useState<{k?: string; visible: boolean}>({
+  const { theme } = useTheme();
+  const [open, setOpen] = React.useState<{ k?: string; visible: boolean }>({
     visible: false,
   });
   const [local, setLocal] = React.useState<{
@@ -1114,18 +1075,15 @@ function TagRow({
   const thumb = tile.previewUri ?? tile.signedUrl;
   const isWeb = Platform.OS === 'web';
 
-  const openPicker = (k: string) => setOpen({k, visible: true});
-  const close = () => setOpen({visible: false});
+  const openPicker = (k: string) => setOpen({ k, visible: true });
+  const close = () => setOpen({ visible: false });
 
-  const PICKMAP: Record<
-    string,
-    {label: string; value?: number; options: Opt[]}
-  > = {
-    angle: {label: 'Angle', value: local.angleId, options: angles},
-    lighting: {label: 'Lighting', value: local.lightingId, options: lighting},
-    height: {label: 'Height', value: local.heightId, options: heights},
-    distance: {label: 'Distance', value: local.distanceId, options: distances},
-    mirror: {label: 'Mirror', value: local.mirrorId, options: mirrors},
+  const PICKMAP: Record<string, { label: string; value?: number; options: Opt[] }> = {
+    angle: { label: 'Angle', value: local.angleId, options: angles },
+    lighting: { label: 'Lighting', value: local.lightingId, options: lighting },
+    height: { label: 'Height', value: local.heightId, options: heights },
+    distance: { label: 'Distance', value: local.distanceId, options: distances },
+    mirror: { label: 'Mirror', value: local.mirrorId, options: mirrors },
   };
 
   const current = open.k ? PICKMAP[open.k] : null;
@@ -1137,7 +1095,8 @@ function TagRow({
         gap: spacing.md,
         alignItems: 'flex-start',
         paddingVertical: spacing.sm,
-      }}>
+      }}
+    >
       <View
         style={{
           width: 128,
@@ -1146,15 +1105,16 @@ function TagRow({
           overflow: 'hidden',
           borderWidth: 1,
           borderColor: theme.colors.divider,
-        }}>
+        }}
+      >
         <Image
-          source={{uri: thumb}}
-          style={{width: '100%', height: '100%'}}
+          source={{ uri: thumb }}
+          style={{ width: '100%', height: '100%' }}
           resizeMode="cover"
         />
       </View>
 
-      <View style={{flex: 1, gap: spacing.sm}}>
+      <View style={{ flex: 1, gap: spacing.sm }}>
         <SelectableField
           label="Angle"
           value={labelOf(local.angleId, angles) || 'Choose'}
@@ -1193,22 +1153,22 @@ function TagRow({
               lightingId: local.lightingId,
               mirrorId: local.mirrorId,
             });
-            Toast.show({type: 'success', text1: 'Saved'});
+            Toast.show({ type: 'success', text1: 'Saved' });
           }}
           disabled={!tile.imageId}
         />
       </View>
 
       <ModalWrapper visible={open.visible} onClose={close}>
-        <View style={{padding: spacing.md}}>
+        <View style={{ padding: spacing.md }}>
           <Title text={`Choose ${current?.label}`} align="center" />
-          {current?.options.map(o => (
+          {current?.options.map((o) => (
             <OptionItem
               key={o.id}
               text={o.label}
               onPress={() => {
                 setLocal(
-                  prev =>
+                  (prev) =>
                     ({
                       ...prev,
                       [`${open.k}Id`]: o.id,

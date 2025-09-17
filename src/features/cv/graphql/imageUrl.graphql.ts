@@ -1,4 +1,4 @@
-import {gql} from '@apollo/client';
+import { gql } from '@apollo/client';
 
 export const IMAGE_URL = gql`
   query ImageUrl($storageKey: String!, $ttlSec: Int!) {

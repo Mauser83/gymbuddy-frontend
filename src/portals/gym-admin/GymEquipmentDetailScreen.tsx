@@ -1,27 +1,11 @@
-import React, {useCallback, useEffect, useState} from 'react';
-import {
-  Alert,
-  FlatList,
-  Image,
-  TouchableOpacity,
-  View,
-  Text,
-} from 'react-native';
-import {useNavigate, useParams} from 'react-router-native';
-import {useQuery, useMutation} from '@apollo/client';
+import { useQuery, useMutation } from '@apollo/client';
 import * as ImagePicker from 'expo-image-picker';
-import {preprocessImage} from 'shared/utils';
-import {uploadConfig} from 'config/upload';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-import DetailField from 'shared/components/DetailField';
-import LoadingState from 'shared/components/LoadingState';
-import NoResults from 'shared/components/NoResults';
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import Card from 'shared/components/Card';
-import {useTheme} from 'shared/theme/ThemeProvider';
-import {useAuth} from 'features/auth/context/AuthContext';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, FlatList, Image, TouchableOpacity, View, Text } from 'react-native';
+import { useNavigate, useParams } from 'react-router-native';
+
+import { uploadConfig } from 'src/config/upload';
+import { useAuth } from 'src/features/auth/context/AuthContext';
 import {
   GET_GYM_EQUIPMENT_DETAIL,
   REMOVE_GYM_EQUIPMENT,
@@ -29,17 +13,21 @@ import {
   CREATE_EQUIPMENT_TRAINING_UPLOAD_TICKET,
   FINALIZE_EQUIPMENT_TRAINING_IMAGE,
   DELETE_GYM_EQUIPMENT_IMAGE,
-} from 'features/gyms/graphql/gymEquipment';
-import {GymEquipment, GymEquipmentImage} from 'features/gyms/types/gym.types';
+} from 'src/features/gyms/graphql/gymEquipment';
+import { GymEquipment, GymEquipmentImage } from 'src/features/gyms/types/gym.types';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import Card from 'src/shared/components/Card';
+import DetailField from 'src/shared/components/DetailField';
+import LoadingState from 'src/shared/components/LoadingState';
+import NoResults from 'src/shared/components/NoResults';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { preprocessImage } from 'src/shared/utils';
 
-const Chip = ({
-  text,
-  tone = 'default',
-}: {
-  text: string;
-  tone?: 'default' | 'warning';
-}) => {
-  const {theme} = useTheme();
+const Chip = ({ text, tone = 'default' }: { text: string; tone?: 'default' | 'warning' }) => {
+  const { theme } = useTheme();
   const colorMap: Record<string, string> = {
     warning: (theme.colors as any).warning ?? '#eab308',
     default: '#666',
@@ -52,30 +40,30 @@ const Chip = ({
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 999,
-      }}>
-      <Text style={{color: '#fff', fontSize: 12}}>{text}</Text>
+      }}
+    >
+      <Text style={{ color: '#fff', fontSize: 12 }}>{text}</Text>
     </View>
   );
 };
 
 export default function GymEquipmentDetailScreen() {
-  const {gymId, gymEquipmentId} = useParams<{
+  const { gymId, gymEquipmentId } = useParams<{
     gymId: string;
     gymEquipmentId: string;
   }>();
   const navigate = useNavigate();
-  const {user} = useAuth();
+  const { user } = useAuth();
   const isAdmin = user?.appRole === 'ADMIN';
 
-  const {data, loading} = useQuery<{getGymEquipmentDetail: GymEquipment}>(
+  const { data, loading } = useQuery<{ getGymEquipmentDetail: GymEquipment }>(
     GET_GYM_EQUIPMENT_DETAIL,
     {
-      variables: {gymEquipmentId: Number(gymEquipmentId)},
+      variables: { gymEquipmentId: Number(gymEquipmentId) },
     },
   );
 
-  const [removeEquipment, {loading: removing}] =
-    useMutation(REMOVE_GYM_EQUIPMENT);
+  const [removeEquipment, { loading: removing }] = useMutation(REMOVE_GYM_EQUIPMENT);
 
   const equipment = data?.getGymEquipmentDetail;
 
@@ -91,7 +79,7 @@ export default function GymEquipmentDetailScreen() {
       nextCursor?: string | null;
     };
   }>(LIST_GYM_EQUIPMENT_IMAGES, {
-    variables: {gymEquipmentId: Number(gymEquipmentId), limit: 24},
+    variables: { gymEquipmentId: Number(gymEquipmentId), limit: 24 },
   });
 
   const [createTicket] = useMutation(CREATE_EQUIPMENT_TRAINING_UPLOAD_TICKET);
@@ -100,16 +88,14 @@ export default function GymEquipmentDetailScreen() {
   const [uploading, setUploading] = useState(false);
 
   const rawImages = imagesData?.listGymEquipmentImages.items ?? [];
-  const images = rawImages.filter(
-    img => isAdmin || img.status !== 'QUARANTINED',
-  );
+  const images = rawImages.filter((img) => isAdmin || img.status !== 'QUARANTINED');
   const nextCursor = imagesData?.listGymEquipmentImages.nextCursor ?? undefined;
 
   const loadMore = useCallback(() => {
     if (!nextCursor) return;
     fetchMore({
-      variables: {cursor: nextCursor},
-      updateQuery: (prev, {fetchMoreResult}) => {
+      variables: { cursor: nextCursor },
+      updateQuery: (prev, { fetchMoreResult }) => {
         if (!fetchMoreResult) return prev;
         return {
           listGymEquipmentImages: {
@@ -128,7 +114,7 @@ export default function GymEquipmentDetailScreen() {
     if (!equipment) return;
     setUploading(true);
     try {
-      const {status} = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         throw new Error('Media library permission required.');
       }
@@ -151,7 +137,7 @@ export default function GymEquipmentDetailScreen() {
           uploadConfig.gymImage.quality,
         );
         console.log('processed size', processed.size);
-        const blob = await fetch(processed.uri).then(r => r.blob());
+        const blob = await fetch(processed.uri).then((r) => r.blob());
         for (let attempt = 0; attempt < 2; attempt++) {
           const ticketRes = await createTicket({
             variables: {
@@ -197,20 +183,13 @@ export default function GymEquipmentDetailScreen() {
     } finally {
       setUploading(false);
     }
-  }, [
-    equipment,
-    createTicket,
-    finalizeImage,
-    gymId,
-    gymEquipmentId,
-    refetchImages,
-  ]);
+  }, [equipment, createTicket, finalizeImage, gymId, gymEquipmentId, refetchImages]);
 
   const handleTakePhoto = useCallback(async () => {
     if (!equipment) return;
     setUploading(true);
     try {
-      const {status} = await ImagePicker.requestCameraPermissionsAsync();
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
         throw new Error('Camera permission required.');
       }
@@ -232,7 +211,7 @@ export default function GymEquipmentDetailScreen() {
         uploadConfig.gymImage.quality,
       );
       console.log('processed size', processed.size);
-      const blob = await fetch(processed.uri).then(r => r.blob());
+      const blob = await fetch(processed.uri).then((r) => r.blob());
       for (let attempt = 0; attempt < 2; attempt++) {
         const ticketRes = await createTicket({
           variables: {
@@ -277,17 +256,10 @@ export default function GymEquipmentDetailScreen() {
     } finally {
       setUploading(false);
     }
-  }, [
-    equipment,
-    createTicket,
-    finalizeImage,
-    gymId,
-    gymEquipmentId,
-    refetchImages,
-  ]);
+  }, [equipment, createTicket, finalizeImage, gymId, gymEquipmentId, refetchImages]);
 
   useEffect(() => {
-    if (images.some(img => img.status === 'PENDING')) {
+    if (images.some((img) => img.status === 'PENDING')) {
       const id = setInterval(() => {
         refetchImages();
       }, 3000);
@@ -298,13 +270,13 @@ export default function GymEquipmentDetailScreen() {
   const confirmDelete = useCallback(
     (id: string) => {
       Alert.alert('Delete photo?', undefined, [
-        {text: 'Cancel', style: 'cancel'},
+        { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteImage({variables: {imageId: id}});
+              await deleteImage({ variables: { imageId: id } });
               await refetchImages();
             } catch (e: any) {
               Alert.alert('Delete failed', e?.message || String(e));
@@ -319,7 +291,7 @@ export default function GymEquipmentDetailScreen() {
   const handleRemove = async () => {
     try {
       await removeEquipment({
-        variables: {gymEquipmentId: Number(gymEquipmentId)},
+        variables: { gymEquipmentId: Number(gymEquipmentId) },
       });
       navigate(`/gym-admin/gyms/${gymId}/equipment`);
     } catch (error) {
@@ -338,22 +310,23 @@ export default function GymEquipmentDetailScreen() {
         <FlatList
           data={images}
           numColumns={3}
-          keyExtractor={item => item.id}
-          renderItem={({item}) => (
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
             <TouchableOpacity
               onLongPress={() => confirmDelete(item.id)}
-              style={{flex: 1, margin: 4}}>
+              style={{ flex: 1, margin: 4 }}
+            >
               <Image
-                source={{uri: item.url!}}
-                style={{width: '100%', aspectRatio: 1, borderRadius: 12}}
+                source={{ uri: item.url! }}
+                style={{ width: '100%', aspectRatio: 1, borderRadius: 12 }}
               />
               {item.status === 'PENDING' && (
-                <View style={{position: 'absolute', top: 4, left: 4}}>
+                <View style={{ position: 'absolute', top: 4, left: 4 }}>
                   <Chip text="Processing…" />
                 </View>
               )}
               {item.status === 'QUARANTINED' && isAdmin && (
-                <View style={{position: 'absolute', top: 4, left: 4}}>
+                <View style={{ position: 'absolute', top: 4, left: 4 }}>
                   <Chip text="Blocked" tone="warning" />
                 </View>
               )}
@@ -364,30 +337,15 @@ export default function GymEquipmentDetailScreen() {
           ListHeaderComponent={
             <>
               <Title text={equipment.equipment.name || 'Equipment Detail'} />
-              <DetailField
-                label="Brand"
-                value={equipment.equipment.brand || 'N/A'}
-              />
-              <DetailField
-                label="Category"
-                value={equipment.equipment.category?.name || 'N/A'}
-              />
+              <DetailField label="Brand" value={equipment.equipment.brand || 'N/A'} />
+              <DetailField label="Category" value={equipment.equipment.category?.name || 'N/A'} />
               <DetailField
                 label="Subcategory"
                 value={equipment.equipment.subcategory?.name || 'N/A'}
               />
-              <DetailField
-                label="Quantity"
-                value={String(equipment.quantity)}
-              />
-              {equipment.note ? (
-                <DetailField label="Note" value={equipment.note} />
-              ) : null}
-              <Card
-                title="Gym photos"
-                text="Environment-specific training images"
-                compact
-              />
+              <DetailField label="Quantity" value={String(equipment.quantity)} />
+              {equipment.note ? <DetailField label="Note" value={equipment.note} /> : null}
+              <Card title="Gym photos" text="Environment-specific training images" compact />
             </>
           }
           ListEmptyComponent={

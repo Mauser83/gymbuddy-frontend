@@ -1,15 +1,16 @@
-import React, {useState, useEffect} from 'react';
-import {ScrollView, Switch, View, TouchableOpacity} from 'react-native';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import Title from 'shared/components/Title';
-import FormInput from 'shared/components/FormInput';
-import ClickableList from 'shared/components/ClickableList';
-import Button from 'shared/components/Button';
-import DividerWithLabel from 'shared/components/DividerWithLabel';
-import SearchInput from 'shared/components/SearchInput';
+import React, { useState, useEffect } from 'react';
+import { ScrollView, Switch, View, TouchableOpacity } from 'react-native';
 import Toast from 'react-native-toast-message';
-import {EquipmentSubcategory} from 'features/equipment/types/equipment.types';
-import ButtonRow from 'shared/components/ButtonRow';
+
+import { EquipmentSubcategory } from 'src/features/equipment/types/equipment.types';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import ClickableList from 'src/shared/components/ClickableList';
+import DividerWithLabel from 'src/shared/components/DividerWithLabel';
+import FormInput from 'src/shared/components/FormInput';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import SearchInput from 'src/shared/components/SearchInput';
+import Title from 'src/shared/components/Title';
 
 interface EquipmentSlotModalProps {
   visible: boolean;
@@ -17,7 +18,7 @@ interface EquipmentSlotModalProps {
   onSave: (slot: {
     isRequired: boolean;
     comment?: string;
-    options: {subcategoryId: number}[];
+    options: { subcategoryId: number }[];
   }) => void;
   initialSlotIndex: number;
   subcategories: EquipmentSubcategory[];
@@ -25,7 +26,7 @@ interface EquipmentSlotModalProps {
   initialData?: {
     isRequired: boolean;
     comment?: string;
-    options: {subcategoryId: number}[];
+    options: { subcategoryId: number }[];
   };
 }
 
@@ -41,16 +42,14 @@ export default function EquipmentSlotModal({
   const [isRequired, setIsRequired] = useState(initialData?.isRequired ?? true);
   const [comment, setComment] = useState<string>(initialData?.comment || '');
   const [selectedSubIds, setSelectedSubIds] = useState<number[]>(
-    initialData?.options.map(opt => opt.subcategoryId) || [],
+    initialData?.options.map((opt) => opt.subcategoryId) || [],
   );
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-    new Set(),
-  );
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (visible && initialData) {
-      setSelectedSubIds(initialData.options.map(o => o.subcategoryId));
+      setSelectedSubIds(initialData.options.map((o) => o.subcategoryId));
       setComment(initialData.comment || '');
       setIsRequired(initialData.isRequired ?? true);
     } else if (!visible) {
@@ -62,8 +61,8 @@ export default function EquipmentSlotModal({
   }, [visible, initialData]);
 
   const toggleSubcategory = (id: number) => {
-    setSelectedSubIds(prev =>
-      prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id],
+    setSelectedSubIds((prev) =>
+      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id],
     );
   };
 
@@ -79,7 +78,7 @@ export default function EquipmentSlotModal({
     onSave({
       isRequired,
       comment: comment || undefined,
-      options: selectedSubIds.map(id => ({subcategoryId: id})),
+      options: selectedSubIds.map((id) => ({ subcategoryId: id })),
     });
 
     onClose();
@@ -95,23 +94,19 @@ export default function EquipmentSlotModal({
     {} as Record<string, EquipmentSubcategory[]>,
   );
 
-  Object.keys(grouped).forEach(key =>
-    grouped[key].sort((a, b) => a.name.localeCompare(b.name)),
-  );
+  Object.keys(grouped).forEach((key) => grouped[key].sort((a, b) => a.name.localeCompare(b.name)));
 
-  const filteredGroupKeys = Object.keys(grouped).sort((a, b) =>
-    a.localeCompare(b),
-  );
-  
+  const filteredGroupKeys = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
+
   return (
     <ModalWrapper visible={visible} onClose={onClose}>
-      <ScrollView contentContainerStyle={{padding: 16}}>
+      <ScrollView contentContainerStyle={{ padding: 16 }}>
         <Title
           text={`Equipment Slot ${initialSlotIndex + 1}`}
           subtitle="Configure equipment requirements"
         />
 
-        <View style={{marginVertical: 12}}>
+        <View style={{ marginVertical: 12 }}>
           <FormInput
             label="Comment (optional)"
             value={comment}
@@ -125,7 +120,8 @@ export default function EquipmentSlotModal({
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-          }}>
+          }}
+        >
           <Title text="Required?" />
           <Switch value={isRequired} onValueChange={setIsRequired} />
         </View>
@@ -139,9 +135,9 @@ export default function EquipmentSlotModal({
           onClear={() => setSearchQuery('')}
         />
 
-        {filteredGroupKeys.map(category => {
+        {filteredGroupKeys.map((category) => {
           const items = grouped[category].filter(
-            sc =>
+            (sc) =>
               sc.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
               !selectedSubIds.includes(sc.id),
           );
@@ -152,7 +148,7 @@ export default function EquipmentSlotModal({
           const showAll = isExpanded || searchQuery.length > 0;
 
           return (
-            <View key={category} style={{marginBottom: 16}}>
+            <View key={category} style={{ marginBottom: 16 }}>
               <TouchableOpacity
                 onPress={() => {
                   const next = new Set(expandedCategories);
@@ -162,12 +158,13 @@ export default function EquipmentSlotModal({
                     next.add(category);
                   }
                   setExpandedCategories(next);
-                }}>
+                }}
+              >
                 <Title text={`${category} (${items.length})`} />
               </TouchableOpacity>
               {showAll && (
                 <ClickableList
-                  items={items.map(sc => ({
+                  items={items.map((sc) => ({
                     id: sc.id,
                     label: sc.name,
                     selected: selectedSubIds.includes(sc.id),
@@ -184,8 +181,8 @@ export default function EquipmentSlotModal({
             <DividerWithLabel label="Selected" />
             <ClickableList
               items={subcategoriesFull
-                .filter(sc => selectedSubIds.includes(sc.id))
-                .map(sc => ({
+                .filter((sc) => selectedSubIds.includes(sc.id))
+                .map((sc) => ({
                   id: sc.id,
                   label: `${sc.name} (${sc.category?.name || 'Other'})`,
                   selected: true,
@@ -199,7 +196,7 @@ export default function EquipmentSlotModal({
           <Title subtitle="Please select at least one equipment option." />
         )}
 
-        <ButtonRow style={{marginTop: 12}}>
+        <ButtonRow style={{ marginTop: 12 }}>
           <Button text="Cancel" fullWidth onPress={onClose} />
           <Button text="Save" fullWidth onPress={handleSave} />
         </ButtonRow>

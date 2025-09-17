@@ -1,24 +1,18 @@
-import React, {useRef, useState} from 'react';
-import {
-  Text,
-  Pressable,
-  StyleSheet,
-  Animated,
-  Image,
-  Platform,
-} from 'react-native';
-import {useAuth} from 'features/auth/context/AuthContext';
-import {Portal} from 'react-native-portalize';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {useNavigate} from 'react-router-native';
-import {useTheme} from 'shared/theme/ThemeProvider';
+import React, { useRef, useState } from 'react';
+import { Text, Pressable, StyleSheet, Animated, Image, Platform } from 'react-native';
+import { Portal } from 'react-native-portalize';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigate } from 'react-router-native';
+
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 const AvatarDropdown = () => {
   const insets = useSafeAreaInsets();
   const navigate = useNavigate();
-  const {user, logout} = useAuth();
+  const { user, logout } = useAuth();
 
-  const {componentStyles} = useTheme();
+  const { componentStyles } = useTheme();
   const styles = componentStyles.avatarDropdown;
 
   const [visible, setVisible] = useState(false);
@@ -28,10 +22,8 @@ const AvatarDropdown = () => {
     if (!user) return false;
     const roles = ['user'];
     if (user.userRole === 'PERSONAL_TRAINER') roles.push('trainer');
-    if (user.appRole === 'ADMIN' || user.appRole === 'MODERATOR')
-      roles.push('admin');
-    if (user.gymManagementRoles && user.gymManagementRoles.length > 0)
-      roles.push('gym-manager');
+    if (user.appRole === 'ADMIN' || user.appRole === 'MODERATOR') roles.push('admin');
+    if (user.gymManagementRoles && user.gymManagementRoles.length > 0) roles.push('gym-manager');
     return roles.length > 1;
   })();
 
@@ -107,7 +99,8 @@ const AvatarDropdown = () => {
                     },
                   ],
                 },
-              ]}>
+              ]}
+            >
               <Pressable style={styles.item} onPress={handleProfile}>
                 <Text style={styles.text}>👤 View Profile</Text>
               </Pressable>

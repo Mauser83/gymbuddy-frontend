@@ -1,12 +1,7 @@
-import {StyleSheet, ViewStyle, TextStyle} from 'react-native';
-import {Theme} from './types/theme.types';
-import {
-  spacing,
-  fontSizes,
-  fontWeights,
-  borderRadius,
-  borderWidth,
-} from './tokens';
+import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
+
+import { spacing, fontSizes, fontWeights, borderRadius, borderWidth } from './tokens';
+import { Theme } from './types/theme.types';
 
 export const getComponentStyles = (theme: Theme) => ({
   screenLayout: {
@@ -25,103 +20,103 @@ export const getComponentStyles = (theme: Theme) => ({
     } as ViewStyle,
   },
   card: StyleSheet.create({
-    glass: {
-      backgroundColor: theme.colors.glass.background,
-      borderColor: theme.colors.glass.border,
-      borderWidth: borderWidth.hairline,
+    elevated: {
+      backgroundColor: theme.colors.surface,
       borderRadius: borderRadius.lg,
-      padding: spacing.xl,
+      elevation: 3,
       marginBottom: spacing.xl,
-      // alignItems: 'center',
+      padding: spacing.xl,
+      shadowColor: theme.mode === 'dark' ? '#000' : '#aaa',
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
     },
-    glassTitle: {
+    elevatedText: {
+      color: theme.colors.textSecondary,
+      fontSize: fontSizes.md,
+      textAlign: 'center',
+    },
+    elevatedTitle: {
+      color: theme.colors.textPrimary,
       fontSize: fontSizes.xl,
       fontWeight: fontWeights.bold,
-      color: theme.colors.textPrimary,
       marginBottom: spacing.sm,
       textAlign: 'center',
     },
-    glassText: {
-      fontSize: fontSizes.md,
+    feature: {
+      backgroundColor: theme.colors.featureCardBackground,
+      borderColor: theme.colors.cardBorder,
+      borderRadius: borderRadius.lg,
+      borderWidth: borderWidth.hairline,
+      marginBottom: spacing.md,
+      padding: spacing.md,
+      width: '100%',
+    },
+    featureText: {
       color: theme.colors.textSecondary,
+      fontSize: fontSizes.sm,
+    },
+    featureTitle: {
+      color: theme.colors.textPrimary,
+      fontSize: fontSizes.lg,
+      fontWeight: fontWeights.semiBold,
+      marginBottom: spacing.xs,
+    },
+    glass: {
+      backgroundColor: theme.colors.glass.background,
+      borderColor: theme.colors.glass.border,
+      borderRadius: borderRadius.lg,
+      borderWidth: borderWidth.hairline,
+      marginBottom: spacing.xl,
+      padding: spacing.xl,
+      // alignItems: 'center',
+    },
+    glassText: {
+      color: theme.colors.textSecondary,
+      fontSize: fontSizes.md,
+      textAlign: 'center',
+    },
+    glassTitle: {
+      color: theme.colors.textPrimary,
+      fontSize: fontSizes.xl,
+      fontWeight: fontWeights.bold,
+      marginBottom: spacing.sm,
       textAlign: 'center',
     },
     solid: {
       backgroundColor: theme.colors.surface,
       borderRadius: borderRadius.lg,
-      padding: spacing.xl,
       marginBottom: spacing.xl,
-    },
-    solidTitle: {
-      fontSize: fontSizes.xl,
-      fontWeight: fontWeights.bold,
-      color: theme.colors.textPrimary,
-      marginBottom: spacing.sm,
-      textAlign: 'center',
+      padding: spacing.xl,
     },
     solidText: {
-      fontSize: fontSizes.md,
       color: theme.colors.textSecondary,
+      fontSize: fontSizes.md,
       textAlign: 'center',
     },
-    elevated: {
-      backgroundColor: theme.colors.surface,
-      borderRadius: borderRadius.lg,
-      padding: spacing.xl,
-      marginBottom: spacing.xl,
-      shadowColor: theme.mode === 'dark' ? '#000' : '#aaa',
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 3,
-    },
-    elevatedTitle: {
+    solidTitle: {
+      color: theme.colors.textPrimary,
       fontSize: fontSizes.xl,
       fontWeight: fontWeights.bold,
-      color: theme.colors.textPrimary,
       marginBottom: spacing.sm,
       textAlign: 'center',
-    },
-    elevatedText: {
-      fontSize: fontSizes.md,
-      color: theme.colors.textSecondary,
-      textAlign: 'center',
-    },
-    feature: {
-      width: '100%',
-      backgroundColor: theme.colors.featureCardBackground,
-      borderColor: theme.colors.cardBorder,
-      borderWidth: borderWidth.hairline,
-      borderRadius: borderRadius.lg,
-      padding: spacing.md,
-      marginBottom: spacing.md,
-    },
-    featureTitle: {
-      fontSize: fontSizes.lg,
-      fontWeight: fontWeights.semiBold,
-      color: theme.colors.textPrimary,
-      marginBottom: spacing.xs,
-    },
-    featureText: {
-      fontSize: fontSizes.sm,
-      color: theme.colors.textSecondary,
     },
     user: {
-      borderWidth: borderWidth.hairline,
-      borderRadius: borderRadius.lg,
-      padding: spacing.md,
-      marginBottom: spacing.sm,
       backgroundColor: theme.colors.glass.background,
       borderColor: theme.colors.cardBorder,
-    },
-    userTitle: {
-      fontSize: fontSizes.md,
-      fontWeight: fontWeights.semiBold,
-      color: theme.colors.textPrimary,
+      borderRadius: borderRadius.lg,
+      borderWidth: borderWidth.hairline,
+      marginBottom: spacing.sm,
+      padding: spacing.md,
     },
     userText: {
-      fontSize: fontSizes.sm,
       color: theme.colors.textSecondary,
+      fontSize: fontSizes.sm,
       marginTop: spacing.xs,
+    },
+    userTitle: {
+      color: theme.colors.textPrimary,
+      fontSize: fontSizes.md,
+      fontWeight: fontWeights.semiBold,
     },
   }),
   detailField: {
@@ -138,41 +133,11 @@ export const getComponentStyles = (theme: Theme) => ({
     },
   },
   button: StyleSheet.create({
-    wrapper: {
-      flex: 1,
-      borderRadius: borderRadius.md,
-    },
-    gradient: {
-      borderRadius: borderRadius.md,
-      padding: spacing.md,
-    },
     content: {
-      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
+      flexDirection: 'row',
       gap: spacing.sm,
-    },
-    text: {
-      fontSize: fontSizes.lg,
-      fontWeight: fontWeights.semiBold,
-      color: theme.colors.buttonText,
-      textAlign: 'center',
-    },
-    icon: {
-      marginRight: spacing.sm,
-    },
-    outlineWrapper: {
-      borderWidth: borderWidth.hairline,
-      borderColor: theme.colors.textSecondary,
-      borderRadius: borderRadius.md,
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.lg,
-      alignItems: 'center' as ViewStyle['alignItems'],
-    },
-    outlineText: {
-      fontSize: fontSizes.md,
-      fontWeight: fontWeights.semiBold as TextStyle['fontWeight'],
-      color: theme.colors.textSecondary,
+      justifyContent: 'center',
     },
     disabled: {
       backgroundColor: theme.colors.disabledSurface,
@@ -180,23 +145,40 @@ export const getComponentStyles = (theme: Theme) => ({
     disabledText: {
       color: theme.colors.textDisabled,
     },
+    gradient: {
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+    },
+    icon: {
+      marginRight: spacing.sm,
+    },
+    outlineText: {
+      color: theme.colors.textSecondary,
+      fontSize: fontSizes.md,
+      fontWeight: fontWeights.semiBold as TextStyle['fontWeight'],
+    },
+    outlineWrapper: {
+      alignItems: 'center' as ViewStyle['alignItems'],
+      borderColor: theme.colors.textSecondary,
+      borderRadius: borderRadius.md,
+      borderWidth: borderWidth.hairline,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+    },
+    text: {
+      color: theme.colors.buttonText,
+      fontSize: fontSizes.lg,
+      fontWeight: fontWeights.semiBold,
+      textAlign: 'center',
+    },
+    wrapper: {
+      borderRadius: borderRadius.md,
+      flex: 1,
+    },
   }),
   formInput: StyleSheet.create({
     container: {
       marginBottom: spacing.md,
-    },
-    label: {
-      color: theme.colors.textSecondary,
-      fontSize: fontSizes.md,
-      marginBottom: spacing.xs,
-    },
-    field: {
-      backgroundColor: theme.colors.glass.background,
-      color: theme.colors.textPrimary,
-      borderWidth: borderWidth.hairline,
-      borderColor: theme.colors.layoutBorder,
-      borderRadius: borderRadius.md,
-      padding: spacing.md,
     },
     errorField: {
       borderColor: theme.colors.error,
@@ -206,25 +188,38 @@ export const getComponentStyles = (theme: Theme) => ({
       fontSize: fontSizes.sm,
       marginTop: spacing.xs,
     },
+    field: {
+      backgroundColor: theme.colors.glass.background,
+      borderColor: theme.colors.layoutBorder,
+      borderRadius: borderRadius.md,
+      borderWidth: borderWidth.hairline,
+      color: theme.colors.textPrimary,
+      padding: spacing.md,
+    },
+    label: {
+      color: theme.colors.textSecondary,
+      fontSize: fontSizes.md,
+      marginBottom: spacing.xs,
+    },
   }),
   divider: StyleSheet.create({
     container: {
-      flexDirection: 'row',
       alignItems: 'center',
+      flexDirection: 'row',
       justifyContent: 'center',
       marginVertical: spacing.lg,
       width: '100%',
     },
-    line: {
-      flex: 1,
-      height: 1,
-      backgroundColor: theme.colors.divider, // fallback
-    },
     label: {
-      marginHorizontal: spacing.md,
-      fontSize: fontSizes.md,
       color: theme.colors.textSecondary,
+      fontSize: fontSizes.md,
+      marginHorizontal: spacing.md,
       textAlign: 'center',
+    },
+    line: {
+      backgroundColor: theme.colors.divider,
+      flex: 1,
+      height: 1, // fallback
     },
   }),
   rolePill: {

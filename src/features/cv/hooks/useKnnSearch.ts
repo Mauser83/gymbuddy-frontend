@@ -1,6 +1,8 @@
-import {useQuery} from '@apollo/client';
-import {KNN_SEARCH} from '../graphql/knnSearch';
-import {useRoleContext} from 'features/auth/context/RoleContext';
+import { useQuery } from '@apollo/client';
+
+import { useRoleContext } from 'src/features/auth/context/RoleContext';
+
+import { KNN_SEARCH } from '../graphql/knnSearch';
 
 export type Input = {
   imageId: string;
@@ -21,26 +23,21 @@ export function useKnnSearch(input: Input | null) {
   const activeGymId = role?.gymId ? Number(role.gymId) : undefined;
 
   const shouldRun = Boolean(input?.imageId && input?.scope);
-  const {data, loading, error} = useQuery(KNN_SEARCH, {
+  const { data, loading, error } = useQuery(KNN_SEARCH, {
     variables: shouldRun
       ? {
           input: {
             imageId: input!.imageId,
             scope: input!.scope,
             limit: input!.limit,
-            gymId:
-              input!.scope === 'GYM'
-                ? input!.gymId ?? activeGymId
-                : undefined,
+            gymId: input!.scope === 'GYM' ? (input!.gymId ?? activeGymId) : undefined,
           },
         }
       : undefined,
-    skip:
-      !shouldRun ||
-      (input?.scope === 'GYM' && !(input?.gymId ?? activeGymId)),
+    skip: !shouldRun || (input?.scope === 'GYM' && !(input?.gymId ?? activeGymId)),
     fetchPolicy: 'no-cache',
   });
 
   const neighbors: Neighbor[] = data?.knnSearch ?? [];
-  return {neighbors, isLoading: loading, error};
+  return { neighbors, isLoading: loading, error };
 }

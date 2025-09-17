@@ -1,4 +1,5 @@
-import {useMutation} from '@apollo/client';
+import { useMutation } from '@apollo/client';
+
 import {
   CREATE_RECOGNITION_UPLOAD_TICKET,
   RECOGNIZE_IMAGE,
@@ -6,7 +7,7 @@ import {
   DISCARD_RECOGNITION,
 } from '../graphql/recognition.graphql';
 
-const delay = (ms: number) => new Promise<void>(res => setTimeout(res, ms));
+const delay = (ms: number) => new Promise<void>((res) => setTimeout(res, ms));
 
 export const useRecognition = () => {
   const [createTicket] = useMutation(CREATE_RECOGNITION_UPLOAD_TICKET);
@@ -14,11 +15,7 @@ export const useRecognition = () => {
   const [confirm] = useMutation(CONFIRM_RECOGNITION);
   const [discard] = useMutation(DISCARD_RECOGNITION);
 
-  const createUploadTicket = (
-    gymId: number,
-    ext: string,
-    contentLength?: number,
-  ) =>
+  const createUploadTicket = (gymId: number, ext: string, contentLength?: number) =>
     createTicket({
       variables: {
         gymId,
@@ -27,17 +24,14 @@ export const useRecognition = () => {
         contentLength,
       },
     });
-    
+
   const recognizeImage = async (ticketToken: string, limit = 3) => {
     const res = await recognize({
-      variables: {ticketToken, limit},
+      variables: { ticketToken, limit },
       fetchPolicy: 'no-cache',
       errorPolicy: 'none',
     });
-    console.log(
-      '[HOOK] recognize payload keys',
-      Object.keys(res.data?.recognizeImage ?? {}),
-    );
+    console.log('[HOOK] recognize payload keys', Object.keys(res.data?.recognizeImage ?? {}));
     return res.data?.recognizeImage ?? null;
   };
 
@@ -47,17 +41,12 @@ export const useRecognition = () => {
     offerForTraining: boolean,
   ) =>
     confirm({
-      variables: {input: {attemptId, selectedEquipmentId, offerForTraining}},
+      variables: { input: { attemptId, selectedEquipmentId, offerForTraining } },
     });
 
-  const discardRecognition = (attemptId: string) =>
-    discard({variables: {attemptId}});
+  const discardRecognition = (attemptId: string) => discard({ variables: { attemptId } });
 
-  const uploadAndRecognize = async (
-    gymId: number,
-    blob: Blob,
-    limit = 3,
-  ) => {
+  const uploadAndRecognize = async (gymId: number, blob: Blob, limit = 3) => {
     let putStatus: number | undefined;
     let retried = false;
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -106,14 +95,11 @@ export const useRecognition = () => {
       for (let rAttempt = 0; rAttempt < 2; rAttempt++) {
         try {
           const res = await recognize({
-            variables: {ticketToken: t.ticketToken, limit},
+            variables: { ticketToken: t.ticketToken, limit },
             fetchPolicy: 'no-cache',
             errorPolicy: 'none',
           });
-          console.log(
-            '[HOOK] recognize payload keys',
-            Object.keys(res.data?.recognizeImage ?? {}),
-          );
+          console.log('[HOOK] recognize payload keys', Object.keys(res.data?.recognizeImage ?? {}));
           const result = res.data?.recognizeImage ?? null;
           if (!result) throw new Error('recognizeImage returned no data');
           console.log('recognition upload', {

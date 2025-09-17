@@ -1,4 +1,6 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import * as Device from 'expo-device';
+import * as ImagePicker from 'expo-image-picker';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Image,
@@ -10,24 +12,23 @@ import {
   Pressable,
   ScrollView,
 } from 'react-native';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Button from 'shared/components/Button';
-import Title from 'shared/components/Title';
-import * as ImagePicker from 'expo-image-picker';
-import * as Device from 'expo-device';
-import {preprocessImage} from 'shared/utils';
-import {uploadConfig} from 'config/upload';
-import SelectableField from 'shared/components/SelectableField';
-import ModalWrapper from 'shared/components/ModalWrapper';
+
+import { uploadConfig } from 'src/config/upload';
+import useRecognition from 'src/features/cv/hooks/useRecognition';
+import { useThumbUrls } from 'src/features/cv/hooks/useThumbUrls';
+import EquipmentPickerModal from 'src/features/gyms/components/EquipmentPickerModal';
 import GymPickerModal, {
   Gym as PickerGym,
-} from 'features/workout-sessions/components/GymPickerModal';
-import EquipmentPickerModal from 'features/gyms/components/EquipmentPickerModal';
-import useRecognition from 'features/cv/hooks/useRecognition';
-import LoadingSpinner from 'shared/components/LoadingSpinner';
-import ButtonRow from 'shared/components/ButtonRow';
-import {useTheme} from 'shared/theme/ThemeProvider';
-import {useThumbUrls} from 'features/cv/hooks/useThumbUrls';
+} from 'src/features/workout-sessions/components/GymPickerModal';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import LoadingSpinner from 'src/shared/components/LoadingSpinner';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import SelectableField from 'src/shared/components/SelectableField';
+import Title from 'src/shared/components/Title';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { preprocessImage } from 'src/shared/utils';
 
 interface CandidateCardProps {
   equipmentId: number;
@@ -50,8 +51,8 @@ const CandidateCard = ({
   size,
   muted,
 }: CandidateCardProps) => {
-  const {theme} = useTheme();
-  const {data, refresh} = useThumbUrls();
+  const { theme } = useTheme();
+  const { data, refresh } = useThumbUrls();
   useEffect(() => {
     if (imageKey) refresh([imageKey]);
   }, [imageKey, refresh]);
@@ -74,11 +75,12 @@ const CandidateCard = ({
         justifyContent: 'center',
         backgroundColor: theme.colors.surface,
         opacity: muted ? 0.5 : 1,
-      }}>
+      }}
+    >
       {url ? (
-        <Image source={{uri: url}} style={{width: size, height: size}} />
+        <Image source={{ uri: url }} style={{ width: size, height: size }} />
       ) : (
-        <Text style={{color: theme.colors.textSecondary}}>{title}</Text>
+        <Text style={{ color: theme.colors.textSecondary }}>{title}</Text>
       )}
       {muted && (
         <View
@@ -90,10 +92,9 @@ const CandidateCard = ({
             paddingHorizontal: 4,
             paddingVertical: 2,
             borderRadius: 4,
-          }}>
-          <Text style={{color: theme.colors.textSecondary, fontSize: 10}}>
-            Low confidence
-          </Text>
+          }}
+        >
+          <Text style={{ color: theme.colors.textSecondary, fontSize: 10 }}>Low confidence</Text>
         </View>
       )}
     </Pressable>
@@ -108,43 +109,30 @@ const SmallCandidateCard = (props: Omit<CandidateCardProps, 'size'>) => (
   <CandidateCard {...props} size={96} />
 );
 
-const HorizontalList = ({children}: {children: React.ReactNode}) => (
-  <ScrollView
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    style={{paddingVertical: 4}}>
+const HorizontalList = ({ children }: { children: React.ReactNode }) => (
+  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingVertical: 4 }}>
     {children}
   </ScrollView>
 );
 
-const Disclosure = ({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) => {
-  const {theme} = useTheme();
+const Disclosure = ({ title, children }: { title: string; children: React.ReactNode }) => {
+  const { theme } = useTheme();
   const [open, setOpen] = useState(false);
   return (
-    <View style={{width: '100%'}}>
-      <Pressable onPress={() => setOpen(o => !o)} style={{paddingVertical: 4}}>
-        <Text style={{color: theme.colors.textPrimary}}>
+    <View style={{ width: '100%' }}>
+      <Pressable onPress={() => setOpen((o) => !o)} style={{ paddingVertical: 4 }}>
+        <Text style={{ color: theme.colors.textPrimary }}>
           {title} {open ? '▲' : '▼'}
         </Text>
       </Pressable>
-      {open && <View style={{marginTop: 8}}>{children}</View>}
+      {open && <View style={{ marginTop: 8 }}>{children}</View>}
     </View>
   );
 };
 
-const EmptyState = ({text}: {text: string}) => {
-  const {theme} = useTheme();
-  return (
-    <Text style={{color: theme.colors.textSecondary, textAlign: 'center'}}>
-      {text}
-    </Text>
-  );
+const EmptyState = ({ text }: { text: string }) => {
+  const { theme } = useTheme();
+  return <Text style={{ color: theme.colors.textSecondary, textAlign: 'center' }}>{text}</Text>;
 };
 
 interface CandidateImage {
@@ -165,10 +153,7 @@ interface EquipmentCandidate {
   lowConfidence?: boolean;
 }
 
-function fromImageCandidates(
-  imgs: any[] = [],
-  source: 'GYM' | 'GLOBAL' | 'DECISION',
-) {
+function fromImageCandidates(imgs: any[] = [], source: 'GYM' | 'GLOBAL' | 'DECISION') {
   if (!Array.isArray(imgs) || imgs.length === 0) return [];
   const sorted = [...imgs].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
   const seen = new Set<number>();
@@ -192,16 +177,14 @@ function fromImageCandidates(
 }
 
 const EquipmentRecognitionCaptureScreen = () => {
-  const {theme} = useTheme();
+  const { theme } = useTheme();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
   const [offerTraining, setOfferTraining] = useState(false);
   // equipmentId of the selected equipment
   const [selected, setSelected] = useState<number | null>(null);
   type SelectionSource = 'candidate' | 'manual';
-  const [selectedFrom, setSelectedFrom] = useState<SelectionSource | null>(
-    null,
-  );
+  const [selectedFrom, setSelectedFrom] = useState<SelectionSource | null>(null);
   const [gymModalVisible, setGymModalVisible] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [manualPick, setManualPick] = useState(false);
@@ -217,8 +200,7 @@ const EquipmentRecognitionCaptureScreen = () => {
   // Normalize gym equipment rows into equipmentId
   const toEquipmentId = (ge: any): number => {
     if (typeof ge?.equipmentId === 'number') return ge.equipmentId;
-    if (ge?.equipment && typeof ge.equipment.id === 'number')
-      return ge.equipment.id;
+    if (ge?.equipment && typeof ge.equipment.id === 'number') return ge.equipment.id;
     return Number.isFinite(ge?.id) ? ge.id : NaN;
   };
 
@@ -227,10 +209,7 @@ const EquipmentRecognitionCaptureScreen = () => {
   const eqCandidates = useMemo<EquipmentCandidate[]>(() => {
     if (!result) return [];
 
-    if (
-      Array.isArray(result.equipmentCandidates) &&
-      result.equipmentCandidates.length > 0
-    ) {
+    if (Array.isArray(result.equipmentCandidates) && result.equipmentCandidates.length > 0) {
       return result.equipmentCandidates as EquipmentCandidate[];
     }
 
@@ -247,19 +226,13 @@ const EquipmentRecognitionCaptureScreen = () => {
     }
 
     const a = result.attempt;
-    if (
-      (decision === 'GYM_ACCEPT' || decision === 'GLOBAL_ACCEPT') &&
-      a?.bestEquipmentId
-    ) {
-      const pool = (result.gymCandidates ?? []).concat(
-        result.globalCandidates ?? [],
-      );
-      const rep =
-        pool.find((x: any) => x.equipmentId === a.bestEquipmentId) ?? {
-          equipmentId: a.bestEquipmentId,
-          storageKey: a.storageKey,
-          score: a.bestScore ?? 0,
-        };
+    if ((decision === 'GYM_ACCEPT' || decision === 'GLOBAL_ACCEPT') && a?.bestEquipmentId) {
+      const pool = (result.gymCandidates ?? []).concat(result.globalCandidates ?? []);
+      const rep = pool.find((x: any) => x.equipmentId === a.bestEquipmentId) ?? {
+        equipmentId: a.bestEquipmentId,
+        storageKey: a.storageKey,
+        score: a.bestScore ?? 0,
+      };
       return [
         {
           equipmentId: a.bestEquipmentId,
@@ -288,7 +261,7 @@ const EquipmentRecognitionCaptureScreen = () => {
       eqLen: result.equipmentCandidates?.length,
       gymLen: result.gymCandidates?.length,
       globLen: result.globalCandidates?.length,
-      built: eqCandidates.map(c => ({
+      built: eqCandidates.map((c) => ({
         id: c.equipmentId,
         score: c.topScore,
         src: c.source,
@@ -320,8 +293,8 @@ const EquipmentRecognitionCaptureScreen = () => {
       'Camera permission needed',
       'Please enable Camera access in Settings to take a photo.',
       [
-        {text: 'Open Settings', onPress: () => Linking.openSettings?.()},
-        {text: 'Cancel', style: 'cancel'},
+        { text: 'Open Settings', onPress: () => Linking.openSettings?.() },
+        { text: 'Cancel', style: 'cancel' },
       ],
     );
     return false;
@@ -366,8 +339,7 @@ const EquipmentRecognitionCaptureScreen = () => {
       setResult(null);
       setIsRecognizing(true);
 
-      const canUseCamera =
-        Platform.OS !== 'ios' ? true : await ensureCameraPermission();
+      const canUseCamera = Platform.OS !== 'ios' ? true : await ensureCameraPermission();
       if (!canUseCamera) {
         setIsRecognizing(false);
         return;
@@ -403,11 +375,7 @@ const EquipmentRecognitionCaptureScreen = () => {
 
   const handleConfirm = async () => {
     if (!result || selected == null) return;
-    await confirmRecognition(
-      String(result.attempt.attemptId),
-      Number(selected),
-      offerTraining,
-    );
+    await confirmRecognition(String(result.attempt.attemptId), Number(selected), offerTraining);
     setImageUri(null);
     setResult(null);
     setOfferTraining(false);
@@ -442,8 +410,8 @@ const EquipmentRecognitionCaptureScreen = () => {
     content = <LoadingSpinner />;
   } else {
     content = (
-      <View style={{gap: 16, alignItems: 'center'}}>
-        <Image source={{uri: imageUri}} style={{width: 200, height: 200}} />
+      <View style={{ gap: 16, alignItems: 'center' }}>
+        <Image source={{ uri: imageUri }} style={{ width: 200, height: 200 }} />
         {primary ? (
           <>
             <LargeCandidateCard
@@ -459,15 +427,14 @@ const EquipmentRecognitionCaptureScreen = () => {
               muted={primary.topScore < 0.7}
             />
             {primary.topScore >= 0.9 && (
-              <Text style={{color: theme.colors.textSecondary}}>
-                Looks like {primary.equipmentName ?? `#${primary.equipmentId}`}{' '}
-                (90%+)
+              <Text style={{ color: theme.colors.textSecondary }}>
+                Looks like {primary.equipmentName ?? `#${primary.equipmentId}`} (90%+)
               </Text>
             )}
             {alternates.length > 0 && (
               <Disclosure title={`Other options (${alternates.length})`}>
                 <HorizontalList>
-                  {alternates.map(c => (
+                  {alternates.map((c) => (
                     <SmallCandidateCard
                       key={c.equipmentId}
                       equipmentId={c.equipmentId}
@@ -485,14 +452,13 @@ const EquipmentRecognitionCaptureScreen = () => {
                 </HorizontalList>
               </Disclosure>
             )}
-            <Pressable
-              onPress={() => setPickerOpen(true)}
-              style={{paddingVertical: 6}}>
+            <Pressable onPress={() => setPickerOpen(true)} style={{ paddingVertical: 6 }}>
               <Text
                 style={{
                   textDecorationLine: 'underline',
                   color: theme.colors.textSecondary,
-                }}>
+                }}
+              >
                 Not this? Pick from gym list
               </Text>
             </Pressable>
@@ -501,27 +467,21 @@ const EquipmentRecognitionCaptureScreen = () => {
           <>
             <EmptyState text="No good match. Try retaking the photo." />
             {!manualPick && (
-              <Button
-                text="Pick equipment manually"
-                onPress={() => setPickerOpen(true)}
-              />
+              <Button text="Pick equipment manually" onPress={() => setPickerOpen(true)} />
             )}
           </>
         )}
         {canSelect && (
-          <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Switch value={offerTraining} onValueChange={setOfferTraining} />
-            <Text style={{flex: 1, color: theme.colors.textPrimary}}>
-              Help improve recognition by allowing this photo to be used for
-              training.
+            <Text style={{ flex: 1, color: theme.colors.textPrimary }}>
+              Help improve recognition by allowing this photo to be used for training.
             </Text>
           </View>
         )}
         {selected != null && (
-          <Text style={{color: theme.colors.textSecondary}}>
-            Selected:{' '}
-            {selectedFrom === 'manual' ? 'from gym list' : 'suggested'} (ID #
-            {selected})
+          <Text style={{ color: theme.colors.textSecondary }}>
+            Selected: {selectedFrom === 'manual' ? 'from gym list' : 'suggested'} (ID #{selected})
           </Text>
         )}
         <ButtonRow>
@@ -545,12 +505,10 @@ const EquipmentRecognitionCaptureScreen = () => {
         onPress={() => setGymModalVisible(true)}
       />
       {content}
-      <ModalWrapper
-        visible={gymModalVisible}
-        onClose={() => setGymModalVisible(false)}>
+      <ModalWrapper visible={gymModalVisible} onClose={() => setGymModalVisible(false)}>
         <GymPickerModal
           onClose={() => setGymModalVisible(false)}
-          onSelect={g => {
+          onSelect={(g) => {
             setGym(g);
             setGymModalVisible(false);
           }}
@@ -561,7 +519,7 @@ const EquipmentRecognitionCaptureScreen = () => {
           <EquipmentPickerModal
             gymId={gym.id}
             onClose={() => setPickerOpen(false)}
-            onSelect={ge => {
+            onSelect={(ge) => {
               setPickerOpen(false);
               setManualPick(true);
               const eqId = toEquipmentId(ge);

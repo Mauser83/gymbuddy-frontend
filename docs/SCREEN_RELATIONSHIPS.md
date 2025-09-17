@@ -86,7 +86,7 @@ Example layout:
 
 ```
 src/
-  features/
+  src/features/
     auth/
     users/
     gyms/

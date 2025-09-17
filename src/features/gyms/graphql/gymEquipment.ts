@@ -97,11 +97,7 @@ export const REMOVE_GYM_EQUIPMENT = gql`
 
 export const LIST_GYM_EQUIPMENT_IMAGES = gql`
   query ListGymEquipmentImages($gymEquipmentId: Int!, $limit: Int, $cursor: String) {
-    listGymEquipmentImages(
-      gymEquipmentId: $gymEquipmentId
-      limit: $limit
-      cursor: $cursor
-    ) {
+    listGymEquipmentImages(gymEquipmentId: $gymEquipmentId, limit: $limit, cursor: $cursor) {
       items {
         id
         url
@@ -116,11 +112,11 @@ export const LIST_GYM_EQUIPMENT_IMAGES = gql`
 
 export const CREATE_EQUIPMENT_TRAINING_UPLOAD_TICKET = gql`
   mutation CreateEquipmentTrainingUploadTicket(
-    $gymId: Int!,
-    $equipmentId: Int!,
-    $ext: String!,
-    $contentType: String,
-    $contentLength: Int,
+    $gymId: Int!
+    $equipmentId: Int!
+    $ext: String!
+    $contentType: String
+    $contentLength: Int
   ) {
     createEquipmentTrainingUploadTicket(
       gymId: $gymId
@@ -135,14 +131,8 @@ export const CREATE_EQUIPMENT_TRAINING_UPLOAD_TICKET = gql`
 `;
 
 export const FINALIZE_EQUIPMENT_TRAINING_IMAGE = gql`
-  mutation FinalizeEquipmentTrainingImage(
-    $gymEquipmentId: Int!
-    $storageKey: String!
-  ) {
-    finalizeEquipmentTrainingImage(
-      gymEquipmentId: $gymEquipmentId
-      storageKey: $storageKey
-    ) {
+  mutation FinalizeEquipmentTrainingImage($gymEquipmentId: Int!, $storageKey: String!) {
+    finalizeEquipmentTrainingImage(gymEquipmentId: $gymEquipmentId, storageKey: $storageKey) {
       id
       url
       isPrimary

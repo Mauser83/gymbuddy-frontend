@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useQuery } from '@apollo/client';
-import { GET_ALL_METRICS_AND_EXERCISE_TYPES } from 'shared/graphql/metrics.graphql';
-import { useAuth } from 'features/auth/context/AuthContext';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import { GET_ALL_METRICS_AND_EXERCISE_TYPES } from 'src/shared/graphql/metrics.graphql';
 
 export type MetricDefinition = {
   id: number;
@@ -20,7 +21,7 @@ type MetricRegistryContextType = {
   getMetricIdsForExercise: (exerciseId: number) => number[];
   createDefaultMetricsForExercise: (exerciseId: number) => Record<number, number>;
   createPlanningTargetMetrics: (
-    exerciseId: number
+    exerciseId: number,
   ) => { metricId: number; min: string | number; max?: string | number }[];
   getPlanningRelevantMetricIdsForExercise: (exerciseId: number) => number[];
 };
@@ -35,15 +36,17 @@ export const useMetricRegistry = () => {
   return ctx;
 };
 
-export const buildGetPlanningRelevantMetricIdsForExercise = (
-  registry: Record<number, MetricDefinition>,
-  exerciseTypeByExerciseId: Record<number, number>,
-  exerciseMetricMap: Record<number, number[]>
-) => (exerciseId: number): number[] => {
-  const typeId = exerciseTypeByExerciseId[exerciseId];
-  const allMetricIds = exerciseMetricMap[typeId] ?? [];
-  return allMetricIds.filter(id => registry[id]?.useInPlanning);
-};
+export const buildGetPlanningRelevantMetricIdsForExercise =
+  (
+    registry: Record<number, MetricDefinition>,
+    exerciseTypeByExerciseId: Record<number, number>,
+    exerciseMetricMap: Record<number, number[]>,
+  ) =>
+  (exerciseId: number): number[] => {
+    const typeId = exerciseTypeByExerciseId[exerciseId];
+    const allMetricIds = exerciseMetricMap[typeId] ?? [];
+    return allMetricIds.filter((id) => registry[id]?.useInPlanning);
+  };
 
 export const MetricRegistryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
@@ -53,7 +56,9 @@ export const MetricRegistryProvider: React.FC<{ children: React.ReactNode }> = (
 
   const [registry, setRegistry] = useState<Record<number, MetricDefinition>>({});
   const [exerciseMetricMap, setExerciseMetricMap] = useState<Record<number, number[]>>({});
-  const [exerciseTypeByExerciseId, setExerciseTypeByExerciseId] = useState<Record<number, number>>({});
+  const [exerciseTypeByExerciseId, setExerciseTypeByExerciseId] = useState<Record<number, number>>(
+    {},
+  );
 
   useEffect(() => {
     if (!data) return;
@@ -76,7 +81,7 @@ export const MetricRegistryProvider: React.FC<{ children: React.ReactNode }> = (
     data.allExerciseTypes.forEach((ex: any) => {
       typeToMetrics[ex.id] = [...(ex.orderedMetrics ?? [])]
         .sort((a, b) => a.order - b.order)
-        .map(entry => entry.metric.id);
+        .map((entry) => entry.metric.id);
     });
 
     // Exercise → Type
@@ -97,33 +102,31 @@ export const MetricRegistryProvider: React.FC<{ children: React.ReactNode }> = (
     return exerciseMetricMap[typeId] ?? [];
   };
 
-  const createDefaultMetricsForExercise = (
-    exerciseId: number
-  ): Record<number, number> => {
+  const createDefaultMetricsForExercise = (exerciseId: number): Record<number, number> => {
     const ids = getMetricIdsForExercise(exerciseId);
-    return Object.fromEntries(ids.map(id => [id, 0]));
+    return Object.fromEntries(ids.map((id) => [id, 0]));
   };
 
   const createPlanningTargetMetrics = (
-    exerciseId: number
+    exerciseId: number,
   ): { metricId: number; min: string | number; max?: string | number }[] => {
     const getRelevant = buildGetPlanningRelevantMetricIdsForExercise(
       registry,
       exerciseTypeByExerciseId,
-      exerciseMetricMap
+      exerciseMetricMap,
     );
-    return getRelevant(exerciseId).map(id => {
+    return getRelevant(exerciseId).map((id) => {
       const metric = registry[id];
       return metric && metric.minOnly
-        ? {metricId: id, min: ''}
-        : {metricId: id, min: '', max: ''};
+        ? { metricId: id, min: '' }
+        : { metricId: id, min: '', max: '' };
     });
   };
 
   const getPlanningRelevantMetricIdsForExercise = buildGetPlanningRelevantMetricIdsForExercise(
     registry,
     exerciseTypeByExerciseId,
-    exerciseMetricMap
+    exerciseMetricMap,
   );
 
   return (

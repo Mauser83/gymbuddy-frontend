@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+.expo/
+android/
+ios/
+coverage/
+*.log
+# If your source is under src/, keep linting focused:
+# (uncomment next line if your code lives in src)
+!src/**

@@ -1,4 +1,5 @@
-import {useQuery} from '@apollo/client';
+import { useQuery } from '@apollo/client';
+
 import {
   LIST_TRAINING_CANDIDATES,
   ListTrainingCandidatesInput,
@@ -6,7 +7,7 @@ import {
 
 export function useTrainingCandidates(input: ListTrainingCandidatesInput) {
   return useQuery(LIST_TRAINING_CANDIDATES, {
-    variables: {input},
+    variables: { input },
     fetchPolicy: 'network-only',
     skip: !input?.gymId,
   });

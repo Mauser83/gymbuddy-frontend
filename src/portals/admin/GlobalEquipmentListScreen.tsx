@@ -1,30 +1,29 @@
-import React, {useEffect, useState, useMemo, useCallback} from 'react';
-import {useLazyQuery, useMutation} from '@apollo/client';
-import {useNavigate} from 'react-router-native';
-import {View} from 'react-native';
+import { useLazyQuery, useMutation } from '@apollo/client';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { View } from 'react-native';
+import { useNavigate } from 'react-router-native';
 
-import {useAuth} from '../../features/auth/context/AuthContext';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import EquipmentList from 'src/features/equipment/components/EquipmentList';
 import {
   GET_ALL_EQUIPMENTS,
   DELETE_EQUIPMENT,
-} from '../../features/equipment/graphql/equipment.graphql';
-import {Equipment} from '../../features/equipment/types/equipment.types';
-
-import ScreenLayout from '../../shared/components/ScreenLayout';
-import SearchInput from 'shared/components/SearchInput';
-import Button from 'shared/components/Button';
-import LoadingState from 'shared/components/LoadingState';
-import {spacing} from 'shared/theme/tokens';
-import {debounce} from 'shared/utils/helpers';
-import EquipmentList from 'features/equipment/components/EquipmentList';
+} from 'src/features/equipment/graphql/equipment.graphql';
+import { Equipment } from 'src/features/equipment/types/equipment.types';
+import Button from 'src/shared/components/Button';
+import LoadingState from 'src/shared/components/LoadingState';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import SearchInput from 'src/shared/components/SearchInput';
+import { spacing } from 'src/shared/theme/tokens';
+import { debounce } from 'src/shared/utils/helpers';
 
 const GlobalEquipmentListScreen = () => {
-  const {user} = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [fetchEquipments, {data, loading}] = useLazyQuery(GET_ALL_EQUIPMENTS, {
+  const [fetchEquipments, { data, loading }] = useLazyQuery(GET_ALL_EQUIPMENTS, {
     fetchPolicy: 'cache-and-network',
   });
   const [deleteEquipment] = useMutation(DELETE_EQUIPMENT);
@@ -36,8 +35,8 @@ const GlobalEquipmentListScreen = () => {
   const handleDelete = useCallback(
     async (id: number) => {
       try {
-        await deleteEquipment({variables: {id}});
-        fetchEquipments({variables: {search: searchQuery || undefined}});
+        await deleteEquipment({ variables: { id } });
+        fetchEquipments({ variables: { search: searchQuery || undefined } });
       } catch (err) {
         console.error('Failed to delete equipment', err);
       }
@@ -51,7 +50,7 @@ const GlobalEquipmentListScreen = () => {
   const debouncedFetch = useMemo(
     () =>
       debounce((q: string) => {
-        fetchEquipments({variables: {search: q || undefined}});
+        fetchEquipments({ variables: { search: q || undefined } });
       }, 500),
     [fetchEquipments],
   );
@@ -61,22 +60,13 @@ const GlobalEquipmentListScreen = () => {
   }, [searchQuery, debouncedFetch]);
 
   const equipments: Equipment[] = useMemo(
-    () =>
-      [...(data?.allEquipments ?? [])].sort((a, b) =>
-        a.name.localeCompare(b.name),
-      ),
+    () => [...(data?.allEquipments ?? [])].sort((a, b) => a.name.localeCompare(b.name)),
     [data],
   );
 
-  const handleEdit = useCallback(
-    (id: number) => navigate(`/equipment/edit/${id}`),
-    [navigate],
-  );
+  const handleEdit = useCallback((id: number) => navigate(`/equipment/edit/${id}`), [navigate]);
 
-  const handleExercisePress = useCallback(
-    (id: number) => navigate(`/exercise/${id}`),
-    [navigate],
-  );
+  const handleExercisePress = useCallback((id: number) => navigate(`/exercise/${id}`), [navigate]);
 
   return (
     <ScreenLayout>
@@ -86,11 +76,8 @@ const GlobalEquipmentListScreen = () => {
         value={searchQuery}
         onClear={() => setSearchQuery('')}
       />
-      <View style={{marginVertical: spacing.md}}>
-        <Button
-          text="➕ Create New Equipment"
-          onPress={() => navigate('/equipment/create')}
-        />
+      <View style={{ marginVertical: spacing.md }}>
+        <Button text="➕ Create New Equipment" onPress={() => navigate('/equipment/create')} />
       </View>
       {loading && equipments.length === 0 ? (
         <LoadingState text="Loading equipment..." />

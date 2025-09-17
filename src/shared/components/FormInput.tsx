@@ -1,6 +1,7 @@
 import React from 'react';
-import {View, Text, TextInput} from 'react-native';
-import {useTheme} from 'shared/theme/ThemeProvider';
+import { View, Text, TextInput } from 'react-native';
+
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 interface FormInputProps {
   label: string;
@@ -43,18 +44,14 @@ const FormInput = ({
   autoCorrect = false,
   autoCapitalize = 'sentences',
 }: FormInputProps) => {
-  const {theme, componentStyles} = useTheme();
+  const { theme, componentStyles } = useTheme();
   const styles = componentStyles.formInput;
 
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
-        style={[
-          styles.field,
-          error && styles.errorField,
-          editable === false && {opacity: 0.5},
-        ]}
+        style={[styles.field, error && styles.errorField, editable === false && { opacity: 0.5 }]}
         placeholder={placeholder}
         placeholderTextColor={theme.colors.textSecondary}
         value={value}

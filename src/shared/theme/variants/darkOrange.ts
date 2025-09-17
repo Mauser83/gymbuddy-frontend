@@ -1,4 +1,4 @@
-import {Theme} from '../types/theme.types';
+import { Theme } from '../types/theme.types';
 
 export const darkOrange: Theme = {
   name: 'dark-orange',

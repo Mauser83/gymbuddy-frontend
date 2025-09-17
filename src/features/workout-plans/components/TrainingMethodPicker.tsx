@@ -1,10 +1,11 @@
 import React from 'react';
 import { ScrollView, View } from 'react-native';
-import Title from 'shared/components/Title';
-import Button from 'shared/components/Button';
-import OptionItem from 'shared/components/OptionItem';
-import { spacing } from 'shared/theme/tokens';
-import { useTheme } from 'shared/theme/ThemeProvider';
+
+import Button from 'src/shared/components/Button';
+import OptionItem from 'src/shared/components/OptionItem';
+import Title from 'src/shared/components/Title';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing } from 'src/shared/theme/tokens';
 
 interface TrainingMethodPickerProps {
   trainingMethods: { id: number; name: string }[];
@@ -28,7 +29,7 @@ export default function TrainingMethodPicker({
         {trainingMethods
           .slice()
           .sort((a, b) => a.name.localeCompare(b.name))
-          .map(method => (
+          .map((method) => (
             <OptionItem
               key={method.id}
               text={method.name}

@@ -1,4 +1,5 @@
-import {useMutation} from '@apollo/client';
+import { useMutation } from '@apollo/client';
+
 import {
   CREATE_UPLOAD_SESSION,
   FINALIZE_GYM_IMAGES,

@@ -1,14 +1,16 @@
 import React from 'react';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import TrainingGoalPickerModal from './TrainingGoalPickerModal';
+
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import { generateId } from 'src/shared/utils/helpers';
+
 import DifficultyPickerModal from './DifficultyPickerModal';
 import MuscleGroupPickerModal from './MuscleGroupPickerModal';
-import TrainingMethodPicker from './TrainingMethodPicker';
 import SelectExerciseModal from './SelectExerciseModal';
-import {generateId} from 'shared/utils/helpers';
-import { getNextGlobalOrder } from '../utils/dragAndDrop';
-import type {FormValues} from '../types/plan.types';
+import TrainingGoalPickerModal from './TrainingGoalPickerModal';
+import TrainingMethodPicker from './TrainingMethodPicker';
 import type { ActiveModal } from '../types/modal.types';
+import type { FormValues } from '../types/plan.types';
+import { getNextGlobalOrder } from '../utils/dragAndDrop';
 
 interface PlanModalsProps {
   activeModal: ActiveModal;
@@ -48,7 +50,7 @@ export default function PlanModals({
           visible
           trainingGoals={workoutMeta?.getTrainingGoals ?? []}
           selectedId={values.trainingGoalId}
-          onSelect={goalId => {
+          onSelect={(goalId) => {
             setFieldValue('trainingGoalId', goalId);
             setActiveModal(null);
           }}
@@ -60,7 +62,7 @@ export default function PlanModals({
           visible
           selectedId={values.experienceLevelId ?? null}
           levels={workoutMeta?.experienceLevels ?? []}
-          onSelect={id => {
+          onSelect={(id) => {
             setFieldValue('experienceLevelId', id);
             setActiveModal(null);
           }}
@@ -80,21 +82,17 @@ export default function PlanModals({
         <TrainingMethodPicker
           selectedId={
             selectedExerciseIndex !== null
-              ? values.exercises[selectedExerciseIndex]?.trainingMethodId ?? null
+              ? (values.exercises[selectedExerciseIndex]?.trainingMethodId ?? null)
               : null
           }
           trainingMethods={
             workoutMeta?.getTrainingGoals?.find(
-              (g: {id: number; trainingMethods: any[]}) =>
-                g.id === values.trainingGoalId,
+              (g: { id: number; trainingMethods: any[] }) => g.id === values.trainingGoalId,
             )?.trainingMethods ?? []
           }
-          onSelect={id => {
+          onSelect={(id) => {
             if (selectedExerciseIndex !== null) {
-              setFieldValue(
-                `exercises[${selectedExerciseIndex}].trainingMethodId`,
-                id,
-              );
+              setFieldValue(`exercises[${selectedExerciseIndex}].trainingMethodId`, id);
             }
             setActiveModal(null);
             setSelectedExerciseIndex(null);
@@ -106,13 +104,13 @@ export default function PlanModals({
         <SelectExerciseModal
           onClose={() => setActiveModal(null)}
           filteredExercises={filteredExercises}
-          onSelect={newExercises => {
+          onSelect={(newExercises) => {
             if (!pushRef.current) {
               console.error('[DEBUG] FATAL: pushRef.current is not set!');
               return;
             }
             try {
-              newExercises.forEach(e => {
+              newExercises.forEach((e) => {
                 const newTargetMetrics = createPlanningTargetMetrics(e.id);
                 const getNextOrder = (): number =>
                   getNextGlobalOrder(values.exercises, values.groups);
@@ -141,11 +139,9 @@ export default function PlanModals({
         <TrainingMethodPicker
           selectedId={null}
           trainingMethods={
-            workoutMeta?.getTrainingMethods?.filter(
-              (m: any) => m.minGroupSize != null,
-            ) ?? []
+            workoutMeta?.getTrainingMethods?.filter((m: any) => m.minGroupSize != null) ?? []
           }
-          onSelect={id => {
+          onSelect={(id) => {
             if (stagedGroupId != null) {
               const nextOrder = getNextGlobalOrder(values.exercises, values.groups);
               const newGroup = {

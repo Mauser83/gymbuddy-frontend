@@ -1,26 +1,25 @@
-import React, {useMemo, useState, useEffect} from 'react';
-import {View, Text, FlatList, Image} from 'react-native';
-import {useNavigate} from 'react-router-native';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Card from 'shared/components/Card';
-import Title from 'shared/components/Title';
-import Button from 'shared/components/Button';
-import ButtonRow from 'shared/components/ButtonRow';
-import SearchInput from 'shared/components/SearchInput';
-import ErrorMessage from 'shared/components/ErrorMessage';
-import LoadingState from 'shared/components/LoadingState';
-import NoResults from 'shared/components/NoResults';
 import Slider from '@react-native-community/slider';
-import {spacing} from 'shared/theme/tokens';
-import {useTheme} from 'shared/theme/ThemeProvider';
-import {useKnnSearch} from 'features/cv/hooks/useKnnSearch';
-import {useLatestEmbeddedImage} from 'features/cv/hooks/useLatestEmbeddedImage';
-import {useThumbUrls} from 'features/cv/hooks/useThumbUrls';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import SelectableField from 'shared/components/SelectableField';
-import GymPickerModal, {
-  Gym,
-} from 'features/workout-sessions/components/GymPickerModal';
+import React, { useMemo, useState, useEffect } from 'react';
+import { View, Text, FlatList, Image } from 'react-native';
+import { useNavigate } from 'react-router-native';
+
+import { useKnnSearch } from 'src/features/cv/hooks/useKnnSearch';
+import { useLatestEmbeddedImage } from 'src/features/cv/hooks/useLatestEmbeddedImage';
+import { useThumbUrls } from 'src/features/cv/hooks/useThumbUrls';
+import GymPickerModal, { Gym } from 'src/features/workout-sessions/components/GymPickerModal';
+import Button from 'src/shared/components/Button';
+import ButtonRow from 'src/shared/components/ButtonRow';
+import Card from 'src/shared/components/Card';
+import ErrorMessage from 'src/shared/components/ErrorMessage';
+import LoadingState from 'src/shared/components/LoadingState';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import NoResults from 'src/shared/components/NoResults';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import SearchInput from 'src/shared/components/SearchInput';
+import SelectableField from 'src/shared/components/SelectableField';
+import Title from 'src/shared/components/Title';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing } from 'src/shared/theme/tokens';
 
 const KnnPlaygroundScreen = () => {
   const [imageId, setImageId] = useState('');
@@ -28,7 +27,7 @@ const KnnPlaygroundScreen = () => {
   const [limit, setLimit] = useState(10);
   const [noLatest, setNoLatest] = useState(false);
   const navigate = useNavigate();
-  const {theme} = useTheme();
+  const { theme } = useTheme();
   const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
   const [gymModalVisible, setGymModalVisible] = useState(false);
   const activeGymId = selectedGym?.id;
@@ -37,9 +36,7 @@ const KnnPlaygroundScreen = () => {
     latest,
     isLoading: latestLoading,
     error: latestError,
-  } = useLatestEmbeddedImage(
-    activeGymId ? {scope: 'GYM', gymId: activeGymId} : null,
-  );
+  } = useLatestEmbeddedImage(activeGymId ? { scope: 'GYM', gymId: activeGymId } : null);
 
   const inputError = useMemo(() => {
     if (!imageId?.trim()) return 'Enter an imageId.';
@@ -57,25 +54,15 @@ const KnnPlaygroundScreen = () => {
           gymId: scope === 'GYM' ? activeGymId : undefined,
         };
 
-  const {
-    neighbors,
-    error: knnError,
-    isLoading: knnLoading,
-  } = useKnnSearch(input);
+  const { neighbors, error: knnError, isLoading: knnLoading } = useKnnSearch(input);
 
   const error = knnError || latestError;
   const isLoading = knnLoading || latestLoading;
 
-  const sorted = useMemo(
-    () => [...neighbors].sort((a, b) => b.score - a.score),
-    [neighbors],
-  );
+  const sorted = useMemo(() => [...neighbors].sort((a, b) => b.score - a.score), [neighbors]);
 
-  const storageKeys = useMemo(
-    () => sorted.map(n => n.storageKey).filter(Boolean),
-    [sorted],
-  );
-  const {data: thumbData, refresh: refreshThumbs} = useThumbUrls();
+  const storageKeys = useMemo(() => sorted.map((n) => n.storageKey).filter(Boolean), [sorted]);
+  const { data: thumbData, refresh: refreshThumbs } = useThumbUrls();
   useEffect(() => {
     refreshThumbs(storageKeys);
   }, [refreshThumbs, storageKeys]);
@@ -104,7 +91,7 @@ const KnnPlaygroundScreen = () => {
         <Title text="KNN Playground" subtitle="Search nearest neighbors" />
         <SearchInput
           value={imageId}
-          onChange={v => {
+          onChange={(v) => {
             setImageId(v);
             setNoLatest(false);
           }}
@@ -127,13 +114,11 @@ const KnnPlaygroundScreen = () => {
               value={selectedGym ? selectedGym.name : 'Select Gym'}
               onPress={() => setGymModalVisible(true)}
             />
-            {!selectedGym && (
-              <ErrorMessage message="Select a gym or choose GLOBAL." />
-            )}
+            {!selectedGym && <ErrorMessage message="Select a gym or choose GLOBAL." />}
           </>
         )}
-        <View style={{marginBottom: spacing.md}}>
-          <Text style={{color: theme.colors.textPrimary}}>Limit: {limit}</Text>
+        <View style={{ marginBottom: spacing.md }}>
+          <Text style={{ color: theme.colors.textPrimary }}>Limit: {limit}</Text>
           <Slider
             minimumValue={5}
             maximumValue={50}
@@ -146,10 +131,7 @@ const KnnPlaygroundScreen = () => {
         </View>
         {isLoading && <LoadingState text="Searching..." />}
         {error && (
-          <ErrorMessage
-            message={String(error)}
-            containerStyle={{marginBottom: spacing.md}}
-          />
+          <ErrorMessage message={String(error)} containerStyle={{ marginBottom: spacing.md }} />
         )}
         {!isLoading && !error && noLatest && (
           <NoResults message="No embedded images yet for this gym. Finalize some uploads first." />
@@ -160,12 +142,12 @@ const KnnPlaygroundScreen = () => {
         {sorted.length > 50 ? (
           <FlatList
             data={sorted}
-            keyExtractor={item => item.imageId}
-            renderItem={({item}) => (
-              <Card variant="glass" style={{marginBottom: spacing.md}}>
+            keyExtractor={(item) => item.imageId}
+            renderItem={({ item }) => (
+              <Card variant="glass" style={{ marginBottom: spacing.md }}>
                 {!!thumbs?.[item.storageKey] && (
                   <Image
-                    source={{uri: thumbs[item.storageKey]}}
+                    source={{ uri: thumbs[item.storageKey] }}
                     style={{
                       width: 120,
                       height: 120,
@@ -178,7 +160,8 @@ const KnnPlaygroundScreen = () => {
                   style={{
                     marginBottom: spacing.xs,
                     color: theme.colors.textPrimary,
-                  }}>
+                  }}
+                >
                   score: {item.score.toFixed(3)}
                 </Text>
                 {item.equipmentId && (
@@ -186,7 +169,8 @@ const KnnPlaygroundScreen = () => {
                     style={{
                       marginBottom: spacing.sm,
                       color: theme.colors.textPrimary,
-                    }}>
+                    }}
+                  >
                     equipmentId: {item.equipmentId}
                   </Text>
                 )}
@@ -199,14 +183,11 @@ const KnnPlaygroundScreen = () => {
             )}
           />
         ) : (
-          sorted.map(n => (
-            <Card
-              key={n.imageId}
-              variant="glass"
-              style={{marginBottom: spacing.md}}>
+          sorted.map((n) => (
+            <Card key={n.imageId} variant="glass" style={{ marginBottom: spacing.md }}>
               {!!thumbs?.[n.storageKey] && (
                 <Image
-                  source={{uri: thumbs[n.storageKey]}}
+                  source={{ uri: thumbs[n.storageKey] }}
                   style={{
                     width: 120,
                     height: 120,
@@ -219,7 +200,8 @@ const KnnPlaygroundScreen = () => {
                 style={{
                   marginBottom: spacing.xs,
                   color: theme.colors.textPrimary,
-                }}>
+                }}
+              >
                 score: {n.score.toFixed(3)}
               </Text>
               {n.equipmentId && (
@@ -227,7 +209,8 @@ const KnnPlaygroundScreen = () => {
                   style={{
                     marginBottom: spacing.sm,
                     color: theme.colors.textPrimary,
-                  }}>
+                  }}
+                >
                   equipmentId: {n.equipmentId}
                 </Text>
               )}
@@ -240,13 +223,11 @@ const KnnPlaygroundScreen = () => {
           ))
         )}
       </Card>
-      <ModalWrapper
-        visible={gymModalVisible}
-        onClose={() => setGymModalVisible(false)}>
+      <ModalWrapper visible={gymModalVisible} onClose={() => setGymModalVisible(false)}>
         {gymModalVisible && (
           <GymPickerModal
             onClose={() => setGymModalVisible(false)}
-            onSelect={gym => {
+            onSelect={(gym) => {
               setSelectedGym(gym);
               setGymModalVisible(false);
             }}

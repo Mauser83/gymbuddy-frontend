@@ -1,7 +1,7 @@
 // app.config.js
 import 'dotenv/config';
 
-export default ({config}) => {
+export default ({ config }) => {
   const env = (process.env.APP_ENV ?? 'production').toLowerCase();
   const isCvDev = env === 'cvdev';
 
@@ -24,12 +24,15 @@ export default ({config}) => {
     // ✅ Add (or merge) plugins
     plugins: [
       ...(config.plugins ?? []),
-      ['expo-image-picker', {
-        photosPermission: 'Allow access to your photos to pick images for equipment recognition.',
-        cameraPermission: 'Allow camera access to scan gym equipment.',
-        // Include only if you capture video with audio:
-        // microphonePermission: 'Allow microphone while recording videos.',
-      }],
+      [
+        'expo-image-picker',
+        {
+          photosPermission: 'Allow access to your photos to pick images for equipment recognition.',
+          cameraPermission: 'Allow camera access to scan gym equipment.',
+          // Include only if you capture video with audio:
+          // microphonePermission: 'Allow microphone while recording videos.',
+        },
+      ],
       // If you SAVE to the photo library via expo-media-library, add its plugin too:
       // ['expo-media-library', { photosPermission: 'Allow saving images to your photo library.' }],
     ],
@@ -37,19 +40,15 @@ export default ({config}) => {
     ios: {
       ...(config.ios ?? {}),
       // <-- NEW: separate bundle id so it installs side-by-side
-      bundleIdentifier: isCvDev
-        ? 'com.mauser83.gymbuddy.dev'
-        : 'com.mauser83.gymbuddy',
+      bundleIdentifier: isCvDev ? 'com.mauser83.gymbuddy.dev' : 'com.mauser83.gymbuddy',
       infoPlist: {
         ...(config.ios?.infoPlist ?? {}),
         ITSAppUsesNonExemptEncryption: false,
         CFBundleDisplayName: isCvDev ? 'GymBuddy Dev' : 'GymBuddy', // explicit
-        NSCameraUsageDescription:
-          'We use the camera to recognize gym equipment.',
+        NSCameraUsageDescription: 'We use the camera to recognize gym equipment.',
         NSPhotoLibraryUsageDescription:
           'Allow photo library access to pick images for recognition.',
-        NSPhotoLibraryAddUsageDescription:
-          'Allow saving recognized images to your photo library.',
+        NSPhotoLibraryAddUsageDescription: 'Allow saving recognized images to your photo library.',
         // NSMicrophoneUsageDescription:
         //   'We use the microphone when recording videos.',
       },

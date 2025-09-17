@@ -1,11 +1,12 @@
-import React, {useState, useEffect} from 'react';
-import {View} from 'react-native';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import ClickableList from 'shared/components/ClickableList';
-import NoResults from 'shared/components/NoResults';
-import {spacing} from 'shared/theme/tokens';
-import Button from 'shared/components/Button';
-import Title from 'shared/components/Title';
+import React, { useState, useEffect } from 'react';
+import { View } from 'react-native';
+
+import Button from 'src/shared/components/Button';
+import ClickableList from 'src/shared/components/ClickableList';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import NoResults from 'src/shared/components/NoResults';
+import Title from 'src/shared/components/Title';
+import { spacing } from 'src/shared/theme/tokens';
 
 interface EquipmentOption {
   id: number;
@@ -39,7 +40,7 @@ export default function MultiSlotEquipmentPickerModal({
   const [selected, setSelected] = useState<Record<number, number | null>>({});
 
   const handlePick = (slotIndex: number, eqId: number) => {
-    setSelected(prev => ({...prev, [slotIndex]: eqId}));
+    setSelected((prev) => ({ ...prev, [slotIndex]: eqId }));
   };
 
   const allSelected = requiredSlots.every((_, i) => selected[i] != null);
@@ -50,35 +51,31 @@ export default function MultiSlotEquipmentPickerModal({
     }
   };
 
-useEffect(() => {
-  if (visible) {
-    const initial: Record<number, number | null> = {};
-    requiredSlots.forEach((slot, index) => {
-      const prefillId = defaultSelectedEquipmentIds?.[index] ?? null;
-      initial[index] = prefillId;
-    });
-    setSelected(initial);
-  }
-}, [visible, requiredSlots, defaultSelectedEquipmentIds]);
+  useEffect(() => {
+    if (visible) {
+      const initial: Record<number, number | null> = {};
+      requiredSlots.forEach((slot, index) => {
+        const prefillId = defaultSelectedEquipmentIds?.[index] ?? null;
+        initial[index] = prefillId;
+      });
+      setSelected(initial);
+    }
+  }, [visible, requiredSlots, defaultSelectedEquipmentIds]);
 
   return (
     <ModalWrapper visible={visible} onClose={onClose}>
-      <View style={{padding: spacing.md, gap: spacing.lg}}>
+      <View style={{ padding: spacing.md, gap: spacing.lg }}>
         {requiredSlots.map((slot, index) => {
-          const options = equipment.filter(eq =>
-            slot.subcategoryIds.includes(eq.subcategoryId),
-          );
+          const options = equipment.filter((eq) => slot.subcategoryIds.includes(eq.subcategoryId));
 
           return (
-            <View key={index} style={{gap: spacing.sm}}>
+            <View key={index} style={{ gap: spacing.sm }}>
               <Title subtitle={`Select ${slot.subcategoryName}`} />
               {options.length === 0 ? (
-                <NoResults
-                  message={`No available equipment for ${slot.subcategoryName}`}
-                />
+                <NoResults message={`No available equipment for ${slot.subcategoryName}`} />
               ) : (
                 <ClickableList
-                  items={options.map(eq => ({
+                  items={options.map((eq) => ({
                     id: eq.id,
                     label: eq.name,
                     onPress: () => handlePick(index, eq.id),
@@ -90,11 +87,7 @@ useEffect(() => {
           );
         })}
 
-        <Button
-          text="Confirm Selection"
-          onPress={handleConfirm}
-          disabled={!allSelected}
-        />
+        <Button text="Confirm Selection" onPress={handleConfirm} disabled={!allSelected} />
       </View>
     </ModalWrapper>
   );

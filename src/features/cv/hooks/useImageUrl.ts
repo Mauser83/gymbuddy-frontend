@@ -1,9 +1,10 @@
-import {useQuery} from '@apollo/client';
-import {IMAGE_URL} from '../graphql/imageUrl.graphql';
+import { useQuery } from '@apollo/client';
+
+import { IMAGE_URL } from '../graphql/imageUrl.graphql';
 
 export function useImageUrl(storageKey: string | null, ttlSec: number) {
-  const {data, loading, error, refetch} = useQuery(IMAGE_URL, {
-    variables: {storageKey: storageKey ?? '', ttlSec},
+  const { data, loading, error, refetch } = useQuery(IMAGE_URL, {
+    variables: { storageKey: storageKey ?? '', ttlSec },
     skip: !storageKey,
     fetchPolicy: 'no-cache',
   });

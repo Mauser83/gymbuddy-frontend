@@ -13,10 +13,11 @@
 // />
 
 import React from 'react';
-import {View, Text} from 'react-native';
-import FormInput from 'shared/components/FormInput';
-import {useMetricRegistry} from 'shared/context/MetricRegistry';
-import {useTheme} from 'shared/theme/ThemeProvider';
+import { View, Text } from 'react-native';
+
+import FormInput from 'src/shared/components/FormInput';
+import { useMetricRegistry } from 'src/shared/context/MetricRegistry';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 interface TargetMetric {
   metricId: number;
@@ -29,8 +30,8 @@ interface TargetMetricInputGroupProps {
   exerciseTypeId?: number;
   values: TargetMetric[];
   onChange: (metricId: number, field: 'min' | 'max', value: string) => void;
-  errors?: Record<number, {min?: string; max?: string}>;
-  touched?: Record<number, {min?: boolean; max?: boolean}>;
+  errors?: Record<number, { min?: string; max?: string }>;
+  touched?: Record<number, { min?: boolean; max?: boolean }>;
 }
 
 const TargetMetricInputGroup: React.FC<TargetMetricInputGroupProps> = ({
@@ -41,17 +42,13 @@ const TargetMetricInputGroup: React.FC<TargetMetricInputGroupProps> = ({
   errors = {},
   touched = {},
 }) => {
-  const {
-    metricRegistry,
-    exerciseTypeByExerciseId,
-    getPlanningRelevantMetricIdsForExercise,
-  } = useMetricRegistry();
+  const { metricRegistry, exerciseTypeByExerciseId, getPlanningRelevantMetricIdsForExercise } =
+    useMetricRegistry();
 
-  const {theme} = useTheme();
+  const { theme } = useTheme();
 
   const resolvedTypeId =
-    exerciseTypeId ??
-    (exerciseId ? exerciseTypeByExerciseId[exerciseId] : undefined);
+    exerciseTypeId ?? (exerciseId ? exerciseTypeByExerciseId[exerciseId] : undefined);
 
   const metricIds = exerciseId
     ? getPlanningRelevantMetricIdsForExercise(exerciseId)
@@ -64,35 +61,34 @@ const TargetMetricInputGroup: React.FC<TargetMetricInputGroupProps> = ({
       : [];
 
   return (
-    <View style={{gap: 12}}>
-      {metricIds.map(metricId => {
+    <View style={{ gap: 12 }}>
+      {metricIds.map((metricId) => {
         const metric = metricRegistry[metricId];
         if (!metric) return null;
 
-        const target = values.find(m => m.metricId === metricId) ?? {
+        const target = values.find((m) => m.metricId === metricId) ?? {
           metricId,
           min: '',
           max: '',
         };
 
         return (
-          <View key={metricId} style={{gap: 8}}>
+          <View key={metricId} style={{ gap: 8 }}>
             <Text
               style={{
                 fontWeight: '600',
                 marginBottom: 4,
                 color: theme.colors.textPrimary,
-              }}>
+              }}
+            >
               {metric.name}
             </Text>
-            <View style={{flexDirection: 'row', gap: 12}}>
-              <View style={{flex: 1}}>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
                 <FormInput
                   label="Min"
                   value={String(target.min ?? '')}
-                  onChangeText={text =>
-                    onChange(metricId, 'min', text.replace(',', '.'))
-                  }
+                  onChangeText={(text) => onChange(metricId, 'min', text.replace(',', '.'))}
                   keyboardType={
                     metric.inputType === 'number'
                       ? 'number-pad'
@@ -100,19 +96,15 @@ const TargetMetricInputGroup: React.FC<TargetMetricInputGroupProps> = ({
                         ? 'decimal-pad'
                         : 'default'
                   }
-                  error={
-                    touched[metricId]?.min ? errors[metricId]?.min : undefined
-                  }
+                  error={touched[metricId]?.min ? errors[metricId]?.min : undefined}
                 />
               </View>
               {!metric.minOnly && (
-                <View style={{flex: 1}}>
+                <View style={{ flex: 1 }}>
                   <FormInput
                     label="Max (optional)"
                     value={String(target.max ?? '')}
-                    onChangeText={text =>
-                      onChange(metricId, 'max', text.replace(',', '.'))
-                    }
+                    onChangeText={(text) => onChange(metricId, 'max', text.replace(',', '.'))}
                     keyboardType={
                       metric.inputType === 'number'
                         ? 'number-pad'
@@ -120,9 +112,7 @@ const TargetMetricInputGroup: React.FC<TargetMetricInputGroupProps> = ({
                           ? 'decimal-pad'
                           : 'default'
                     }
-                    error={
-                      touched[metricId]?.max ? errors[metricId]?.max : undefined
-                    }
+                    error={touched[metricId]?.max ? errors[metricId]?.max : undefined}
                   />
                 </View>
               )}

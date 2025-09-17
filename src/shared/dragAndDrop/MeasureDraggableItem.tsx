@@ -1,9 +1,10 @@
-import React, {useEffect, useImperativeHandle, useRef} from 'react';
-import {View} from 'react-native';
-import Animated, {useSharedValue, useAnimatedStyle} from 'react-native-reanimated';
-import {DraggableItem, DraggableItemProps, DragData} from './DraggableItem';
+import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import { View } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
 
-export type Layout = {x: number; y: number; width: number; height: number};
+import { DraggableItem, DraggableItemProps, DragData } from './DraggableItem';
+
+export type Layout = { x: number; y: number; width: number; height: number };
 
 export type MeasuredDraggableItemProps = {
   id: string;
@@ -25,7 +26,10 @@ export type MeasuredDraggableItemProps = {
   simultaneousHandlers?: any;
 };
 
-export const MeasuredDraggableItem = React.forwardRef<{measure: () => void}, MeasuredDraggableItemProps>(
+export const MeasuredDraggableItem = React.forwardRef<
+  { measure: () => void },
+  MeasuredDraggableItemProps
+>(
   (
     {
       id,
@@ -62,26 +66,31 @@ export const MeasuredDraggableItem = React.forwardRef<{measure: () => void}, Mea
     const measure = () => {
       innerRef.current?.measure((x, y, width, height, pageX, pageY) => {
         if (width > 0 && height > 0) {
-          layoutStore.current[id] = {x: pageX, y: pageY, width, height};
+          layoutStore.current[id] = { x: pageX, y: pageY, width, height };
           offset.value = 0;
         }
       });
     };
 
-    useImperativeHandle(ref, () => ({measure}));
+    useImperativeHandle(ref, () => ({ measure }));
 
     useEffect(() => {
       measure();
     }, [id, layoutVersion, scrollLayoutVersion]);
 
     const animatedContainerStyle = useAnimatedStyle(() => ({
-      transform: [{translateY: offset.value}],
+      transform: [{ translateY: offset.value }],
     }));
 
     return (
-      <Animated.View ref={innerRef} onLayout={measure} style={animatedContainerStyle} collapsable={false}>
+      <Animated.View
+        ref={innerRef}
+        onLayout={measure}
+        style={animatedContainerStyle}
+        collapsable={false}
+      >
         <DraggableItem
-          item={{type, id}}
+          item={{ type, id }}
           onDrop={onDrop}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}

@@ -1,35 +1,33 @@
-import React, {useEffect, useState, useMemo, useCallback} from 'react';
-import UsersList from 'features/users/components/UsersList';
-import {useLazyQuery, useSubscription} from '@apollo/client';
-import {useNavigate} from 'react-router-native';
+import { useLazyQuery, useSubscription } from '@apollo/client';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-native';
 
-import {useAuth} from '../../features/auth/context/AuthContext';
-
-import {GET_USERS} from '../../features/users/graphql/user.queries';
-import {USER_UPDATED_SUBSCRIPTION} from 'features/users/graphql/user.subscriptions';
-import {USER_FRAGMENT} from '../../features/users/graphql/user.fragments';
-import {User} from 'features/users/types/user';
-import {debounce} from 'shared/utils/helpers';
-
-import FormError from 'shared/components/FormError';
-import Card from 'shared/components/Card';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import NoResults from 'shared/components/NoResults';
-import LoadingState from 'shared/components/LoadingState';
-import SearchInput from 'shared/components/SearchInput';
+import { useAuth } from 'src/features/auth/context/AuthContext';
+import UsersList from 'src/features/users/components/UsersList';
+import { USER_FRAGMENT } from 'src/features/users/graphql/user.fragments';
+import { GET_USERS } from 'src/features/users/graphql/user.queries';
+import { USER_UPDATED_SUBSCRIPTION } from 'src/features/users/graphql/user.subscriptions';
+import { User } from 'src/features/users/types/user';
+import Card from 'src/shared/components/Card';
+import FormError from 'src/shared/components/FormError';
+import LoadingState from 'src/shared/components/LoadingState';
+import NoResults from 'src/shared/components/NoResults';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import SearchInput from 'src/shared/components/SearchInput';
+import { debounce } from 'src/shared/utils/helpers';
 
 const UsersScreen = () => {
-  const {user} = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [fetchUsers, {loading, error, data}] = useLazyQuery(GET_USERS, {
+  const [fetchUsers, { loading, error, data }] = useLazyQuery(GET_USERS, {
     fetchPolicy: 'cache-and-network',
   });
 
   const [searchQuery, setSearchQuery] = useState('');
 
   useSubscription(USER_UPDATED_SUBSCRIPTION, {
-    onData: ({client, data}) => {
+    onData: ({ client, data }) => {
       const updatedUser = data.data?.userUpdated;
       if (!updatedUser) return;
 
@@ -54,7 +52,7 @@ const UsersScreen = () => {
   const debouncedFetch = useMemo(
     () =>
       debounce((q: string) => {
-        fetchUsers({variables: {search: q || undefined}});
+        fetchUsers({ variables: { search: q || undefined } });
       }, 500),
     [fetchUsers],
   );
@@ -68,10 +66,7 @@ const UsersScreen = () => {
     [data],
   );
 
-  const handleUserPress = useCallback(
-    (item: User) => navigate(`/users/${item.id}`),
-    [navigate],
-  );
+  const handleUserPress = useCallback((item: User) => navigate(`/users/${item.id}`), [navigate]);
 
   return (
     <ScreenLayout scroll={false}>

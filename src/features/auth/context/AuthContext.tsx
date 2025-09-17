@@ -1,18 +1,18 @@
 // ✅ UPDATED: AuthContext.tsx
-import React, {createContext, useContext, useEffect, useState} from 'react';
-import {refreshAccessToken} from '../../../services/apollo/tokenManager';
-import {isTokenExpired} from '../utils/isTokenExpired';
-import type {AuthContextType} from '../types/auth';
-import type {User} from 'features/users/types/user';
-import {storage} from '../utils/storage';
-import {useNavigate} from 'react-router-native';
-import {registerLogoutCallback} from 'features/auth/utils/logoutTrigger'; // adjust path if needed
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-native';
+
+import { registerLogoutCallback } from 'src/features/auth/utils/logoutTrigger'; // adjust path if needed
+import type { User } from 'src/features/users/types/user';
+import { refreshAccessToken } from 'src/services/apollo/tokenManager';
+
+import type { AuthContextType } from '../types/auth';
+import { isTokenExpired } from '../utils/isTokenExpired';
+import { storage } from '../utils/storage';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
-  children,
-}) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -35,10 +35,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
     });
   }, []);
 
-  const login = async (
-    userData: User,
-    tokens: {accessToken: string; refreshToken: string},
-  ) => {
+  const login = async (userData: User, tokens: { accessToken: string; refreshToken: string }) => {
     await storage.setItem('accessToken', tokens.accessToken);
     await storage.setItem('refreshToken', tokens.refreshToken);
     await storage.setItem('user', JSON.stringify(userData));
@@ -69,7 +66,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
     setRefreshToken(refreshToken);
     setUser(user);
     setIsAuthenticated(true);
-    await new Promise<void>(resolve => {
+    await new Promise<void>((resolve) => {
       setTimeout(() => resolve(), 50);
     });
     setLoginInProgress(false);
@@ -134,7 +131,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({
         clearSession: logout,
         sessionLoaded,
         loginInProgress,
-      }}>
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

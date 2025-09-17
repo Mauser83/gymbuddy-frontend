@@ -1,24 +1,24 @@
+import { useQuery, useMutation } from '@apollo/client';
+import { format } from 'date-fns';
 import React from 'react';
-import {View} from 'react-native';
-import {useQuery, useMutation} from '@apollo/client';
-import {useParams, useNavigate} from 'react-router-native';
-import {format} from 'date-fns';
+import { View } from 'react-native';
+import { useParams, useNavigate } from 'react-router-native';
 
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-import LoadingSpinner from 'shared/components/LoadingSpinner';
-import ErrorMessage from 'shared/components/ErrorMessage';
-import Button from 'shared/components/Button';
-import Card from 'shared/components/Card';
-import ExerciseGroupCard from 'shared/components/ExerciseGroupCard';
-import DetailField from 'shared/components/DetailField';
 import {
   DELETE_WORKOUT_SESSION,
   GET_WORKOUT_SESSION_DETAIL,
-} from '../../features/workout-sessions/graphql/userWorkouts.graphql';
-import {useMetricRegistry} from 'shared/context/MetricRegistry';
-import {useExerciseLogSummary} from 'shared/hooks/ExerciseLogSummary';
-import {spacing} from 'shared/theme/tokens';
+} from 'src/features/workout-sessions/graphql/userWorkouts.graphql';
+import Button from 'src/shared/components/Button';
+import Card from 'src/shared/components/Card';
+import DetailField from 'src/shared/components/DetailField';
+import ErrorMessage from 'src/shared/components/ErrorMessage';
+import ExerciseGroupCard from 'src/shared/components/ExerciseGroupCard';
+import LoadingSpinner from 'src/shared/components/LoadingSpinner';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
+import { useMetricRegistry } from 'src/shared/context/MetricRegistry';
+import { useExerciseLogSummary } from 'src/shared/hooks/ExerciseLogSummary';
+import { spacing } from 'src/shared/theme/tokens';
 
 // ... (Your type definitions remain the same)
 type Muscle = {
@@ -45,14 +45,14 @@ type ExerciseLog = {
 };
 
 const WorkoutSessionDetailScreen = () => {
-  const {sessionId} = useParams();
+  const { sessionId } = useParams();
   const navigate = useNavigate();
-  const {getMetricIdsForExercise} = useMetricRegistry();
+  const { getMetricIdsForExercise } = useMetricRegistry();
 
   const formatSummary = useExerciseLogSummary();
 
-  const {data, loading, error} = useQuery(GET_WORKOUT_SESSION_DETAIL, {
-    variables: {id: Number(sessionId)},
+  const { data, loading, error } = useQuery(GET_WORKOUT_SESSION_DETAIL, {
+    variables: { id: Number(sessionId) },
     skip: !sessionId,
   });
   const [deleteSession] = useMutation(DELETE_WORKOUT_SESSION);
@@ -86,7 +86,7 @@ const WorkoutSessionDetailScreen = () => {
 
   const groupMap = new Map<string, Map<number, GroupedExercise>>();
 
-  sortedLogs.forEach(log => {
+  sortedLogs.forEach((log) => {
     const gKey = log.groupKey || log.instanceKey || `${log.exerciseId}`;
     if (!groupMap.has(gKey)) {
       groupMap.set(gKey, new Map());
@@ -103,7 +103,7 @@ const WorkoutSessionDetailScreen = () => {
 
   const groupedForDisplay: DisplayGroup[] = [];
   groupMap.forEach((exMap, key) => {
-    groupedForDisplay.push({key, exercises: Array.from(exMap.values())});
+    groupedForDisplay.push({ key, exercises: Array.from(exMap.values()) });
   });
 
   const ListHeader = () => (
@@ -122,7 +122,7 @@ const WorkoutSessionDetailScreen = () => {
   );
 
   const ListFooter = () => (
-    <View style={{paddingHorizontal: spacing.md, paddingBottom: spacing.md}}>
+    <View style={{ paddingHorizontal: spacing.md, paddingBottom: spacing.md }}>
       <Button
         text="Save as New Plan"
         onPress={() => {
@@ -131,8 +131,7 @@ const WorkoutSessionDetailScreen = () => {
             logs: ExerciseLog[];
           }[] = [];
 
-          let currentGroup: {exerciseId: number; logs: ExerciseLog[]} | null =
-            null;
+          let currentGroup: { exerciseId: number; logs: ExerciseLog[] } | null = null;
 
           for (const log of session.exerciseLogs) {
             if (!currentGroup || currentGroup.exerciseId !== log.exerciseId) {
@@ -148,7 +147,7 @@ const WorkoutSessionDetailScreen = () => {
           }
           if (currentGroup) groupedExercises.push(currentGroup);
 
-          const exercises = groupedExercises.map(group => {
+          const exercises = groupedExercises.map((group) => {
             const exerciseId = group.exerciseId;
             const logs = group.logs;
 
@@ -156,8 +155,8 @@ const WorkoutSessionDetailScreen = () => {
 
             const metricsMap = metricIds.reduce((acc: any, metricId) => {
               const values = logs
-                .map(log => log.metrics?.[metricId])
-                .filter(val => val !== undefined && val !== null);
+                .map((log) => log.metrics?.[metricId])
+                .filter((val) => val !== undefined && val !== null);
 
               if (values.length > 0) {
                 const avg = Math.round(
@@ -173,12 +172,10 @@ const WorkoutSessionDetailScreen = () => {
               exerciseId,
               exerciseName: logs[0].exercise?.name || 'Unnamed Exercise',
               targetSets: logs.length,
-              targetMetrics: Object.entries(metricsMap).map(
-                ([metricId, min]) => ({
-                  metricId: Number(metricId),
-                  min,
-                }),
-              ),
+              targetMetrics: Object.entries(metricsMap).map(([metricId, min]) => ({
+                metricId: Number(metricId),
+                min,
+              })),
               isWarmup: false,
               trainingMethodId: null,
             };
@@ -187,7 +184,7 @@ const WorkoutSessionDetailScreen = () => {
           const bodyPartIdSet = new Set<number>();
 
           session.exerciseLogs.forEach((log: ExerciseLog) => {
-            log.exercise?.primaryMuscles?.forEach(muscle => {
+            log.exercise?.primaryMuscles?.forEach((muscle) => {
               const bodyPartId = muscle.bodyPart?.id;
               if (bodyPartId) bodyPartIdSet.add(bodyPartId);
             });
@@ -211,7 +208,7 @@ const WorkoutSessionDetailScreen = () => {
         text="Delete Workout"
         onPress={async () => {
           try {
-            await deleteSession({variables: {id: Number(sessionId)}});
+            await deleteSession({ variables: { id: Number(sessionId) } });
             navigate('/workout-session');
           } catch (err) {
             console.error('Failed to delete session:', err);
@@ -223,24 +220,23 @@ const WorkoutSessionDetailScreen = () => {
 
   const renderExerciseDetails = () => {
     let exerciseIndex = 1;
-    return groupedForDisplay.map(group => {
+    return groupedForDisplay.map((group) => {
       if (group.exercises.length > 1) {
         const groupLabel =
-          session.workoutPlan?.groups.find(
-            (g: any) => `group-${g.id}` === group.key,
-          )?.trainingMethod?.name ?? 'Group';
+          session.workoutPlan?.groups.find((g: any) => `group-${g.id}` === group.key)
+            ?.trainingMethod?.name ?? 'Group';
         return (
           <ExerciseGroupCard label={groupLabel} key={group.key}>
-            {group.exercises.map(ex => {
-              const summary = ex.logs.map(l => formatSummary(l)).join('\n');
+            {group.exercises.map((ex) => {
+              const summary = ex.logs.map((l) => formatSummary(l)).join('\n');
               const notes = ex.logs
-                .map(l => l.notes)
+                .map((l) => l.notes)
                 .filter(Boolean)
                 .join('\n');
               const value = notes ? `${summary}\n${notes}` : summary;
               const label = `#${exerciseIndex++} ${ex.exerciseName}`;
               return (
-                <View key={label} style={{marginBottom: spacing.sm}}>
+                <View key={label} style={{ marginBottom: spacing.sm }}>
                   <DetailField label={label} value={value} />
                 </View>
               );
@@ -250,18 +246,15 @@ const WorkoutSessionDetailScreen = () => {
       }
 
       const ex = group.exercises[0];
-      const summary = ex.logs.map(l => formatSummary(l)).join('\n');
+      const summary = ex.logs.map((l) => formatSummary(l)).join('\n');
       const notes = ex.logs
-        .map(l => l.notes)
+        .map((l) => l.notes)
         .filter(Boolean)
         .join('\n');
       const value = notes ? `${summary}\n${notes}` : summary;
       return (
-        <View key={`ex-${group.key}`} style={{marginBottom: spacing.md}}>
-          <DetailField
-            label={`#${exerciseIndex++} ${ex.exerciseName}`}
-            value={value}
-          />
+        <View key={`ex-${group.key}`} style={{ marginBottom: spacing.md }}>
+          <DetailField label={`#${exerciseIndex++} ${ex.exerciseName}`} value={value} />
         </View>
       );
     });
@@ -270,7 +263,7 @@ const WorkoutSessionDetailScreen = () => {
   return (
     <ScreenLayout scroll>
       <ListHeader />
-      <View style={{marginTop: spacing.md}}>{renderExerciseDetails()}</View>
+      <View style={{ marginTop: spacing.md }}>{renderExerciseDetails()}</View>
       <ListFooter />
     </ScreenLayout>
   );

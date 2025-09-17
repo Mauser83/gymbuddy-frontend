@@ -1,6 +1,7 @@
 import React from 'react';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
+
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import Title from 'src/shared/components/Title';
 
 export default function MessagesScreen() {
   return (

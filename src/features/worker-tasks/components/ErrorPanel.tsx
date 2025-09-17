@@ -1,16 +1,17 @@
-import React from 'react';
-import {View, Text} from 'react-native';
-import Button from 'shared/components/Button';
-import {spacing} from 'shared/theme/tokens';
-import {useTheme} from 'shared/theme/ThemeProvider';
 import * as Clipboard from 'expo-clipboard';
+import React from 'react';
+import { View, Text } from 'react-native';
+
+import Button from 'src/shared/components/Button';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing } from 'src/shared/theme/tokens';
 
 interface ErrorPanelProps {
   error?: string | null;
 }
 
-const ErrorPanel = ({error}: ErrorPanelProps) => {
-  const {theme} = useTheme();
+const ErrorPanel = ({ error }: ErrorPanelProps) => {
+  const { theme } = useTheme();
   if (!error) return null;
 
   const copy = async () => {
@@ -27,14 +28,16 @@ const ErrorPanel = ({error}: ErrorPanelProps) => {
       style={{
         padding: spacing.md,
         backgroundColor: theme.colors.glass.background,
-      }}>
+      }}
+    >
       <Text
         selectable
         style={{
           fontFamily: 'monospace',
           color: theme.colors.textPrimary,
           marginBottom: spacing.sm,
-        }}>
+        }}
+      >
         {error}
       </Text>
       <Button text="Copy" onPress={copy} small />

@@ -1,13 +1,14 @@
 import React from 'react';
-import {View, Text} from 'react-native';
-import {useTheme} from 'shared/theme/ThemeProvider';
+import { View, Text } from 'react-native';
+
+import { useTheme } from 'src/shared/theme/ThemeProvider';
 
 interface DividerWithLabelProps {
   label: string;
 }
 
-const DividerWithLabel = ({label}: DividerWithLabelProps) => {
-  const {componentStyles} = useTheme();
+const DividerWithLabel = ({ label }: DividerWithLabelProps) => {
+  const { componentStyles } = useTheme();
   const styles = componentStyles.divider;
 
   return (

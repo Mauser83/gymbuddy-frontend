@@ -1,4 +1,4 @@
-import {gql} from '@apollo/client';
+import { gql } from '@apollo/client';
 
 export const LIST_GLOBAL_SUGGESTIONS = gql`
   query ListGlobalSuggestions($input: ListGlobalSuggestionsInput!) {

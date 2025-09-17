@@ -10,9 +10,10 @@
 // />
 
 import React from 'react';
-import {View} from 'react-native';
-import FormInput from 'shared/components/FormInput';
-import {useMetricRegistry} from 'shared/context/MetricRegistry';
+import { View } from 'react-native';
+
+import FormInput from 'src/shared/components/FormInput';
+import { useMetricRegistry } from 'src/shared/context/MetricRegistry';
 
 interface MetricInputGroupProps {
   metricIds: number[];
@@ -31,26 +32,24 @@ const MetricInputGroup: React.FC<MetricInputGroupProps> = ({
   touched = {},
   disabled = false,
 }) => {
-  const {metricRegistry} = useMetricRegistry();
+  const { metricRegistry } = useMetricRegistry();
 
   return (
-    <View style={{gap: 12}}>
-      {metricIds.map(metricId => {
+    <View style={{ gap: 12 }}>
+      {metricIds.map((metricId) => {
         const metric = metricRegistry[metricId];
         if (!metric) return null;
 
         return (
           <FormInput
             key={metricId}
-            label={
-              metric.unit ? `${metric.name} (${metric.unit})` : `${metric.name}`
-            }
+            label={metric.unit ? `${metric.name} (${metric.unit})` : `${metric.name}`}
             value={
               metric.inputType === 'decimal'
                 ? String(values?.[metricId] ?? '').replace('.', ',')
                 : String(values?.[metricId] ?? '')
             }
-            onChangeText={text => {
+            onChangeText={(text) => {
               if (metric.inputType === 'number') {
                 const normalized = text.replace(',', '.');
                 const numeric = normalized === '' ? '' : Number(normalized);
@@ -70,11 +69,7 @@ const MetricInputGroup: React.FC<MetricInputGroupProps> = ({
                     ? 'default'
                     : 'default'
             }
-            error={
-              touched[metricId] && errors[metricId]
-                ? errors[metricId]
-                : undefined
-            }
+            error={touched[metricId] && errors[metricId] ? errors[metricId] : undefined}
             editable={!disabled}
           />
         );

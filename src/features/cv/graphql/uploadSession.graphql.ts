@@ -1,4 +1,4 @@
-import {gql} from '@apollo/client';
+import { gql } from '@apollo/client';
 
 export const CREATE_UPLOAD_SESSION = gql`
   mutation CreateUploadSession($input: CreateUploadSessionInput!) {
@@ -43,9 +43,7 @@ export const IMAGE_URL_MANY = gql`
 `;
 
 export const APPLY_TAXONOMIES = gql`
-  mutation ApplyTaxonomiesToGymImages(
-    $input: ApplyTaxonomiesToGymImagesInput!
-  ) {
+  mutation ApplyTaxonomiesToGymImages($input: ApplyTaxonomiesToGymImagesInput!) {
     applyTaxonomiesToGymImages(input: $input) {
       updatedCount
     }

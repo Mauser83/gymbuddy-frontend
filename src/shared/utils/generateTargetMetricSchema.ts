@@ -21,10 +21,7 @@ type MetricRegistry = Record<
   }
 >;
 
-export function generateTargetMetricSchema(
-  metricIds: number[],
-  metricRegistry: MetricRegistry
-) {
+export function generateTargetMetricSchema(metricIds: number[], metricRegistry: MetricRegistry) {
   return Yup.array().of(
     Yup.object().shape({
       metricId: Yup.number()
@@ -38,6 +35,6 @@ export function generateTargetMetricSchema(
         .typeError('Max must be a number')
         .min(0, 'Max must be at least 0')
         .notRequired(),
-    })
+    }),
   );
 }

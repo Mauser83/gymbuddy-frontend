@@ -1,17 +1,8 @@
-import {gql} from '@apollo/client';
+import { gql } from '@apollo/client';
 
-export type GymImageStatus =
-  | 'PENDING'
-  | 'PROCESSING'
-  | 'APPROVED'
-  | 'REJECTED'
-  | 'QUARANTINED';
+export type GymImageStatus = 'PENDING' | 'PROCESSING' | 'APPROVED' | 'REJECTED' | 'QUARANTINED';
 
-export type AdminImageListStatus =
-  | 'CANDIDATE'
-  | 'APPROVED'
-  | 'REJECTED'
-  | 'QUARANTINED';
+export type AdminImageListStatus = 'CANDIDATE' | 'APPROVED' | 'REJECTED' | 'QUARANTINED';
 
 export interface CandidateGlobalImagesInput {
   equipmentId: number;
@@ -19,7 +10,7 @@ export interface CandidateGlobalImagesInput {
   status?: AdminImageListStatus;
   search?: string;
   limit?: number;
-  safety?: {state?: 'PENDING' | 'COMPLETE' | 'FAILED'; flaggedOnly?: boolean};
+  safety?: { state?: 'PENDING' | 'COMPLETE' | 'FAILED'; flaggedOnly?: boolean };
 }
 
 export const CANDIDATE_GLOBAL_IMAGES = gql`

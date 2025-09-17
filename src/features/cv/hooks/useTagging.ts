@@ -1,4 +1,4 @@
-import {gql, useMutation, useQuery} from '@apollo/client';
+import { gql, useMutation, useQuery } from '@apollo/client';
 
 // Generic taxonomy options query
 const TAXONOMY_OPTIONS = gql`
@@ -23,7 +23,7 @@ const APPLY_TAXONOMIES = gql`
 // Fetch active taxonomy options for a given kind
 export function useTaxonomyOptions(kind: string) {
   return useQuery(TAXONOMY_OPTIONS, {
-    variables: {kind, active: true},
+    variables: { kind, active: true },
     fetchPolicy: 'network-only',
   });
 }
@@ -33,4 +33,4 @@ export function useApplyTaxonomies() {
   return useMutation(APPLY_TAXONOMIES);
 }
 
-export type TaxonomyOption = {id: number; label: string};
+export type TaxonomyOption = { id: number; label: string };

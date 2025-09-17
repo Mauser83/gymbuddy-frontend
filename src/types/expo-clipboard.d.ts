@@ -14,8 +14,6 @@ declare module 'expo-clipboard' {
   export function setUrlAsync(url: string): Promise<void>;
   export function getUrlAsync(): Promise<string | null>;
   export function hasStringAsync(): Promise<boolean>;
-  export function addClipboardListener(
-    listener: ClipboardListener,
-  ): ClipboardSubscription;
+  export function addClipboardListener(listener: ClipboardListener): ClipboardSubscription;
   export function removeClipboardListener(listener: ClipboardListener): void;
 }

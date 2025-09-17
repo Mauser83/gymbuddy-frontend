@@ -1,3 +1,6 @@
+import { useQuery, useMutation } from '@apollo/client';
+import FontAwesome from '@expo/vector-icons/FontAwesome5';
+import { Formik, FieldArray } from 'formik';
 import React, {
   useState,
   useRef,
@@ -6,38 +9,8 @@ import React, {
   useCallback,
   useImperativeHandle,
 } from 'react';
-import {
-  View,
-  Alert,
-  Text,
-  TouchableOpacity,
-  Pressable,
-  Platform,
-  FlatList,
-} from 'react-native';
-import {Formik, FieldArray} from 'formik';
-import * as Yup from 'yup';
-import ScreenLayout from 'shared/components/ScreenLayout';
-import Title from 'shared/components/Title';
-import FormInput from 'shared/components/FormInput';
-import Button from 'shared/components/Button';
-import Card from 'shared/components/Card';
-import SelectableField from 'shared/components/SelectableField';
-import ToastContainer from 'shared/components/ToastContainer';
-import ModalWrapper from 'shared/components/ModalWrapper';
-import {GET_WORKOUT_PLAN_META} from '../../features/workout-plans/graphql/workoutMeta.graphql';
-import {useQuery, useMutation} from '@apollo/client';
-import {
-  CREATE_WORKOUT_PLAN,
-  UPDATE_WORKOUT_PLAN,
-} from '../../features/workout-plans/graphql/workoutReferences';
-import {GET_EXERCISES_BASIC} from '../../features/workout-plans/graphql/workoutMeta.graphql';
-import {spacing} from 'shared/theme/tokens';
-import {useTheme} from 'shared/theme/ThemeProvider';
-import FontAwesome from '@expo/vector-icons/FontAwesome5';
-import {useNavigate} from 'react-router-native';
-import {useLocation} from 'react-router-native';
-import type {PointerEvent} from 'react-native';
+import { View, Alert, Text, TouchableOpacity, Pressable, Platform, FlatList } from 'react-native';
+import type { PointerEvent } from 'react-native';
 
 // IMPORTS FOR THE CUSTOM DRAG-AND-DROP
 import {
@@ -60,18 +33,38 @@ import Animated, {
   useDerivedValue,
   LinearTransition,
 } from 'react-native-reanimated';
+import { useNavigate, useLocation } from 'react-router-native';
+import * as Yup from 'yup';
 
 // MODULAR MODAL IMPORTS
-import SelectExerciseModal from '../../features/workout-plans/components/SelectExerciseModal';
-import TrainingGoalPickerModal from '../../features/workout-plans/components/TrainingGoalPickerModal';
-import DifficultyPickerModal from '../../features/workout-plans/components/DifficultyPickerModal';
-import MuscleGroupPickerModal from '../../features/workout-plans/components/MuscleGroupPickerModal';
-import TrainingMethodPicker from '../../features/workout-plans/components/TrainingMethodPicker';
-import {useMetricRegistry} from 'shared/context/MetricRegistry';
-import TargetMetricInputGroup from 'shared/components/TargetMetricInputGroup';
-import {useWorkoutPlanSummary} from 'shared/hooks/WorkoutPlanSummary';
-import ExerciseGroupCard from 'shared/components/ExerciseGroupCard';
-import {MeasuredDraggableItem} from 'shared/dragAndDrop/MeasureDraggableItem';
+import DifficultyPickerModal from 'src/features/workout-plans/components/DifficultyPickerModal';
+import MuscleGroupPickerModal from 'src/features/workout-plans/components/MuscleGroupPickerModal';
+import SelectExerciseModal from 'src/features/workout-plans/components/SelectExerciseModal';
+import TrainingGoalPickerModal from 'src/features/workout-plans/components/TrainingGoalPickerModal';
+import TrainingMethodPicker from 'src/features/workout-plans/components/TrainingMethodPicker';
+import {
+  GET_EXERCISES_BASIC,
+  GET_WORKOUT_PLAN_META,
+} from 'src/features/workout-plans/graphql/workoutMeta.graphql';
+import {
+  CREATE_WORKOUT_PLAN,
+  UPDATE_WORKOUT_PLAN,
+} from 'src/features/workout-plans/graphql/workoutReferences';
+import Button from 'src/shared/components/Button';
+import Card from 'src/shared/components/Card';
+import ExerciseGroupCard from 'src/shared/components/ExerciseGroupCard';
+import FormInput from 'src/shared/components/FormInput';
+import ModalWrapper from 'src/shared/components/ModalWrapper';
+import ScreenLayout from 'src/shared/components/ScreenLayout';
+import SelectableField from 'src/shared/components/SelectableField';
+import TargetMetricInputGroup from 'src/shared/components/TargetMetricInputGroup';
+import Title from 'src/shared/components/Title';
+import ToastContainer from 'src/shared/components/ToastContainer';
+import { useMetricRegistry } from 'src/shared/context/MetricRegistry';
+import { MeasuredDraggableItem } from 'src/shared/dragAndDrop/MeasureDraggableItem';
+import { useWorkoutPlanSummary } from 'src/shared/hooks/WorkoutPlanSummary';
+import { useTheme } from 'src/shared/theme/ThemeProvider';
+import { spacing } from 'src/shared/theme/tokens';
 
 // TYPE DEFINITIONS
 type ActiveModal =
@@ -105,7 +98,7 @@ export type ExerciseGroup = {
   order: number;
 };
 
-type DragData = {type: 'exercise' | 'group'; id: string};
+type DragData = { type: 'exercise' | 'group'; id: string };
 
 type DraggableItemProps = {
   item: DragData;
@@ -148,20 +141,20 @@ type MuscleGroupMeta = {
 };
 
 type RenderItem =
-  | {type: 'group'; group: ExerciseGroup}
-  | {type: 'exercise'; exercise: ExerciseFormEntry};
+  | { type: 'group'; group: ExerciseGroup }
+  | { type: 'exercise'; exercise: ExerciseFormEntry };
 
 type PlanItem =
-  | {type: 'exercise'; data: ExerciseFormEntry}
-  | {type: 'group'; data: ExerciseGroup};
+  | { type: 'exercise'; data: ExerciseFormEntry }
+  | { type: 'group'; data: ExerciseGroup };
 
 function getPlanItemsFromForm(values: FormValues): PlanItem[] {
   const items: PlanItem[] = [];
   for (const group of values.groups) {
-    items.push({type: 'group', data: group});
+    items.push({ type: 'group', data: group });
   }
-  for (const ex of values.exercises.filter(e => e.groupId == null)) {
-    items.push({type: 'exercise', data: ex});
+  for (const ex of values.exercises.filter((e) => e.groupId == null)) {
+    items.push({ type: 'exercise', data: ex });
   }
   return items.sort((a, b) => a.data.order - b.data.order);
 }
@@ -206,22 +199,18 @@ const GAP_TRIGGER_THRESHOLD = 0.5;
 const MIN_DROP_GAP_PX = 30;
 
 export default function WorkoutPlanBuilderScreen() {
-  const {theme} = useTheme();
+  const { theme } = useTheme();
   const navigate = useNavigate();
-  const {data: workoutMeta, refetch} = useQuery(GET_WORKOUT_PLAN_META);
+  const { data: workoutMeta, refetch } = useQuery(GET_WORKOUT_PLAN_META);
   const [createWorkoutPlan] = useMutation(CREATE_WORKOUT_PLAN);
   const [updateWorkoutPlan] = useMutation(UPDATE_WORKOUT_PLAN);
-  const {createPlanningTargetMetrics} = useMetricRegistry();
-  const {data: exerciseData} = useQuery(GET_EXERCISES_BASIC);
+  const { createPlanningTargetMetrics } = useMetricRegistry();
+  const { data: exerciseData } = useQuery(GET_EXERCISES_BASIC);
 
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [reorderMode, setReorderMode] = useState(false);
-  const [selectedExerciseIndex, setSelectedExerciseIndex] = useState<
-    number | null
-  >(null);
-  const [expandedExerciseIndex, setExpandedExerciseIndex] = useState<
-    number | null
-  >(null);
+  const [selectedExerciseIndex, setSelectedExerciseIndex] = useState<number | null>(null);
+  const [expandedExerciseIndex, setExpandedExerciseIndex] = useState<number | null>(null);
   const [stagedGroupId, setStagedGroupId] = useState<number | null>(null);
   const [layoutVersion, setLayoutVersion] = useState(0);
   const [scrollLayoutVersion, setScrollLayoutVersion] = useState(0);
@@ -230,12 +219,8 @@ export default function WorkoutPlanBuilderScreen() {
   const groupLayouts = useRef<Record<number, Layout>>({});
   const exerciseLayouts = useRef<Record<string, Layout>>({});
   const dragOffsets = useRef<Record<string, Animated.SharedValue<number>>>({});
-  const exerciseRefs = useRef<Map<string, {measure: () => void} | null>>(
-    new Map(),
-  );
-  const groupRefs = useRef<Map<string, {measure: () => void} | null>>(
-    new Map(),
-  );
+  const exerciseRefs = useRef<Map<string, { measure: () => void } | null>>(new Map());
+  const groupRefs = useRef<Map<string, { measure: () => void } | null>>(new Map());
 
   const resetPreviewOffsets = () => {
     for (const key in dragOffsets.current) {
@@ -256,41 +241,37 @@ export default function WorkoutPlanBuilderScreen() {
   const draggedItemOriginalIndex = useSharedValue<number | null>(null);
 
   const reMeasureAllItems = useCallback(() => {
-    exerciseRefs.current.forEach(ref => ref?.measure());
-    groupRefs.current.forEach(ref => ref?.measure());
+    exerciseRefs.current.forEach((ref) => ref?.measure());
+    groupRefs.current.forEach((ref) => ref?.measure());
   }, []);
 
   const handleDragStart = (draggedData: DragData) => {
     // Determine original position for the dragged item
     if (draggedData.type === 'exercise') {
-      const exercise = valuesRef.current.exercises.find(
-        ex => ex.instanceId === draggedData.id,
-      );
+      const exercise = valuesRef.current.exercises.find((ex) => ex.instanceId === draggedData.id);
       if (exercise) {
         draggedItemOriginalGroupId.value = exercise.groupId ?? null;
         const originalList =
           exercise.groupId != null
             ? valuesRef.current.exercises
-                .filter(ex => ex.groupId === exercise.groupId)
+                .filter((ex) => ex.groupId === exercise.groupId)
                 .sort((a, b) => a.order - b.order)
             : valuesRef.current.exercises
-                .filter(ex => ex.groupId == null)
+                .filter((ex) => ex.groupId == null)
                 .sort((a, b) => a.order - b.order);
         draggedItemOriginalIndex.value = originalList.findIndex(
-          item => item.instanceId === draggedData.id,
+          (item) => item.instanceId === draggedData.id,
         );
       }
     } else if (draggedData.type === 'group') {
-      const group = valuesRef.current.groups.find(
-        g => String(g.id) === draggedData.id,
-      );
+      const group = valuesRef.current.groups.find((g) => String(g.id) === draggedData.id);
       if (group) {
         draggedItemOriginalGroupId.value = group.id;
         const originalList = getPlanItemsFromForm(valuesRef.current)
-          .filter(item => item.type === 'group')
-          .map(item => item.data);
+          .filter((item) => item.type === 'group')
+          .map((item) => item.data);
         draggedItemOriginalIndex.value = originalList.findIndex(
-          item => String(item.id) === draggedData.id,
+          (item) => String(item.id) === draggedData.id,
         );
       }
     }
@@ -298,7 +279,7 @@ export default function WorkoutPlanBuilderScreen() {
     reMeasureAllItems();
     isDraggingItem.current = true;
     if (Platform.OS !== 'web') {
-      scrollRef.current?.setNativeProps({scrollEnabled: false});
+      scrollRef.current?.setNativeProps({ scrollEnabled: false });
     }
     resetPreviewOffsets();
   };
@@ -306,12 +287,12 @@ export default function WorkoutPlanBuilderScreen() {
   const handleDragEnd = () => {
     isDraggingItem.current = false;
     if (Platform.OS !== 'web') {
-      scrollRef.current?.setNativeProps({scrollEnabled: true});
+      scrollRef.current?.setNativeProps({ scrollEnabled: true });
     }
     resetPreviewOffsets();
     draggedItemOriginalGroupId.value = null;
     draggedItemOriginalIndex.value = null;
-    setScrollLayoutVersion(prev => prev + 1);
+    setScrollLayoutVersion((prev) => prev + 1);
   };
 
   useAnimatedReaction(
@@ -319,14 +300,13 @@ export default function WorkoutPlanBuilderScreen() {
       dragging: isDragging.value,
       pointerY: pointerPositionY.value,
     }),
-    ({dragging, pointerY}) => {
+    ({ dragging, pointerY }) => {
       if (!dragging) {
         return;
       }
 
       const topBoundary = HEADER_HEIGHT_OFFSET + SCROLL_THRESHOLD;
-      const bottomBoundary =
-        HEADER_HEIGHT_OFFSET + scrollViewHeight.value - SCROLL_THRESHOLD;
+      const bottomBoundary = HEADER_HEIGHT_OFFSET + scrollViewHeight.value - SCROLL_THRESHOLD;
 
       let newOffset = scrollOffsetY.value;
 
@@ -345,7 +325,7 @@ export default function WorkoutPlanBuilderScreen() {
     [scrollOffsetY, scrollViewHeight, contentHeight, scrollRef],
   );
 
-  const scrollHandler = useAnimatedScrollHandler(event => {
+  const scrollHandler = useAnimatedScrollHandler((event) => {
     scrollOffsetY.value = event.contentOffset.y;
   });
 
@@ -362,39 +342,33 @@ export default function WorkoutPlanBuilderScreen() {
   };
   const groupIdCounterRef = useRef(1);
 
-  const getNextGlobalOrder = (
-    exs: ExerciseFormEntry[],
-    grps: ExerciseGroup[],
-  ): number => {
-    const orders = [
-      ...exs.map(e => e.order ?? 0),
-      ...grps.map(g => g.order ?? 0),
-    ];
+  const getNextGlobalOrder = (exs: ExerciseFormEntry[], grps: ExerciseGroup[]): number => {
+    const orders = [...exs.map((e) => e.order ?? 0), ...grps.map((g) => g.order ?? 0)];
     return orders.length > 0 ? Math.max(...orders) + 1 : 0;
   };
 
   const reindexAllOrders = (
     exs: ExerciseFormEntry[],
     grps: ExerciseGroup[],
-  ): {exercises: ExerciseFormEntry[]; groups: ExerciseGroup[]} => {
-    const newExercises = exs.map(e => ({...e}));
-    const newGroups = grps.map(g => ({...g}));
+  ): { exercises: ExerciseFormEntry[]; groups: ExerciseGroup[] } => {
+    const newExercises = exs.map((e) => ({ ...e }));
+    const newGroups = grps.map((g) => ({ ...g }));
 
-    const displayItems: {type: 'exercise' | 'group'; ref: any}[] = [];
+    const displayItems: { type: 'exercise' | 'group'; ref: any }[] = [];
 
     newExercises
-      .filter(e => e.groupId == null)
+      .filter((e) => e.groupId == null)
       .sort((a, b) => a.order - b.order)
-      .forEach(e => displayItems.push({type: 'exercise', ref: e}));
+      .forEach((e) => displayItems.push({ type: 'exercise', ref: e }));
 
     newGroups
       .sort((a, b) => a.order - b.order)
-      .forEach(g => {
-        displayItems.push({type: 'group', ref: g});
+      .forEach((g) => {
+        displayItems.push({ type: 'group', ref: g });
         newExercises
-          .filter(e => e.groupId === g.id)
+          .filter((e) => e.groupId === g.id)
           .sort((a, b) => a.order - b.order)
-          .forEach(e => displayItems.push({type: 'exercise', ref: e}));
+          .forEach((e) => displayItems.push({ type: 'exercise', ref: e }));
       });
 
     displayItems.forEach((item, idx) => {
@@ -408,10 +382,10 @@ export default function WorkoutPlanBuilderScreen() {
   };
 
   const confirmAsync = (title: string, message: string) =>
-    new Promise<boolean>(resolve => {
+    new Promise<boolean>((resolve) => {
       Alert.alert(title, message, [
-        {text: 'Cancel', style: 'cancel', onPress: () => resolve(false)},
-        {text: 'Continue', onPress: () => resolve(true)},
+        { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+        { text: 'Continue', onPress: () => resolve(true) },
       ]);
     });
 
@@ -419,9 +393,7 @@ export default function WorkoutPlanBuilderScreen() {
 
   function convertPlanToInitialValues(plan: any): FormValues {
     const isFromSession = plan.isFromSession;
-    function deriveGroupsFromExercises(
-      exercises: ExerciseFormEntry[],
-    ): ExerciseGroup[] {
+    function deriveGroupsFromExercises(exercises: ExerciseFormEntry[]): ExerciseGroup[] {
       const seen = new Map<string, ExerciseGroup>();
       for (const ex of exercises) {
         if (ex.groupId != null && ex.trainingMethodId != null) {
@@ -435,7 +407,7 @@ export default function WorkoutPlanBuilderScreen() {
           }
         }
       }
-      return Array.from(seen.values()).map((g, idx) => ({...g, order: idx}));
+      return Array.from(seen.values()).map((g, idx) => ({ ...g, order: idx }));
     }
 
     if (isFromSession) {
@@ -457,14 +429,11 @@ export default function WorkoutPlanBuilderScreen() {
         name: plan.name,
         trainingGoalId: plan.trainingGoal?.id,
         intensityPresetId: plan.intensityPreset?.id ?? undefined,
-        experienceLevelId:
-          plan.intensityPreset?.experienceLevel?.id ?? undefined,
+        experienceLevelId: plan.intensityPreset?.experienceLevel?.id ?? undefined,
         muscleGroupIds: [],
         exercises: exercises
           .slice()
-          .sort(
-            (a: ExerciseFormEntry, b: ExerciseFormEntry) => a.order - b.order,
-          ),
+          .sort((a: ExerciseFormEntry, b: ExerciseFormEntry) => a.order - b.order),
         groups: (
           plan.groups?.map((g: any) => ({
             id: g.id,
@@ -482,8 +451,7 @@ export default function WorkoutPlanBuilderScreen() {
       exerciseId: ex.exerciseId,
       exerciseName: ex.exerciseName,
       targetSets: ex.targetSets,
-      targetMetrics:
-        ex.targetMetrics ?? createPlanningTargetMetrics(ex.exerciseId),
+      targetMetrics: ex.targetMetrics ?? createPlanningTargetMetrics(ex.exerciseId),
       trainingMethodId: ex.trainingMethodId ?? null,
       groupId: ex.groupId ?? null,
       isWarmup: ex.isWarmup ?? false,
@@ -498,9 +466,7 @@ export default function WorkoutPlanBuilderScreen() {
       muscleGroupIds: plan.muscleGroups.map((mg: any) => mg.id),
       exercises: exercises
         .slice()
-        .sort(
-          (a: ExerciseFormEntry, b: ExerciseFormEntry) => a.order - b.order,
-        ),
+        .sort((a: ExerciseFormEntry, b: ExerciseFormEntry) => a.order - b.order),
       groups: (
         plan.groups?.map((g: any) => ({
           id: g.id,
@@ -541,10 +507,7 @@ export default function WorkoutPlanBuilderScreen() {
   const valuesRef = useRef<FormValues>(formInitialValues);
 
   useEffect(() => {
-    const maxId = formInitialValues.groups.reduce(
-      (acc, g) => (g.id > acc ? g.id : acc),
-      0,
-    );
+    const maxId = formInitialValues.groups.reduce((acc, g) => (g.id > acc ? g.id : acc), 0);
     if (maxId >= groupIdCounterRef.current) {
       groupIdCounterRef.current = maxId + 1;
     }
@@ -552,17 +515,14 @@ export default function WorkoutPlanBuilderScreen() {
 
   useEffect(() => {
     if (formInitialValues && scrollViewReady) {
-      setLayoutVersion(prev => prev + 1);
+      setLayoutVersion((prev) => prev + 1);
     }
   }, [formInitialValues, scrollViewReady]);
 
   const isEdit = !!rawPlan && !rawPlan.isFromSession;
   const pushRef = useRef<(item: any) => void>(() => {});
 
-  function getSelectedBodyPartIds(
-    selectedGroupIds: number[],
-    allGroups: any[],
-  ): number[] {
+  function getSelectedBodyPartIds(selectedGroupIds: number[], allGroups: any[]): number[] {
     const bodyPartSet = new Set<number>();
     for (const group of allGroups) {
       if (selectedGroupIds.includes(group.id)) {
@@ -574,35 +534,28 @@ export default function WorkoutPlanBuilderScreen() {
     return Array.from(bodyPartSet);
   }
 
-  function filterExercisesByBodyParts(
-    exercises: any[],
-    selectedBodyPartIds: number[],
-  ) {
+  function filterExercisesByBodyParts(exercises: any[], selectedBodyPartIds: number[]) {
     const idSet = new Set(selectedBodyPartIds);
-    return exercises.filter(ex =>
-      ex.primaryMuscles?.some(
-        (m: any) => m.bodyPart && idSet.has(m.bodyPart.id),
-      ),
+    return exercises.filter((ex) =>
+      ex.primaryMuscles?.some((m: any) => m.bodyPart && idSet.has(m.bodyPart.id)),
     );
   }
 
   return (
     <ScreenLayout dismissKeyboardOnPress={false}>
-            <Formik<FormValues>
+      <Formik<FormValues>
         // enableReinitialize
         initialValues={formInitialValues}
         validationSchema={validationSchema}
-        onSubmit={async values => {
+        onSubmit={async (values) => {
           const methodById = new Map<number, any>(
             (workoutMeta?.getTrainingMethods ?? []).map((m: any) => [m.id, m]),
           );
 
-          const invalidGroups = values.groups.filter(g => {
+          const invalidGroups = values.groups.filter((g) => {
             const method = methodById.get(g.trainingMethodId);
             if (!method) return false;
-            const exercisesInGroup = values.exercises.filter(
-              ex => ex.groupId === g.id,
-            );
+            const exercisesInGroup = values.exercises.filter((ex) => ex.groupId === g.id);
             const min = method.minGroupSize ?? 1;
             return exercisesInGroup.length > 0 && exercisesInGroup.length < min;
           });
@@ -615,24 +568,22 @@ export default function WorkoutPlanBuilderScreen() {
             if (!proceed) {
               return;
             }
-            const invalidIds = new Set(invalidGroups.map(g => g.id));
-            values.exercises = values.exercises.map(ex =>
+            const invalidIds = new Set(invalidGroups.map((g) => g.id));
+            values.exercises = values.exercises.map((ex) =>
               ex.groupId != null && invalidIds.has(ex.groupId)
-                ? {...ex, groupId: null, trainingMethodId: null}
+                ? { ...ex, groupId: null, trainingMethodId: null }
                 : ex,
             );
-            values.groups = values.groups.filter(g => !invalidIds.has(g.id));
+            values.groups = values.groups.filter((g) => !invalidIds.has(g.id));
           }
 
           const validGroupIds = new Set<number>();
 
-          values.groups.forEach(group => {
+          values.groups.forEach((group) => {
             const method = methodById.get(group.trainingMethodId);
             if (!method) return;
 
-            const groupExercises = values.exercises.filter(
-              ex => ex.groupId === group.id,
-            );
+            const groupExercises = values.exercises.filter((ex) => ex.groupId === group.id);
 
             const min = method.minGroupSize ?? 1;
             if (groupExercises.length >= min) {
@@ -651,18 +602,18 @@ export default function WorkoutPlanBuilderScreen() {
             muscleGroupIds: values.muscleGroupIds,
             groups: [...values.groups]
               .sort((a, b) => a.order - b.order)
-              .map(g => ({
+              .map((g) => ({
                 id: g.id,
                 trainingMethodId: g.trainingMethodId,
                 order: g.order,
               })),
             exercises: [...values.exercises]
               .sort((a, b) => a.order - b.order)
-              .map(ex => ({
+              .map((ex) => ({
                 exerciseId: ex.exerciseId,
                 order: ex.order, // ✅ Preserve existing order
                 targetSets: ex.targetSets,
-                targetMetrics: ex.targetMetrics.map(m => ({
+                targetMetrics: ex.targetMetrics.map((m) => ({
                   metricId: m.metricId,
                   min: typeof m.min === 'string' ? parseFloat(m.min) : m.min,
                   max:
@@ -681,9 +632,9 @@ export default function WorkoutPlanBuilderScreen() {
           try {
             const result = isEdit
               ? await updateWorkoutPlan({
-                  variables: {id: rawPlan.id, input: transformedInput},
+                  variables: { id: rawPlan.id, input: transformedInput },
                 })
-              : await createWorkoutPlan({variables: {input: transformedInput}});
+              : await createWorkoutPlan({ variables: { input: transformedInput } });
 
             Alert.alert(
               `Workout Plan ${isEdit ? 'Updated' : 'Created'}!`,
@@ -694,16 +645,9 @@ export default function WorkoutPlanBuilderScreen() {
             console.error('❌ Error submitting workout plan:', error);
             Alert.alert('Error', 'Failed to save the plan. Check the console.');
           }
-        }}>
-        {({
-          values,
-          errors,
-          touched,
-          handleChange,
-          handleBlur,
-          handleSubmit,
-          setFieldValue,
-        }) => {
+        }}
+      >
+        {({ values, errors, touched, handleChange, handleBlur, handleSubmit, setFieldValue }) => {
           useEffect(() => {
             valuesRef.current = values;
           });
@@ -726,7 +670,7 @@ export default function WorkoutPlanBuilderScreen() {
 
             const defaultsMap: Record<
               number,
-              {defaultMin: number; defaultMax?: string | number}
+              { defaultMin: number; defaultMax?: string | number }
             > = {};
             preset.metricDefaults.forEach((d: any) => {
               defaultsMap[d.metricId] = {
@@ -735,29 +679,23 @@ export default function WorkoutPlanBuilderScreen() {
               };
             });
 
-            const updatedExercises = values.exercises.map(ex => {
+            const updatedExercises = values.exercises.map((ex) => {
               let metricsChanged = false;
-              const updatedMetrics = ex.targetMetrics.map(m => {
+              const updatedMetrics = ex.targetMetrics.map((m) => {
                 const def = defaultsMap[m.metricId];
                 if (!def) return m;
-                const newMin =
-                  m.min === '' || m.min == null ? def.defaultMin : m.min;
-                const newMax =
-                  m.max === '' || m.max == null ? def.defaultMax : m.max;
+                const newMin = m.min === '' || m.min == null ? def.defaultMin : m.min;
+                const newMax = m.max === '' || m.max == null ? def.defaultMax : m.max;
                 if (newMin !== m.min || newMax !== m.max) {
                   metricsChanged = true;
-                  return {...m, min: newMin, max: newMax};
+                  return { ...m, min: newMin, max: newMax };
                 }
                 return m;
               });
-              return metricsChanged
-                ? {...ex, targetMetrics: updatedMetrics}
-                : ex;
+              return metricsChanged ? { ...ex, targetMetrics: updatedMetrics } : ex;
             });
 
-            const changed =
-              JSON.stringify(updatedExercises) !==
-              JSON.stringify(values.exercises);
+            const changed = JSON.stringify(updatedExercises) !== JSON.stringify(values.exercises);
             if (changed) {
               setFieldValue('exercises', updatedExercises);
             }
@@ -791,7 +729,7 @@ export default function WorkoutPlanBuilderScreen() {
           };
 
           const getGroupLabelById = (groupId: number) => {
-            const group = values.groups.find(g => g.id === groupId);
+            const group = values.groups.find((g) => g.id === groupId);
             return group ? getGroupLabel(group) : 'None';
           };
 
@@ -799,19 +737,17 @@ export default function WorkoutPlanBuilderScreen() {
 
           const getGroupedExercises = (groupId: number) => {
             return values.exercises
-              .filter(ex => ex.groupId === groupId)
+              .filter((ex) => ex.groupId === groupId)
               .sort((a, b) => a.order - b.order);
           };
 
-          const renderedExercises = planItems.flatMap(item =>
-            item.type === 'exercise'
-              ? [item.data]
-              : getGroupedExercises(item.data.id),
+          const renderedExercises = planItems.flatMap((item) =>
+            item.type === 'exercise' ? [item.data] : getGroupedExercises(item.data.id),
           );
 
           const getUngroupedExercises = () => {
             return values.exercises
-              .filter(ex => ex.groupId == null)
+              .filter((ex) => ex.groupId == null)
               .sort((a, b) => a.order - b.order);
           };
 
@@ -834,12 +770,8 @@ export default function WorkoutPlanBuilderScreen() {
             currentExercises: ExerciseFormEntry[],
             currentGroups: ExerciseGroup[],
             setFieldValueFn: (field: string, value: any) => void,
-          ):
-            | {exercises: ExerciseFormEntry[]; groups: ExerciseGroup[]}
-            | undefined => {
-            const exerciseIndex = currentExercises.findIndex(
-              ex => ex.instanceId === instanceId,
-            );
+          ): { exercises: ExerciseFormEntry[]; groups: ExerciseGroup[] } | undefined => {
+            const exerciseIndex = currentExercises.findIndex((ex) => ex.instanceId === instanceId);
             if (exerciseIndex === -1) return;
 
             const updatedExercises = [...currentExercises];
@@ -847,14 +779,12 @@ export default function WorkoutPlanBuilderScreen() {
 
             if (groupId !== null) {
               // Logic for ADDING an exercise TO a group
-              const group = updatedGroups.find(g => g.id === groupId);
+              const group = updatedGroups.find((g) => g.id === groupId);
               if (!group) return;
 
               const method = getMethodById(group.trainingMethodId);
               const max = method?.maxGroupSize;
-              const exercisesInGroup = updatedExercises.filter(
-                e => e.groupId === groupId,
-              );
+              const exercisesInGroup = updatedExercises.filter((e) => e.groupId === groupId);
 
               if (max != null && exercisesInGroup.length >= max) {
                 Alert.alert(
@@ -879,11 +809,10 @@ export default function WorkoutPlanBuilderScreen() {
                 .sort((a, b) => a.order - b.order)
                 .forEach((ex, idx) => {
                   const originalExIndex = updatedExercises.findIndex(
-                    e => e.instanceId === ex.instanceId,
+                    (e) => e.instanceId === ex.instanceId,
                   );
                   if (originalExIndex !== -1) {
-                    updatedExercises[originalExIndex].order =
-                      group.order + 0.2 + idx * 0.1;
+                    updatedExercises[originalExIndex].order = group.order + 0.2 + idx * 0.1;
                   }
                 });
             } else {
@@ -899,14 +828,16 @@ export default function WorkoutPlanBuilderScreen() {
               };
             }
 
-            const {exercises: finalExercises, groups: finalGroups} =
-              reindexAllOrders(updatedExercises, updatedGroups);
+            const { exercises: finalExercises, groups: finalGroups } = reindexAllOrders(
+              updatedExercises,
+              updatedGroups,
+            );
 
             setFieldValueFn('groups', finalGroups);
             setFieldValueFn('exercises', finalExercises);
-            setLayoutVersion(prev => prev + 1);
+            setLayoutVersion((prev) => prev + 1);
 
-            return {exercises: finalExercises, groups: finalGroups};
+            return { exercises: finalExercises, groups: finalGroups };
           };
 
           const reorderExercises = (
@@ -917,31 +848,21 @@ export default function WorkoutPlanBuilderScreen() {
             currentGroups: ExerciseGroup[],
             setFieldValueFn: (field: string, value: any) => void,
           ) => {
-            const draggedItem = currentExercises.find(
-              ex => ex.instanceId === draggedId,
-            );
-            const targetItem = currentExercises.find(
-              ex => ex.instanceId === targetId,
-            );
+            const draggedItem = currentExercises.find((ex) => ex.instanceId === draggedId);
+            const targetItem = currentExercises.find((ex) => ex.instanceId === targetId);
             if (!draggedItem || !targetItem) return;
 
             if (draggedItem.groupId !== targetItem.groupId) {
-              console.warn(
-                'Attempted to reorder exercises across different groups.',
-              );
+              console.warn('Attempted to reorder exercises across different groups.');
               return;
             }
 
             const containerExercises = currentExercises
-              .filter(ex => ex.groupId === draggedItem.groupId)
+              .filter((ex) => ex.groupId === draggedItem.groupId)
               .sort((a, b) => a.order - b.order);
 
-            let fromIdx = containerExercises.findIndex(
-              ex => ex.instanceId === draggedId,
-            );
-            let targetIdx = containerExercises.findIndex(
-              ex => ex.instanceId === targetId,
-            );
+            const fromIdx = containerExercises.findIndex((ex) => ex.instanceId === draggedId);
+            let targetIdx = containerExercises.findIndex((ex) => ex.instanceId === targetId);
             if (fromIdx === -1 || targetIdx === -1) return;
 
             const [moved] = containerExercises.splice(fromIdx, 1);
@@ -957,22 +878,22 @@ export default function WorkoutPlanBuilderScreen() {
 
             containerExercises.splice(insertIdx, 0, moved);
 
-            const updatedExercises = currentExercises.map(ex => {
-              const idx = containerExercises.findIndex(
-                ce => ce.instanceId === ex.instanceId,
-              );
+            const updatedExercises = currentExercises.map((ex) => {
+              const idx = containerExercises.findIndex((ce) => ce.instanceId === ex.instanceId);
               if (idx !== -1) {
-                return {...ex, order: idx};
+                return { ...ex, order: idx };
               }
               return ex;
             });
 
-            const {exercises: finalExercises, groups: finalGroups} =
-              reindexAllOrders(updatedExercises, currentGroups);
+            const { exercises: finalExercises, groups: finalGroups } = reindexAllOrders(
+              updatedExercises,
+              currentGroups,
+            );
 
             setFieldValueFn('exercises', finalExercises);
             setFieldValueFn('groups', finalGroups);
-            setLayoutVersion(prev => prev + 1);
+            setLayoutVersion((prev) => prev + 1);
           };
 
           // Moved reorderPlanItems definition before handleDrop
@@ -985,13 +906,13 @@ export default function WorkoutPlanBuilderScreen() {
               setFieldValueFn: (field: string, value: any) => void,
             ) => {
               const items = getPlanItemsFromForm(currentValues);
-              const draggedIndex = items.findIndex(i => {
+              const draggedIndex = items.findIndex((i) => {
                 if (i.type !== dragged.type) return false;
                 return i.type === 'exercise'
                   ? i.data.instanceId === dragged.id
                   : String(i.data.id) === dragged.id;
               });
-              let targetIndex = items.findIndex(i => {
+              let targetIndex = items.findIndex((i) => {
                 if (i.type !== target.type) return false;
                 return i.type === 'exercise'
                   ? i.data.instanceId === target.id
@@ -1021,12 +942,10 @@ export default function WorkoutPlanBuilderScreen() {
 
               newItems.forEach((it, idx) => {
                 if (it.type === 'exercise') {
-                  const exIdx = newExercises.findIndex(
-                    e => e.instanceId === it.data.instanceId,
-                  );
+                  const exIdx = newExercises.findIndex((e) => e.instanceId === it.data.instanceId);
                   if (exIdx !== -1) newExercises[exIdx].order = idx;
                 } else {
-                  const gIdx = newGroups.findIndex(g => g.id === it.data.id);
+                  const gIdx = newGroups.findIndex((g) => g.id === it.data.id);
                   if (gIdx !== -1) newGroups[gIdx].order = idx;
                 }
               });
@@ -1036,7 +955,7 @@ export default function WorkoutPlanBuilderScreen() {
 
               setFieldValueFn('exercises', newExercises);
               setFieldValueFn('groups', newGroups);
-              setLayoutVersion(prev => prev + 1);
+              setLayoutVersion((prev) => prev + 1);
             },
             [], // Dependencies: None, as it uses arguments for current state
           );
@@ -1063,15 +982,13 @@ export default function WorkoutPlanBuilderScreen() {
             includePlaceholder: boolean,
             originalGroupId: number | null,
           ): {
-            items: {id: string; layout: Layout; type: 'group' | 'exercise'}[];
+            items: { id: string; layout: Layout; type: 'group' | 'exercise' }[];
             fromIdx: number;
             wasOriginallyOutside: boolean;
             originalDragDirection: 'up' | 'down' | null;
           } | null => {
             const draggedKey =
-              draggedItemData.type === 'group'
-                ? String(draggedItemData.id)
-                : draggedItemData.id;
+              draggedItemData.type === 'group' ? String(draggedItemData.id) : draggedItemData.id;
 
             const containerItems: {
               id: string;
@@ -1080,13 +997,13 @@ export default function WorkoutPlanBuilderScreen() {
             }[] = [];
 
             const draggedItem = currentValues.exercises.find(
-              e => e.instanceId === draggedItemData.id,
+              (e) => e.instanceId === draggedItemData.id,
             );
 
             const isPointerOverAnyGroup =
               pointerY != null
                 ? Object.values(groupLayouts.current).some(
-                    l => pointerY >= l.y && pointerY <= l.y + l.height,
+                    (l) => pointerY >= l.y && pointerY <= l.y + l.height,
                   )
                 : false;
 
@@ -1099,9 +1016,7 @@ export default function WorkoutPlanBuilderScreen() {
 
             if (treatAsTopLevelDrag) {
               for (const id in exerciseLayouts.current) {
-                const ex = currentValues.exercises.find(
-                  e => e.instanceId === id,
-                );
+                const ex = currentValues.exercises.find((e) => e.instanceId === id);
                 if (ex && ex.groupId == null && exerciseLayouts.current[id]) {
                   containerItems.push({
                     id,
@@ -1111,9 +1026,7 @@ export default function WorkoutPlanBuilderScreen() {
                 }
               }
               for (const id in groupLayouts.current) {
-                const groupFound = currentValues.groups.find(
-                  g => String(g.id) === id,
-                );
+                const groupFound = currentValues.groups.find((g) => String(g.id) === id);
                 if (groupFound && groupLayouts.current[id]) {
                   containerItems.push({
                     id: String(id),
@@ -1135,9 +1048,9 @@ export default function WorkoutPlanBuilderScreen() {
                   });
                 }
                 const exs = currentValues.exercises
-                  .filter(ex => ex.groupId === groupId)
+                  .filter((ex) => ex.groupId === groupId)
                   .sort((a, b) => a.order - b.order);
-                exs.forEach(ex => {
+                exs.forEach((ex) => {
                   const layout = exerciseLayouts.current[ex.instanceId];
                   if (layout)
                     containerItems.push({
@@ -1151,7 +1064,7 @@ export default function WorkoutPlanBuilderScreen() {
 
             containerItems.sort((a, b) => a.layout.y - b.layout.y);
 
-            let fromIdx = containerItems.findIndex(it => it.id === draggedKey);
+            let fromIdx = containerItems.findIndex((it) => it.id === draggedKey);
             let wasOriginallyOutside = false;
             let originalDragDirection: 'up' | 'down' | null = null;
 
@@ -1170,10 +1083,7 @@ export default function WorkoutPlanBuilderScreen() {
                   if (originalLayout) {
                     if (pointerY < originalLayout.y) {
                       originalDragDirection = 'up';
-                    } else if (
-                      pointerY >
-                      originalLayout.y + originalLayout.height
-                    ) {
+                    } else if (pointerY > originalLayout.y + originalLayout.height) {
                       originalDragDirection = 'down';
                     }
                   }
@@ -1181,7 +1091,7 @@ export default function WorkoutPlanBuilderScreen() {
 
                 const newItem = {
                   id: draggedKey,
-                  layout: {...baseLayout, y: pointerY},
+                  layout: { ...baseLayout, y: pointerY },
                   type: 'exercise' as const,
                 };
 
@@ -1196,7 +1106,7 @@ export default function WorkoutPlanBuilderScreen() {
                 if (!inserted) containerItems.push(newItem);
 
                 containerItems.sort((a, b) => a.layout.y - b.layout.y);
-                fromIdx = containerItems.findIndex(it => it.id === draggedKey);
+                fromIdx = containerItems.findIndex((it) => it.id === draggedKey);
               }
             }
 
@@ -1213,7 +1123,7 @@ export default function WorkoutPlanBuilderScreen() {
             y: number,
             draggedItemData: DragData,
             currentValues: FormValues,
-          ): {target: DragData; position: 'before' | 'after'} | null => {
+          ): { target: DragData; position: 'before' | 'after' } | null => {
             const result = buildContainerItemsForDrag(
               draggedItemData,
               currentValues,
@@ -1222,11 +1132,9 @@ export default function WorkoutPlanBuilderScreen() {
               null,
             );
             if (!result) return null;
-            const {items: containerItems, fromIdx} = result;
+            const { items: containerItems, fromIdx } = result;
             const draggedKey =
-              draggedItemData.type === 'group'
-                ? String(draggedItemData.id)
-                : draggedItemData.id;
+              draggedItemData.type === 'group' ? String(draggedItemData.id) : draggedItemData.id;
 
             let finalTargetIdx = fromIdx;
             let finalPreviewPosition: 'before' | 'after' = 'after';
@@ -1235,8 +1143,8 @@ export default function WorkoutPlanBuilderScreen() {
 
             for (let i = 0; i < containerItems.length; i++) {
               const item = containerItems[i];
-              const originalItemLayout = {...item.layout};
-              let currentItemLayout = {...item.layout};
+              const originalItemLayout = { ...item.layout };
+              const currentItemLayout = { ...item.layout };
 
               // If the previous item is a group, treat the top part of the next
               // item as a drop zone "after" the group. This must be checked
@@ -1259,17 +1167,11 @@ export default function WorkoutPlanBuilderScreen() {
 
               if (item.id === draggedKey) continue;
 
-              const itemMidpointY =
-                currentItemLayout.y + currentItemLayout.height / 2;
-              const beforeThreshold =
-                currentItemLayout.y + currentItemLayout.height * 0.2;
-              const afterThreshold =
-                currentItemLayout.y + currentItemLayout.height * 0.8;
+              const itemMidpointY = currentItemLayout.y + currentItemLayout.height / 2;
+              const beforeThreshold = currentItemLayout.y + currentItemLayout.height * 0.2;
+              const afterThreshold = currentItemLayout.y + currentItemLayout.height * 0.8;
 
-              if (
-                y >= currentItemLayout.y &&
-                y <= currentItemLayout.y + currentItemLayout.height
-              ) {
+              if (y >= currentItemLayout.y && y <= currentItemLayout.y + currentItemLayout.height) {
                 finalTargetIdx = i;
                 if (y < beforeThreshold) {
                   finalPreviewPosition = 'before';
@@ -1281,26 +1183,21 @@ export default function WorkoutPlanBuilderScreen() {
                 break;
               } else if (i < containerItems.length - 1) {
                 const nextItem = containerItems[i + 1];
-                const originalNextItemLayout = {...nextItem.layout};
-                let nextItemLayout = {...nextItem.layout};
+                const originalNextItemLayout = { ...nextItem.layout };
+                const nextItemLayout = { ...nextItem.layout };
                 if (nextItem.type === 'group') {
                   nextItemLayout.y += GROUP_SHRINK_VERTICAL_OFFSET;
                   nextItemLayout.height -= GROUP_SHRINK_VERTICAL_OFFSET * 2;
                   if (nextItemLayout.height < 0) nextItemLayout.height = 0;
                 }
 
-                const gapStart =
-                  originalItemLayout.y + originalItemLayout.height;
+                const gapStart = originalItemLayout.y + originalItemLayout.height;
                 let gapEnd = nextItemLayout.y;
-                if (
-                  item.type === 'group' &&
-                  gapEnd - gapStart < MIN_DROP_GAP_PX
-                ) {
+                if (item.type === 'group' && gapEnd - gapStart < MIN_DROP_GAP_PX) {
                   gapEnd = gapStart + MIN_DROP_GAP_PX;
                 }
                 const earlyTriggerThreshold = GAP_TRIGGER_THRESHOLD;
-                const triggerPointInGap =
-                  gapStart + (gapEnd - gapStart) * earlyTriggerThreshold;
+                const triggerPointInGap = gapStart + (gapEnd - gapStart) * earlyTriggerThreshold;
 
                 if (item.type === 'group') {
                   if (
@@ -1338,7 +1235,7 @@ export default function WorkoutPlanBuilderScreen() {
             if (!targetItem || targetItem.id === draggedKey) return null;
 
             return {
-              target: {type: targetItem.type, id: targetItem.id},
+              target: { type: targetItem.type, id: targetItem.id },
               position: finalPreviewPosition,
             };
           };
@@ -1360,12 +1257,10 @@ export default function WorkoutPlanBuilderScreen() {
                 originalDragDirection,
               } = result;
               const draggedKey =
-                draggedItemData.type === 'group'
-                  ? String(draggedItemData.id)
-                  : draggedItemData.id;
+                draggedItemData.type === 'group' ? String(draggedItemData.id) : draggedItemData.id;
 
               // Reset all offsets before applying new ones to ensure a clean state
-              containerItems.forEach(item => {
+              containerItems.forEach((item) => {
                 if (dragOffsets.current[item.id]) {
                   dragOffsets.current[item.id].value = 0;
                 }
@@ -1380,8 +1275,8 @@ export default function WorkoutPlanBuilderScreen() {
               // Find the target index and preview position
               for (let i = 0; i < containerItems.length; i++) {
                 const item = containerItems[i];
-                const originalItemLayout = {...item.layout};
-                let currentItemLayout = {...item.layout}; // Create a mutable copy of the layout
+                const originalItemLayout = { ...item.layout };
+                const currentItemLayout = { ...item.layout }; // Create a mutable copy of the layout
 
                 // If this item is a group, and the pointer is within the top
                 // MIN_DROP_GAP_PX of the next item, treat it as a drop after
@@ -1401,10 +1296,8 @@ export default function WorkoutPlanBuilderScreen() {
                 // Apply shrinking for group items only to modify their effective drag detection area
                 if (item.type === 'group') {
                   currentItemLayout.y += GROUP_SHRINK_VERTICAL_OFFSET;
-                  currentItemLayout.height -=
-                    GROUP_SHRINK_VERTICAL_OFFSET * 2.2; // Adjust multiplier if needed
-                  if (currentItemLayout.height < 0)
-                    currentItemLayout.height = 0; // Ensure height doesn't go negative
+                  currentItemLayout.height -= GROUP_SHRINK_VERTICAL_OFFSET * 2.2; // Adjust multiplier if needed
+                  if (currentItemLayout.height < 0) currentItemLayout.height = 0; // Ensure height doesn't go negative
                 }
 
                 // Skip the dragged item itself (if it's in the current containerItems, which it won't be if fromIdx === -1 initially)
@@ -1422,12 +1315,9 @@ export default function WorkoutPlanBuilderScreen() {
                   }
                 }
 
-                const itemMidpointY =
-                  currentItemLayout.y + currentItemLayout.height / 2;
-                const beforeThreshold =
-                  currentItemLayout.y + currentItemLayout.height * 0.2;
-                const afterThreshold =
-                  currentItemLayout.y + currentItemLayout.height * 0.8;
+                const itemMidpointY = currentItemLayout.y + currentItemLayout.height / 2;
+                const beforeThreshold = currentItemLayout.y + currentItemLayout.height * 0.2;
+                const afterThreshold = currentItemLayout.y + currentItemLayout.height * 0.8;
 
                 // Case 1: Dragging over any item (exercise or group) using the *adjusted* layout
                 if (
@@ -1440,17 +1330,16 @@ export default function WorkoutPlanBuilderScreen() {
                   } else if (y > afterThreshold) {
                     finalPreviewPosition = 'after';
                   } else {
-                    finalPreviewPosition =
-                      y < itemMidpointY ? 'before' : 'after';
+                    finalPreviewPosition = y < itemMidpointY ? 'before' : 'after';
                   }
                   break;
                 }
                 // Case 2: Dragging in a gap between current item and the next item
                 else if (i < containerItems.length - 1) {
                   const nextItem = containerItems[i + 1];
-                  const originalNextItemLayout = {...nextItem.layout};
+                  const originalNextItemLayout = { ...nextItem.layout };
 
-                  let nextItemLayout = {...nextItem.layout};
+                  const nextItemLayout = { ...nextItem.layout };
 
                   if (nextItem.type === 'group') {
                     nextItemLayout.y += GROUP_SHRINK_VERTICAL_OFFSET;
@@ -1458,20 +1347,15 @@ export default function WorkoutPlanBuilderScreen() {
                     if (nextItemLayout.height < 0) nextItemLayout.height = 0;
                   }
 
-                  const gapStart =
-                    originalItemLayout.y + originalItemLayout.height;
+                  const gapStart = originalItemLayout.y + originalItemLayout.height;
                   let gapEnd = nextItemLayout.y;
-                  if (
-                    item.type === 'group' &&
-                    gapEnd - gapStart < MIN_DROP_GAP_PX
-                  ) {
+                  if (item.type === 'group' && gapEnd - gapStart < MIN_DROP_GAP_PX) {
                     gapEnd = gapStart + MIN_DROP_GAP_PX;
                   }
 
                   // Define a threshold for the "early" trigger within the gap
                   const earlyTriggerThreshold = GAP_TRIGGER_THRESHOLD; // e.g., trigger when 50% into the gap
-                  const triggerPointInGap =
-                    gapStart + (gapEnd - gapStart) * earlyTriggerThreshold;
+                  const triggerPointInGap = gapStart + (gapEnd - gapStart) * earlyTriggerThreshold;
 
                   if (item.type === 'group') {
                     if (
@@ -1522,12 +1406,9 @@ export default function WorkoutPlanBuilderScreen() {
               );
 
               // Apply offsets for placeholder shuffling
-              const baseHeight =
-                exerciseLayouts.current[draggedKey]?.height ?? 82;
+              const baseHeight = exerciseLayouts.current[draggedKey]?.height ?? 82;
               const draggedItemHeight =
-                fromIdx >= 0
-                  ? containerItems[fromIdx].layout.height
-                  : baseHeight;
+                fromIdx >= 0 ? containerItems[fromIdx].layout.height : baseHeight;
               if (wasOriginallyOutside) {
                 if (originalDragDirection === 'down') {
                   // For items new to this container, we just shift everything *after or at* the insertion point down.
@@ -1548,16 +1429,12 @@ export default function WorkoutPlanBuilderScreen() {
                     const item = containerItems[i];
 
                     if (String(item.id) === String(draggedKey)) {
-                      dragOffsets.current[draggedKey].value =
-                        -draggedItemHeight;
+                      dragOffsets.current[draggedKey].value = -draggedItemHeight;
                       continue; // Skip offset for dragged item
                     }
 
                     if (i >= effectiveInsertionIndex) {
-                      if (
-                        item.id !== draggedKey &&
-                        dragOffsets.current[item.id]
-                      ) {
+                      if (item.id !== draggedKey && dragOffsets.current[item.id]) {
                         dragOffsets.current[item.id].value = draggedItemHeight;
                       }
                     }
@@ -1600,12 +1477,9 @@ export default function WorkoutPlanBuilderScreen() {
             [], // Dependencies: None, as it uses valuesRef.current
           );
 
-          const handleDragMove = useWorkletCallback(
-            (x: number, y: number, data: DragData) => {
-              runOnJS(updatePreviewOffsets)(x, y, data);
-            },
-            [],
-          );
+          const handleDragMove = useWorkletCallback((x: number, y: number, data: DragData) => {
+            runOnJS(updatePreviewOffsets)(x, y, data);
+          }, []);
 
           const handleDrop = useCallback(
             (x: number, y: number, draggedItemData: DragData) => {
@@ -1616,7 +1490,7 @@ export default function WorkoutPlanBuilderScreen() {
               // This section is only relevant if the dragged item is an exercise.
               if (draggedItemData.type === 'exercise') {
                 const draggedItem = values.exercises.find(
-                  ex => ex.instanceId === draggedItemData.id,
+                  (ex) => ex.instanceId === draggedItemData.id,
                 );
                 if (draggedItem) {
                   for (const groupIdStr in groupLayouts.current) {
@@ -1645,12 +1519,7 @@ export default function WorkoutPlanBuilderScreen() {
                             groups: res.groups,
                           };
                         }
-                        const dropInfo = calculateDropTarget(
-                          x,
-                          y,
-                          draggedItemData,
-                          currentVals,
-                        );
+                        const dropInfo = calculateDropTarget(x, y, draggedItemData, currentVals);
                         if (dropInfo) {
                           reorderPlanItems(
                             draggedItemData,
@@ -1671,22 +1540,14 @@ export default function WorkoutPlanBuilderScreen() {
               // --- Step 2: Reorder top-level items (exercises or groups) ---
               // This section runs if the item was not dropped into an existing group.
               if (!droppedHandled) {
-                const dropInfo = calculateDropTarget(
-                  x,
-                  y,
-                  draggedItemData,
-                  currentVals,
-                );
+                const dropInfo = calculateDropTarget(x, y, draggedItemData, currentVals);
                 if (dropInfo) {
-                  if (
-                    draggedItemData.type === 'exercise' &&
-                    dropInfo.target.type === 'exercise'
-                  ) {
+                  if (draggedItemData.type === 'exercise' && dropInfo.target.type === 'exercise') {
                     const draggedItem = currentVals.exercises.find(
-                      ex => ex.instanceId === draggedItemData.id,
+                      (ex) => ex.instanceId === draggedItemData.id,
                     );
                     const targetItem = currentVals.exercises.find(
-                      ex => ex.instanceId === dropInfo.target.id,
+                      (ex) => ex.instanceId === dropInfo.target.id,
                     );
                     if (
                       draggedItem &&
@@ -1729,7 +1590,7 @@ export default function WorkoutPlanBuilderScreen() {
               // into a top-level empty space, or if no specific reorder target was found.
               if (!droppedHandled && draggedItemData.type === 'exercise') {
                 const draggedItem = currentVals.exercises.find(
-                  ex => ex.instanceId === draggedItemData.id,
+                  (ex) => ex.instanceId === draggedItemData.id,
                 );
                 if (draggedItem && draggedItem.groupId !== null) {
                   const res = updateExerciseGroup(
@@ -1746,12 +1607,7 @@ export default function WorkoutPlanBuilderScreen() {
                       groups: res.groups,
                     };
                   }
-                  const dropInfo = calculateDropTarget(
-                    x,
-                    y,
-                    draggedItemData,
-                    currentVals,
-                  );
+                  const dropInfo = calculateDropTarget(x, y, draggedItemData, currentVals);
                   if (dropInfo) {
                     reorderPlanItems(
                       draggedItemData,
@@ -1824,9 +1680,9 @@ export default function WorkoutPlanBuilderScreen() {
                   disabled={!values.trainingGoalId}
                 />
               </Card>
-              <View style={{padding: spacing.md}}>
+              <View style={{ padding: spacing.md }}>
                 <Title text="Exercises" />
-                <View style={{marginVertical: spacing.sm}}>
+                <View style={{ marginVertical: spacing.sm }}>
                   <Button
                     text="Create Exercise Group"
                     onPress={() => {
@@ -1838,24 +1694,18 @@ export default function WorkoutPlanBuilderScreen() {
                 <Button
                   text={reorderMode ? 'Done Reordering' : 'Edit Order'}
                   disabled={values.exercises.length < 1}
-                  onPress={() => setReorderMode(prev => !prev)}
+                  onPress={() => setReorderMode((prev) => !prev)}
                 />
               </View>
             </>
           );
 
           const ListFooter = (
-            <View style={{padding: spacing.md}}>
-              <View style={{paddingBottom: spacing.md}}>
-                <Button
-                  text="Add Exercise"
-                  onPress={() => setActiveModal('selectExercise')}
-                />
+            <View style={{ padding: spacing.md }}>
+              <View style={{ paddingBottom: spacing.md }}>
+                <Button text="Add Exercise" onPress={() => setActiveModal('selectExercise')} />
               </View>
-              <Button
-                text={isEdit ? 'Update Plan' : 'Save Plan'}
-                onPress={handleSubmit as any}
-              />
+              <Button text={isEdit ? 'Update Plan' : 'Save Plan'} onPress={handleSubmit as any} />
             </View>
           );
 
@@ -1863,7 +1713,7 @@ export default function WorkoutPlanBuilderScreen() {
 
           return (
             <FieldArray name="exercises">
-              {({push}) => {
+              {({ push }) => {
                 pushRef.current = push;
 
                 return (
@@ -1873,40 +1723,32 @@ export default function WorkoutPlanBuilderScreen() {
                         ref={scrollRef}
                         onScroll={scrollHandler}
                         scrollEventThrottle={16}
-                        onLayout={event => {
-                          scrollViewHeight.value =
-                            event.nativeEvent.layout.height;
+                        onLayout={(event) => {
+                          scrollViewHeight.value = event.nativeEvent.layout.height;
                           runOnJS(setScrollViewReady)(true);
                         }}
                         onContentSizeChange={(w, h) => {
                           contentHeight.value = h;
                         }}
                         scrollEnabled={true}
-                        style={{flex: 1}}>
-                        <View style={{padding: spacing.md}}>
+                        style={{ flex: 1 }}
+                      >
+                        <View style={{ padding: spacing.md }}>
                           <Title
                             text="Reorder Plan"
                             subtitle="Drag exercises to reorder or drop them into a group"
                           />
-                          <Button
-                            text="Done Reordering"
-                            onPress={() => setReorderMode(false)}
-                          />
+                          <Button text="Done Reordering" onPress={() => setReorderMode(false)} />
 
-                          {planItems.map(pi =>
+                          {planItems.map((pi) =>
                             pi.type === 'group' ? (
                               <MeasuredDraggableItem
                                 key={`group-${pi.data.id}`}
-                                ref={r => {
+                                ref={(r) => {
                                   if (r) {
-                                    groupRefs.current.set(
-                                      String(pi.data.id),
-                                      r,
-                                    );
+                                    groupRefs.current.set(String(pi.data.id), r);
                                   } else {
-                                    groupRefs.current.delete(
-                                      String(pi.data.id),
-                                    );
+                                    groupRefs.current.delete(String(pi.data.id));
                                   }
                                 }}
                                 id={String(pi.data.id)}
@@ -1924,37 +1766,28 @@ export default function WorkoutPlanBuilderScreen() {
                                 pointerPositionY={pointerPositionY}
                                 scrollOffset={scrollOffsetY}
                                 layoutVersion={layoutVersion}
-                                scrollLayoutVersion={scrollLayoutVersion}>
+                                scrollLayoutVersion={scrollLayoutVersion}
+                              >
                                 <ExerciseGroupCard
                                   label={getGroupLabel(pi.data)}
                                   borderColor={theme.colors.accentStart}
-                                  textColor={theme.colors.textPrimary}>
+                                  textColor={theme.colors.textPrimary}
+                                >
                                   {(() => {
-                                    const groupExercises = getGroupedExercises(
-                                      pi.data.id,
-                                    );
-                                    const method = getMethodById(
-                                      pi.data.trainingMethodId,
-                                    );
+                                    const groupExercises = getGroupedExercises(pi.data.id);
+                                    const method = getMethodById(pi.data.trainingMethodId);
                                     const max = method?.maxGroupSize;
-                                    const hasSpace =
-                                      max == null ||
-                                      groupExercises.length < max;
+                                    const hasSpace = max == null || groupExercises.length < max;
                                     return (
                                       <>
-                                        {groupExercises.map(ex => (
+                                        {groupExercises.map((ex) => (
                                           <MeasuredDraggableItem
                                             key={ex.instanceId}
-                                            ref={r => {
+                                            ref={(r) => {
                                               if (r) {
-                                                exerciseRefs.current.set(
-                                                  ex.instanceId,
-                                                  r,
-                                                );
+                                                exerciseRefs.current.set(ex.instanceId, r);
                                               } else {
-                                                exerciseRefs.current.delete(
-                                                  ex.instanceId,
-                                                );
+                                                exerciseRefs.current.delete(ex.instanceId);
                                               }
                                             }}
                                             id={ex.instanceId}
@@ -1972,34 +1805,32 @@ export default function WorkoutPlanBuilderScreen() {
                                             pointerPositionY={pointerPositionY}
                                             scrollOffset={scrollOffsetY}
                                             layoutVersion={layoutVersion}
-                                            scrollLayoutVersion={
-                                              scrollLayoutVersion
-                                            }>
+                                            scrollLayoutVersion={scrollLayoutVersion}
+                                          >
                                             <View
                                               style={{
                                                 marginHorizontal: spacing.md,
                                                 marginVertical: spacing.sm,
-                                                backgroundColor:
-                                                  theme.colors.surface,
+                                                backgroundColor: theme.colors.surface,
                                                 padding: spacing.sm,
                                                 borderRadius: 6,
                                                 borderWidth: 1,
-                                                borderColor:
-                                                  theme.colors.accentEnd,
-                                              }}>
+                                                borderColor: theme.colors.accentEnd,
+                                              }}
+                                            >
                                               <Text
                                                 style={{
-                                                  color:
-                                                    theme.colors.textPrimary,
+                                                  color: theme.colors.textPrimary,
                                                   fontWeight: 'bold',
-                                                }}>
+                                                }}
+                                              >
                                                 {ex.exerciseName}
                                               </Text>
                                               <Text
                                                 style={{
-                                                  color:
-                                                    theme.colors.textSecondary,
-                                                }}>
+                                                  color: theme.colors.textSecondary,
+                                                }}
+                                              >
                                                 {renderSummary(ex)}
                                               </Text>
                                             </View>
@@ -2014,16 +1845,15 @@ export default function WorkoutPlanBuilderScreen() {
                                               borderWidth: 1,
                                               borderStyle: 'dashed',
                                               borderRadius: 6,
-                                              borderColor:
-                                                theme.colors.accentEnd,
-                                              backgroundColor:
-                                                theme.colors.surface,
-                                            }}>
+                                              borderColor: theme.colors.accentEnd,
+                                              backgroundColor: theme.colors.surface,
+                                            }}
+                                          >
                                             <Text
                                               style={{
-                                                color:
-                                                  theme.colors.textSecondary,
-                                              }}>
+                                                color: theme.colors.textSecondary,
+                                              }}
+                                            >
                                               Drag here to insert
                                             </Text>
                                           </View>
@@ -2036,16 +1866,11 @@ export default function WorkoutPlanBuilderScreen() {
                             ) : (
                               <MeasuredDraggableItem
                                 key={pi.data.instanceId}
-                                ref={r => {
+                                ref={(r) => {
                                   if (r) {
-                                    exerciseRefs.current.set(
-                                      pi.data.instanceId,
-                                      r,
-                                    );
+                                    exerciseRefs.current.set(pi.data.instanceId, r);
                                   } else {
-                                    exerciseRefs.current.delete(
-                                      pi.data.instanceId,
-                                    );
+                                    exerciseRefs.current.delete(pi.data.instanceId);
                                   }
                                 }}
                                 id={pi.data.instanceId}
@@ -2063,7 +1888,8 @@ export default function WorkoutPlanBuilderScreen() {
                                 pointerPositionY={pointerPositionY}
                                 scrollOffset={scrollOffsetY}
                                 layoutVersion={layoutVersion}
-                                scrollLayoutVersion={scrollLayoutVersion}>
+                                scrollLayoutVersion={scrollLayoutVersion}
+                              >
                                 <View
                                   style={{
                                     backgroundColor: theme.colors.background,
@@ -2072,18 +1898,21 @@ export default function WorkoutPlanBuilderScreen() {
                                     borderRadius: 8,
                                     borderWidth: 1,
                                     borderColor: theme.colors.accentStart,
-                                  }}>
+                                  }}
+                                >
                                   <Text
                                     style={{
                                       color: theme.colors.textPrimary,
                                       fontWeight: 'bold',
-                                    }}>
+                                    }}
+                                  >
                                     {pi.data.exerciseName}
                                   </Text>
                                   <Text
                                     style={{
                                       color: theme.colors.textSecondary,
-                                    }}>
+                                    }}
+                                  >
                                     {renderSummary(pi.data)}
                                   </Text>
                                 </View>
@@ -2095,28 +1924,24 @@ export default function WorkoutPlanBuilderScreen() {
                     ) : (
                       <FlatList
                         data={(() => {
-                          const groupedMap: Record<
-                            number,
-                            ExerciseFormEntry[]
-                          > = {};
+                          const groupedMap: Record<number, ExerciseFormEntry[]> = {};
 
-                          values.exercises.forEach(ex => {
+                          values.exercises.forEach((ex) => {
                             if (ex.groupId != null) {
-                              if (!groupedMap[ex.groupId])
-                                groupedMap[ex.groupId] = [];
+                              if (!groupedMap[ex.groupId]) groupedMap[ex.groupId] = [];
                               groupedMap[ex.groupId].push(ex);
                             }
                           });
 
                           const displayList: RenderItem[] = [];
 
-                          planItems.forEach(item => {
+                          planItems.forEach((item) => {
                             if (item.type === 'group') {
                               displayList.push({
                                 type: 'group',
                                 group: item.data,
                               });
-                              (groupedMap[item.data.id] ?? []).forEach(ex => {
+                              (groupedMap[item.data.id] ?? []).forEach((ex) => {
                                 displayList.push({
                                   type: 'exercise',
                                   exercise: ex,
@@ -2131,20 +1956,18 @@ export default function WorkoutPlanBuilderScreen() {
                           });
                           return displayList;
                         })()}
-                        keyExtractor={item =>
+                        keyExtractor={(item) =>
                           item.type === 'group'
                             ? `group-${item.group.id}`
                             : `exercise-${item.exercise.instanceId}`
                         }
                         ListHeaderComponent={ListHeader}
                         ListFooterComponent={ListFooter}
-                        renderItem={({item}) => {
+                        renderItem={({ item }) => {
                           if (item.type === 'group') {
-                            const groupExercises = getGroupedExercises(
-                              item.group.id,
-                            );
+                            const groupExercises = getGroupedExercises(item.group.id);
 
-                            groupExercises.forEach(ex =>
+                            groupExercises.forEach((ex) =>
                               renderedExerciseIds.current.add(ex.instanceId),
                             ); // mark them as rendered
 
@@ -2153,36 +1976,27 @@ export default function WorkoutPlanBuilderScreen() {
                                 style={{
                                   marginHorizontal: spacing.md,
                                   marginBottom: spacing.lg,
-                                }}>
+                                }}
+                              >
                                 <ExerciseGroupCard
                                   label={getGroupLabel(item.group)}
                                   borderColor={theme.colors.accentStart}
-                                  textColor={theme.colors.textPrimary}>
+                                  textColor={theme.colors.textPrimary}
+                                >
                                   {(() => {
-                                    const method = getMethodById(
-                                      item.group.trainingMethodId,
-                                    );
+                                    const method = getMethodById(item.group.trainingMethodId);
                                     const max = method?.maxGroupSize;
-                                    const hasSpace =
-                                      max == null ||
-                                      groupExercises.length < max;
+                                    const hasSpace = max == null || groupExercises.length < max;
                                     return (
                                       <>
-                                        {groupExercises.map(exercise => {
-                                          const idx =
-                                            values.exercises.findIndex(
-                                              e =>
-                                                e.instanceId ===
-                                                exercise.instanceId,
-                                            );
-                                          const displayIdx =
-                                            renderedExercises.findIndex(
-                                              e =>
-                                                e.instanceId ===
-                                                exercise.instanceId,
-                                            );
-                                          const isExpanded =
-                                            expandedExerciseIndex === idx;
+                                        {groupExercises.map((exercise) => {
+                                          const idx = values.exercises.findIndex(
+                                            (e) => e.instanceId === exercise.instanceId,
+                                          );
+                                          const displayIdx = renderedExercises.findIndex(
+                                            (e) => e.instanceId === exercise.instanceId,
+                                          );
+                                          const isExpanded = expandedExerciseIndex === idx;
 
                                           return (
                                             <View
@@ -2190,46 +2004,38 @@ export default function WorkoutPlanBuilderScreen() {
                                               style={{
                                                 marginVertical: spacing.sm,
                                                 padding: spacing.sm,
-                                                backgroundColor:
-                                                  theme.colors.surface,
+                                                backgroundColor: theme.colors.surface,
                                                 borderRadius: 6,
                                                 borderWidth: 1,
-                                                borderColor:
-                                                  theme.colors.accentEnd,
-                                              }}>
+                                                borderColor: theme.colors.accentEnd,
+                                              }}
+                                            >
                                               <TouchableOpacity
                                                 onPress={() =>
-                                                  setExpandedExerciseIndex(
-                                                    isExpanded ? null : idx,
-                                                  )
-                                                }>
+                                                  setExpandedExerciseIndex(isExpanded ? null : idx)
+                                                }
+                                              >
                                                 <View
                                                   style={{
                                                     flexDirection: 'row',
-                                                    justifyContent:
-                                                      'space-between',
-                                                  }}>
+                                                    justifyContent: 'space-between',
+                                                  }}
+                                                >
                                                   <Text
                                                     style={{
-                                                      color:
-                                                        theme.colors
-                                                          .textPrimary,
+                                                      color: theme.colors.textPrimary,
                                                       fontWeight: 'bold',
-                                                    }}>
-                                                    #{displayIdx + 1}{' '}
-                                                    {exercise.exerciseName}
+                                                    }}
+                                                  >
+                                                    #{displayIdx + 1} {exercise.exerciseName}
                                                   </Text>
                                                   <FontAwesome
                                                     name={
-                                                      isExpanded
-                                                        ? 'chevron-up'
-                                                        : 'chevron-down'
+                                                      isExpanded ? 'chevron-up' : 'chevron-down'
                                                     }
                                                     style={{
                                                       fontSize: 16,
-                                                      color:
-                                                        theme.colors
-                                                          .accentStart,
+                                                      color: theme.colors.accentStart,
                                                       paddingRight: 5,
                                                     }}
                                                   />
@@ -2241,10 +2047,8 @@ export default function WorkoutPlanBuilderScreen() {
                                                   {/* Expandable content here (sets, metrics, etc.) */}
                                                   <FormInput
                                                     label="Sets"
-                                                    value={String(
-                                                      exercise.targetSets,
-                                                    )}
-                                                    onChangeText={text =>
+                                                    value={String(exercise.targetSets)}
+                                                    onChangeText={(text) =>
                                                       setFieldValue(
                                                         `exercises[${idx}].targetSets`,
                                                         parseInt(text, 10) || 0,
@@ -2253,44 +2057,29 @@ export default function WorkoutPlanBuilderScreen() {
                                                     keyboardType="numeric"
                                                   />
                                                   <TargetMetricInputGroup
-                                                    exerciseId={
-                                                      exercise.exerciseId
-                                                    }
-                                                    values={
-                                                      exercise.targetMetrics
-                                                    }
-                                                    onChange={(
-                                                      metricId,
-                                                      field,
-                                                      value,
-                                                    ) => {
-                                                      const updated =
-                                                        exercise.targetMetrics.map(
-                                                          m =>
-                                                            m.metricId ===
-                                                            metricId
-                                                              ? {
-                                                                  ...m,
-                                                                  [field]:
-                                                                    value,
-                                                                }
-                                                              : m,
-                                                        );
+                                                    exerciseId={exercise.exerciseId}
+                                                    values={exercise.targetMetrics}
+                                                    onChange={(metricId, field, value) => {
+                                                      const updated = exercise.targetMetrics.map(
+                                                        (m) =>
+                                                          m.metricId === metricId
+                                                            ? {
+                                                                ...m,
+                                                                [field]: value,
+                                                              }
+                                                            : m,
+                                                      );
                                                       setFieldValue(
                                                         `exercises[${idx}].targetMetrics`,
                                                         updated,
                                                       );
                                                     }}
                                                     errors={
-                                                      (
-                                                        errors.exercises?.[
-                                                          idx
-                                                        ] as any
-                                                      )?.targetMetrics
+                                                      (errors.exercises?.[idx] as any)
+                                                        ?.targetMetrics
                                                     }
                                                     touched={
-                                                      touched.exercises?.[idx]
-                                                        ?.targetMetrics
+                                                      touched.exercises?.[idx]?.targetMetrics
                                                     }
                                                   />
                                                 </>
@@ -2307,21 +2096,17 @@ export default function WorkoutPlanBuilderScreen() {
                           }
 
                           // Skip rendering this exercise again if it was rendered in a group
-                          if (
-                            renderedExerciseIds.current.has(
-                              item.exercise.instanceId,
-                            )
-                          ) {
+                          if (renderedExerciseIds.current.has(item.exercise.instanceId)) {
                             return null;
                           }
 
                           // Render ungrouped exercises
                           const exercise = item.exercise;
                           const idx = values.exercises.findIndex(
-                            e => e.instanceId === exercise.instanceId,
+                            (e) => e.instanceId === exercise.instanceId,
                           );
                           const displayIdx = renderedExercises.findIndex(
-                            e => e.instanceId === exercise.instanceId,
+                            (e) => e.instanceId === exercise.instanceId,
                           );
                           const isExpanded = expandedExerciseIndex === idx;
 
@@ -2336,29 +2121,27 @@ export default function WorkoutPlanBuilderScreen() {
                                 backgroundColor: theme.colors.background,
                                 borderWidth: 1,
                                 borderColor: theme.colors.accentStart,
-                              }}>
+                              }}
+                            >
                               <TouchableOpacity
-                                onPress={() =>
-                                  setExpandedExerciseIndex(
-                                    isExpanded ? null : idx,
-                                  )
-                                }>
+                                onPress={() => setExpandedExerciseIndex(isExpanded ? null : idx)}
+                              >
                                 <View
                                   style={{
                                     flexDirection: 'row',
                                     justifyContent: 'space-between',
-                                  }}>
+                                  }}
+                                >
                                   <Text
                                     style={{
                                       color: theme.colors.textPrimary,
                                       fontWeight: 'bold',
-                                    }}>
+                                    }}
+                                  >
                                     #{displayIdx + 1} {exercise.exerciseName}
                                   </Text>
                                   <FontAwesome
-                                    name={
-                                      isExpanded ? 'chevron-up' : 'chevron-down'
-                                    }
+                                    name={isExpanded ? 'chevron-up' : 'chevron-down'}
                                     style={{
                                       fontSize: 16,
                                       color: theme.colors.accentStart,
@@ -2373,7 +2156,7 @@ export default function WorkoutPlanBuilderScreen() {
                                   <FormInput
                                     label="Sets"
                                     value={String(exercise.targetSets)}
-                                    onChangeText={text =>
+                                    onChangeText={(text) =>
                                       setFieldValue(
                                         `exercises[${idx}].targetSets`,
                                         parseInt(text, 10) || 0,
@@ -2385,24 +2168,13 @@ export default function WorkoutPlanBuilderScreen() {
                                     exerciseId={exercise.exerciseId}
                                     values={exercise.targetMetrics}
                                     onChange={(metricId, field, value) => {
-                                      const updated =
-                                        exercise.targetMetrics.map(m =>
-                                          m.metricId === metricId
-                                            ? {...m, [field]: value}
-                                            : m,
-                                        );
-                                      setFieldValue(
-                                        `exercises[${idx}].targetMetrics`,
-                                        updated,
+                                      const updated = exercise.targetMetrics.map((m) =>
+                                        m.metricId === metricId ? { ...m, [field]: value } : m,
                                       );
+                                      setFieldValue(`exercises[${idx}].targetMetrics`, updated);
                                     }}
-                                    errors={
-                                      (errors.exercises?.[idx] as any)
-                                        ?.targetMetrics
-                                    }
-                                    touched={
-                                      touched.exercises?.[idx]?.targetMetrics
-                                    }
+                                    errors={(errors.exercises?.[idx] as any)?.targetMetrics}
+                                    touched={touched.exercises?.[idx]?.targetMetrics}
                                   />
                                 </>
                               )}
@@ -2411,15 +2183,13 @@ export default function WorkoutPlanBuilderScreen() {
                         }}
                       />
                     )}
-                    <ModalWrapper
-                      visible={!!activeModal}
-                      onClose={() => setActiveModal(null)}>
+                    <ModalWrapper visible={!!activeModal} onClose={() => setActiveModal(null)}>
                       {activeModal === 'trainingGoalPicker' && (
                         <TrainingGoalPickerModal
                           visible
                           trainingGoals={workoutMeta?.getTrainingGoals ?? []}
                           selectedId={values.trainingGoalId}
-                          onSelect={goalId => {
+                          onSelect={(goalId) => {
                             setFieldValue('trainingGoalId', goalId);
                             setActiveModal(null);
                           }}
@@ -2431,7 +2201,7 @@ export default function WorkoutPlanBuilderScreen() {
                           visible
                           selectedId={values.experienceLevelId ?? null}
                           levels={workoutMeta?.experienceLevels ?? []}
-                          onSelect={id => {
+                          onSelect={(id) => {
                             setFieldValue('experienceLevelId', id);
                             setActiveModal(null);
                           }}
@@ -2442,9 +2212,7 @@ export default function WorkoutPlanBuilderScreen() {
                         <MuscleGroupPickerModal
                           muscleGroups={workoutMeta?.getMuscleGroups ?? []}
                           selectedIds={values.muscleGroupIds}
-                          onChange={(ids: number[]) =>
-                            setFieldValue('muscleGroupIds', ids)
-                          }
+                          onChange={(ids: number[]) => setFieldValue('muscleGroupIds', ids)}
                           onClose={() => setActiveModal(null)}
                           onRefetch={refetch}
                         />
@@ -2453,17 +2221,16 @@ export default function WorkoutPlanBuilderScreen() {
                         <TrainingMethodPicker
                           selectedId={
                             selectedExerciseIndex !== null
-                              ? (values.exercises[selectedExerciseIndex]
-                                  ?.trainingMethodId ?? null)
+                              ? (values.exercises[selectedExerciseIndex]?.trainingMethodId ?? null)
                               : null
                           }
                           trainingMethods={
                             workoutMeta?.getTrainingGoals?.find(
-                              (g: {id: number; trainingMethods: any[]}) =>
+                              (g: { id: number; trainingMethods: any[] }) =>
                                 g.id === values.trainingGoalId,
                             )?.trainingMethods ?? []
                           }
-                          onSelect={id => {
+                          onSelect={(id) => {
                             if (selectedExerciseIndex !== null) {
                               setFieldValue(
                                 `exercises[${selectedExerciseIndex}].trainingMethodId`,
@@ -2480,26 +2247,20 @@ export default function WorkoutPlanBuilderScreen() {
                         <SelectExerciseModal
                           onClose={() => setActiveModal(null)}
                           filteredExercises={filteredExercises}
-                          onSelect={newExercises => {
+                          onSelect={(newExercises) => {
                             if (!pushRef.current) {
-                              console.error(
-                                '[DEBUG] FATAL: pushRef.current is not set!',
-                              );
+                              console.error('[DEBUG] FATAL: pushRef.current is not set!');
                               return;
                             }
                             try {
-                              newExercises.forEach(e => {
-let newTargetMetrics =
-                                  createPlanningTargetMetrics(e.id);
+                              newExercises.forEach((e) => {
+                                let newTargetMetrics = createPlanningTargetMetrics(e.id);
 
-                                const preset =
-                                  workoutMeta?.getIntensityPresets?.find(
-                                    (p: any) =>
-                                      p.trainingGoalId ===
-                                        values.trainingGoalId &&
-                                      p.experienceLevelId ===
-                                        values.experienceLevelId,
-                                  );
+                                const preset = workoutMeta?.getIntensityPresets?.find(
+                                  (p: any) =>
+                                    p.trainingGoalId === values.trainingGoalId &&
+                                    p.experienceLevelId === values.experienceLevelId,
+                                );
                                 if (preset) {
                                   const map: Record<
                                     number,
@@ -2514,7 +2275,7 @@ let newTargetMetrics =
                                       defaultMax: d.defaultMax ?? '',
                                     };
                                   });
-                                  newTargetMetrics = newTargetMetrics.map(m => {
+                                  newTargetMetrics = newTargetMetrics.map((m) => {
                                     const d = map[m.metricId];
                                     if (!d) return m;
                                     return {
@@ -2525,10 +2286,7 @@ let newTargetMetrics =
                                   });
                                 }
                                 const getNextOrder = (): number =>
-                                  getNextGlobalOrder(
-                                    values.exercises,
-                                    values.groups,
-                                  );
+                                  getNextGlobalOrder(values.exercises, values.groups);
                                 const newExerciseObject = {
                                   instanceId: generateUniqueId(),
                                   exerciseId: e.id,
@@ -2543,9 +2301,7 @@ let newTargetMetrics =
                                 pushRef.current(newExerciseObject);
                               });
                               setExpandedExerciseIndex(
-                                values.exercises.length +
-                                  newExercises.length -
-                                  1,
+                                values.exercises.length + newExercises.length - 1,
                               );
                               setActiveModal(null);
                             } catch (error) {
@@ -2565,21 +2321,15 @@ let newTargetMetrics =
                               (m: any) => m.minGroupSize != null,
                             ) ?? []
                           }
-                          onSelect={id => {
+                          onSelect={(id) => {
                             if (stagedGroupId != null) {
-                              const nextOrder = getNextGlobalOrder(
-                                values.exercises,
-                                values.groups,
-                              );
+                              const nextOrder = getNextGlobalOrder(values.exercises, values.groups);
                               const newGroup = {
                                 id: stagedGroupId,
                                 trainingMethodId: id,
                                 order: nextOrder,
                               };
-                              setFieldValue('groups', [
-                                ...values.groups,
-                                newGroup,
-                              ]);
+                              setFieldValue('groups', [...values.groups, newGroup]);
 
                               setStagedGroupId(null);
                               setActiveModal(null);

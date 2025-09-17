@@ -1,11 +1,11 @@
-import {gql} from '@apollo/client';
+import { gql } from '@apollo/client';
 
 export const CREATE_RECOGNITION_UPLOAD_TICKET = gql`
   mutation CreateRecognitionUploadTicket(
-    $gymId: Int!,
-    $ext: String!,
-    $contentType: String,
-    $contentLength: Int,
+    $gymId: Int!
+    $ext: String!
+    $contentType: String
+    $contentLength: Int
   ) {
     createRecognitionUploadTicket(
       gymId: $gymId
@@ -33,7 +33,7 @@ export const RECOGNIZE_IMAGE = gql`
       }
 
       # (legacy; keep for backwards-compat or fallback)
-        globalCandidates {
+      globalCandidates {
         equipmentId
         imageId
         score
