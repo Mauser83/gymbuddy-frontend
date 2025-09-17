@@ -4,17 +4,13 @@ This branch extends **master** with computer vision features for gym equipment r
 
 > **Showcase only.** This repository is a portfolio showcase and is **not runnable** without the private backend and CV infrastructure. For access, request **TestFlight**.
 
-> Looking for the stable app? See **[master — README](https://github.com/Mauser83/gymbuddy-frontend/blob/master/README.md)**.
-
----
+> Looking for the stable app? Browse **[master branch](https://github.com/Mauser83/gymbuddy-frontend/tree/master)**.
 
 ## What’s different vs `master`
 - Camera/image-based **equipment recognition** powered by KNN over embeddings
 - **Admin portal** tools for taxonomy, ingestion, moderation, inspection
 - **Gym-admin portal** tools for per-gym image management and approvals
 - **User portal** capture flow with optional **training contribution** (opt-in)
-
----
 
 ## Implementation timeline (how we built it)
 - **Admin portal (first)**
@@ -32,8 +28,6 @@ This branch extends **master** with computer vision features for gym equipment r
   - **GymTrainingCandidatesScreen** — review user-submitted images; approve to include in gym-specific KNN; if global inventory is sparse, candidate may be **promoted to global** as well
 - **Admin portal (global curation)**
   - **GlobalCurationScreen** — approve/reject **global equipment images** for use in the global KNN
-
----
 
 ## Architecture (CV path)
 **Data model**
@@ -67,14 +61,10 @@ This branch extends **master** with computer vision features for gym equipment r
 - **KNN playground**: rapid iteration on search & thresholds
 - **Signing verifier**: validates upload policies and TTLs
 
----
-
 ## Current behavior & guarantees
 - A **new gym** can add equipment images **before approval**; approval only controls visibility to other users.
 - Recognition considers both **global** and **gym-specific** images; gym-specific images bias results toward local conditions.
 - User captures for recognition are short-lived unless the user **opts-in** to submit for training.
-
----
 
 ## Roadmap
 - **Auto-promotion on gym-admin uploads**: if global inventory < threshold and KNN diversity is low, flag for global promotion automatically.
@@ -83,23 +73,17 @@ This branch extends **master** with computer vision features for gym equipment r
 - **Real-time recognition UX**: live camera hints (“last workout on this equipment”, “exercises you can do”, “use this equipment” to start a session).
 - **Quality & UX**: confidence visualization, fallback flows, better error surfacing in WorkerTasks.
 
----
-
 ## Tech stack (frontend deltas)
 - **Expo / React Native / TypeScript** (same base as master)
 - CV UI components for capture/preview/result & admin workflows
 - EAS profile **`cvdev`** (side-by-side install; distinct bundle IDs/scheme)
 - iOS submit via **App Store Connect API key** (no Apple ID in repo)
 
----
-
 ## Key paths (where to read the code)
 - `src/features/cv/*` — CV UI (capture, results, admin tools) *(WIP)*
 - `src/features/workout-sessions/*` — integrates recognition into session flows *(future)*
 - `src/features/gyms/*` — gym equipment mgmt; training candidates review
 - `src/config/env.ts` — env wiring for cvdev profile
-
----
 
 ## Environment variables
 See [`.env.example`](./.env.example). Values are intentionally **blank**.
