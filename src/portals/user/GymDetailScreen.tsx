@@ -8,6 +8,7 @@ import { GET_GYM_BY_ID } from 'src/features/gyms/graphql/gym.queries';
 import { GYM_APPROVED_SUBSCRIPTION } from 'src/features/gyms/graphql/gym.subscriptions';
 import { Gym } from 'src/features/gyms/types/gym.types';
 import Card from 'src/shared/components/Card';
+import CollapsibleList from 'src/shared/components/CollapsibleList';
 import DetailField from 'src/shared/components/DetailField';
 import ErrorMessage from 'src/shared/components/ErrorMessage';
 import LoadingState from 'src/shared/components/LoadingState';
@@ -32,7 +33,7 @@ const GymDetailScreen = () => {
     fetchPolicy: 'cache-first',
   });
 
-  const gym = data?.gymById;
+  const gym = data?.gym;
 
   useEffect(() => {
     if (!user) {
@@ -98,9 +99,9 @@ const GymDetailScreen = () => {
         {gym.city && <DetailField label="🏙️ City:" value={gym.city} />}
         {gym.country && <DetailField label="🌍 Country:" value={gym.country} />}
         {gym.gymEquipment?.length > 0 && (
-          <>
-            <Title subtitle="🏋️ Equipment:" align="left" />
-            {gym.gymEquipment.map((ge: Gym['gymEquipment'][number]) => (
+          <CollapsibleList
+            title={<Title subtitle="🏋️ Equipment:" align="left" />}
+            items={gym.gymEquipment.map((ge: Gym['gymEquipment'][number]) => (
               <DetailField
                 key={ge.id}
                 label={`${ge.equipment.name} (${ge.quantity}x)`}
@@ -113,7 +114,7 @@ const GymDetailScreen = () => {
                 }
               />
             ))}
-          </>
+          />
         )}
         {gym.trainers?.length > 0 && (
           <DetailField label="🧑‍🏫 Trainers Count:" value={String(gym.trainers.length)} />
