@@ -21,6 +21,10 @@ export default function TrainingGoalPickerModal({
   onSelect,
   onClose,
 }: Props) {
+  if (!visible) {
+    return null;
+  }
+
   return (
     <>
       <Title text="Select Training Goal" />

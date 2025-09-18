@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { ScrollView, Text } from 'react-native';
 
 import { Equipment } from 'src/features/equipment/types/equipment.types';
@@ -14,37 +14,44 @@ interface EquipmentPickerListProps {
   onSelect: (equipment: Equipment) => void;
 }
 
-const EquipmentPickerList = React.memo(
-  ({ available, assigned, loading, onSelect }: EquipmentPickerListProps) => {
-    const toListItem = (item: Equipment, isAssigned: boolean) => ({
-      id: item.id,
-      label: item.name,
-      subLabel: `${item.brand}`,
-      disabled: isAssigned,
-      onPress: isAssigned ? undefined : () => onSelect(item),
-      rightElement: isAssigned ? <Text style={{ color: 'gray' }}>✓ Added</Text> : undefined,
-    });
+const EquipmentPickerListComponent = ({
+  available,
+  assigned,
+  loading,
+  onSelect,
+}: EquipmentPickerListProps) => {
+  const toListItem = (item: Equipment, isAssigned: boolean) => ({
+    id: item.id,
+    label: item.name,
+    subLabel: `${item.brand}`,
+    disabled: isAssigned,
+    onPress: isAssigned ? undefined : () => onSelect(item),
+    rightElement: isAssigned ? <Text style={{ color: 'gray' }}>✓ Added</Text> : undefined,
+  });
 
-    return (
-      <ScrollView style={{ height: 500 }}>
-        {loading && available.length === 0 && assigned.length === 0 ? (
-          <LoadingState text="Loading catalog..." />
-        ) : available.length === 0 && assigned.length === 0 ? (
-          <NoResults message="No equipment found in catalog." />
-        ) : (
-          <>
-            <ClickableList items={available.map((item) => toListItem(item, false))} />
-            {assigned.length > 0 && (
-              <>
-                <DividerWithLabel label="Already Added" />
-                <ClickableList items={assigned.map((item) => toListItem(item, true))} />
-              </>
-            )}
-          </>
-        )}
-      </ScrollView>
-    );
-  },
-);
+  return (
+    <ScrollView style={{ height: 500 }}>
+      {loading && available.length === 0 && assigned.length === 0 ? (
+        <LoadingState text="Loading catalog..." />
+      ) : available.length === 0 && assigned.length === 0 ? (
+        <NoResults message="No equipment found in catalog." />
+      ) : (
+        <>
+          <ClickableList items={available.map((item) => toListItem(item, false))} />
+          {assigned.length > 0 && (
+            <>
+              <DividerWithLabel label="Already Added" />
+              <ClickableList items={assigned.map((item) => toListItem(item, true))} />
+            </>
+          )}
+        </>
+      )}
+    </ScrollView>
+  );
+};
+
+EquipmentPickerListComponent.displayName = 'EquipmentPickerList';
+
+const EquipmentPickerList = memo(EquipmentPickerListComponent);
 
 export default EquipmentPickerList;

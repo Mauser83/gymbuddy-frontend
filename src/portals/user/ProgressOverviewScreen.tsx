@@ -1,6 +1,6 @@
 import { useQuery } from '@apollo/client';
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Dimensions } from 'react-native';
+import { ScrollView, Dimensions } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
 
 import { useAuth } from 'src/features/auth/context/AuthContext';
@@ -26,7 +26,7 @@ const ProgressOverviewScreen = () => {
   const { user } = useAuth();
   const userId = user?.id;
 
-  const { data, loading } = useQuery(GET_WORKOUT_SESSIONS_BY_USER, {
+  const { data } = useQuery(GET_WORKOUT_SESSIONS_BY_USER, {
     variables: { userId },
   });
 
@@ -145,7 +145,7 @@ const ProgressOverviewScreen = () => {
           backgroundColor: theme.colors.background,
           backgroundGradientFrom: theme.colors.background,
           backgroundGradientTo: theme.colors.background,
-          color: (opacity = 1) => theme.colors.accentStart,
+          color: (_opacity = 1) => theme.colors.accentStart,
           labelColor: () => theme.colors.textPrimary,
           formatYLabel: (yValue) => parseInt(yValue).toString(),
           barPercentage: 0.5,

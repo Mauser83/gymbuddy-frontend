@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo } from 'react';
-import { View } from 'react-native';
 import { useNavigate } from 'react-router-native';
 
 import { useAuth } from 'src/features/auth/context/AuthContext';

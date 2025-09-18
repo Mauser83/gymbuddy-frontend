@@ -687,16 +687,6 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   flagRow: { alignItems: 'center', flexDirection: 'row', gap: 4 },
-  forceRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  idText: {
-    fontFamily: Platform.OS === 'android' ? 'monospace' : 'Menlo',
-    fontSize: 12,
-  },
   input: {
     borderColor: '#ccc',
     borderRadius: 6,
@@ -779,7 +769,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 4,
   },
-  shaText: { fontSize: 12 },
   textArea: {
     borderColor: '#ccc',
     borderRadius: 6,

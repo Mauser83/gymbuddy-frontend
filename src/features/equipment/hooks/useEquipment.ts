@@ -25,12 +25,12 @@ import {
 } from '../types/equipment.types';
 
 export function useEquipment() {
-  const getAllEquipments = (search?: string) =>
+  const useAllEquipments = (search?: string) =>
     useQuery(GET_ALL_EQUIPMENTS, {
       variables: { search },
     });
 
-  const getEquipmentById = (id: number) => useQuery(GET_EQUIPMENT_BY_ID, { variables: { id } });
+  const useEquipmentById = (id: number) => useQuery(GET_EQUIPMENT_BY_ID, { variables: { id } });
 
   const [createEquipment] = useMutation<{ createEquipment: any }, { input: CreateEquipmentInput }>(
     CREATE_EQUIPMENT,
@@ -43,7 +43,7 @@ export function useEquipment() {
     DELETE_EQUIPMENT,
   );
 
-  const getCategories = () => useQuery(GET_EQUIPMENT_CATEGORIES);
+  const useEquipmentCategories = () => useQuery(GET_EQUIPMENT_CATEGORIES);
 
   const [createCategory] = useMutation<
     { createEquipmentCategory: any },
@@ -70,12 +70,12 @@ export function useEquipment() {
   );
 
   return {
-    getAllEquipments,
-    getEquipmentById,
+    useAllEquipments,
+    useEquipmentById,
     createEquipment,
     updateEquipment,
     deleteEquipment,
-    getCategories,
+    useEquipmentCategories,
     createCategory,
     createSubcategory,
     updateCategory,

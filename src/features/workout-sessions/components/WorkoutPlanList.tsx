@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { ScrollView } from 'react-native';
 
 import ClickableListItem from 'src/shared/components/ClickableListItem';
@@ -12,7 +12,7 @@ interface WorkoutPlanListProps {
   onSelect: (plan: WorkoutPlan) => void;
 }
 
-const WorkoutPlanList = React.memo(({ plans, loading, onSelect }: WorkoutPlanListProps) => (
+const WorkoutPlanListComponent = ({ plans, loading, onSelect }: WorkoutPlanListProps) => (
   <ScrollView style={{ height: 500 }}>
     {!loading && plans.length === 0 ? (
       <NoResults message="No plans found." />
@@ -27,6 +27,10 @@ const WorkoutPlanList = React.memo(({ plans, loading, onSelect }: WorkoutPlanLis
       ))
     )}
   </ScrollView>
-));
+);
+
+WorkoutPlanListComponent.displayName = 'WorkoutPlanList';
+
+const WorkoutPlanList = memo(WorkoutPlanListComponent);
 
 export default WorkoutPlanList;

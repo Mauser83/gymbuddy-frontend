@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Image, Pressable, StyleSheet, Platform } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useNavigate } from 'react-router-native';
@@ -115,31 +115,22 @@ const initialForm = {
   equipmentId: '',
 };
 
-const BatchCaptureScreen = () => {
+const BatchCaptureContent = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const isAdmin = user?.appRole === 'ADMIN' || user?.appRole === 'MODERATOR';
-  if (!isAdmin) {
-    return (
-      <ScreenLayout>
-        <AccessDenied />
-      </ScreenLayout>
-    );
-  }
   const [form, setForm] = useState(initialForm);
   const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [gymModalVisible, setGymModalVisible] = useState(false);
   const [equipmentModalVisible, setEquipmentModalVisible] = useState(false);
   const [tiles, setTiles] = useState<UploadTile[]>([]);
-  const tilesRef = React.useRef<UploadTile[]>([]);
+  const tilesRef = useRef<UploadTile[]>([]);
   type Phase = 'SELECT' | 'PREPARED' | 'UPLOADING' | 'TAGGING';
   const [phase, setPhase] = useState<Phase>('SELECT');
-  React.useEffect(() => {
+  useEffect(() => {
     tilesRef.current = tiles;
   }, [tiles]);
-  React.useEffect(() => {
+  useEffect(() => {
     if (phase !== 'PREPARED') return;
     // Now the presigned URLs are in tiles; start the upload chain.
     (async () => {
@@ -1061,10 +1052,10 @@ function TagRow({
   ) => Promise<void>;
 }) {
   const { theme } = useTheme();
-  const [open, setOpen] = React.useState<{ k?: string; visible: boolean }>({
+  const [open, setOpen] = useState<{ k?: string; visible: boolean }>({
     visible: false,
   });
-  const [local, setLocal] = React.useState<{
+  const [local, setLocal] = useState<{
     angleId?: number;
     heightId?: number;
     distanceId?: number;
@@ -1183,5 +1174,20 @@ function TagRow({
     </View>
   );
 }
+
+const BatchCaptureScreen = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.appRole === 'ADMIN' || user?.appRole === 'MODERATOR';
+
+  if (!isAdmin) {
+    return (
+      <ScreenLayout>
+        <AccessDenied />
+      </ScreenLayout>
+    );
+  }
+
+  return <BatchCaptureContent />;
+};
 
 export default BatchCaptureScreen;

@@ -43,7 +43,7 @@ const UsersScreen = () => {
     if (!user || (user.appRole !== 'ADMIN' && user.appRole !== 'MODERATOR')) {
       navigate('/');
     }
-  }, [user]);
+  }, [user, navigate]);
 
   useEffect(() => {
     fetchUsers();

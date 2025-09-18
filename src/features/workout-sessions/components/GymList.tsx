@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { ScrollView } from 'react-native';
 
 import ClickableListItem from 'src/shared/components/ClickableListItem';
@@ -12,7 +12,7 @@ interface GymListProps {
   onSelect: (gym: Gym) => void;
 }
 
-const GymList = React.memo(({ gyms, loading, onSelect }: GymListProps) => (
+const GymListComponent = ({ gyms, loading, onSelect }: GymListProps) => (
   <ScrollView style={{ height: 500 }}>
     {!loading && gyms.length === 0 ? (
       <NoResults message="No gyms found." />
@@ -27,6 +27,10 @@ const GymList = React.memo(({ gyms, loading, onSelect }: GymListProps) => (
       ))
     )}
   </ScrollView>
-));
+);
+
+GymListComponent.displayName = 'GymList';
+
+const GymList = memo(GymListComponent);
 
 export default GymList;

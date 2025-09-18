@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo, useState } from 'react';
 import { FlatList } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
@@ -17,7 +17,7 @@ type Props = {
   onDelete: (id: number) => void;
 };
 
-const AdminExerciseList = React.memo(({ exercises, onEdit, onDelete }: Props) => {
+const AdminExerciseListComponent = ({ exercises, onEdit, onDelete }: Props) => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const { theme } = useTheme();
 
@@ -62,6 +62,10 @@ const AdminExerciseList = React.memo(({ exercises, onEdit, onDelete }: Props) =>
       showsVerticalScrollIndicator={false}
     />
   );
-});
+};
+
+AdminExerciseListComponent.displayName = 'AdminExerciseList';
+
+const AdminExerciseList = memo(AdminExerciseListComponent);
 
 export default AdminExerciseList;

@@ -41,10 +41,10 @@ const ExerciseSchema = Yup.object().shape({
 export default function EditExerciseScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getMyExercises, updateExercise } = useExercise();
+  const { useMyExercises: useMyExercisesQuery, updateExercise } = useExercise();
   const [formValues, setFormValues] = useState<UpdateExerciseInput | null>(null);
 
-  const { data, loading } = getMyExercises();
+  const { data, loading } = useMyExercisesQuery();
 
   useEffect(() => {
     if (!id) {
@@ -76,7 +76,7 @@ export default function EditExerciseScreen() {
           })) ?? [],
       });
     }
-  }, [id, data]);
+  }, [id, data, navigate]);
 
   if (loading || !formValues) {
     return (
@@ -125,7 +125,7 @@ export default function EditExerciseScreen() {
     <ScreenLayout scroll>
       <Title text="Edit Exercise" />
       <Formik initialValues={formValues} validationSchema={ExerciseSchema} onSubmit={handleSubmit}>
-        {({ handleSubmit, isSubmitting, errors, values }) => (
+        {({ handleSubmit, isSubmitting }) => (
           <>
             <ExerciseForm />
             {/* Submit / Cancel – main form actions */}

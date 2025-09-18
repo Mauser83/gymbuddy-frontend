@@ -12,8 +12,8 @@ export default function CreateEquipmentScreen() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { getCategories, createEquipment } = useEquipment();
-  const { data: categoryData } = getCategories();
+  const { useEquipmentCategories: useEquipmentCategoriesQuery, createEquipment } = useEquipment();
+  const { data: categoryData } = useEquipmentCategoriesQuery();
   const categories = useMemo(
     () =>
       (categoryData?.equipmentCategories ?? [])
@@ -29,7 +29,7 @@ export default function CreateEquipmentScreen() {
 
   useEffect(() => {
     if (!user) navigate('/');
-  }, [user]);
+  }, [user, navigate]);
 
   const initialValues = {
     name: '',

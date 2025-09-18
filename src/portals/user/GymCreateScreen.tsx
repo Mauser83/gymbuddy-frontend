@@ -1,6 +1,6 @@
 import { useMutation } from '@apollo/client';
 import { Formik } from 'formik';
-import countries from 'i18n-iso-countries';
+import { getName, registerLocale } from 'i18n-iso-countries';
 import enLocale from 'i18n-iso-countries/langs/en.json';
 import React, { useEffect, useState } from 'react';
 import { FlatList, Alert, View, Text } from 'react-native';
@@ -21,7 +21,7 @@ import ScreenLayout from 'src/shared/components/ScreenLayout';
 import { useTheme } from 'src/shared/theme/ThemeProvider';
 import { spacing, fontSizes } from 'src/shared/theme/tokens';
 
-countries.registerLocale(enLocale);
+registerLocale(enLocale);
 
 const StepLabels = ['Contact Info', 'Gym Profile', 'Address', 'Review'];
 
@@ -62,7 +62,7 @@ const GymCreateScreen = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { theme } = useTheme();
-  const [createGym, { loading }] = useMutation(CREATE_GYM_MUTATION);
+  const [createGym] = useMutation(CREATE_GYM_MUTATION);
   const [step, setStep] = useState(0);
   const [isAddressValid, setIsAddressValid] = useState(false);
   const colors = theme.colors;
@@ -71,7 +71,7 @@ const GymCreateScreen = () => {
     if (!user) {
       navigate('/');
     }
-  }, [user]);
+  }, [user, navigate]);
 
   const initialValues = {
     name: '',
@@ -125,7 +125,7 @@ const GymCreateScreen = () => {
 
   const handleSubmit = async (values: typeof initialValues) => {
     const cleanedValues = Object.fromEntries(
-      Object.entries(values).filter(([key, val]) => val !== ''),
+      Object.entries(values).filter(([, val]) => val !== ''),
     );
     try {
       const { data } = await createGym({ variables: { input: cleanedValues } });
@@ -207,7 +207,7 @@ const GymCreateScreen = () => {
                         onChangeText={(text) => setFieldValue('address', text)}
                         onPlaceSelect={(details: AddressDetails) => {
                           const countryName =
-                            countries.getName(details.countryCode, 'en', {
+                            getName(details.countryCode, 'en', {
                               select: 'official',
                             }) || details.country;
 

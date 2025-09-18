@@ -112,7 +112,7 @@ export default function FilterPanel({ options, onChangeFilters }: FilterPanelPro
 
   useEffect(() => {
     onChangeFilters?.(selectedFilters);
-  }, [selectedFilters]);
+  }, [selectedFilters, onChangeFilters]);
 
   return (
     <View style={{ gap: spacing.md }}>

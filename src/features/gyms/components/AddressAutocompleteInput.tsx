@@ -69,7 +69,7 @@ const AddressAutocompleteInput: React.FC<Props> = ({
               .filter((s: AutocompletePrediction) => s.description && s.place_id)
           : [];
         setSuggestions(mapped);
-      } catch (error) {
+      } catch {
         setSuggestions([]);
       }
     };

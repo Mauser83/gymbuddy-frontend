@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-native';
 
 import EquipmentForm from 'src/features/equipment/components/EquipmentForm';
@@ -11,9 +11,13 @@ export default function EditEquipmentScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { getEquipmentById, getCategories, updateEquipment } = useEquipment();
-  const { data: equipmentData, loading: loadingEquipment } = getEquipmentById(Number(id));
-  const { data: categoryData } = getCategories();
+  const {
+    useEquipmentById: useEquipmentByIdQuery,
+    useEquipmentCategories: useEquipmentCategoriesQuery,
+    updateEquipment,
+  } = useEquipment();
+  const { data: equipmentData, loading: loadingEquipment } = useEquipmentByIdQuery(Number(id));
+  const { data: categoryData } = useEquipmentCategoriesQuery();
   const categories = useMemo(
     () =>
       (categoryData?.equipmentCategories ?? [])

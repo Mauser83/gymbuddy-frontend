@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { FlatList, TouchableOpacity } from 'react-native';
 
 import { Gym } from 'src/features/gyms/types/gym.types';
@@ -11,7 +11,7 @@ interface GymsListProps {
   onGymPress: (gym: Gym) => void;
 }
 
-const GymsList = React.memo(({ gyms, onGymPress }: GymsListProps) => (
+const GymsListComponent = ({ gyms, onGymPress }: GymsListProps) => (
   <FlatList
     data={gyms}
     keyExtractor={(item) => item.id.toString()}
@@ -25,6 +25,10 @@ const GymsList = React.memo(({ gyms, onGymPress }: GymsListProps) => (
       </TouchableOpacity>
     )}
   />
-));
+);
+
+GymsListComponent.displayName = 'GymsList';
+
+const GymsList = memo(GymsListComponent);
 
 export default GymsList;

@@ -33,18 +33,6 @@ const Button = ({
   const buttonVariant = variant ?? theme.components.button.variant;
   const styles = componentStyles.button;
 
-  const content = (
-    <View style={styles.content}>
-      {icon && iconPosition === 'left' && <View style={styles.icon}>{icon}</View>}
-      <Text
-        style={[styles.text, { color: theme.colors.buttonText }, disabled && styles.disabledText]}
-      >
-        {text}
-      </Text>
-      {icon && iconPosition === 'right' && <View style={styles.icon}>{icon}</View>}
-    </View>
-  );
-
   if (buttonVariant === 'gradient') {
     return (
       <TouchableOpacity
@@ -146,11 +134,6 @@ const Button = ({
 };
 
 const base = StyleSheet.create({
-  content: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
   disabled: {
     opacity: 0.5,
   },
@@ -167,9 +150,6 @@ const base = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20,
     paddingVertical: 14,
-  },
-  icon: {
-    marginHorizontal: 4,
   },
   outlineText: {
     fontSize: 16,
@@ -200,10 +180,6 @@ const base = StyleSheet.create({
     alignSelf: 'flex-start',
     borderRadius: 999,
     overflow: 'hidden',
-  },
-  text: {
-    fontSize: 16,
-    fontWeight: '600',
   },
   wrapper: {
     alignSelf: 'stretch',

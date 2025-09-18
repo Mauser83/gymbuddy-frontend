@@ -114,7 +114,4 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     elevation: 2,
   },
-  text: {
-    fontSize: 16,
-  },
 });

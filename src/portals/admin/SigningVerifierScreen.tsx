@@ -118,7 +118,10 @@ const SigningVerifierScreen = () => {
     try {
       await refetch();
       setStatus('LIVE');
-    } catch {}
+    } catch (error) {
+      console.error('Failed to re-sign image URL', error);
+      setStatus('EXPIRED');
+    }
   };
 
   return (
@@ -177,9 +180,9 @@ const SigningVerifierScreen = () => {
         {url && (
           <View style={{ marginTop: 16, gap: 8 }}>
             <View style={styles.previewContainer}>
-              {/* eslint-disable-next-line jsx-a11y/alt-text */}
               <img
                 src={url}
+                alt="Signed image preview"
                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                 onError={handleImageError}
                 referrerPolicy="no-referrer"

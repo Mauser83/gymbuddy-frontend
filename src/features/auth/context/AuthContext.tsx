@@ -1,6 +1,5 @@
 // ✅ UPDATED: AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-native';
 
 import { registerLogoutCallback } from 'src/features/auth/utils/logoutTrigger'; // adjust path if needed
 import type { User } from 'src/features/users/types/user';
@@ -39,9 +38,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await storage.setItem('accessToken', tokens.accessToken);
     await storage.setItem('refreshToken', tokens.refreshToken);
     await storage.setItem('user', JSON.stringify(userData));
-
-    const storedToken = await storage.getItem('accessToken');
-    // console.log('Access token after login:', storedToken);
 
     setAccessToken(tokens.accessToken);
     setRefreshToken(tokens.refreshToken);
@@ -99,8 +95,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (validAccessToken) {
               await storage.setItem('accessToken', validAccessToken);
             }
-          } catch (err) {
-            // console.log('AuthContext: refreshAccessToken failed; logging out');
+          } catch (error) {
+            console.warn('AuthContext: refreshAccessToken failed; logging out', error);
             await logout();
             return;
           }

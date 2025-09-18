@@ -1,5 +1,5 @@
 import { useLazyQuery, useQuery } from '@apollo/client';
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, memo } from 'react';
 import { View } from 'react-native';
 import { useNavigate } from 'react-router-native';
 
@@ -24,30 +24,32 @@ interface MemoizedListHeaderProps {
 }
 
 // --- Step 2: Create a memoized header component with defined props ---
-const MemoizedListHeader = React.memo(
-  ({
-    filterData,
-    filterOptions,
-    onFilterChange,
-    search,
-    onSearchChange,
-  }: MemoizedListHeaderProps) => {
-    return (
-      <>
-        <Title text="Exercise Library" />
-        {filterData && <FilterPanel options={filterOptions} onChangeFilters={onFilterChange} />}
-        <View style={{ marginTop: spacing.lg }}>
-          <SearchInput
-            value={search}
-            onChange={onSearchChange}
-            placeholder="Search exercises"
-            onClear={() => onSearchChange('')}
-          />
-        </View>
-      </>
-    );
-  },
-);
+const ListHeaderComponent = ({
+  filterData,
+  filterOptions,
+  onFilterChange,
+  search,
+  onSearchChange,
+}: MemoizedListHeaderProps) => {
+  return (
+    <>
+      <Title text="Exercise Library" />
+      {filterData && <FilterPanel options={filterOptions} onChangeFilters={onFilterChange} />}
+      <View style={{ marginTop: spacing.lg }}>
+        <SearchInput
+          value={search}
+          onChange={onSearchChange}
+          placeholder="Search exercises"
+          onClear={() => onSearchChange('')}
+        />
+      </View>
+    </>
+  );
+};
+
+ListHeaderComponent.displayName = 'ExerciseLibraryListHeader';
+
+const MemoizedListHeader = memo(ListHeaderComponent);
 
 export default function ExerciseLibraryScreen() {
   const [search, setSearch] = useState('');

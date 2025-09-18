@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from '@apollo/client';
 import React, { useState, useMemo } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 import {

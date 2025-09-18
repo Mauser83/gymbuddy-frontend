@@ -1,4 +1,5 @@
-import React, { useRef, useEffect } from 'react';
+import { Children, useEffect, useRef } from 'react';
+import type { ReactNode } from 'react';
 import {
   ScrollView,
   View,
@@ -11,7 +12,7 @@ import {
 import { spacing } from 'src/shared/theme/tokens';
 
 interface ExerciseCarouselProps {
-  children: React.ReactNode[];
+  children: ReactNode[];
   index?: number;
   onIndexChange?: (index: number) => void;
 }
@@ -44,7 +45,7 @@ export default function ExerciseCarousel({
       onMomentumScrollEnd={handleScrollEnd}
       style={styles.scroll}
     >
-      {React.Children.map(children, (child, i) => (
+      {Children.map(children, (child, i) => (
         <View style={{ width }} key={i}>
           {child}
         </View>

@@ -48,7 +48,9 @@ export const RoleProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (stored) {
         try {
           setActiveRole(JSON.parse(stored));
-        } catch {}
+        } catch (error) {
+          console.warn('Failed to parse stored role context', error);
+        }
       }
       setLoaded(true);
     };

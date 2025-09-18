@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { FlatList, TouchableOpacity } from 'react-native';
 
 import { User } from 'src/features/users/types/user';
@@ -9,7 +9,7 @@ interface UsersListProps {
   onUserPress: (user: User) => void;
 }
 
-const UsersList = React.memo(({ users, onUserPress }: UsersListProps) => (
+const UsersListComponent = ({ users, onUserPress }: UsersListProps) => (
   <FlatList
     data={users}
     keyExtractor={(item) => item.id.toString()}
@@ -20,6 +20,10 @@ const UsersList = React.memo(({ users, onUserPress }: UsersListProps) => (
     )}
     contentContainerStyle={{ paddingTop: 16 }}
   />
-));
+);
+
+UsersListComponent.displayName = 'UsersList';
+
+const UsersList = memo(UsersListComponent);
 
 export default UsersList;

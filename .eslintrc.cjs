@@ -11,6 +11,13 @@ module.exports = {
   settings: {
     react: { version: 'detect' },
     'import/resolver': { typescript: {} },
+    'import/core-modules': [
+      'expo-clipboard',
+      'expo-device',
+      'expo-image-picker',
+      'expo-image-manipulator',
+      '@react-native-community/slider',
+    ],
   },
   plugins: ['@typescript-eslint', 'react', 'react-hooks', 'react-native', 'import', 'prettier'],
   extends: [

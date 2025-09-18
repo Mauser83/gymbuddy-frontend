@@ -1,6 +1,6 @@
 import { useQuery } from '@apollo/client';
 import React from 'react';
-import { View, Pressable, FlatList, SectionList, Text } from 'react-native';
+import { View, Pressable, SectionList } from 'react-native';
 import { useNavigate } from 'react-router-native';
 
 import {

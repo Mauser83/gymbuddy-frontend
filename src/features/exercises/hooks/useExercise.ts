@@ -9,7 +9,7 @@ import {
 import { CreateExerciseInput, UpdateExerciseInput, Exercise } from '../types/exercise.types';
 
 export function useExercise() {
-  const getMyExercises = () => useQuery<{ getExercises: Exercise[] }>(GET_MY_EXERCISES);
+  const useMyExercises = () => useQuery<{ getExercises: Exercise[] }>(GET_MY_EXERCISES);
 
   const [createExercise] = useMutation<
     { createExercise: Exercise },
@@ -24,7 +24,7 @@ export function useExercise() {
   );
 
   return {
-    getMyExercises,
+    useMyExercises,
     createExercise,
     updateExercise,
     deleteExercise,

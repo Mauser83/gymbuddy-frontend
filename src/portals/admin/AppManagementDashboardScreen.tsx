@@ -1,6 +1,6 @@
 import { useQuery, useSubscription, useMutation, gql } from '@apollo/client';
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { useNavigate } from 'react-router-native';
 
 import { GYM_FRAGMENT } from 'src/features/gyms/graphql/gym.fragments';
