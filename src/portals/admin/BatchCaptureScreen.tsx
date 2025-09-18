@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Image, Pressable, StyleSheet, Platform } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useNavigate } from 'react-router-native';
@@ -102,10 +102,6 @@ function resolveMimeType(_file: File) {
   return 'image/jpeg';
 }
 
-function guessMimeFromName(_name: string) {
-  return 'image/jpeg';
-}
-
 function extFromMime(_mime: string) {
   return 'jpg';
 }
@@ -130,19 +126,6 @@ const BatchCaptureContent = () => {
   useEffect(() => {
     tilesRef.current = tiles;
   }, [tiles]);
-  useEffect(() => {
-    if (phase !== 'PREPARED') return;
-    // Now the presigned URLs are in tiles; start the upload chain.
-    (async () => {
-      setPhase('UPLOADING');
-      const keys = await uploadAll();
-      await finalizeSession(keys);
-    })().catch((err) => {
-      console.error(err);
-      setPhase('PREPARED');
-      Toast.show({ type: 'error', text1: 'Upload failed' });
-    });
-  }, [phase]);
   const [uploading, setUploading] = useState(false);
 
   const [createTicket, { loading: preparing }] = useCreateAdminUploadTicket();
@@ -334,40 +317,43 @@ const BatchCaptureContent = () => {
     setPhase('PREPARED');
   };
 
-  const refreshTicket = async (index: number) => {
-    const t = tilesRef.current[index];
-    if (!t.file) return;
-    const mime = resolveMimeType(t.file);
-    const ext = extFromMime(mime);
-    const { data } = await createTicket({
-      variables: {
-        input: {
-          gymId: Number(form.gymId),
-          upload: {
-            ext,
-            contentType: mime,
-            contentLength: t.file.size,
+  const refreshTicket = useCallback(
+    async (index: number) => {
+      const t = tilesRef.current[index];
+      if (!t.file) return;
+      const mime = resolveMimeType(t.file);
+      const ext = extFromMime(mime);
+      const { data } = await createTicket({
+        variables: {
+          input: {
+            gymId: Number(form.gymId),
+            upload: {
+              ext,
+              contentType: mime,
+              contentLength: t.file.size,
+            },
           },
         },
-      },
-    });
-    const item = data.createAdminUploadTicket;
-    setTiles((prev) => {
-      const next = [...prev];
-      next[index] = {
-        ...next[index],
-        storageKey: item.storageKey,
-        url: item.url,
-        requiredHeaders: item.requiredHeaders,
-        expiresAt: item.expiresAt,
-      };
-      tilesRef.current = next;
-      return next;
-    });
-  };
+      });
+      const item = data.createAdminUploadTicket;
+      setTiles((prev) => {
+        const next = [...prev];
+        next[index] = {
+          ...next[index],
+          storageKey: item.storageKey,
+          url: item.url,
+          requiredHeaders: item.requiredHeaders,
+          expiresAt: item.expiresAt,
+        };
+        tilesRef.current = next;
+        return next;
+      });
+    },
+    [createTicket, form.gymId],
+  );
 
   // Upload all pending tiles
-  const uploadAll = async (): Promise<string[]> => {
+  const uploadAll = useCallback(async (): Promise<string[]> => {
     const pending = tilesRef.current
       .map((t, i) => ({ t, i }))
       .filter(({ t }) => t.url && t.file && t.state === 'EMPTY');
@@ -380,7 +366,7 @@ const BatchCaptureContent = () => {
     }
     const successKeys: string[] = [];
     setUploading(true);
-    for (const { t, i } of pending) {
+    for (const { i } of pending) {
       setTiles((prev) => {
         const next = [...prev];
         next[i] = {
@@ -460,82 +446,99 @@ const BatchCaptureContent = () => {
     }
     setUploading(false);
     return successKeys;
-  };
+  }, [refreshTicket]);
 
   // Finalize session
-  const finalizeSession = async (storageKeysArg?: string[]) => {
-    const allTiles = tilesRef.current;
-    const candidates = storageKeysArg
-      ? storageKeysArg
-          .map((sk) => {
-            const idx = allTiles.findIndex((t) => t.storageKey === sk);
-            return { t: allTiles[idx], idx };
-          })
-          .filter((c) => c.idx != null && c.idx >= 0 && c.t)
-      : allTiles.map((t, idx) => ({ t, idx })).filter(({ t }) => t.putSucceeded && t.storageKey);
-    const storageKeys = storageKeysArg ?? candidates.map(({ t }) => t.storageKey!);
-    console.log('[FINALIZE]', 'keys', storageKeys.length, storageKeys);
-    if (storageKeys.length === 0) {
-      Toast.show({
-        type: 'info',
-        text1: 'No uploaded photos to finalize yet.',
-      });
-      setPhase('SELECT');
-      return;
-    }
-    try {
-      const res = await finalize({
-        variables: {
-          input: {
-            gymId: Number(form.gymId),
-            equipmentId: Number(form.equipmentId),
-            storageKeys,
-          },
-        },
-      });
-      const payload = res.data?.finalizeGymImagesAdmin;
-      if (!payload) {
-        const msg = res.errors?.[0]?.message ?? 'Failed to finalize images';
-        Toast.show({ type: 'error', text1: msg });
-        setPhase('PREPARED');
+  const finalizeSession = useCallback(
+    async (storageKeysArg?: string[]) => {
+      const allTiles = tilesRef.current;
+      const candidates = storageKeysArg
+        ? storageKeysArg
+            .map((sk) => {
+              const idx = allTiles.findIndex((t) => t.storageKey === sk);
+              return { t: allTiles[idx], idx };
+            })
+            .filter((c) => c.idx != null && c.idx >= 0 && c.t)
+        : allTiles.map((t, idx) => ({ t, idx })).filter(({ t }) => t.putSucceeded && t.storageKey);
+      const storageKeys = storageKeysArg ?? candidates.map(({ t }) => t.storageKey!);
+      console.log('[FINALIZE]', 'keys', storageKeys.length, storageKeys);
+      if (storageKeys.length === 0) {
+        Toast.show({
+          type: 'info',
+          text1: 'No uploaded photos to finalize yet.',
+        });
+        setPhase('SELECT');
         return;
       }
-      if (payload.images.length !== candidates.length) {
-        console.warn(
-          '[FINALIZE] mismatch: returned images',
-          payload.images.length,
-          'candidates',
-          candidates.length,
-        );
+      try {
+        const res = await finalize({
+          variables: {
+            input: {
+              gymId: Number(form.gymId),
+              equipmentId: Number(form.equipmentId),
+              storageKeys,
+            },
+          },
+        });
+        const payload = res.data?.finalizeGymImagesAdmin;
+        if (!payload) {
+          const msg = res.errors?.[0]?.message ?? 'Failed to finalize images';
+          Toast.show({ type: 'error', text1: msg });
+          setPhase('PREPARED');
+          return;
+        }
+        if (payload.images.length !== candidates.length) {
+          console.warn(
+            '[FINALIZE] mismatch: returned images',
+            payload.images.length,
+            'candidates',
+            candidates.length,
+          );
+        }
+        // Map storageKey to index for resilience
+        const keyMap = new Map<string, number>();
+        candidates.forEach(({ t, idx }) => {
+          if (t?.storageKey) keyMap.set(t.storageKey, idx);
+        });
+        const base = tilesRef.current.slice();
+        payload.images.forEach((img: any) => {
+          const dest = img.storageKey ? keyMap.get(img.storageKey) : undefined;
+          if (dest == null) return;
+          base[dest] = {
+            ...base[dest],
+            state: 'FINALIZED',
+            imageId: String(img.id), // GymEquipmentImage.id
+          };
+        });
+        // Write ref first so immediate reads see IDs
+        tilesRef.current = base;
+        setTiles(base);
+        Toast.show({
+          type: 'success',
+          text1: `Queued ${payload.queuedJobs} jobs`,
+        });
+        setPhase('TAGGING');
+      } catch (err) {
+        console.error(err);
+        setPhase('PREPARED');
       }
-      // Map storageKey to index for resilience
-      const keyMap = new Map<string, number>();
-      candidates.forEach(({ t, idx }) => {
-        if (t?.storageKey) keyMap.set(t.storageKey, idx);
-      });
-      const base = tilesRef.current.slice();
-      payload.images.forEach((img: any) => {
-        const dest = img.storageKey ? keyMap.get(img.storageKey) : undefined;
-        if (dest == null) return;
-        base[dest] = {
-          ...base[dest],
-          state: 'FINALIZED',
-          imageId: String(img.id), // GymEquipmentImage.id
-        };
-      });
-      // Write ref first so immediate reads see IDs
-      tilesRef.current = base;
-      setTiles(base);
-      Toast.show({
-        type: 'success',
-        text1: `Queued ${payload.queuedJobs} jobs`,
-      });
-      setPhase('TAGGING');
-    } catch (err) {
+    },
+    [finalize, form.equipmentId, form.gymId],
+  );
+
+  useEffect(() => {
+    if (phase !== 'PREPARED') return;
+    // Now the presigned URLs are in tiles; start the upload chain.
+    (async () => {
+      setPhase('UPLOADING');
+      const keys = await uploadAll();
+      await finalizeSession(keys);
+    })().catch((err) => {
       console.error(err);
       setPhase('PREPARED');
-    }
-  };
+      Toast.show({ type: 'error', text1: 'Upload failed' });
+    });
+  }, [phase, finalizeSession, uploadAll]);
 
   // Remove tile with cleanup
   const removeTile = (index: number) => {

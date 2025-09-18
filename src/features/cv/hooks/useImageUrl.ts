@@ -17,5 +17,3 @@ export function useImageUrl(storageKey: string | null, ttlSec: number) {
     refetch,
   };
 }
-
-export default useImageUrl;

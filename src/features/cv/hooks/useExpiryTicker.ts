@@ -1,9 +1,9 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 
 export function useExpiryTicker(expiresAt?: string | null) {
-  const [remaining, setRemaining] = React.useState(0);
+  const [remaining, setRemaining] = useState(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!expiresAt) {
       setRemaining(0);
       return;
@@ -20,5 +20,3 @@ export function useExpiryTicker(expiresAt?: string | null) {
 
   return remaining;
 }
-
-export default useExpiryTicker;

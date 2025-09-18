@@ -1,5 +1,5 @@
 import { useLazyQuery, useQuery } from '@apollo/client';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 
 import { IMAGE_JOBS, IMAGE_URL_MANY } from '../graphql/queue.graphql';
@@ -98,13 +98,16 @@ export const useImageQueue = (filters: Filters, options?: Options) => {
   const groups = Array.from(groupsMap.values());
 
   // —— Batch-sign unique storageKeys for thumbnails ——————————
-  const skList = Array.from(new Set(groups.map((g) => g.storageKey).filter(Boolean))) as string[];
+  const skList = useMemo(
+    () => Array.from(new Set(groups.map((g) => g.storageKey).filter(Boolean))) as string[],
+    [groups],
+  );
   const [fetchMany, { data: signedData }] = useLazyQuery(IMAGE_URL_MANY, {
     fetchPolicy: 'network-only',
   });
   useEffect(() => {
     if (skList.length) fetchMany({ variables: { keys: skList } });
-  }, [fetchMany, skList.join('|')]);
+  }, [fetchMany, skList]);
 
   const signedMap: Record<string, string> = {};
   (signedData?.imageUrlMany || []).forEach((r: { storageKey: string; url: string }) => {

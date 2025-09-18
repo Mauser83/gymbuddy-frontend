@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 
 import { uploadConfig } from 'src/config/upload';
-import useRecognition from 'src/features/cv/hooks/useRecognition';
+import { useRecognition } from 'src/features/cv/hooks/useRecognition';
 import { useThumbUrls } from 'src/features/cv/hooks/useThumbUrls';
 import EquipmentPickerModal from 'src/features/gyms/components/EquipmentPickerModal';
 import GymPickerModal, {

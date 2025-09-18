@@ -24,8 +24,8 @@ jobs:
       - run: npm ci
       # Run but don't gate merges until you're ready:
       - name: Typecheck
-        run: npm run typecheck || true
+        run: npm run typecheck
       - name: Lint
-        run: npm run lint || true
+        run: npm run lint
       - name: Prettier (check)
-        run: npm run format:check || true
+        run: npm run format:check

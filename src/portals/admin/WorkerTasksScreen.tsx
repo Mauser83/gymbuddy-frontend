@@ -1,5 +1,5 @@
 import { useMutation } from '@apollo/client';
-import React, { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, Platform, Alert } from 'react-native';
 
 import ErrorPanel from 'src/features/worker-tasks/components/ErrorPanel';
@@ -24,7 +24,7 @@ const allTypes: ImageJobType[] = ['hash', 'safety', 'embed'];
 
 function useDebouncedValue<T>(value: T, delay = 300): T {
   const [debounced, setDebounced] = useState(value);
-  React.useEffect(() => {
+  useEffect(() => {
     const handler = setTimeout(() => setDebounced(value), delay);
     return () => clearTimeout(handler);
   }, [value, delay]);
@@ -60,7 +60,7 @@ const WorkerTasksScreen = () => {
   );
 
   // Aggregate occurred errors across all jobs (unique + readable)
-  const occurredErrors = React.useMemo(() => {
+  const occurredErrors = useMemo(() => {
     const set = new Set<string>();
     for (const g of groups) {
       for (const jt of ['hash', 'safety', 'embed'] as const) {
@@ -71,7 +71,7 @@ const WorkerTasksScreen = () => {
     return Array.from(set).join('\n\n');
   }, [groups]);
 
-  const visibleGroups = React.useMemo(
+  const visibleGroups = useMemo(
     () => groups.filter((g) => Object.values(g.jobs).some((j) => j && j.status !== 'succeeded')),
     [groups],
   );
@@ -183,6 +183,19 @@ const WorkerTasksScreen = () => {
             />
           ))}
           <Button text="Done" onPress={() => setStatusModal(false)} />
+        </View>
+      </ModalWrapper>
+      <ModalWrapper visible={typeModal} onClose={() => setTypeModal(false)}>
+        <View style={{ padding: spacing.md }}>
+          {allTypes.map((t) => (
+            <OptionItem
+              key={t}
+              text={t}
+              onPress={() => toggleType(t)}
+              selected={jobType.includes(t)}
+            />
+          ))}
+          <Button text="Done" onPress={() => setTypeModal(false)} />
         </View>
       </ModalWrapper>
     </ScreenLayout>

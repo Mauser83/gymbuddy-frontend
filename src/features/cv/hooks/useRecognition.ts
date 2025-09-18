@@ -134,5 +134,3 @@ export const useRecognition = () => {
     discardRecognition,
   };
 };
-
-export default useRecognition;

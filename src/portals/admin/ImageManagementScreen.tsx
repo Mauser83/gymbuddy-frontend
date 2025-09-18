@@ -110,7 +110,7 @@ const ImageManagementScreen = () => {
   const [safety, setSafety] = useState<(typeof SAFETY_OPTIONS)[number]>('ALL');
   const [flaggedOnly, setFlaggedOnly] = useState(false);
   const [search, setSearch] = useState('');
-  const [limit, setLimit] = useState(50);
+  const limit = 50;
 
   const [selected, setSelected] = useState<Row | null>(null);
   const [rejecting, setRejecting] = useState<Row | null>(null);
@@ -337,6 +337,7 @@ const ImageManagementScreen = () => {
       handleReject,
       handlePromote,
       canPromote,
+      theme.colors.textPrimary,
     ],
   );
 

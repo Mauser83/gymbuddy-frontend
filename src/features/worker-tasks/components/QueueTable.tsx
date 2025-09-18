@@ -14,11 +14,6 @@ type Props = {
   onOpenRaw: (payload: { url: string; storageKey?: string }) => void;
 };
 
-const copy = (text?: string | null) => {
-  if (!text) return;
-  (globalThis as any).navigator?.clipboard?.writeText(text);
-};
-
 const StatusChip = ({ status, text }: { status: ImageQueueItem['status']; text: string }) => {
   const { theme } = useTheme();
   // Prefer theme tokens; fall back to bright colors if not present

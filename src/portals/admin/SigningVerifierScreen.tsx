@@ -1,11 +1,11 @@
 import { Picker } from '@react-native-picker/picker';
 import * as Clipboard from 'expo-clipboard';
-import React from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import Toast from 'react-native-toast-message';
 
-import useExpiryTicker from 'src/features/cv/hooks/useExpiryTicker';
-import useImageUrl from 'src/features/cv/hooks/useImageUrl';
+import { useExpiryTicker } from 'src/features/cv/hooks/useExpiryTicker';
+import { useImageUrl } from 'src/features/cv/hooks/useImageUrl';
 import Button from 'src/shared/components/Button';
 import Card from 'src/shared/components/Card';
 import ErrorMessage from 'src/shared/components/ErrorMessage';
@@ -31,45 +31,47 @@ function formatRemaining(sec: number) {
 
 const SigningVerifierScreen = () => {
   const { theme } = useTheme();
-  const [inputKey, setInputKey] = React.useState('');
-  const [activeKey, setActiveKey] = React.useState<string | null>(null);
-  const [ttlSec, setTtlSec] = React.useState(300);
+  const [inputKey, setInputKey] = useState('');
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [ttlSec, setTtlSec] = useState(300);
   const { url, expiresAt, loading, error, refetch } = useImageUrl(activeKey, ttlSec);
   const remaining = useExpiryTicker(expiresAt);
-  const [status, setStatus] = React.useState<'IDLE' | 'LIVE' | 'EXPIRED' | '403'>('IDLE');
-  const hasRefetched = React.useRef(false);
-  const inputRef = React.useRef<TextInput | null>(null);
+  const [status, setStatus] = useState<'IDLE' | 'LIVE' | 'EXPIRED' | '403'>('IDLE');
+  const hasRefetched = useRef(false);
+  const inputRef = useRef<TextInput | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (expiresAt) {
       setStatus('LIVE');
     }
   }, [expiresAt]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (status === 'LIVE' && remaining <= 0) {
       setStatus('EXPIRED');
     }
   }, [remaining, status]);
-
-  const history = React.useMemo(() => {
+  const [history, setHistory] = useState<string[]>(() => {
     if (!storage) return [];
     try {
       return JSON.parse(storage.getItem(HISTORY_KEY) || '[]') as string[];
     } catch {
       return [];
     }
-  }, [activeKey]);
+  });
 
-  const addHistory = (k: string) => {
+  const addHistory = useCallback((k: string) => {
     if (!storage) return;
-    const arr = [k, ...history.filter((h) => h !== k)].slice(0, 5);
-    storage.setItem(HISTORY_KEY, JSON.stringify(arr));
-  };
+    setHistory((prev) => {
+      const arr = [k, ...prev.filter((h) => h !== k)].slice(0, 5);
+      storage.setItem(HISTORY_KEY, JSON.stringify(arr));
+      return arr;
+    });
+  }, []);
 
   const generate = () => {
     const k = inputKey.trim();
@@ -79,7 +81,7 @@ const SigningVerifierScreen = () => {
     hasRefetched.current = false;
   };
 
-  const handleImageError = async () => {
+  const handleImageError = useCallback(async () => {
     if (!url) return;
     try {
       const res = await fetch(url, { method: 'HEAD' });
@@ -99,21 +101,21 @@ const SigningVerifierScreen = () => {
     } catch {
       setStatus('EXPIRED');
     }
-  };
+  }, [refetch, url]);
 
-  const openInNewTab = () => {
+  const openInNewTab = useCallback(() => {
     if (url) (globalThis as any).open?.(url, '_blank');
-  };
+  }, [url]);
 
-  const copyUrl = async () => {
+  const copyUrl = useCallback(async () => {
     if (url) await Clipboard.setStringAsync(url);
-  };
+  }, [url]);
 
-  const copyKey = async () => {
+  const copyKey = useCallback(async () => {
     if (activeKey) await Clipboard.setStringAsync(activeKey);
-  };
+  }, [activeKey]);
 
-  const reSign = async () => {
+  const reSign = useCallback(async () => {
     hasRefetched.current = false;
     try {
       await refetch();
@@ -122,7 +124,7 @@ const SigningVerifierScreen = () => {
       console.error('Failed to re-sign image URL', error);
       setStatus('EXPIRED');
     }
-  };
+  }, [refetch]);
 
   return (
     <ScreenLayout scroll>

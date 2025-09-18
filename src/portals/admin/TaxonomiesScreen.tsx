@@ -29,7 +29,7 @@ import ScreenLayout from 'src/shared/components/ScreenLayout';
 import SearchInput from 'src/shared/components/SearchInput';
 import Title from 'src/shared/components/Title';
 import { useTheme } from 'src/shared/theme/ThemeProvider';
-import { spacing, fontSizes, fontWeights, borderWidth } from 'src/shared/theme/tokens';
+import { spacing, fontWeights, borderWidth } from 'src/shared/theme/tokens';
 
 const TABS: { key: TaxonomyType; label: string }[] = [
   { key: 'angle', label: 'Angle' },
