@@ -1,0 +1,28 @@
+version: 2
+updates:
+  # npm packages (frontend)
+  - package-ecosystem: 'npm'
+    directory: '/' # package.json at repo root
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '07:00'
+      timezone: 'UTC'
+    open-pull-requests-limit: 5
+    groups: # fewer PRs: batch safe bumps together
+      minor-and-patch:
+        patterns: ['*']
+        update-types: ['minor', 'patch']
+    # Optional: avoid surprise major bumps for core runtime libs
+    ignore:
+      - dependency-name: 'react-native'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'expo'
+        update-types: ['version-update:semver-major']
+
+  # GitHub Actions workflow versions
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+    open-pull-requests-limit: 2
