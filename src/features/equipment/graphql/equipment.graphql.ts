@@ -13,7 +13,6 @@ export const GET_ALL_EQUIPMENTS = gql`
       updatedAt
       images {
         id
-        url
       }
       category {
         id
@@ -45,7 +44,6 @@ export const GET_EQUIPMENT_BY_ID = gql`
       updatedAt
       images {
         id
-        url
       }
       category {
         id

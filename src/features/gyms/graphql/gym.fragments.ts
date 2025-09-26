@@ -34,12 +34,10 @@ export const GYM_FRAGMENT = gql`
         }
         images {
           id
-          url
         }
       }
       images {
         id
-        url
       }
     }
     trainers {

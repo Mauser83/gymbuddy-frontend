@@ -11,8 +11,8 @@ import Animated, {
   scrollTo,
   useAnimatedScrollHandler,
 } from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 import type { SharedValue } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { useNavigate, useLocation } from 'react-router-native';
 import * as Yup from 'yup';
 

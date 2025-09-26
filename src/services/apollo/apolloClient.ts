@@ -1,6 +1,7 @@
 // apolloClient.ts
-import { ApolloClient, InMemoryCache, from } from '@apollo/client';
+import { ApolloClient, from } from '@apollo/client';
 
+import { createCache } from './cache';
 import { createAuthLink } from './links/authLink';
 import { errorLink } from './links/errorLink';
 import { createSplitLink } from './links/splitLink';
@@ -16,12 +17,7 @@ export const createApolloClient = () => {
 
   const client = new ApolloClient({
     link: from([errorLink, createAuthLink(), splitLink]),
-    cache: new InMemoryCache({
-      typePolicies: {
-        Gym: { keyFields: ['id'] },
-        User: { keyFields: ['id'] },
-      },
-    }),
+    cache: createCache(),
     defaultOptions: {
       watchQuery: { fetchPolicy: 'cache-and-network', errorPolicy: 'all' },
       query: { fetchPolicy: 'cache-first', errorPolicy: 'all' },
