@@ -5,9 +5,9 @@ import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  runOnJS,
   LinearTransition,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 type DraggableItem = {
   instanceId: string;
@@ -86,7 +86,7 @@ function DraggableRow({
 
       const clampedIndex = Math.max(0, Math.min(items.length - 1, newIndex));
       if (clampedIndex !== index) {
-        runOnJS(updateOrder)(index, clampedIndex);
+        scheduleOnRN(updateOrder, index, clampedIndex);
       }
 
       translateY.value = 0;

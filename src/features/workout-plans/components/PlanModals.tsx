@@ -12,6 +12,8 @@ import type { ActiveModal } from '../types/modal.types';
 import type { FormValues } from '../types/plan.types';
 import { getNextGlobalOrder } from '../utils/dragAndDrop';
 
+type WritableRef<T> = { current: T };
+
 interface PlanModalsProps {
   activeModal: ActiveModal;
   setActiveModal: React.Dispatch<React.SetStateAction<ActiveModal>>;
@@ -21,7 +23,7 @@ interface PlanModalsProps {
   selectedExerciseIndex: number | null;
   setSelectedExerciseIndex: (index: number | null) => void;
   filteredExercises: any[];
-  pushRef: React.MutableRefObject<(item: any) => void>;
+  pushRef: WritableRef<(item: any) => void>;
   stagedGroupId: number | null;
   setStagedGroupId: (id: number | null) => void;
   createPlanningTargetMetrics: (exerciseId: number) => any[];

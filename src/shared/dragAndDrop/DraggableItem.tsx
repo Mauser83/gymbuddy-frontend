@@ -1,15 +1,15 @@
 import React, { useState, useRef } from 'react';
 import { View, Platform } from 'react-native';
 import type { PointerEvent } from 'react-native';
-import { PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  useAnimatedGestureHandler,
   useSharedValue,
   useAnimatedStyle,
-  runOnJS,
   useDerivedValue,
   useAnimatedReaction,
 } from 'react-native-reanimated';
+import type { SharedValue } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 export type DragData = { type: 'exercise' | 'group'; id: string };
 
@@ -20,12 +20,12 @@ export type DraggableItemProps = {
   onDragStart?: (data: DragData) => void;
   onDragEnd?: () => void;
   onDragMove?: (x: number, y: number, data: DragData) => void;
-  isDraggingShared: Animated.SharedValue<boolean>;
-  draggedItemId: Animated.SharedValue<string | null>;
-  draggedItemType: Animated.SharedValue<'exercise' | 'group' | null>;
-  pointerPositionY: Animated.SharedValue<number>;
+  isDraggingShared: SharedValue<boolean>;
+  draggedItemId: SharedValue<string | null>;
+  draggedItemType: SharedValue<'exercise' | 'group' | null>;
+  pointerPositionY: SharedValue<number>;
   simultaneousHandlers?: any;
-  scrollOffset?: Animated.SharedValue<number>;
+  scrollOffset?: SharedValue<number>;
 };
 
 const NativeDraggableItem: React.FC<DraggableItemProps> = ({
@@ -44,6 +44,8 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
 }) => {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
+  const startX = useSharedValue(0);
+  const startY = useSharedValue(0);
   const startScrollY = useSharedValue(0);
   const isDragging = useSharedValue(false);
   const [layoutSize, setLayoutSize] = useState<{ width: number; height: number }>({
@@ -59,45 +61,50 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
     onDragEnd?.();
   };
 
-  const gestureHandler = useAnimatedGestureHandler<
-    PanGestureHandlerGestureEvent,
-    { startX: number; startY: number; startScrollY: number }
-  >({
-    onBegin: () => {
+  const pan = Gesture.Pan()
+    .onBegin(() => {
+      'worklet';
       isDragging.value = true;
       isDraggingShared.value = true;
       draggedItemId.value = item.id;
       draggedItemType.value = item.type;
       startScrollY.value = scrollOffset?.value ?? 0;
-    },
-    onStart: (_, ctx) => {
+    })
+    .onStart(() => {
+      'worklet';
       isDragging.value = true;
       isDraggingShared.value = true;
-      ctx.startX = translateX.value;
-      ctx.startY = translateY.value;
+      startX.value = translateX.value;
+      startY.value = translateY.value;
       startScrollY.value = scrollOffset?.value ?? 0;
-    },
-    onActive: (event, ctx) => {
+    })
+    .onUpdate((event) => {
+      'worklet';
       const liveScrollOffset = scrollOffset?.value ?? 0;
       const scrollDelta = liveScrollOffset - startScrollY.value;
-      translateX.value = ctx.startX + event.translationX;
-      translateY.value = ctx.startY + event.translationY + scrollDelta;
+      translateX.value = startX.value + event.translationX;
+      translateY.value = startY.value + event.translationY + scrollDelta;
       pointerPositionY.value = event.absoluteY;
       if (onDragMove) {
         onDragMove(event.absoluteX, event.absoluteY, item);
       }
-    },
-    onEnd: (event) => {
-      runOnJS(onDrop)(event.absoluteX, event.absoluteY, item);
+    })
+    .onEnd((event) => {
+      'worklet';
+      scheduleOnRN(onDrop, event.absoluteX, event.absoluteY, item);
       translateX.value = 0;
       translateY.value = 0;
       isDragging.value = false;
       isDraggingShared.value = false;
       draggedItemId.value = null;
       draggedItemType.value = null;
-      runOnJS(handleTouchEnd)();
-    },
-  });
+      scheduleOnRN(handleTouchEnd);
+    });
+
+  if (simultaneousHandlers) {
+    const nativeScroll = Gesture.Native().withRef(simultaneousHandlers);
+    pan.simultaneousWithExternalGesture(nativeScroll);
+  }
 
   const isActive = useDerivedValue(
     () => draggedItemId.value === item.id && draggedItemType.value === item.type,
@@ -120,10 +127,7 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
 
   return (
     <View style={{ width: '100%', height: layoutSize.height > 0 ? layoutSize.height : undefined }}>
-      <PanGestureHandler
-        onGestureEvent={gestureHandler}
-        simultaneousHandlers={simultaneousHandlers}
-      >
+      <GestureDetector gesture={pan}>
         <Animated.View
           onLayout={(e) =>
             setLayoutSize({
@@ -137,7 +141,7 @@ const NativeDraggableItem: React.FC<DraggableItemProps> = ({
         >
           {children}
         </Animated.View>
-      </PanGestureHandler>
+      </GestureDetector>
     </View>
   );
 };
@@ -171,7 +175,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
   useAnimatedReaction(
     () => scrollOffset?.value ?? 0,
     (val) => {
-      runOnJS(setScrollOffsetVal)(val);
+      scheduleOnRN(setScrollOffsetVal, val);
     },
     [scrollOffset],
   );
@@ -179,7 +183,7 @@ const WebDraggableItem: React.FC<DraggableItemProps> = ({
   useAnimatedReaction(
     () => draggedItemId.value === item.id && draggedItemType.value === item.type,
     (val) => {
-      runOnJS(setIsActiveWeb)(val);
+      scheduleOnRN(setIsActiveWeb, val);
     },
     [draggedItemId, draggedItemType],
   );

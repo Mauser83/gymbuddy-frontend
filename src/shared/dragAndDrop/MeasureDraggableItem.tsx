@@ -1,8 +1,11 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
 import { View } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
+import type { SharedValue } from 'react-native-reanimated';
 
 import { DraggableItem, DraggableItemProps, DragData } from './DraggableItem';
+
+type WritableRef<T> = { current: T };
 
 export type Layout = { x: number; y: number; width: number; height: number };
 
@@ -14,13 +17,13 @@ export type MeasuredDraggableItemProps = {
   onDragStart?: DraggableItemProps['onDragStart'];
   onDragEnd?: DraggableItemProps['onDragEnd'];
   onDragMove?: DraggableItemProps['onDragMove'];
-  layoutStore: React.MutableRefObject<Record<string, Layout>>;
-  offsetStore: React.MutableRefObject<Record<string, Animated.SharedValue<number>>>;
-  isDraggingShared: Animated.SharedValue<boolean>;
-  draggedItemId: Animated.SharedValue<string | null>;
-  draggedItemType: Animated.SharedValue<'exercise' | 'group' | null>;
-  pointerPositionY: Animated.SharedValue<number>;
-  scrollOffset: Animated.SharedValue<number>;
+  layoutStore: WritableRef<Record<string, Layout>>;
+  offsetStore: WritableRef<Record<string, SharedValue<number>>>;
+  isDraggingShared: SharedValue<boolean>;
+  draggedItemId: SharedValue<string | null>;
+  draggedItemType: SharedValue<'exercise' | 'group' | null>;
+  pointerPositionY: SharedValue<number>;
+  scrollOffset: SharedValue<number>;
   layoutVersion: number;
   scrollLayoutVersion: number;
   simultaneousHandlers?: any;

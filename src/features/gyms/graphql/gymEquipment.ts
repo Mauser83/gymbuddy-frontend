@@ -9,7 +9,6 @@ export const GET_GYM_EQUIPMENT = gql`
       note
       images {
         id
-        url
       }
       equipment {
         id
@@ -25,7 +24,6 @@ export const GET_GYM_EQUIPMENT = gql`
         }
         images {
           id
-          url
         }
       }
     }
