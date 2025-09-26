@@ -12,12 +12,14 @@ import { spacing } from 'src/shared/theme/tokens';
 import type { ActiveModal } from '../types/modal.types';
 import { FormValues } from '../types/plan.types';
 
+type WritableRef<T> = { current: T };
+
 export type PlanListHeaderProps = {
   isEdit: boolean;
   formik: FormikProps<FormValues>;
   workoutMeta: any;
   setActiveModal: React.Dispatch<React.SetStateAction<ActiveModal>>;
-  groupIdCounterRef: React.MutableRefObject<number>;
+  groupIdCounterRef: WritableRef<number>;
   setStagedGroupId: (id: number | null) => void;
   reorderMode: boolean;
   setReorderMode: React.Dispatch<React.SetStateAction<boolean>>;

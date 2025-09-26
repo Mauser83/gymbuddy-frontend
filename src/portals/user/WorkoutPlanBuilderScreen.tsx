@@ -6,14 +6,17 @@ import { View, Alert, Text, TouchableOpacity, Platform, FlatList } from 'react-n
 import { ScrollView } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
-  runOnJS,
   useAnimatedReaction,
   useAnimatedRef,
   scrollTo,
   useAnimatedScrollHandler,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
+import type { SharedValue } from 'react-native-reanimated';
 import { useNavigate, useLocation } from 'react-router-native';
 import * as Yup from 'yup';
+
+type WritableRef<T> = { current: T };
 
 import DifficultyPickerModal from 'src/features/workout-plans/components/DifficultyPickerModal';
 import MuscleGroupPickerModal from 'src/features/workout-plans/components/MuscleGroupPickerModal';
@@ -179,7 +182,7 @@ export default function WorkoutPlanBuilderScreen() {
 
   const groupLayouts = useRef<Record<number, Layout>>({});
   const exerciseLayouts = useRef<Record<string, Layout>>({});
-  const dragOffsets = useRef<Record<string, Animated.SharedValue<number>>>({});
+  const dragOffsets = useRef<Record<string, SharedValue<number>>>({});
   const exerciseRefs = useRef<Map<string, { measure: () => void } | null>>(new Map());
   const groupRefs = useRef<Map<string, { measure: () => void } | null>>(new Map());
 
@@ -293,7 +296,7 @@ export default function WorkoutPlanBuilderScreen() {
   useAnimatedReaction(
     () => scrollOffsetY.value,
     () => {
-      runOnJS(reMeasureAllItems)();
+      scheduleOnRN(reMeasureAllItems);
     },
     [],
   );
@@ -1367,7 +1370,7 @@ export default function WorkoutPlanBuilderScreen() {
 
           const handleDragMove = (x: number, y: number, data: DragData) => {
             'worklet';
-            runOnJS(updatePreviewOffsets)(x, y, data);
+            scheduleOnRN(updatePreviewOffsets, x, y, data);
           };
 
           const handleDrop = (x: number, y: number, draggedItemData: DragData) => {
@@ -1612,7 +1615,7 @@ export default function WorkoutPlanBuilderScreen() {
                           scrollEventThrottle={16}
                           onLayout={(event) => {
                             scrollViewHeight.value = event.nativeEvent.layout.height;
-                            runOnJS(setScrollViewReady)(true);
+                            scheduleOnRN(setScrollViewReady, true);
                           }}
                           onContentSizeChange={(w, h) => {
                             contentHeight.value = h;
@@ -2231,7 +2234,7 @@ type FormikEffectsProps = {
   values: FormValues;
   workoutMeta: any;
   setFieldValue: (field: string, value: any) => void;
-  valuesRef: React.MutableRefObject<FormValues>;
+  valuesRef: WritableRef<FormValues>;
 };
 
 const FormikEffects = ({ values, workoutMeta, setFieldValue, valuesRef }: FormikEffectsProps) => {
